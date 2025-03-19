@@ -518,7 +518,7 @@
             // Create projectile group
             projectiles = this.physics.add.group();
 
-            // Set up collision between projectiles and enemies
+            // Set up collision between projectiles and enemies (unified handler)
             this.physics.add.collider(projectiles, enemies, projectileHitEnemy, null, this);
 
             // Set up collision between player and enemies
@@ -604,6 +604,18 @@
 
             // Add restart button functionality
             restartButton.on('pointerdown', restartGame, this);
+
+            // Remove the existing controls text if it exists
+            if (this.controlsText) {
+                this.controlsText.destroy();
+            }
+
+            // Create learning feedback text (initially empty)
+            this.learningFeedback = this.add.text(
+                600, 770,
+                '',
+                { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff' }
+            ).setOrigin(0.5);
         }
 
         function update(time, delta) {
@@ -650,10 +662,6 @@
             // Update enemies to follow player
             enemies.getChildren().forEach(enemy => {
                 this.physics.moveToObject(enemy, player, enemy.speed);
-
-                // Rotate enemy words slightly based on movement
-                const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
-                enemy.rotation = angle + Math.PI / 2;
             });
 
             // Keep shield visual positioned on player
@@ -891,64 +899,23 @@
             projectile.damage = playerDamage;
         }
 
+        // Unified projectile hit enemy function
         function projectileHitEnemy(projectile, enemy) {
-            // Skip if this is an orbiting projectile (they have their own collision handler)
-            if (projectile.isOrbiting) {
-                orbitingProjectileHitEnemy.call(this, projectile, enemy);
-                return;
-            }
+            // Skip if projectile is already destroyed
+            if (!projectile.active || !enemy.active) return;
 
-            // Remove the projectile
-            projectile.destroy();
-
-            // Reduce enemy health by player damage
+            // Apply damage to enemy
             enemy.health -= projectile.damage;
 
             // Apply slow effect if it's a slow shot
             if (projectile.isSlowShot) {
                 // Slow the enemy by half
-                enemy.speed = enemy.speed / 2;
+                enemy.speed = Math.max(10, enemy.speed * 0.5);
 
                 // Add visual indication of slowed enemy
                 enemy.setColor('#00ffff'); // Cyan color for slowed enemies
-            }
 
-            // Only destroy enemy if health is 0 or below
-            if (enemy.health <= 0) {
-                enemy.destroy();
-
-                // Increment score
-                score++;
-
-                // Add experience
-                heroExp++;
-
-                // Update exp bar
-                updateExpBar();
-            } else {
-                // Flash the enemy when hit but not destroyed
-                this.tweens.add({
-                    targets: enemy,
-                    alpha: 0.3,
-                    duration: 50,
-                    yoyo: true,
-                    repeat: 1
-                });
-            }
-        }
-
-        function orbitingProjectileHitEnemy(projectile, enemy) {
-            // Skip if projectile is already destroyed
-            if (!projectile.active) return;
-
-            // Apply slow effect if it's a slow shot
-            if (projectile.isSlowShot) {
-                enemy.speed = Math.max(10, enemy.speed * 0.5);
-
-                // Visual indicator for slowed enemy
-                enemy.setColor('#00ffff');
-
-                // Reset color after a while
+                // For longer slow duration, you could add a timer to reset color
                 this.time.delayedCall(2000, function () {
                     if (enemy && enemy.active) {
                         enemy.setColor('#ff5555');
@@ -956,11 +923,23 @@
                 });
             }
 
-            // Reduce enemy health by player damage
-            enemy.health -= projectile.damage;
-
             // Only destroy enemy if health is 0 or below
             if (enemy.health <= 0) {
+                // Display kanji information in the learning feedback area
+                if (this.learningFeedback) {
+                    this.learningFeedback.setText(
+                        `Defeated ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
+                    );
+
+                    // Flash or highlight the text to draw attention
+                    this.tweens.add({
+                        targets: this.learningFeedback,
+                        alpha: { from: 0.5, to: 1 },
+                        duration: 300,
+                        ease: 'Cubic.out'
+                    });
+                }
+
                 enemy.destroy();
 
                 // Increment score
@@ -982,14 +961,17 @@
                 });
             }
 
+            // Handle projectile destruction
+            if (projectile.isOrbiting) {
+                // Remove from orbiting projectiles array
+                const index = orbitingProjectiles.indexOf(projectile);
+                if (index !== -1) {
+                    orbitingProjectiles.splice(index, 1);
+                }
+            }
+
             // Remove the projectile
             projectile.destroy();
-
-            // Remove from orbiting projectiles array
-            const index = orbitingProjectiles.indexOf(projectile);
-            if (index !== -1) {
-                orbitingProjectiles.splice(index, 1);
-            }
         }
 
         function playerHitEnemy(player, enemy) {
@@ -1530,7 +1512,7 @@
 
             // Reset UI
             heroLevelText.setText('Hero Level: 1');
-            player.setFontSize(18);
+            player.setFontSize(32);
             healthBar.width = 200;
             healthBar.x = 600;
             healthBar.fillColor = 0x00ff00;

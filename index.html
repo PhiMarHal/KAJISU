@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Survivors</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
+    <script src="bestiary.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-family: Arial, sans-serif;
+            touch-action: none;
+            overflow: hidden;
+            /* Prevent scrollbars */
+        }
+
+        #game-container {
+            width: 1200px;
+            height: 800px;
+            position: relative;
+            margin: 0 auto;
+            /* Center horizontally */
+        }
+
+        #game-ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 5px;
+            z-index: 10;
+            pointer-events: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="game-ui">
+            <div id="level">Time Survived: 00:00:00</div>
+            <div id="kills">Enemies killed: 0</div>
+        </div>
+    </div>
+
+    <script>
+        // Game configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: 1200,
+            height: 800,
+            parent: 'game-container',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        // Game variables
+        let player;
+        let enemies;
+        let projectiles;
+        let cursors;
+        let wasdKeys;
+        let keyboardLayout = 'qwerty'; // Default to QWERTY
+
+        // Initial player stats
+        let basePlayerHealth = 4;
+        let baseMaxHealth = 4;
+        let basePlayerSpeed = 4;
+        let basePlayerDamage = 4;
+        let baseShootingDelay = 250;
+        let baseShootingRateMultiplier = 1.0;
+        let baseHeroExpToLevel = 5;
+        let playerHealth = basePlayerHealth;
+        let maxPlayerHealth = baseMaxHealth;
+        let playerSpeed = basePlayerSpeed;
+        let playerDamage = basePlayerDamage;
+        let shootingDelay = baseShootingDelay; // ms between shots
+        let shootingRateMultiplier = baseShootingRateMultiplier; // Multiplier for shooting rate
+        let projectileSize = basePlayerDamage * 4; // Calculate projectile size based on damage
+        let healthBar;
+        let healthBarBg;
+        let healthText;
+        let expBar;
+        let expBarBg;
+        let expText;
+        let playerStatsText;
+        let score = 0;
+        let level = 1;
+        let touchInput = { x: 0, y: 0, isActive: false };
+        let gameOver = false;
+        let gameOverText;
+        let restartButton;
+        let killCountText;
+        let enemyDamage = 1;
+        let playerInvincible = false;
+
+        // Track elapsed time
+        let elapsedTime = 0; // in seconds
+
+        // Game timers
+        let enemySpawner = null;
+        let projectileFirer = null;
+
+        // Difficulty scaling factors
+        let enemyHealthScaleFactor = 1.0;
+        let enemyCountScaleFactor = 1.25;
+        let gameStartTime = 0;
+        let baseEnemyHealth = 40;
+        let currentEnemyHealth = 40;
+        let baseSpawnDelay = 1000; // 1 second between spawns initially
+
+        // Hero experience system
+        let playerLevel = 1;
+        let heroExp = 0;
+        let heroExpToLevel = 5;
+        let heroLevelText;
+        let levelUpCards = [];
+        let gamePaused = false;
+
+        // Helper function to calculate XP needed for next level
+        function xpForNextLevel(heroLevel) {
+            return Math.ceil(baseHeroExpToLevel * Math.pow(1.2, heroLevel - 1));
+        }
+
+        // Format time to hh:mm:ss
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Perk system constants
+        const PERK_SPEED_BOOST = 1;
+        const PERK_DAMAGE_INCREASE = 2;
+        const PERK_SHIELD = 3;
+        const PERK_DOUBLE_SHOT = 4;
+        const PERK_SLOW_SHOT = 5;
+        const PERK_ORBIT_SHOT = 6;
+        const PERK_HEALTH = 7;
+        const PERK_FIRE_RATE = 8;
+
+        // Perk system variables
+        let playerPerks = {};
+        let shieldVisual = null;
+        let shieldCooldownTimer = null;
+        let shieldActive = false;
+        let orbitingProjectiles = [];
+        let orbitingProjectileTimer = null;
+
+        // Define all perks in a central registry
+        const perkRegistry = {
+            [PERK_SPEED_BOOST]: {
+                name: 'SPEED',
+                description: level => `+1 Speed\nCurrent: ${playerSpeed}`,
+                color: '#55ff55',
+                hoverColor: 0x226622,
+                onAcquire(scene, level) {
+                    playerSpeed += 1;
+                },
+                onReset() {
+                    playerSpeed = basePlayerSpeed;
+                }
+            },
+            [PERK_DAMAGE_INCREASE]: {
+                name: 'DAMAGE',
+                description: level => `+1 Damage\nCurrent: ${playerDamage}`,
+                color: '#ff5555',
+                hoverColor: 0x662222,
+                onAcquire(scene, level) {
+                    playerDamage += 1;
+                    projectileSize = playerDamage * 4; // Update projectile size
+                },
+                onReset() {
+                    playerDamage = basePlayerDamage;
+                    projectileSize = playerDamage * 4;
+                }
+            },
+            [PERK_SHIELD]: {
+                name: 'SHIELD',
+                description: level => {
+                    if (level === 0) {
+                        return `Unlock Shield\nProtects from one hit\nCooldown: 16s`;
+                    } else {
+                        return `Reduce Shield Cooldown\nCurrent: ${this.getShieldCooldown(level).toFixed(1)}s`;
+                    }
+                },
+                color: '#3498db',
+                hoverColor: 0x3498db,
+                onAcquire(scene, level) {
+                    if (level === 1) {
+                        // First time selecting shield - activate it
+                        shieldActive = true;
+                        if (shieldVisual) {
+                            shieldVisual.setVisible(true);
+
+                            // Add a visual effect when shield is first activated
+                            scene.tweens.add({
+                                targets: shieldVisual,
+                                scale: { from: 0.5, to: 1 },
+                                alpha: { from: 0.8, to: 0.4 },
+                                duration: 500,
+                                ease: 'Cubic.out'
+                            });
+                        }
+                    } else if (level > 1) {
+                        // If shield is not active and not on cooldown, activate it
+                        if (!shieldActive && !shieldCooldownTimer) {
+                            shieldActive = true;
+                            if (shieldVisual) {
+                                shieldVisual.setVisible(true);
+                            }
+                        }
+                    }
+                },
+                onReset() {
+                    if (shieldVisual) {
+                        shieldVisual.setVisible(false);
+                    }
+                    shieldActive = false;
+                    if (shieldCooldownTimer) {
+                        shieldCooldownTimer.remove();
+                        shieldCooldownTimer = null;
+                    }
+                },
+                getShieldCooldown(level) {
+                    return 16 * Math.pow(0.85, level - 1) * 1000; // Convert to milliseconds
+                }
+            },
+            [PERK_DOUBLE_SHOT]: {
+                name: 'DOUBLE SHOT',
+                description: level => {
+                    if (level === 0) {
+                        return `Unlock Double Shot\nInitial chance: 5%`;
+                    } else {
+                        return `Improve Double Shot\nCurrent: ${this.getDoubleShotChance(level).toFixed(1)}%`;
+                    }
+                },
+                color: '#ff99cc',
+                hoverColor: 0xff99cc,
+                onAcquire(scene, level) {
+                    // Double shot chance is calculated based on level
+                },
+                onReset() {
+                    // No state to reset as chance is calculated based on level
+                },
+                getDoubleShotChance(level) {
+                    if (level === 0) return 0;
+                    // Start at 5% and increase by removing 5% of the remaining "not to happen" chance per level
+                    return (1 - Math.pow(0.95, level)) * 100;
+                }
+            },
+            [PERK_SLOW_SHOT]: {
+                name: 'SLOW SHOT',
+                description: level => {
+                    if (level === 0) {
+                        return `Unlock Slow Shot\nInitial chance: 5%`;
+                    } else {
+                        return `Improve Slow Shot\nCurrent: ${this.getSlowShotChance(level).toFixed(1)}%`;
+                    }
+                },
+                color: '#66cccc',
+                hoverColor: 0x66cccc,
+                onAcquire(scene, level) {
+                    // Slow shot chance is calculated based on level
+                },
+                onReset() {
+                    // No state to reset as chance is calculated based on level
+                },
+                getSlowShotChance(level) {
+                    if (level === 0) return 0;
+                    // Start at 5% and increase by removing 5% of the remaining "not to happen" chance per level
+                    return (1 - Math.pow(0.95, level)) * 100;
+                }
+            },
+            [PERK_ORBIT_SHOT]: {
+                name: 'ORBIT SHOT',
+                description: level => {
+                    if (level === 0) {
+                        return `Unlock Orbiting Projectile\nSpawns every 4s`;
+                    } else {
+                        return `Improve Orbit Shot\nCooldown: ${this.getOrbitShotCooldown(level).toFixed(1)}s`;
+                    }
+                },
+                color: '#ff9900',
+                hoverColor: 0xff9900,
+                onAcquire(scene, level) {
+                    if (level === 1) {
+                        // First time selecting orbit shot - spawn immediately and start the timer
+                        spawnOrbitingProjectile.call(scene);
+                        startOrbitingProjectileTimer(scene);
+                    } else if (level > 1) {
+                        // For level ups, restart the timer with the new cooldown
+                        if (orbitingProjectileTimer) {
+                            orbitingProjectileTimer.remove();
+                        }
+                        startOrbitingProjectileTimer(scene);
+                    }
+                },
+                onReset() {
+                    // Clear all orbiting projectiles
+                    orbitingProjectiles.forEach(proj => {
+                        if (proj && proj.active) {
+                            proj.destroy();
+                        }
+                    });
+                    orbitingProjectiles = [];
+
+                    // Clear the timer
+                    if (orbitingProjectileTimer) {
+                        orbitingProjectileTimer.remove();
+                        orbitingProjectileTimer = null;
+                    }
+                },
+                getOrbitShotCooldown(level) {
+                    return 4 * Math.pow(0.9, level - 1) * 1000; // Convert to milliseconds
+                }
+            },
+            [PERK_HEALTH]: {
+                name: 'MAX HEALTH',
+                description: level => `+1 Max Health\nCurrent: ${maxPlayerHealth}`,
+                color: '#5555ff',
+                hoverColor: 0x222266,
+                onAcquire(scene, level) {
+                    maxPlayerHealth += 1;
+                    playerHealth += 1;
+                },
+                onReset() {
+                    maxPlayerHealth = baseMaxHealth;
+                }
+            },
+            [PERK_FIRE_RATE]: {
+                name: 'FIRE RATE',
+                description: level => `+0.25x Fire Rate\nCurrent: ${shootingRateMultiplier.toFixed(1)}x`,
+                color: '#ffff55',
+                hoverColor: 0x666622,
+                onAcquire(scene, level) {
+                    shootingRateMultiplier += 0.25;
+                    // Update the projectile timer with new rate
+                    if (scene.projectileFirer) {
+                        const newDelay = shootingDelay / shootingRateMultiplier;
+                        projectileFirer.delay = newDelay;
+                        projectileFirer.reset({
+                            delay: newDelay,
+                            callback: fireProjectile,
+                            callbackScope: scene,
+                            loop: true
+                        });
+                    }
+                },
+                onReset() {
+                    shootingRateMultiplier = baseShootingRateMultiplier;
+                }
+            }
+        };
+
+        // Perk system helper functions
+        function initializePerks() {
+            playerPerks = {};
+        }
+
+        function acquirePerk(scene, perkId) {
+            // Get the perk definition
+            const perk = perkRegistry[perkId];
+            if (!perk) return false;
+
+            // Check if player already has this perk
+            if (playerPerks[perkId]) {
+                // Already has perk
+                playerPerks[perkId]++;
+                perk.onAcquire(scene, playerPerks[perkId]);
+                return true;
+            } else {
+                // New perk, set to level 1
+                playerPerks[perkId] = 1;
+                perk.onAcquire(scene, 1);
+                return true;
+            }
+        }
+
+        function resetAllPerks() {
+            // Call onReset for all perks that were acquired
+            for (const perkId in playerPerks) {
+                if (perkRegistry[perkId] && perkRegistry[perkId].onReset) {
+                    perkRegistry[perkId].onReset();
+                }
+            }
+            // Reset the perks object
+            playerPerks = {};
+        }
+
+        function hasPerk(perkId) {
+            return playerPerks[perkId] !== undefined && playerPerks[perkId] > 0;
+        }
+
+        function getPerkLevel(perkId) {
+            return playerPerks[perkId] || 0;
+        }
+
+        // Perk-specific helper functions
+        function getDoubleShotChance() {
+            const level = getPerkLevel(PERK_DOUBLE_SHOT);
+            if (level === 0) return 0;
+            return perkRegistry[PERK_DOUBLE_SHOT].getDoubleShotChance(level);
+        }
+
+        function getSlowShotChance() {
+            const level = getPerkLevel(PERK_SLOW_SHOT);
+            if (level === 0) return 0;
+            return perkRegistry[PERK_SLOW_SHOT].getSlowShotChance(level);
+        }
+
+        function getShieldCooldown() {
+            const level = getPerkLevel(PERK_SHIELD);
+            if (level === 0) return 16 * 1000; // Default 16 seconds
+            return perkRegistry[PERK_SHIELD].getShieldCooldown(level);
+        }
+
+        function getOrbitShotCooldown() {
+            const level = getPerkLevel(PERK_ORBIT_SHOT);
+            if (level === 0) return 4 * 1000; // Default 4 seconds
+            return perkRegistry[PERK_ORBIT_SHOT].getOrbitShotCooldown(level);
+        }
+
+        // Create the game instance
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            // No image assets to preload
+        }
+
+        function create() {
+            // Initialize perk system first
+            initializePerks();
+
+            // Record game start time for difficulty scaling
+            gameStartTime = this.time.now;
+
+            // Detect keyboard layout
+            detectKeyboardLayout.call(this);
+
+            // Create player text - using kanji character
+            player = this.add.text(600, 400, HERO_CHARACTER, {
+                fontFamily: 'Arial',
+                fontSize: '32px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Store all language and educational properties
+            player.hiragana = HERO_HIRAGANA;
+            player.romaji = HERO_ROMAJI;
+            player.english = HERO_ENGLISH;
+
+            // Add physics to player
+            this.physics.world.enable(player);
+            player.body.setCollideWorldBounds(true);
+
+            // Create health bar background
+            healthBarBg = this.add.rectangle(600, 25, 200, 10, 0x333333);
+
+            // Create health bar
+            healthBar = this.add.rectangle(600, 25, 200, 10, 0x00ff00);
+
+            // Create exp bar background
+            expBarBg = this.add.rectangle(600, 40, 200, 5, 0x333333);
+
+            // Create exp bar
+            expBar = this.add.rectangle(600, 40, 0, 5, 0x00ffff);
+
+            // Create health text
+            healthText = this.add.text(
+                600, 15,
+                `Health: ${playerHealth}/${maxPlayerHealth}`,
+                { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }
+            ).setOrigin(0.5);
+
+            // Create exp text
+            expText = this.add.text(
+                600, 50,
+                `XP: ${heroExp}/${heroExpToLevel}`,
+                { fontFamily: 'Arial', fontSize: '12px', color: '#00ffff' }
+            ).setOrigin(0.5);
+
+            // Create player stats text
+            playerStatsText = this.add.text(
+                10, 100,
+                `Speed: ${playerSpeed}\nDamage: ${playerDamage}\nFire Rate: 1.0x`,
+                { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }
+            );
+
+            // Create shield visual (initially invisible)
+            shieldVisual = this.add.circle(player.x, player.y, 30, 0x3498db, 0.4);
+            shieldVisual.setStrokeStyle(3, 0x0088ff);
+            shieldVisual.setVisible(false);
+
+            // Create enemy group
+            enemies = this.physics.add.group();
+
+            // Create projectile group
+            projectiles = this.physics.add.group();
+
+            // Set up collision between projectiles and enemies
+            this.physics.add.collider(projectiles, enemies, projectileHitEnemy, null, this);
+
+            // Set up collision between player and enemies
+            this.physics.add.overlap(player, enemies, playerHitEnemy, null, this);
+
+            // Set up cursor keys for movement
+            cursors = this.input.keyboard.createCursorKeys();
+
+            // Set up WASD keys for movement based on detected layout
+            updateWASDKeys.call(this);
+
+            // Set up touch controls
+            this.input.on('pointerdown', (pointer) => {
+                touchInput.isActive = true;
+                touchInput.x = pointer.x;
+                touchInput.y = pointer.y;
+            });
+
+            this.input.on('pointermove', (pointer) => {
+                if (touchInput.isActive) {
+                    touchInput.x = pointer.x;
+                    touchInput.y = pointer.y;
+                }
+            });
+
+            this.input.on('pointerup', () => {
+                touchInput.isActive = false;
+            });
+
+            // Timer for spawning enemies
+            enemySpawner = this.time.addEvent({
+                delay: baseSpawnDelay,
+                callback: spawnEnemy,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Auto-fire timer
+            projectileFirer = this.time.addEvent({
+                delay: shootingDelay / shootingRateMultiplier,
+                callback: fireProjectile,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Controls info
+            this.controlsText = this.add.text(
+                600, 770,
+                'Controls: Arrow Keys or Touch/Click to move',
+                { fontFamily: 'Arial', fontSize: '12px', color: '#cccccc' }
+            ).setOrigin(0.5);
+
+            // Update controls text based on detected keyboard layout
+            updateControlsText.call(this);
+
+            // Kill count text (on-screen)
+            killCountText = this.add.text(
+                600, 65,
+                'Enemies killed: 0',
+                { fontFamily: 'Arial', fontSize: '14px', color: '#ffffff' }
+            ).setOrigin(0.5);
+
+            // Hero level text
+            heroLevelText = this.add.text(
+                600, 85,
+                'Hero Level: 1',
+                { fontFamily: 'Arial', fontSize: '14px', color: '#00ffff' }
+            ).setOrigin(0.5);
+
+            // Create the game over screen (hidden initially)
+            gameOverText = this.add.text(
+                600, 400,
+                'GAME OVER',
+                { fontFamily: 'Arial', fontSize: '40px', color: '#ff0000', fontStyle: 'bold' }
+            ).setOrigin(0.5).setVisible(false);
+
+            // Create restart button (hidden initially)
+            restartButton = this.add.text(
+                600, 600,
+                'PLAY AGAIN',
+                { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', backgroundColor: '#880000', padding: { left: 15, right: 15, top: 10, bottom: 10 } }
+            ).setOrigin(0.5).setVisible(false).setInteractive();
+
+            // Add restart button functionality
+            restartButton.on('pointerdown', restartGame, this);
+        }
+
+        function update(time, delta) {
+            if (gameOver) return;
+            if (gamePaused) return; // Skip updates when game is paused for level up
+
+            // Increment elapsed time
+            elapsedTime += delta / 1000; // delta is in milliseconds
+
+            // Update the level display to show time survived
+            const levelDisplay = document.getElementById('level');
+            levelDisplay.innerText = `Time Survived: ${formatTime(elapsedTime)}`;
+
+            // Player movement with keyboard
+            player.body.setVelocity(0);
+
+            if (cursors.left.isDown || wasdKeys.left.isDown) {
+                player.body.setVelocityX(-playerSpeed * 50);
+            } else if (cursors.right.isDown || wasdKeys.right.isDown) {
+                player.body.setVelocityX(playerSpeed * 50);
+            }
+
+            if (cursors.up.isDown || wasdKeys.up.isDown) {
+                player.body.setVelocityY(-playerSpeed * 50);
+            } else if (cursors.down.isDown || wasdKeys.down.isDown) {
+                player.body.setVelocityY(playerSpeed * 50);
+            }
+
+            // Player movement with touch
+            if (touchInput.isActive) {
+                // Calculate direction vector
+                const dx = touchInput.x - player.x;
+                const dy = touchInput.y - player.y;
+
+                // Normalize and scale
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 5) {  // Add a small threshold to prevent jitter
+                    player.body.setVelocityX((dx / distance) * playerSpeed * 50);
+                    player.body.setVelocityY((dy / distance) * playerSpeed * 50);
+                }
+            }
+
+            // Update enemies to follow player
+            enemies.getChildren().forEach(enemy => {
+                this.physics.moveToObject(enemy, player, enemy.speed);
+
+                // Rotate enemy words slightly based on movement
+                const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
+                enemy.rotation = angle + Math.PI / 2;
+            });
+
+            // Keep shield visual positioned on player
+            if (shieldVisual) {
+                shieldVisual.x = player.x;
+                shieldVisual.y = player.y;
+            }
+
+            // Update orbiting projectiles
+            orbitingProjectiles.forEach(projectile => {
+                if (projectile && projectile.active) {
+                    updateOrbitingProjectile(projectile, player);
+                }
+            });
+
+            // Update projectiles (destroy if out of bounds)
+            projectiles.getChildren().forEach(projectile => {
+                if (projectile.y < -50 || projectile.y > 850 ||
+                    projectile.x < -50 || projectile.x > 1250) {
+                    projectile.destroy();
+                }
+            });
+
+            // Update health bar
+            updateHealthBar();
+
+            // Update UI
+            document.getElementById('kills').textContent = `Enemies killed: ${score}`;
+
+            // Update in-game kill count
+            killCountText.setText(`Enemies killed: ${score}`);
+
+            // Update health and exp text
+            healthText.setText(`Health: ${Math.ceil(playerHealth)}/${maxPlayerHealth}`);
+            expText.setText(`XP: ${heroExp}/${heroExpToLevel}`);
+
+            // Calculate difficulty scaling based on time
+            const minutesElapsed = (time - gameStartTime) / 60000;
+
+            // Update spawn rate based on time
+            const newSpawnDelay = baseSpawnDelay / Math.pow(enemyCountScaleFactor, minutesElapsed);
+            const currentDelay = enemySpawner ? enemySpawner.delay : baseSpawnDelay;
+
+            if (Math.abs(currentDelay - newSpawnDelay) > 5) {
+                const safeDelay = Math.max(200, newSpawnDelay); // Minimum 200ms delay
+
+                // Update the spawn timer
+                if (enemySpawner) {
+                    enemySpawner.remove();
+                }
+
+                enemySpawner = this.time.addEvent({
+                    delay: safeDelay,
+                    callback: spawnEnemy,
+                    callbackScope: this,
+                    loop: true
+                });
+            }
+
+            // Update current enemy health based on time (optional scaling)
+            currentEnemyHealth = baseEnemyHealth * Math.pow(enemyHealthScaleFactor, minutesElapsed);
+
+            // Update player stats text
+            updatePlayerStatsText();
+
+            // Update player level
+            if (heroExp >= heroExpToLevel) {
+                levelUp.call(this);
+            }
+        }
+
+        function updateHealthBar() {
+            const healthPercentage = playerHealth / maxPlayerHealth;
+            healthBar.width = healthPercentage * 200;
+            healthBar.x = 500 + (healthBar.width / 2);
+        }
+
+        function updateExpBar() {
+            const expPercentage = heroExp / heroExpToLevel;
+            expBar.width = expPercentage * 200;
+            expBar.x = 500 + (expBar.width / 2);
+            expText.setText(`XP: ${heroExp}/${heroExpToLevel}`);
+        }
+
+        function levelUp() {
+            playerLevel++; // Level up
+            heroExpToLevel = xpForNextLevel(playerLevel); // Update XP needed for the next level
+            heroExp = 0; // Reset XP
+            playerHealth = maxPlayerHealth; // Restore health to full
+            heroLevelText.setText(`Hero Level: ${playerLevel}`);
+            showLevelUpCards.call(this);
+        }
+
+        function updatePlayerStatsText() {
+            // Build the stats text based on unlocked perks
+            let statsText = `Speed: ${playerSpeed}\nDamage: ${playerDamage}\nFire Rate: ${shootingRateMultiplier.toFixed(1)}x`;
+
+            // Add shield info if unlocked
+            if (hasPerk(PERK_SHIELD)) {
+                statsText += `\nShield CD: ${(getShieldCooldown() / 1000).toFixed(1)}s`;
+            }
+
+            // Add double shot info if unlocked
+            if (hasPerk(PERK_DOUBLE_SHOT)) {
+                statsText += `\nDouble: ${getDoubleShotChance().toFixed(1)}%`;
+            }
+
+            // Add slow shot info if unlocked
+            if (hasPerk(PERK_SLOW_SHOT)) {
+                statsText += `\nSlow: ${getSlowShotChance().toFixed(1)}%`;
+            }
+
+            // Add orbit shot info if unlocked
+            if (hasPerk(PERK_ORBIT_SHOT)) {
+                statsText += `\nOrbit Shot CD: ${(getOrbitShotCooldown() / 1000).toFixed(1)}s`;
+            }
+
+            // Update the text
+            playerStatsText.setText(statsText);
+        }
+
+        function spawnEnemy() {
+            if (gameOver) return;
+
+            // Choose a random enemy type
+            const enemyType = getRandomEnemyType();
+
+            // Get the enemy data with defaults applied
+            const enemyData = getEnemyData(enemyType);
+
+            // Choose a random spawn position outside the screen
+            let x, y;
+            if (Math.random() < 0.5) {
+                // Spawn on left or right side
+                x = Math.random() < 0.5 ? -50 : 1250;
+                y = Phaser.Math.Between(50, 750);
+            } else {
+                // Spawn on top or bottom
+                x = Phaser.Math.Between(50, 1150);
+                y = Math.random() < 0.5 ? -50 : 850;
+            }
+
+            // Create the enemy with data-driven properties
+            const enemy = this.add.text(x, y, enemyType, {
+                fontFamily: 'Arial',
+                fontSize: `${enemyData.size}px`,
+                color: enemyData.color,
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Add to physics group
+            enemies.add(enemy);
+
+            // Set enemy properties
+            enemy.body.setSize(enemy.width, enemy.height);
+            enemy.body.setCollideWorldBounds(false);
+
+            // Set enemy health based on data and current scaling
+            enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
+
+            // Set enemy speed based on data
+            enemy.speed = Phaser.Math.Between(enemyData.speedMin, enemyData.speedMax);
+
+            // Store additional properties from data
+            enemy.damage = enemyData.damage;
+            enemy.rank = enemyData.rank;
+            enemy.expValue = enemyData.expValue || 1;
+
+            // Store all language and educational properties
+            enemy.hiragana = enemyData.hiragana;
+            enemy.romaji = enemyData.romaji;
+            enemy.english = enemyData.english;
+        }
+
+        function fireProjectile() {
+            if (gameOver) return;
+
+            // Find the closest enemy within 400px
+            let closestEnemy = null;
+            let closestDistance = 400;
+
+            enemies.getChildren().forEach(enemy => {
+                const distance = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestEnemy = enemy;
+                }
+            });
+
+            if (closestEnemy) {
+                // Calculate direction to the enemy
+                const angle = Phaser.Math.Angle.Between(player.x, player.y, closestEnemy.x, closestEnemy.y);
+
+                // Create the main projectile
+                createSingleProjectile.call(this, angle);
+
+                // Check for double shot chance
+                if (Math.random() < getDoubleShotChance() / 100) {
+                    // Fire a second projectile with slight angle variation
+                    const angleVariation = (Math.random() - 0.5) * 0.3; // Small random angle variation
+                    createSingleProjectile.call(this, angle + angleVariation);
+                }
+            }
+        }
+
+        function createSingleProjectile(angle) {
+            // Create a projectile
+            const projectile = this.add.text(player.x, player.y, '*', {
+                fontFamily: 'Arial',
+                fontSize: `${projectileSize}px`,
+                color: '#ffff00',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Add to physics group
+            projectiles.add(projectile);
+
+            // Set projectile properties
+            projectile.body.setSize(projectile.width, projectile.height);
+
+            // Set projectile velocity based on angle
+            const speed = 400;
+            projectile.body.setVelocity(
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed
+            );
+
+            // Check for slow shot chance
+            projectile.isSlowShot = Math.random() < getSlowShotChance() / 100;
+            if (projectile.isSlowShot) {
+                projectile.setColor('#00ffff'); // Cyan color for slow shots
+            }
+
+            // Set damage value
+            projectile.damage = playerDamage;
+        }
+
+        function projectileHitEnemy(projectile, enemy) {
+            // Skip if this is an orbiting projectile (they have their own collision handler)
+            if (projectile.isOrbiting) {
+                orbitingProjectileHitEnemy.call(this, projectile, enemy);
+                return;
+            }
+
+            // Remove the projectile
+            projectile.destroy();
+
+            // Reduce enemy health by player damage
+            enemy.health -= projectile.damage;
+
+            // Apply slow effect if it's a slow shot
+            if (projectile.isSlowShot) {
+                // Slow the enemy by half
+                enemy.speed = enemy.speed / 2;
+
+                // Add visual indication of slowed enemy
+                enemy.setColor('#00ffff'); // Cyan color for slowed enemies
+            }
+
+            // Only destroy enemy if health is 0 or below
+            if (enemy.health <= 0) {
+                enemy.destroy();
+
+                // Increment score
+                score++;
+
+                // Add experience
+                heroExp++;
+
+                // Update exp bar
+                updateExpBar();
+            } else {
+                // Flash the enemy when hit but not destroyed
+                this.tweens.add({
+                    targets: enemy,
+                    alpha: 0.3,
+                    duration: 50,
+                    yoyo: true,
+                    repeat: 1
+                });
+            }
+        }
+
+        function orbitingProjectileHitEnemy(projectile, enemy) {
+            // Skip if projectile is already destroyed
+            if (!projectile.active) return;
+
+            // Apply slow effect if it's a slow shot
+            if (projectile.isSlowShot) {
+                enemy.speed = Math.max(10, enemy.speed * 0.5);
+
+                // Visual indicator for slowed enemy
+                enemy.setColor('#00ffff');
+
+                // Reset color after a while
+                this.time.delayedCall(2000, function () {
+                    if (enemy && enemy.active) {
+                        enemy.setColor('#ff5555');
+                    }
+                });
+            }
+
+            // Reduce enemy health by player damage
+            enemy.health -= projectile.damage;
+
+            // Only destroy enemy if health is 0 or below
+            if (enemy.health <= 0) {
+                enemy.destroy();
+
+                // Increment score
+                score++;
+
+                // Add experience
+                heroExp++;
+
+                // Update exp bar
+                updateExpBar();
+            } else {
+                // Flash the enemy when hit but not destroyed
+                this.tweens.add({
+                    targets: enemy,
+                    alpha: 0.3,
+                    duration: 50,
+                    yoyo: true,
+                    repeat: 1
+                });
+            }
+
+            // Remove the projectile
+            projectile.destroy();
+
+            // Remove from orbiting projectiles array
+            const index = orbitingProjectiles.indexOf(projectile);
+            if (index !== -1) {
+                orbitingProjectiles.splice(index, 1);
+            }
+        }
+
+        function playerHitEnemy(player, enemy) {
+            // Check if player was already hit
+            if (playerInvincible) return;
+
+            // Make the player invincible to damage while flashing
+            playerInvincible = true;
+
+            // Flash the player when hit
+            this.tweens.add({
+                targets: player,
+                alpha: 0.5,
+                scale: 1.2,
+                duration: 250,
+                yoyo: true,
+                repeat: 1,
+                onComplete: function () {
+                    // Ensure alpha is reset properly
+                    player.alpha = 1;
+                    player.scale = 1;
+                }
+            });
+
+            // Remove invincibility after 500ms
+            this.time.delayedCall(500, function () {
+                playerInvincible = false;
+
+                // Double-check alpha is reset even if tween was interrupted
+                if (player.active) {
+                    player.alpha = 1;
+                    player.scale = 1;
+                }
+            });
+
+            // Check if shield is active
+            if (shieldActive) {
+                // Shield absorbs the hit
+                shieldActive = false;
+                shieldVisual.setVisible(false);
+
+                // Flash the shield effect
+                this.tweens.add({
+                    targets: player,
+                    alpha: 0.5,
+                    scale: 1.2,
+                    duration: 100,
+                    yoyo: true,
+                    repeat: 1
+                });
+
+                // Remove the enemy
+                enemy.destroy();
+
+                // Start shield cooldown
+                if (shieldCooldownTimer) {
+                    shieldCooldownTimer.remove();
+                }
+
+                const cooldownTime = getShieldCooldown();
+                shieldCooldownTimer = this.time.delayedCall(
+                    cooldownTime,
+                    function () {
+                        shieldActive = true;
+                        if (shieldVisual) {
+                            shieldVisual.setVisible(true);
+
+                            // Flash the shield when it's ready
+                            this.tweens.add({
+                                targets: shieldVisual,
+                                alpha: { from: 0.8, to: 0.4 },
+                                scale: { from: 1.5, to: 1 },
+                                duration: 500,
+                                ease: 'Cubic.out'
+                            });
+                        }
+
+                        // Add a text notification
+                        const notification = this.add.text(player.x, player.y - 50, 'SHIELD READY!', {
+                            fontFamily: 'Arial',
+                            fontSize: '16px',
+                            color: '#3498db'
+                        }).setOrigin(0.5);
+
+                        // Animate the notification
+                        this.tweens.add({
+                            targets: notification,
+                            y: notification.y - 30,
+                            alpha: 0,
+                            duration: 1500,
+                            onComplete: function () { notification.destroy(); }
+                        });
+
+                        // Clear the cooldown timer reference
+                        shieldCooldownTimer = null;
+                    },
+                    [],
+                    this
+                );
+
+                // Show cooldown notification
+                const cooldownSeconds = (cooldownTime / 1000).toFixed(1);
+                const cooldownNotification = this.add.text(player.x, player.y - 40, `SHIELD COOLDOWN: ${cooldownSeconds}s`, {
+                    fontFamily: 'Arial',
+                    fontSize: '14px',
+                    color: '#e74c3c'
+                }).setOrigin(0.5);
+
+                // Animate the notification
+                this.tweens.add({
+                    targets: cooldownNotification,
+                    y: cooldownNotification.y - 20,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: function () {
+                        cooldownNotification.destroy();
+                    }
+                });
+
+                return;
+            }
+
+            // Apply damage to player
+            playerHealth -= enemyDamage;
+
+            // Update health text and bar
+            updateHealthBar();
+
+            // Check if player is dead
+            if (playerHealth <= 0) {
+                playerDeath.call(this);
+            }
+        }
+
+        function playerDeath() {
+            // Set game over state
+            gameOver = true;
+
+            // Stop player movement
+            player.body.setVelocity(0);
+
+            // Pause the game physics to stop all movement
+            this.physics.pause();
+
+            // Stop timers
+            if (enemySpawner) enemySpawner.paused = true;
+            if (projectileFirer) projectileFirer.paused = true;
+            if (shieldCooldownTimer) shieldCooldownTimer.paused = true;
+            if (orbitingProjectileTimer) orbitingProjectileTimer.paused = true;
+
+            // Show game over text and restart button
+            gameOverText.setText(`GAME OVER\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`);
+            gameOverText.setVisible(true);
+            restartButton.setVisible(true);
+        }
+
+        function showLevelUpCards() {
+            // Pause the game
+            gamePaused = true;
+
+            // Pause physics to stop all movement
+            this.physics.pause();
+
+            // Pause all timers
+            if (enemySpawner) enemySpawner.paused = true;
+            if (projectileFirer) projectileFirer.paused = true;
+            if (shieldCooldownTimer) shieldCooldownTimer.paused = true;
+            if (orbitingProjectileTimer) orbitingProjectileTimer.paused = true;
+
+            // Create semi-transparent background
+            const levelUpBackground = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
+
+            // Create level up title
+            const levelUpTitle = this.add.text(
+                600, 250,
+                'LEVEL UP! Choose a perk:',
+                { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }
+            ).setOrigin(0.5);
+
+            // Available upgrade options
+            const upgradeOptions = [
+                PERK_SPEED_BOOST,
+                PERK_DAMAGE_INCREASE,
+                PERK_HEALTH,
+                PERK_FIRE_RATE,
+                PERK_SHIELD,
+                PERK_DOUBLE_SHOT,
+                PERK_SLOW_SHOT,
+                PERK_ORBIT_SHOT
+            ];
+
+            // Select 3 random perks
+            const selectedUpgrades = [];
+
+            // Randomly select 3 unique upgrades
+            while (selectedUpgrades.length < 3) {
+                const randomIndex = Math.floor(Math.random() * upgradeOptions.length);
+                const option = upgradeOptions[randomIndex];
+
+                if (!selectedUpgrades.includes(option)) {
+                    selectedUpgrades.push(option);
+                }
+            }
+
+            // Create three card choices
+            const card1 = this.add.rectangle(300, 400, 181.5, 242, 0x444444, 1).setStrokeStyle(2, 0x000000);
+            const card2 = this.add.rectangle(600, 400, 181.5, 242, 0x444444, 1).setStrokeStyle(2, 0x000000);
+            const card3 = this.add.rectangle(900, 400, 181.5, 242, 0x444444, 1).setStrokeStyle(2, 0x000000);
+
+            // Add card titles and descriptions based on selected upgrades
+            const cardElements = [];
+
+            for (let i = 0; i < 3; i++) {
+                const cardX = 300 + (i * 300);
+                const option = selectedUpgrades[i];
+                const perk = perkRegistry[option];
+
+                // Create title
+                const titleText = this.add.text(
+                    cardX, 340,
+                    perk.name,
+                    { fontFamily: 'Arial', fontSize: '18px', color: perk.color, fontStyle: 'bold' }
+                ).setOrigin(0.5);
+
+                // Create description
+                const level = getPerkLevel(option);
+                const descText = this.add.text(
+                    cardX, 460,
+                    perk.description(level),
+                    { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', align: 'center' }
+                ).setOrigin(0.5);
+
+                // Add to elements array
+                cardElements.push(titleText, descText);
+
+                // Set card data
+                const card = [card1, card2, card3][i];
+                card.perkType = option;
+
+                // Add hover effects
+                card.setInteractive()
+                    .on('pointerover', function () {
+                        this.fillColor = perk.hoverColor;
+                    })
+                    .on('pointerout', function () {
+                        this.fillColor = 0x444444;
+                    })
+                    .on('pointerdown', () => selectCard.call(this, option));
+            }
+
+            // Store all level up UI elements
+            levelUpCards = [
+                levelUpBackground, levelUpTitle,
+                card1, card2, card3,
+                ...cardElements
+            ];
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function selectCard(perkType) {
+            // Acquire the selected perk
+            acquirePerk(this, perkType);
+
+            // Update player stats text
+            updatePlayerStatsText();
+
+            // Update health bar
+            updateHealthBar();
+
+            // Close the cards and resume the game
+            closeLevelUpCards.call(this);
+
+            // Flash the hero when completing level up
+            this.tweens.add({
+                targets: player,
+                alpha: 0.2,
+                scale: 1.5,
+                duration: 200,
+                yoyo: true,
+                repeat: 1,
+                onComplete: function () {
+                    player.setScale(1);
+                }
+            });
+        }
+
+        function closeLevelUpCards() {
+            // Remove all level up UI elements
+            levelUpCards.forEach(element => element.destroy());
+            levelUpCards = [];
+
+            // Resume the game
+            gamePaused = false;
+
+            // Resume physics
+            this.physics.resume();
+
+            // Resume timers
+            if (enemySpawner) enemySpawner.paused = false;
+            if (projectileFirer) projectileFirer.paused = false;
+            if (shieldCooldownTimer) shieldCooldownTimer.paused = false;
+            if (orbitingProjectileTimer) orbitingProjectileTimer.paused = false;
+        }
+
+        function detectKeyboardLayout() {
+            // Detect keyboard layout
+            try {
+                // Check for navigator.keyboard API support (modern browsers)
+                if (navigator.keyboard && navigator.keyboard.getLayoutMap) {
+                    navigator.keyboard.getLayoutMap()
+                        .then(keyboardLayoutMap => {
+                            // Check for AZERTY layout by looking at the key for 'KeyQ'
+                            const qKey = keyboardLayoutMap.get('KeyQ');
+                            if (qKey === 'a' || qKey === 'A') {
+                                // AZERTY detected
+                                keyboardLayout = 'azerty';
+                                updateWASDKeys.call(this);
+                            }
+                        })
+                        .catch(error => {
+                            console.log('Error detecting keyboard layout:', error);
+                        });
+                } else {
+                    // Fallback method: check browser language
+                    const language = navigator.language || navigator.userLanguage;
+                    if (language && (language.startsWith('fr') || language.startsWith('be'))) {
+                        // French or Belgian language often uses AZERTY
+                        keyboardLayout = 'azerty';
+                        updateWASDKeys.call(this);
+                    }
+                }
+            } catch (error) {
+                console.log('Error in keyboard layout detection:', error);
+            }
+
+            // Update the controls text
+            updateControlsText.call(this);
+        }
+
+        function updateWASDKeys() {
+            // Update keys based on detected layout
+            if (keyboardLayout === 'azerty') {
+                // AZERTY layout uses ZQSD for movement
+                wasdKeys = this.input.keyboard.addKeys({
+                    up: Phaser.Input.Keyboard.KeyCodes.Z,
+                    down: Phaser.Input.Keyboard.KeyCodes.S,
+                    left: Phaser.Input.Keyboard.KeyCodes.Q,
+                    right: Phaser.Input.Keyboard.KeyCodes.D
+                });
+            } else {
+                // QWERTY layout uses WASD for movement
+                wasdKeys = this.input.keyboard.addKeys({
+                    up: Phaser.Input.Keyboard.KeyCodes.W,
+                    down: Phaser.Input.Keyboard.KeyCodes.S,
+                    left: Phaser.Input.Keyboard.KeyCodes.A,
+                    right: Phaser.Input.Keyboard.KeyCodes.D
+                });
+            }
+        }
+
+        function updateControlsText() {
+            // Update the controls text based on the detected keyboard layout
+            let controlsInfo = 'Controls: Arrow Keys';
+
+            if (keyboardLayout === 'azerty') {
+                controlsInfo += ' or ZQSD';
+            } else {
+                controlsInfo += ' or WASD';
+            }
+
+            controlsInfo += ' or Touch/Click to move';
+
+            if (this.controlsText) {
+                this.controlsText.setText(controlsInfo);
+            }
+        }
+
+        function startOrbitingProjectileTimer(scene) {
+            // Start the timer for orbiting projectiles
+            const cooldown = getOrbitShotCooldown();
+            orbitingProjectileTimer = scene.time.addEvent({
+                delay: cooldown,
+                callback: spawnOrbitingProjectile,
+                callbackScope: scene,
+                loop: true
+            });
+        }
+
+        function spawnOrbitingProjectile() {
+            // Create an orbiting projectile
+            const projectile = this.add.text(player.x, player.y, '*', {
+                fontFamily: 'Arial',
+                fontSize: `${projectileSize}px`,
+                color: '#ff9900',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Add to physics group
+            projectiles.add(projectile);
+
+            // Set projectile properties
+            projectile.body.setSize(projectile.width, projectile.height);
+
+            // Set as orbiting projectile
+            projectile.isOrbiting = true;
+            projectile.orbitAngle = Math.random() * Math.PI * 2; // Random starting angle
+            projectile.orbitRadius = 50; // Distance from player
+            projectile.orbitSpeed = 0.05; // Speed of orbit
+
+            // Apply perks to the orbiting projectile
+            projectile.damage = playerDamage;
+            projectile.isSlowShot = Math.random() < getSlowShotChance() / 100;
+
+            // Apply double shot perk
+            if (Math.random() < getDoubleShotChance() / 100) {
+                // Create a second orbiting projectile
+                const secondProjectile = this.add.text(player.x, player.y, '*', {
+                    fontFamily: 'Arial',
+                    fontSize: `${projectileSize}px`,
+                    color: '#ff9900',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+
+                // Add to physics group
+                projectiles.add(secondProjectile);
+
+                // Set projectile properties
+                secondProjectile.body.setSize(secondProjectile.width, secondProjectile.height);
+
+                // Set as orbiting projectile
+                secondProjectile.isOrbiting = true;
+                secondProjectile.orbitAngle = (projectile.orbitAngle + Math.PI) % (Math.PI * 2); // Opposite side
+                secondProjectile.orbitRadius = 50; // Distance from player
+                secondProjectile.orbitSpeed = 0.05; // Speed of orbit
+
+                // Apply perks to the second orbiting projectile
+                secondProjectile.damage = playerDamage;
+                secondProjectile.isSlowShot = Math.random() < getSlowShotChance() / 100;
+
+                if (secondProjectile.isSlowShot) {
+                    secondProjectile.setColor('#00ffff'); // Cyan color for slow shots
+                }
+
+                // Add to orbiting projectiles array
+                orbitingProjectiles.push(secondProjectile);
+
+                // Flash effect when spawning
+                this.tweens.add({
+                    targets: secondProjectile,
+                    scale: { from: 2, to: 1 },
+                    alpha: { from: 0.8, to: 1 },
+                    duration: 300,
+                    ease: 'Cubic.out'
+                });
+            }
+
+            if (projectile.isSlowShot) {
+                projectile.setColor('#00ffff'); // Cyan color for slow shots
+            }
+
+            // Add to orbiting projectiles array
+            orbitingProjectiles.push(projectile);
+
+            // Flash effect when spawning
+            this.tweens.add({
+                targets: projectile,
+                scale: { from: 2, to: 1 },
+                alpha: { from: 0.8, to: 1 },
+                duration: 300,
+                ease: 'Cubic.out'
+            });
+
+            // Show notification
+            const notification = this.add.text(player.x, player.y - 50, 'ORBIT SHOT!', {
+                fontFamily: 'Arial',
+                fontSize: '16px',
+                color: '#ff9900'
+            }).setOrigin(0.5);
+
+            // Animate the notification
+            this.tweens.add({
+                targets: notification,
+                y: notification.y - 30,
+                alpha: 0,
+                duration: 1000,
+                onComplete: function () {
+                    notification.destroy();
+                }
+            });
+        }
+
+        function updateOrbitingProjectile(projectile, playerObj) {
+            if (!projectile || !projectile.active) return;
+
+            // Update the orbit angle
+            projectile.orbitAngle += projectile.orbitSpeed;
+
+            // Calculate new position based on player position and orbit angle
+            const x = playerObj.x + Math.cos(projectile.orbitAngle) * projectile.orbitRadius;
+            const y = playerObj.y + Math.sin(projectile.orbitAngle) * projectile.orbitRadius;
+
+            // Update projectile position
+            projectile.setPosition(x, y);
+
+            // Rotate the projectile
+            projectile.rotation = projectile.orbitAngle + Math.PI / 2;
+        }
+
+        function restartGame() {
+            // Reset game state
+            playerHealth = basePlayerHealth;
+            maxPlayerHealth = baseMaxHealth;
+            playerSpeed = basePlayerSpeed;
+            playerDamage = basePlayerDamage;
+            projectileSize = playerDamage * 4;
+            shootingRateMultiplier = baseShootingRateMultiplier;
+
+            // Reset XP and level
+            heroExp = 0;
+            playerLevel = 1;
+            heroExpToLevel = xpForNextLevel(playerLevel);
+            elapsedTime = 0;
+
+            score = 0;
+            level = 1;
+            gameOver = false;
+
+            // Reset player position
+            player.x = 600;
+            player.y = 400;
+
+            // Reset UI
+            heroLevelText.setText('Hero Level: 1');
+            player.setFontSize(18);
+            healthBar.width = 200;
+            healthBar.x = 600;
+            healthBar.fillColor = 0x00ff00;
+            healthText.setText(`Health: ${playerHealth}/${maxPlayerHealth}`);
+            expBar.width = 0;
+            expBar.x = 500;
+            expText.setText(`XP: 0/${heroExpToLevel}`);
+            killCountText.setText('Enemies killed: 0');
+
+            // Clean up old timers
+            if (enemySpawner) {
+                enemySpawner.remove();
+                enemySpawner = null;
+            }
+
+            if (projectileFirer) {
+                projectileFirer.remove();
+                projectileFirer = null;
+            }
+
+            if (shieldCooldownTimer) {
+                shieldCooldownTimer.remove();
+                shieldCooldownTimer = null;
+            }
+
+            if (orbitingProjectileTimer) {
+                orbitingProjectileTimer.remove();
+                orbitingProjectileTimer = null;
+            }
+
+            // Reset shield
+            if (shieldVisual) {
+                shieldVisual.setVisible(false);
+            }
+            shieldActive = false;
+
+            // Reset orbiting projectiles
+            orbitingProjectiles.forEach(proj => {
+                if (proj && proj.active) {
+                    proj.destroy();
+                }
+            });
+            orbitingProjectiles = [];
+
+            // Reset difficulty scaling
+            gameStartTime = this.time.now;
+            currentEnemyHealth = baseEnemyHealth;
+
+            // Clear enemies and projectiles
+            enemies.clear(true, true);
+            projectiles.clear(true, true);
+
+            // Hide game over elements
+            gameOverText.setVisible(false);
+            restartButton.setVisible(false);
+
+            // Resume physics
+            this.physics.resume();
+
+            // Create new timers
+            enemySpawner = this.time.addEvent({
+                delay: baseSpawnDelay,
+                callback: spawnEnemy,
+                callbackScope: this,
+                loop: true
+            });
+
+            projectileFirer = this.time.addEvent({
+                delay: shootingDelay / shootingRateMultiplier,
+                callback: fireProjectile,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Reset all perks
+            resetAllPerks();
+
+            // Update player stats text
+            updatePlayerStatsText();
+
+            // Update controls text based on current keyboard layout
+            updateControlsText.call(this);
+        }
+    </script>
+</body>
+
+</html>

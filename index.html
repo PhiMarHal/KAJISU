@@ -85,7 +85,7 @@
         let baseMaxHealth = 4;
         let basePlayerSpeed = 4;
         let basePlayerDamage = 4;
-        let baseShootingDelay = 250;
+        let baseShootingDelay = 500;
         let baseShootingRateMultiplier = 1.0;
         let baseHeroExpToLevel = 5;
         let playerHealth = basePlayerHealth;
@@ -94,7 +94,7 @@
         let playerDamage = basePlayerDamage;
         let shootingDelay = baseShootingDelay; // ms between shots
         let shootingRateMultiplier = baseShootingRateMultiplier; // Multiplier for shooting rate
-        let projectileSize = basePlayerDamage * 4; // Calculate projectile size based on damage
+        let projectileSize = basePlayerDamage * 8; // Calculate projectile size based on damage
         let healthBar;
         let healthBarBg;
         let healthText;
@@ -125,7 +125,7 @@
         let gameStartTime = 0;
         let baseEnemyHealth = 40;
         let currentEnemyHealth = 40;
-        let baseSpawnDelay = 1000; // 1 second between spawns initially
+        let baseSpawnDelay = 8000; // 8 seconds between spawns initially
 
         // Hero experience system
         let playerLevel = 1;
@@ -187,11 +187,11 @@
                 hoverColor: 0x662222,
                 onAcquire(scene, level) {
                     playerDamage += 1;
-                    projectileSize = playerDamage * 4; // Update projectile size
+                    projectileSize = playerDamage * 8; // Update projectile size
                 },
                 onReset() {
                     playerDamage = basePlayerDamage;
-                    projectileSize = playerDamage * 4;
+                    projectileSize = playerDamage * 8;
                 }
             },
             [PERK_SHIELD]: {
@@ -701,24 +701,22 @@
             // Calculate difficulty scaling based on time
             const minutesElapsed = (time - gameStartTime) / 60000;
 
-            // Update spawn rate based on time
-            const newSpawnDelay = baseSpawnDelay / Math.pow(enemyCountScaleFactor, minutesElapsed);
-            const currentDelay = enemySpawner ? enemySpawner.delay : baseSpawnDelay;
+            // Update the spawn rate gradually by modifying the existing timer
+            if (enemySpawner) {
+                // Calculate new delay based on time played
+                const newSpawnDelay = Math.max(200, baseSpawnDelay / Math.pow(enemyCountScaleFactor, minutesElapsed));
 
-            if (Math.abs(currentDelay - newSpawnDelay) > 5) {
-                const safeDelay = Math.max(200, newSpawnDelay); // Minimum 200ms delay
-
-                // Update the spawn timer
-                if (enemySpawner) {
-                    enemySpawner.remove();
+                // If the timer needs updating, adjust it
+                if (Math.abs(enemySpawner.delay - newSpawnDelay) > (enemySpawner.delay * 0.1)) {
+                    // Gradually transition to the new delay rather than recreating the timer
+                    enemySpawner.delay = newSpawnDelay;
+                    enemySpawner.reset({
+                        delay: newSpawnDelay,
+                        callback: spawnEnemy,
+                        callbackScope: this,
+                        loop: true
+                    });
                 }
-
-                enemySpawner = this.time.addEvent({
-                    delay: safeDelay,
-                    callback: spawnEnemy,
-                    callbackScope: this,
-                    loop: true
-                });
             }
 
             // Update current enemy health based on time (optional scaling)
@@ -1493,7 +1491,7 @@
             maxPlayerHealth = baseMaxHealth;
             playerSpeed = basePlayerSpeed;
             playerDamage = basePlayerDamage;
-            projectileSize = playerDamage * 4;
+            projectileSize = playerDamage * 8;
             shootingRateMultiplier = baseShootingRateMultiplier;
 
             // Reset XP and level

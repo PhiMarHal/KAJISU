@@ -159,6 +159,7 @@
         let shieldActive = false;
         let orbitingProjectiles = [];
         let orbitingProjectileTimer = null;
+        let landmineTimer = null;
 
         // Perk system helper functions
         function initializePerks() {
@@ -683,16 +684,23 @@
             }
 
             // Handle projectile destruction
-            if (projectile.isOrbiting) {
-                // Remove from orbiting projectiles array
-                const index = orbitingProjectiles.indexOf(projectile);
-                if (index !== -1) {
-                    orbitingProjectiles.splice(index, 1);
+            if (!projectile.isLandmine) {
+                // Handle special projectile removal (orbiting, etc.)
+                if (projectile.isOrbiting) {
+                    // Remove from orbiting projectiles array
+                    const index = orbitingProjectiles.indexOf(projectile);
+                    if (index !== -1) {
+                        orbitingProjectiles.splice(index, 1);
+                    }
                 }
+
+                // Standard projectile removal
+                projectile.destroy();
+            } else {
+                // Landmines are destroyed after they hit something
+                projectile.destroy();
             }
 
-            // Remove the projectile
-            projectile.destroy();
         }
 
         function playerHitEnemy(player, enemy) {
@@ -728,7 +736,6 @@
                 }
             });
 
-            // Check if shield is active
             if (shieldActive) {
                 // Shield absorbs the hit
                 shieldActive = false;
@@ -747,51 +754,11 @@
                 // Remove the enemy
                 enemy.destroy();
 
-                // Start shield cooldown
-                if (shieldCooldownTimer) {
-                    shieldCooldownTimer.remove();
-                }
+                // Start shield cooldown with the base duration (16 seconds)
+                // The function will apply the Luck multiplier internally
+                window.startShieldCooldown(16000);
 
-                const cooldownTime = getShieldCooldown();
-                shieldCooldownTimer = this.time.delayedCall(
-                    cooldownTime,
-                    function () {
-                        shieldActive = true;
-                        if (shieldVisual) {
-                            shieldVisual.setVisible(true);
-
-                            // Flash the shield when it's ready
-                            this.tweens.add({
-                                targets: shieldVisual,
-                                alpha: { from: 0.8, to: 0.4 },
-                                scale: { from: 1.5, to: 1 },
-                                duration: 500,
-                                ease: 'Cubic.out'
-                            });
-                        }
-
-                        // Add a text notification
-                        const notification = this.add.text(player.x, player.y - 50, 'SHIELD READY!', {
-                            fontFamily: 'Arial',
-                            fontSize: '16px',
-                            color: '#3498db'
-                        }).setOrigin(0.5);
-
-                        // Animate the notification
-                        this.tweens.add({
-                            targets: notification,
-                            y: notification.y - 30,
-                            alpha: 0,
-                            duration: 1500,
-                            onComplete: function () { notification.destroy(); }
-                        });
-
-                        // Clear the cooldown timer reference
-                        shieldCooldownTimer = null;
-                    },
-                    [],
-                    this
-                );
+                return;
 
                 // Show cooldown notification
                 const cooldownSeconds = (cooldownTime / 1000).toFixed(1);
@@ -1080,77 +1047,6 @@
             });
         }
 
-        function spawnOrbitingProjectile() {
-            // Only proceed if we have the orbit shot perk
-            if (!hasPerk('TEAL_OCTOPUS')) return;
-
-            // Create an orbiting projectile
-            const projectile = this.add.text(player.x, player.y, '*', {
-                fontFamily: 'Arial',
-                fontSize: `${projectileSize}px`,
-                color: '#ff9900',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Add to physics group
-            projectiles.add(projectile);
-
-            // Set projectile properties
-            projectile.body.setSize(projectile.width, projectile.height);
-
-            // Set as orbiting projectile
-            projectile.isOrbiting = true;
-            projectile.orbitAngle = Math.random() * Math.PI * 2; // Random starting angle
-            projectile.orbitRadius = 50; // Distance from player
-            projectile.orbitSpeed = 0.05; // Speed of orbit
-
-            // Apply perks to the orbiting projectile
-            projectile.damage = playerDamage;
-            projectile.isSlowShot = false;
-
-            if (hasPerk('SLOW_SHOT')) {
-                const slowChance = playerLuck / BASE_STATS.LUCK * 0.05;
-                projectile.isSlowShot = Math.random() < slowChance;
-            }
-
-            // Add double shot if we have that perk
-            if (hasPerk('DOUBLE_SHOT')) {
-                const doubleChance = playerLuck / BASE_STATS.LUCK * 0.05;
-                if (Math.random() < doubleChance) {
-                    // Create a second orbiting projectile at the opposite side
-                    const secondProjectile = this.add.text(player.x, player.y, '*', {
-                        fontFamily: 'Arial',
-                        fontSize: `${projectileSize}px`,
-                        color: '#ff9900',
-                        fontStyle: 'bold'
-                    }).setOrigin(0.5);
-
-                    // Configure the second projectile
-                    // (similar setup as the first one)
-                    // ...
-                }
-            }
-
-            // Rest of the function...
-        }
-
-        function updateOrbitingProjectile(projectile, playerObj) {
-            if (!projectile || !projectile.active) return;
-
-            // Update the orbit angle
-            projectile.orbitAngle += projectile.orbitSpeed;
-
-            // Calculate new position based on player position and orbit angle
-            const x = playerObj.x + Math.cos(projectile.orbitAngle) * projectile.orbitRadius;
-            const y = playerObj.y + Math.sin(projectile.orbitAngle) * projectile.orbitRadius;
-
-            // Update projectile position
-            projectile.setPosition(x, y);
-
-            // Rotate the projectile
-            projectile.rotation = projectile.orbitAngle + Math.PI / 2;
-        }
-
         window.modifyStat = function (statName, amount) {
             switch (statName) {
                 case 'damage':
@@ -1189,11 +1085,18 @@
             updatePlayerStatsText();
         };
 
+        // Add shield cooldown functionality
         window.activateShield = function () {
+            // Get the current active scene
+            const scene = game.scene.scenes[0];
+
+            // Activate the shield
             shieldActive = true;
             if (shieldVisual) {
                 shieldVisual.setVisible(true);
-                game.scene.scenes[0].tweens.add({
+
+                // Add a visual effect
+                scene.tweens.add({
                     targets: shieldVisual,
                     scale: { from: 0.5, to: 1 },
                     alpha: { from: 0.8, to: 0.4 },
@@ -1203,14 +1106,216 @@
             }
         };
 
+        // Function to start shield cooldown
+        window.startShieldCooldown = function (baseDuration = 16000) {
+            // Get the current active scene
+            const scene = game.scene.scenes[0];
+
+            // Calculate actual duration based on Luck (higher luck = lower multiplier)
+            const luckMultiplier = BASE_STATS.LUCK / playerLuck;
+            const duration = baseDuration * luckMultiplier;
+
+            // Set up a new cooldown timer
+            shieldCooldownTimer = scene.time.delayedCall(
+                duration,
+                function () {
+                    window.activateShield();
+
+                    // Add a text notification
+                    const notification = scene.add.text(player.x, player.y - 50, 'SHIELD READY!', {
+                        fontFamily: 'Arial',
+                        fontSize: '16px',
+                        color: '#3498db'
+                    }).setOrigin(0.5);
+
+                    // Animate the notification
+                    scene.tweens.add({
+                        targets: notification,
+                        y: notification.y - 30,
+                        alpha: 0,
+                        duration: 1500,
+                        onComplete: function () { notification.destroy(); }
+                    });
+
+                    // Clear the cooldown timer reference
+                    shieldCooldownTimer = null;
+                },
+                [],
+                scene
+            );
+
+            // Show cooldown notification
+            const cooldownSeconds = (duration / 1000).toFixed(1);
+            const cooldownNotification = scene.add.text(player.x, player.y - 40, `SHIELD COOLDOWN: ${cooldownSeconds}s`, {
+                fontFamily: 'Arial',
+                fontSize: '14px',
+                color: '#e74c3c'
+            }).setOrigin(0.5);
+
+            // Animate the notification
+            scene.tweens.add({
+                targets: cooldownNotification,
+                y: cooldownNotification.y - 20,
+                alpha: 0,
+                duration: 1000,
+                onComplete: function () {
+                    cooldownNotification.destroy();
+                }
+            });
+        };
+
         window.activateOrbitingProjectile = function () {
             // Get the current active scene
             const scene = game.scene.scenes[0];
             if (scene) {
+                // First spawn one immediately
                 spawnOrbitingProjectile.call(scene);
-                startOrbitingProjectileTimer(scene);
+
+                // Then set up the timer for regular spawning
+                if (orbitingProjectileTimer) {
+                    orbitingProjectileTimer.remove();
+                }
+
+                // Calculate cooldown based on Luck (higher luck = lower multiplier)
+                const baseCooldown = 4000; // 4 seconds base cooldown
+                const luckMultiplier = BASE_STATS.LUCK / playerLuck;
+                const actualCooldown = baseCooldown * luckMultiplier;
+
+                orbitingProjectileTimer = scene.time.addEvent({
+                    delay: actualCooldown,
+                    callback: spawnOrbitingProjectile,
+                    callbackScope: scene,
+                    loop: true
+                });
             }
         };
+        window.activateLandmines = function () {
+            // Get the current active scene
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                // First drop one immediately
+                dropLandmine.call(scene);
+
+                // Then set up the timer for regular drops
+                if (landmineTimer) {
+                    landmineTimer.remove();
+                }
+
+                // Calculate cooldown based on Luck (higher luck = lower multiplier)
+                const baseCooldown = 4000; // 4 seconds base cooldown
+                const luckMultiplier = BASE_STATS.LUCK / playerLuck;
+                const actualCooldown = baseCooldown * luckMultiplier;
+
+                landmineTimer = scene.time.addEvent({
+                    delay: actualCooldown,
+                    callback: dropLandmine,
+                    callbackScope: scene,
+                    loop: true
+                });
+            }
+        };
+
+
+        // Make sure the spawnOrbitingProjectile function properly sets up the orbiting behavior
+        function spawnOrbitingProjectile() {
+            // Create an orbiting projectile
+            const projectile = this.add.text(player.x, player.y, '*', {
+                fontFamily: 'Arial',
+                fontSize: `${projectileSize}px`,
+                color: '#ff9900',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Add to physics group
+            projectiles.add(projectile);
+
+            // Set projectile properties
+            projectile.body.setSize(projectile.width, projectile.height);
+
+            // Set as orbiting projectile
+            projectile.isOrbiting = true;
+            projectile.orbitAngle = Math.random() * Math.PI * 2; // Random starting angle
+            projectile.orbitRadius = 50; // Distance from player
+            projectile.orbitSpeed = 0.05; // Speed of orbit
+
+            // Apply perks to the orbiting projectile
+            projectile.damage = playerDamage;
+
+            // Add to orbiting projectiles array
+            orbitingProjectiles.push(projectile);
+
+            // Flash effect when spawning
+            this.tweens.add({
+                targets: projectile,
+                scale: { from: 2, to: 1 },
+                alpha: { from: 0.8, to: 1 },
+                duration: 300,
+                ease: 'Cubic.out'
+            });
+        }
+
+        // Ensure the updateOrbitingProjectile function is called in the update loop
+        function updateOrbitingProjectile(projectile, playerObj) {
+            if (!projectile || !projectile.active) return;
+
+            // Update the orbit angle
+            projectile.orbitAngle += projectile.orbitSpeed;
+
+            // Calculate new position based on player position and orbit angle
+            const x = playerObj.x + Math.cos(projectile.orbitAngle) * projectile.orbitRadius;
+            const y = playerObj.y + Math.sin(projectile.orbitAngle) * projectile.orbitRadius;
+
+            // Update projectile position
+            projectile.setPosition(x, y);
+        }
+
+        function dropLandmine() {
+            // Create a landmine at the player's current position
+            const landmine = this.add.text(player.x, player.y, '*', {
+                fontFamily: 'Arial',
+                fontSize: `${projectileSize}px`,
+                color: '#ffbf00',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Add to physics group for collision detection
+            projectiles.add(landmine);
+
+            // Set landmine properties
+            landmine.body.setSize(landmine.width, landmine.height);
+            landmine.body.immovable = true; // Landmine doesn't move when hit
+
+            // Special landmine properties
+            landmine.isLandmine = true;
+            landmine.damage = playerDamage;
+
+            // Flash effect when spawning
+            this.tweens.add({
+                targets: landmine,
+                scale: { from: 0.5, to: 1 },
+                alpha: { from: 0.2, to: 1 },
+                duration: 300,
+                ease: 'Bounce.out'
+            });
+
+            // Show notification (optional - remove if you don't want it)
+            const notification = this.add.text(player.x, player.y - 50, 'MINE PLANTED!', {
+                fontFamily: 'Arial',
+                fontSize: '16px',
+                color: '#ffbf00'
+            }).setOrigin(0.5);
+
+            // Animate the notification
+            this.tweens.add({
+                targets: notification,
+                y: notification.y - 30,
+                alpha: 0,
+                duration: 1000,
+                onComplete: function () {
+                    notification.destroy();
+                }
+            });
+        }
 
 
         function startGame() {

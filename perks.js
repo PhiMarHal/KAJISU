@@ -127,6 +127,19 @@ const PERKS = {
         onAcquire: function () {
             window.activateOrbitingProjectile();
         }
+    },
+    "AMBER_BEETLE": {
+        kanji: "琥珀甲",
+        hiragana: "こはくこう",
+        romaji: "kohakukou",
+        english: "Amber Beetle",
+        description: "Drops explosive mines that damage enemies",
+        category: PERK_CATEGORIES.SPECIAL,
+        color: "#ffbf00",
+        hoverColor: 0xbb8c00,
+        onAcquire: function () {
+            window.activateLandmines();
+        }
     }
 };
 

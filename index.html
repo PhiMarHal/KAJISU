@@ -129,7 +129,7 @@
         let gameStartTime = 0;
         let baseEnemyHealth = 40;
         let currentEnemyHealth = 40;
-        let baseSpawnDelay = 8000; // 8 seconds between spawns initially
+        let baseSpawnDelay = 4000; // 8 seconds between spawns initially
 
         // Hero experience system
         let playerLevel = 1;
@@ -471,7 +471,6 @@
             playerLevel++; // Level up
             heroExpToLevel = xpForNextLevel(playerLevel); // Update XP needed for the next level
             heroExp = 0; // Reset XP
-            playerHealth = maxPlayerHealth; // Restore health to full
             heroLevelText.setText(`Hero Level: ${playerLevel}`);
             showLevelUpCards.call(this);
         }
@@ -1047,40 +1046,58 @@
             });
         }
 
+        // Updated modifyStat function that handles negative values
         window.modifyStat = function (statName, amount) {
             switch (statName) {
                 case 'damage':
                     playerDamage += amount;
+                    // Ensure damage doesn't go below 1
+                    playerDamage = Math.max(1, playerDamage);
                     projectileSize = playerDamage * 8;
                     break;
                 case 'speed':
                     playerSpeed += amount;
+                    // Ensure speed doesn't go below 1
+                    playerSpeed = Math.max(1, playerSpeed);
                     break;
                 case 'health':
                     maxPlayerHealth += amount;
-                    playerHealth += amount;
+                    // Ensure maxHealth doesn't go below 1
+                    maxPlayerHealth = Math.max(1, maxPlayerHealth);
+                    // If reducing max health, also cap current health
+                    if (amount < 0 && playerHealth > maxPlayerHealth) {
+                        playerHealth = maxPlayerHealth;
+                    } else if (amount > 0) {
+                        // If increasing max health, also increase current health
+                        playerHealth += amount;
+                    }
                     break;
                 case 'luck':
                     playerLuck += amount;
+                    // Ensure luck doesn't go below 1
+                    playerLuck = Math.max(1, playerLuck);
                     break;
                 case 'fireRate':
                     playerFireRate += amount;
+
+                    // Ensure fire rate doesn't go below 1
+                    playerFireRate = Math.max(1, playerFireRate);
+
                     // Update the projectile timer if it exists
                     if (projectileFirer) {
                         const newDelay = shootingDelay / playerFireRate;
                         projectileFirer.delay = newDelay;
 
-                        // Be careful with the reset - use the proper callback scope
+                        // Reset with proper callback scope
                         projectileFirer.reset({
                             delay: newDelay,
-                            callback: fireProjectile,  // Don't use this.fireProjectile
-                            callbackScope: game.scene.scenes[0],  // Use the current active scene
+                            callback: fireProjectile,
+                            callbackScope: game.scene.scenes[0],
                             loop: true
                         });
                     }
                     break;
             }
-
             // Update UI
             updatePlayerStatsText();
         };
@@ -1189,6 +1206,7 @@
                 });
             }
         };
+
         window.activateLandmines = function () {
             // Get the current active scene
             const scene = game.scene.scenes[0];
@@ -1215,6 +1233,35 @@
             }
         };
 
+        // Function to fully heal the player
+        window.fullHeal = function () {
+            playerHealth = maxPlayerHealth;
+
+            // Update the health bar
+            updateHealthBar();
+
+            // Visual effect to show healing
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                // Show healing particles or effect
+                const healEffect = scene.add.text(player.x, player.y - 40, '+HEAL', {
+                    fontFamily: 'Arial',
+                    fontSize: '18px',
+                    color: '#00ff00'
+                }).setOrigin(0.5);
+
+                // Animate the effect
+                scene.tweens.add({
+                    targets: healEffect,
+                    y: healEffect.y - 30,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: function () {
+                        healEffect.destroy();
+                    }
+                });
+            }
+        };
 
         // Make sure the spawnOrbitingProjectile function properly sets up the orbiting behavior
         function spawnOrbitingProjectile() {

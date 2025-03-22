@@ -87,6 +87,9 @@
             activePerks: []     // Store all acquired perks
         };
 
+        const HEALTH_SCALE_FACTOR = 100; // Multiply all health values by 100 internally
+        let playerHealthDisplay = 0; // For displaying to player
+
         // Initial player stats
         let basePlayerHealth = BASE_STATS.END;
         let baseMaxHealth = BASE_STATS.END;
@@ -170,6 +173,7 @@
         let afterImageEnabled = false;
         let afterImageTimer = null;
         let playerPositionHistory = [];
+        let healthRegenTimer = null;
 
         // Perk system helper functions
         function initializePerks() {
@@ -320,6 +324,9 @@
             shieldVisual.setStrokeStyle(3, 0x0088ff);
             shieldVisual.setVisible(false);
 
+            // Add health regeneration
+            setupHealthRegeneration.call(this);
+
             // Create enemy group
             enemies = this.physics.add.group();
 
@@ -400,6 +407,7 @@
             // Start the game by calling startGame (replaces the need for duplicate initialization)
             startGame.call(this);
         }
+
         function update(time, delta) {
             if (gameOver) return;
             if (gamePaused) return; // Skip updates when game is paused for level up
@@ -513,10 +521,121 @@
             }
         }
 
+        // Store all game timers in a central array
+        let gameTimers = [];
+
+        // Register a timer with the central system
+        function registerTimer(timer) {
+            gameTimers.push(timer);
+            return timer; // Return the timer for convenience
+        }
+
+        // Pause all game systems
+        function pauseGame() {
+            gamePaused = true;
+
+            // Pause physics
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                scene.physics.pause();
+            }
+
+            // Pause all registered timers
+            gameTimers.forEach(timer => {
+                if (timer && timer.paused !== undefined) {
+                    timer.paused = true;
+                }
+            });
+        }
+
+        // Resume all game systems
+        function resumeGame() {
+            gamePaused = false;
+
+            // Resume physics
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                scene.physics.resume();
+            }
+
+            // Resume all registered timers
+            gameTimers.forEach(timer => {
+                if (timer && timer.paused !== undefined) {
+                    timer.paused = false;
+                }
+            });
+        }
+
+        // Clean up timers that are no longer active
+        function cleanupTimers() {
+            gameTimers = gameTimers.filter(timer =>
+                timer && !timer.hasOwnProperty('removed') && !timer.removed);
+        }
+
+        // Setup health regeneration
+        function setupHealthRegeneration() {
+            // Calculate delay based on max health (100s / maxHealth)
+            const regenDelay = Math.ceil(100000 / maxPlayerHealth); // In milliseconds
+
+            // Remove any existing regen timer
+            if (healthRegenTimer) {
+                healthRegenTimer.remove();
+            }
+
+            // Create and register health regeneration timer
+            healthRegenTimer = registerTimer(this.time.addEvent({
+                delay: regenDelay,
+                callback: regenerateHealth,
+                callbackScope: this,
+                loop: true
+            }));
+
+            console.log(`Health regeneration timer set: +1 HP every ${regenDelay / 1000} seconds`);
+        }
+
+        function regenerateHealth() {
+            if (gameOver || gamePaused) return;
+
+            // Only regenerate if health is below max
+            if (playerHealth < maxPlayerHealth) {
+                // Add 1 HP
+                playerHealth = Math.min(playerHealth + 1, maxPlayerHealth);
+
+                // Update health bar and text
+                updateHealthBar();
+
+                // Show visual effect
+                showRegenEffect(this);
+            }
+        }
+
+        function showRegenEffect(scene) {
+            // Create a healing indicator
+            const healEffect = scene.add.text(player.x, player.y - 20, '+1', {
+                fontFamily: 'Arial',
+                fontSize: '16px',
+                color: '#00ff00'
+            }).setOrigin(0.5);
+
+            // Animate the healing indicator
+            scene.tweens.add({
+                targets: healEffect,
+                y: healEffect.y - 15,
+                alpha: 0,
+                duration: 800,
+                onComplete: function () {
+                    healEffect.destroy();
+                }
+            });
+        }
+
         function updateHealthBar() {
             const healthPercentage = playerHealth / maxPlayerHealth;
             healthBar.width = healthPercentage * 200;
             healthBar.x = 500 + (healthBar.width / 2);
+
+            // Show only integer health in display, but use decimal precision internally
+            healthText.setText(`Health: ${Math.floor(playerHealth)}/${maxPlayerHealth}`);
         }
 
         function updateExpBar() {
@@ -851,7 +970,7 @@
             updateHealthBar();
 
             // Check if player is dead
-            if (playerHealth <= 0) {
+            if (playerHealth < 1) {
                 playerDeath.call(this);
             }
         }
@@ -860,17 +979,8 @@
             // Set game over state
             gameOver = true;
 
-            // Stop player movement
-            player.body.setVelocity(0);
-
             // Pause the game physics to stop all movement
-            this.physics.pause();
-
-            // Stop timers
-            if (enemySpawner) enemySpawner.paused = true;
-            if (projectileFirer) projectileFirer.paused = true;
-            if (shieldCooldownTimer) shieldCooldownTimer.paused = true;
-            if (orbitingProjectileTimer) orbitingProjectileTimer.paused = true;
+            pauseGame();
 
             // Show game over text and restart button
             gameOverText.setText(`GAME OVER\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`);
@@ -880,16 +990,7 @@
 
         function showLevelUpCards() {
             // Pause the game
-            gamePaused = true;
-
-            // Pause physics to stop all movement
-            this.physics.pause();
-
-            // Pause all timers
-            if (enemySpawner) enemySpawner.paused = true;
-            if (projectileFirer) projectileFirer.paused = true;
-            if (shieldCooldownTimer) shieldCooldownTimer.paused = true;
-            if (orbitingProjectileTimer) orbitingProjectileTimer.paused = true;
+            pauseGame();
 
             // Create semi-transparent background
             const levelUpBackground = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
@@ -1013,17 +1114,7 @@
             levelUpCards.forEach(element => element.destroy());
             levelUpCards = [];
 
-            // Resume the game
-            gamePaused = false;
-
-            // Resume physics
-            this.physics.resume();
-
-            // Resume timers
-            if (enemySpawner) enemySpawner.paused = false;
-            if (projectileFirer) projectileFirer.paused = false;
-            if (shieldCooldownTimer) shieldCooldownTimer.paused = false;
-            if (orbitingProjectileTimer) orbitingProjectileTimer.paused = false;
+            resumeGame();
         }
 
         function detectKeyboardLayout() {
@@ -1134,6 +1225,10 @@
                     } else if (amount > 0) {
                         // If increasing max health, also increase current health
                         playerHealth += amount;
+                    }
+                    const scene = game.scene.scenes[0];
+                    if (scene) {
+                        setupHealthRegeneration.call(scene);
                     }
                     break;
                 case 'luck':
@@ -1434,30 +1529,28 @@
             if (scene) {
                 afterImageEnabled = true;
 
-                // Clear any existing after images
-                afterImages.forEach(image => {
-                    if (image && image.active) {
-                        image.destroy();
-                    }
-                });
-                afterImages = [];
+                // Ensure any existing after-images are properly cleaned up
+                cleanupAfterImages();
 
                 // Reset position history - start with current position
                 playerPositionHistory = [];
 
                 // Fill history with current position to prevent undefined access
-                for (let i = 0; i < 40; i++) {
+                for (let i = 0; i < 20; i++) {
                     playerPositionHistory.push({ x: player.x, y: player.y });
                 }
 
                 // Create after images
-                for (let i = 0; i < 8; i++) {
+                for (let i = 0; i < 4; i++) {
                     const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, {
                         fontFamily: 'Arial',
                         fontSize: '32px',
                         color: '#00cc66',
-                        alpha: 0.9 - (i * 0.1) // Fade out for older images
+                        alpha: 0.6 - (i * 0.15) // Fade out for older images
                     }).setOrigin(0.5);
+
+                    // Ensure after-images render behind the player
+                    afterImage.setDepth(player.depth - 1);
 
                     // Add to physics group for collision detection
                     scene.physics.world.enable(afterImage);
@@ -1466,8 +1559,11 @@
                     // Add damage property
                     afterImage.damage = playerDamage;
 
-                    // Add to array
+                    // Register this image for tracking
                     afterImages.push(afterImage);
+
+                    // Also register as an entity for the global cleanup system
+                    registerEffect('entity', afterImage);
                 }
 
                 // Set up timer to update position history
@@ -1476,8 +1572,8 @@
                 }
 
                 // Use a more conservative update rate initially
-                afterImageTimer = scene.time.addEvent({
-                    delay: 20, //
+                afterImageTimer = registerTimer(scene.time.addEvent({
+                    delay: 20,
                     callback: function () {
                         // Only update if the feature is still enabled
                         if (!afterImageEnabled) return;
@@ -1486,8 +1582,8 @@
                         playerPositionHistory.unshift({ x: player.x, y: player.y });
 
                         // Limit history size
-                        if (playerPositionHistory.length > 40) {
-                            playerPositionHistory = playerPositionHistory.slice(0, 40);
+                        if (playerPositionHistory.length > 20) {
+                            playerPositionHistory = playerPositionHistory.slice(0, 20);
                         }
 
                         // Update after-image positions with direct indexing
@@ -1508,7 +1604,7 @@
                     },
                     callbackScope: scene,
                     loop: true
-                });
+                }));
 
                 // Add overlap detection with enemies
                 scene.physics.add.overlap(afterImages, enemies, afterImageHitEnemy, null, scene);
@@ -1531,6 +1627,29 @@
                 });
             }
         };
+
+        // Dedicated cleanup function for after-images
+        function cleanupAfterImages() {
+            // Stop the timer if it exists
+            if (afterImageTimer) {
+                afterImageTimer.remove();
+                afterImageTimer = null;
+            }
+
+            // Destroy all after-images
+            afterImages.forEach(image => {
+                if (image && image.active) {
+                    image.destroy();
+                }
+            });
+
+            // Reset the array
+            afterImages = [];
+
+            // Reset the feature flag
+            afterImageEnabled = false;
+        }
+
 
 
         function afterImageHitEnemy(afterImage, enemy) {
@@ -1598,6 +1717,9 @@
             score = 0;
             level = 1;
 
+            // Clean up old timers
+            cleanupTimers();
+
             // Reset player stats to base values
             playerHealth = basePlayerHealth;
             maxPlayerHealth = baseMaxHealth;
@@ -1646,11 +1768,8 @@
                 this.learningFeedback.setText('');
             }
 
-            // Clean up old timers
-            if (enemySpawner) {
-                enemySpawner.remove();
-                enemySpawner = null;
-            }
+            // Restart health regeneration
+            setupHealthRegeneration.call(this);
 
             // Reset difficulty scaling
             gameStartTime = this.time.now;
@@ -1667,20 +1786,21 @@
             // Resume physics
             this.physics.resume();
 
-            // Create new timers
-            enemySpawner = this.time.addEvent({
+            // Update enemy spawner creation
+            enemySpawner = registerTimer(this.time.addEvent({
                 delay: baseSpawnDelay,
                 callback: spawnEnemy,
                 callbackScope: this,
                 loop: true
-            });
+            }));
 
-            projectileFirer = this.time.addEvent({
+            // Update projectile firer creation
+            projectileFirer = registerTimer(this.time.addEvent({
                 delay: shootingDelay / playerFireRate,
                 callback: fireProjectile,
                 callbackScope: this,
                 loop: true
-            });
+            }));
 
             // Reset perks system
             resetAllPerks();

@@ -264,6 +264,7 @@
             // Detect keyboard layout
             detectKeyboardLayout.call(this);
 
+
             // Create player text - using kanji character
             player = this.add.text(600, 400, HERO_CHARACTER, {
                 fontFamily: 'Arial',
@@ -354,6 +355,9 @@
             this.input.on('pointerup', () => {
                 touchInput.isActive = false;
             });
+
+            // Debug function to lvl up
+            setupDebugKeys.call(this);
 
             // Kill count text (on-screen)
             killCountText = this.add.text(
@@ -999,6 +1003,7 @@
                 repeat: 1,
                 onComplete: function () {
                     player.setScale(1);
+                    player.alpha = 1;
                 }
             });
         }
@@ -1437,21 +1442,21 @@
                 });
                 afterImages = [];
 
-                // Clear position history
+                // Reset position history - start with current position
                 playerPositionHistory = [];
 
-                // Initialize with current positions
-                for (let i = 0; i < 4; i++) {
+                // Fill history with current position to prevent undefined access
+                for (let i = 0; i < 40; i++) {
                     playerPositionHistory.push({ x: player.x, y: player.y });
                 }
 
                 // Create after images
-                for (let i = 0; i < 4; i++) {
+                for (let i = 0; i < 8; i++) {
                     const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, {
                         fontFamily: 'Arial',
                         fontSize: '32px',
                         color: '#00cc66',
-                        alpha: 0.7 - (i * 0.15) // Fade out for older images
+                        alpha: 0.9 - (i * 0.1) // Fade out for older images
                     }).setOrigin(0.5);
 
                     // Add to physics group for collision detection
@@ -1470,9 +1475,37 @@
                     afterImageTimer.remove();
                 }
 
+                // Use a more conservative update rate initially
                 afterImageTimer = scene.time.addEvent({
-                    delay: 10, // Check position every 50ms
-                    callback: updateAfterImages,
+                    delay: 20, //
+                    callback: function () {
+                        // Only update if the feature is still enabled
+                        if (!afterImageEnabled) return;
+
+                        // Add current position to history
+                        playerPositionHistory.unshift({ x: player.x, y: player.y });
+
+                        // Limit history size
+                        if (playerPositionHistory.length > 40) {
+                            playerPositionHistory = playerPositionHistory.slice(0, 40);
+                        }
+
+                        // Update after-image positions with direct indexing
+                        for (let i = 0; i < afterImages.length; i++) {
+                            const image = afterImages[i];
+                            if (image && image.active) {
+                                // Use fixed delays for each image
+                                const posIndex = 4 + (i * 4);
+
+                                // Always use a valid index
+                                const safeIndex = Math.min(posIndex, playerPositionHistory.length - 1);
+                                image.setPosition(
+                                    playerPositionHistory[safeIndex].x,
+                                    playerPositionHistory[safeIndex].y
+                                );
+                            }
+                        }
+                    },
                     callbackScope: scene,
                     loop: true
                 });
@@ -1499,31 +1532,6 @@
             }
         };
 
-        // Add these functions to handle after-image behavior
-        function updateAfterImages() {
-            if (!afterImageEnabled || !player.active) return;
-
-            // Store current player position at the beginning of history
-            playerPositionHistory.unshift({ x: player.x, y: player.y });
-
-            // Keep only the positions we need for our after images
-            if (playerPositionHistory.length > 20) { // Keep extra positions for smooth movement
-                playerPositionHistory = playerPositionHistory.slice(0, 20);
-            }
-
-            // Update after image positions
-            for (let i = 0; i < afterImages.length; i++) {
-                const image = afterImages[i];
-                if (image && image.active) {
-                    // Position index (5 = 0.2s behind, 10 = 0.4s behind, etc.)
-                    const posIndex = Math.min((i + 1) * 2.5, playerPositionHistory.length - 1);
-
-                    // Set position to historical player position
-                    const pos = playerPositionHistory[posIndex];
-                    image.setPosition(pos.x, pos.y);
-                }
-            }
-        }
 
         function afterImageHitEnemy(afterImage, enemy) {
             // Skip if either object is already destroyed
@@ -1567,6 +1575,19 @@
             }
         }
 
+        // DEBUG FUNCTIONS
+        function setupDebugKeys() {
+            // Add debug key (R key for instant level up)
+            this.input.keyboard.on('keydown-R', function (event) {
+                if (!gamePaused && !gameOver) {
+                    // Add enough XP to level up
+                    const xpNeeded = heroExpToLevel - heroExp;
+                    heroExp += xpNeeded;
+                    updateExpBar();
+                    console.log("Debug: Instant level up triggered");
+                }
+            });
+        }
 
 
         function startGame() {

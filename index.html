@@ -82,12 +82,12 @@
         let keyboardLayout = 'qwerty'; // Default to QWERTY
 
         // Initial player stats
-        let basePlayerHealth = BASE_STATS.HEALTH;
-        let baseMaxHealth = BASE_STATS.HEALTH;
-        let basePlayerSpeed = BASE_STATS.SPEED;
-        let basePlayerDamage = BASE_STATS.DAMAGE;
-        let basePlayerLuck = BASE_STATS.LUCK;
-        let basePlayerFireRate = BASE_STATS.FIRE_RATE;
+        let basePlayerHealth = BASE_STATS.END;
+        let baseMaxHealth = BASE_STATS.END;
+        let basePlayerSpeed = 8;
+        let basePlayerDamage = BASE_STATS.POW;
+        let basePlayerLuck = BASE_STATS.LUK;
+        let basePlayerFireRate = BASE_STATS.AGI;
         let baseShootingDelay = 2000;
         let baseHeroExpToLevel = 5;
         let acquiredPerks = [];
@@ -160,6 +160,10 @@
         let orbitingProjectiles = [];
         let orbitingProjectileTimer = null;
         let landmineTimer = null;
+        let afterImages = [];
+        let afterImageEnabled = false;
+        let afterImageTimer = null;
+        let playerPositionHistory = [];
 
         // Perk system helper functions
         function initializePerks() {
@@ -477,7 +481,11 @@
 
         function updatePlayerStatsText() {
             // Build the stats text based on current stats and perks
-            let statsText = `Speed: ${playerSpeed}\nDamage: ${playerDamage}\nLuck: ${playerLuck}\nFire Rate: ${playerFireRate.toFixed(1)}x`;
+            let statsText = `POW: ${playerDamage}\nAGL: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
+
+            // Add cooldown reduction if you're keeping that feature
+            const cooldownReduction = (1 - (BASE_STATS.LUK / playerLuck)) * 100;
+            statsText += ` (${cooldownReduction.toFixed(0)}% CD reduction)`;
 
             // Add perks section if we have any
             if (acquiredPerks.length > 0) {
@@ -574,7 +582,7 @@
 
                 // Check for double shot if we have that perk
                 if (hasPerk('DOUBLE_SHOT')) {
-                    const doubleChance = playerLuck / BASE_STATS.LUCK * 0.05; // 5% base chance scaled by luck
+                    const doubleChance = playerLuck / BASE_STATS.LUK * 0.05; // 5% base chance scaled by luck
                     if (Math.random() < doubleChance) {
                         // Fire a second projectile with slight angle variation
                         const angleVariation = (Math.random() - 0.5) * 0.3; // Small random angle variation
@@ -609,7 +617,7 @@
             // Apply slow effect if we have that perk
             projectile.isSlowShot = false;
             if (hasPerk('SLOW_SHOT')) {
-                const slowChance = playerLuck / BASE_STATS.LUCK * 0.05; // 5% base chance scaled by luck
+                const slowChance = playerLuck / BASE_STATS.LUK * 0.05; // 5% base chance scaled by luck
                 projectile.isSlowShot = Math.random() < slowChance;
                 if (projectile.isSlowShot) {
                     projectile.setColor('#00ffff'); // Cyan color for slow shots
@@ -1129,7 +1137,7 @@
             const scene = game.scene.scenes[0];
 
             // Calculate actual duration based on Luck (higher luck = lower multiplier)
-            const luckMultiplier = BASE_STATS.LUCK / playerLuck;
+            const luckMultiplier = BASE_STATS.LUK / playerLuck;
             const duration = baseDuration * luckMultiplier;
 
             // Set up a new cooldown timer
@@ -1195,7 +1203,7 @@
 
                 // Calculate cooldown based on Luck (higher luck = lower multiplier)
                 const baseCooldown = 4000; // 4 seconds base cooldown
-                const luckMultiplier = BASE_STATS.LUCK / playerLuck;
+                const luckMultiplier = BASE_STATS.LUK / playerLuck;
                 const actualCooldown = baseCooldown * luckMultiplier;
 
                 orbitingProjectileTimer = scene.time.addEvent({
@@ -1221,7 +1229,7 @@
 
                 // Calculate cooldown based on Luck (higher luck = lower multiplier)
                 const baseCooldown = 4000; // 4 seconds base cooldown
-                const luckMultiplier = BASE_STATS.LUCK / playerLuck;
+                const luckMultiplier = BASE_STATS.LUK / playerLuck;
                 const actualCooldown = baseCooldown * luckMultiplier;
 
                 landmineTimer = scene.time.addEvent({
@@ -1364,6 +1372,151 @@
             });
         }
 
+        window.activateAfterImages = function () {
+            // Get the current active scene
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                afterImageEnabled = true;
+
+                // Clear any existing after images
+                afterImages.forEach(image => {
+                    if (image && image.active) {
+                        image.destroy();
+                    }
+                });
+                afterImages = [];
+
+                // Clear position history
+                playerPositionHistory = [];
+
+                // Initialize with current positions
+                for (let i = 0; i < 4; i++) {
+                    playerPositionHistory.push({ x: player.x, y: player.y });
+                }
+
+                // Create after images
+                for (let i = 0; i < 4; i++) {
+                    const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, {
+                        fontFamily: 'Arial',
+                        fontSize: '32px',
+                        color: '#00cc66',
+                        alpha: 0.7 - (i * 0.15) // Fade out for older images
+                    }).setOrigin(0.5);
+
+                    // Add to physics group for collision detection
+                    scene.physics.world.enable(afterImage);
+                    afterImage.body.setSize(afterImage.width, afterImage.height);
+
+                    // Add damage property
+                    afterImage.damage = playerDamage * 0.5;
+
+                    // Add to array
+                    afterImages.push(afterImage);
+                }
+
+                // Set up timer to update position history
+                if (afterImageTimer) {
+                    afterImageTimer.remove();
+                }
+
+                afterImageTimer = scene.time.addEvent({
+                    delay: 50, // Check position every 50ms
+                    callback: updateAfterImages,
+                    callbackScope: scene,
+                    loop: true
+                });
+
+                // Add overlap detection with enemies
+                scene.physics.add.overlap(afterImages, enemies, afterImageHitEnemy, null, scene);
+
+                // Visual effect for activation
+                const activationEffect = scene.add.text(player.x, player.y - 50, 'AFTER-IMAGES ACTIVATED!', {
+                    fontFamily: 'Arial',
+                    fontSize: '16px',
+                    color: '#00cc66'
+                }).setOrigin(0.5);
+
+                scene.tweens.add({
+                    targets: activationEffect,
+                    y: activationEffect.y - 30,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: function () {
+                        activationEffect.destroy();
+                    }
+                });
+            }
+        };
+
+        // Add these functions to handle after-image behavior
+        function updateAfterImages() {
+            if (!afterImageEnabled || !player.active) return;
+
+            // Store current player position at the beginning of history
+            playerPositionHistory.unshift({ x: player.x, y: player.y });
+
+            // Keep only the positions we need for our after images
+            if (playerPositionHistory.length > 20) { // Keep extra positions for smooth movement
+                playerPositionHistory = playerPositionHistory.slice(0, 20);
+            }
+
+            // Update after image positions
+            for (let i = 0; i < afterImages.length; i++) {
+                const image = afterImages[i];
+                if (image && image.active) {
+                    // Position index (5 = 0.2s behind, 10 = 0.4s behind, etc.)
+                    const posIndex = Math.min((i + 1) * 5, playerPositionHistory.length - 1);
+
+                    // Set position to historical player position
+                    const pos = playerPositionHistory[posIndex];
+                    image.setPosition(pos.x, pos.y);
+                }
+            }
+        }
+
+        function afterImageHitEnemy(afterImage, enemy) {
+            // Skip if either object is already destroyed
+            if (!afterImage.active || !enemy.active) return;
+
+            // Apply damage to enemy (once per second to avoid rapid damage)
+            if (!enemy.lastAfterImageHit || (this.time.now - enemy.lastAfterImageHit > 1000)) {
+                enemy.health -= afterImage.damage;
+                enemy.lastAfterImageHit = this.time.now;
+
+                // Visual effect for damage
+                this.tweens.add({
+                    targets: enemy,
+                    alpha: 0.3,
+                    duration: 100,
+                    yoyo: true,
+                    repeat: 1
+                });
+
+                // Check if enemy is defeated
+                if (enemy.health <= 0) {
+                    // Display kanji information
+                    if (this.learningFeedback) {
+                        this.learningFeedback.setText(
+                            `Defeated ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
+                        );
+
+                        this.tweens.add({
+                            targets: this.learningFeedback,
+                            alpha: { from: 0.5, to: 1 },
+                            duration: 300,
+                            ease: 'Cubic.out'
+                        });
+                    }
+
+                    enemy.destroy();
+                    score++;
+                    heroExp++;
+                    updateExpBar();
+                }
+            }
+        }
+
+
 
         function startGame() {
             // Reset game state variables
@@ -1402,6 +1555,20 @@
             expBar.x = 500;
             expText.setText(`XP: 0/${heroExpToLevel}`);
             killCountText.setText('Enemies killed: 0');
+
+            // Reset after-images
+            afterImageEnabled = false;
+            afterImages.forEach(image => {
+                if (image && image.active) {
+                    image.destroy();
+                }
+            });
+            afterImages = [];
+
+            if (afterImageTimer) {
+                afterImageTimer.remove();
+                afterImageTimer = null;
+            }
 
             // Clear learning feedback
             if (this.learningFeedback) {

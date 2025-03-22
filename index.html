@@ -81,6 +81,12 @@
         let wasdKeys;
         let keyboardLayout = 'qwerty'; // Default to QWERTY
 
+        let activeEffects = {
+            timers: [],         // Store all active timers
+            entities: [],       // Store all entities created by perks (landmines, afterimages, etc.)
+            activePerks: []     // Store all acquired perks
+        };
+
         // Initial player stats
         let basePlayerHealth = BASE_STATS.END;
         let baseMaxHealth = BASE_STATS.END;
@@ -170,15 +176,60 @@
             playerPerks = {};
         }
 
+        // Update the acquirePerk function to register perks
         function acquirePerk(scene, perkId) {
             // Skip if already acquired
             if (acquiredPerks.includes(perkId)) return false;
 
             // Add to acquired perks list
             acquiredPerks.push(perkId);
+            activeEffects.activePerks.push(perkId);
 
-            // Apply the perk using the new PerkSystem
+            // Apply the perk
             return PerkSystem.applyPerk(scene, perkId);
+        }
+
+        // Add this helper function to register effects
+        window.registerEffect = function (type, item) {
+            if (type === 'timer' && item) {
+                activeEffects.timers.push(item);
+            } else if (type === 'entity' && item) {
+                activeEffects.entities.push(item);
+            }
+        };
+
+        // Add this cleanup function to your startGame function
+        function clearAllPerkEffects() {
+            // Clear all timers
+            activeEffects.timers.forEach(timer => {
+                if (timer) {
+                    timer.remove();
+                }
+            });
+
+            // Clear all entities
+            activeEffects.entities.forEach(entity => {
+                if (entity && entity.active) {
+                    entity.destroy();
+                }
+            });
+
+            // Reset active effects
+            activeEffects.timers = [];
+            activeEffects.entities = [];
+            activeEffects.activePerks = [];
+
+            // Reset other specific effect variables
+            afterImageEnabled = false;
+            afterImages = [];
+            landmines = [];
+            shieldActive = false;
+            if (shieldVisual) {
+                shieldVisual.setVisible(false);
+            }
+
+            // Any other effect-specific cleanup
+            orbitingProjectiles = [];
         }
 
         function resetAllPerks() {
@@ -1408,7 +1459,7 @@
                     afterImage.body.setSize(afterImage.width, afterImage.height);
 
                     // Add damage property
-                    afterImage.damage = playerDamage * 0.5;
+                    afterImage.damage = playerDamage;
 
                     // Add to array
                     afterImages.push(afterImage);
@@ -1420,7 +1471,7 @@
                 }
 
                 afterImageTimer = scene.time.addEvent({
-                    delay: 50, // Check position every 50ms
+                    delay: 10, // Check position every 50ms
                     callback: updateAfterImages,
                     callbackScope: scene,
                     loop: true
@@ -1465,7 +1516,7 @@
                 const image = afterImages[i];
                 if (image && image.active) {
                     // Position index (5 = 0.2s behind, 10 = 0.4s behind, etc.)
-                    const posIndex = Math.min((i + 1) * 5, playerPositionHistory.length - 1);
+                    const posIndex = Math.min((i + 1) * 2.5, playerPositionHistory.length - 1);
 
                     // Set position to historical player position
                     const pos = playerPositionHistory[posIndex];
@@ -1556,19 +1607,18 @@
             expText.setText(`XP: 0/${heroExpToLevel}`);
             killCountText.setText('Enemies killed: 0');
 
-            // Reset after-images
-            afterImageEnabled = false;
-            afterImages.forEach(image => {
-                if (image && image.active) {
-                    image.destroy();
-                }
-            });
-            afterImages = [];
+            // Reset all perk effects
+            clearAllPerkEffects();
+            acquiredPerks = [];
 
-            if (afterImageTimer) {
-                afterImageTimer.remove();
-                afterImageTimer = null;
-            }
+            // Reset player stats to base values
+            playerHealth = basePlayerHealth;
+            maxPlayerHealth = baseMaxHealth;
+            playerSpeed = basePlayerSpeed;
+            playerDamage = basePlayerDamage;
+            playerLuck = basePlayerLuck;
+            playerFireRate = basePlayerFireRate;
+            projectileSize = basePlayerDamage * 8;
 
             // Clear learning feedback
             if (this.learningFeedback) {
@@ -1580,35 +1630,6 @@
                 enemySpawner.remove();
                 enemySpawner = null;
             }
-
-            if (projectileFirer) {
-                projectileFirer.remove();
-                projectileFirer = null;
-            }
-
-            if (shieldCooldownTimer) {
-                shieldCooldownTimer.remove();
-                shieldCooldownTimer = null;
-            }
-
-            if (orbitingProjectileTimer) {
-                orbitingProjectileTimer.remove();
-                orbitingProjectileTimer = null;
-            }
-
-            // Reset shield
-            if (shieldVisual) {
-                shieldVisual.setVisible(false);
-            }
-            shieldActive = false;
-
-            // Reset orbiting projectiles
-            orbitingProjectiles.forEach(proj => {
-                if (proj && proj.active) {
-                    proj.destroy();
-                }
-            });
-            orbitingProjectiles = [];
 
             // Reset difficulty scaling
             gameStartTime = this.time.now;

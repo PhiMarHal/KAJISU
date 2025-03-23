@@ -408,6 +408,8 @@
             startGame.call(this);
         }
 
+        // Modified update function to properly handle difficulty scaling during pauses
+
         function update(time, delta) {
             if (gameOver) return;
             if (gamePaused) return; // Skip updates when game is paused for level up
@@ -488,8 +490,8 @@
             healthText.setText(`Health: ${Math.ceil(playerHealth)}/${maxPlayerHealth}`);
             expText.setText(`XP: ${heroExp}/${heroExpToLevel}`);
 
-            // Calculate difficulty scaling based on time
-            const minutesElapsed = (time - gameStartTime) / 60000;
+            // Calculate difficulty scaling based on elapsed time instead of raw time
+            const minutesElapsed = elapsedTime / 60;
 
             // Update the spawn rate gradually by modifying the existing timer
             if (enemySpawner) {
@@ -509,7 +511,7 @@
                 }
             }
 
-            // Update current enemy health based on time (optional scaling)
+            // Update current enemy health based on elapsed time (optional scaling)
             currentEnemyHealth = baseEnemyHealth * Math.pow(enemyHealthScaleFactor, minutesElapsed);
 
             // Update player stats text
@@ -521,6 +523,60 @@
             }
         }
 
+        // Modified spawnEnemy function to use the currentEnemyHealth value calculated in update
+        function spawnEnemy() {
+            if (gameOver) return;
+
+            // Choose a random enemy type
+            const enemyType = getRandomEnemyType();
+
+            // Get the enemy data with defaults applied
+            const enemyData = getEnemyData(enemyType);
+
+            // Choose a random spawn position outside the screen
+            let x, y;
+            if (Math.random() < 0.5) {
+                // Spawn on left or right side
+                x = Math.random() < 0.5 ? -50 : 1250;
+                y = Phaser.Math.Between(50, 750);
+            } else {
+                // Spawn on top or bottom
+                x = Phaser.Math.Between(50, 1150);
+                y = Math.random() < 0.5 ? -50 : 850;
+            }
+
+            // Create the enemy with data-driven properties
+            const enemy = this.add.text(x, y, enemyType, {
+                fontFamily: 'Arial',
+                fontSize: `${enemyData.size}px`,
+                color: enemyData.color,
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Add to physics group
+            enemies.add(enemy);
+
+            // Set enemy properties
+            enemy.body.setSize(enemy.width, enemy.height);
+            enemy.body.setCollideWorldBounds(false);
+
+            // Set enemy health based on data and current scaling
+            // Use the currentEnemyHealth value that's updated in the update function
+            enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
+
+            // Set enemy speed based on data
+            enemy.speed = Phaser.Math.Between(enemyData.speedMin, enemyData.speedMax);
+
+            // Store additional properties from data
+            enemy.damage = enemyData.damage;
+            enemy.rank = enemyData.rank;
+            enemy.expValue = enemyData.expValue || 1;
+
+            // Store all language and educational properties
+            enemy.hiragana = enemyData.hiragana;
+            enemy.romaji = enemyData.romaji;
+            enemy.english = enemyData.english;
+        }
         // Store all game timers in a central array
         let gameTimers = [];
 
@@ -659,7 +715,6 @@
 
             // Add cooldown reduction if you're keeping that feature
             const cooldownReduction = (1 - (BASE_STATS.LUK / playerLuck)) * 100;
-            statsText += ` (${cooldownReduction.toFixed(0)}% CD reduction)`;
 
             // Add perks section if we have any
             if (acquiredPerks.length > 0) {
@@ -674,60 +729,6 @@
 
             // Update the text
             playerStatsText.setText(statsText);
-        }
-
-
-        function spawnEnemy() {
-            if (gameOver) return;
-
-            // Choose a random enemy type
-            const enemyType = getRandomEnemyType();
-
-            // Get the enemy data with defaults applied
-            const enemyData = getEnemyData(enemyType);
-
-            // Choose a random spawn position outside the screen
-            let x, y;
-            if (Math.random() < 0.5) {
-                // Spawn on left or right side
-                x = Math.random() < 0.5 ? -50 : 1250;
-                y = Phaser.Math.Between(50, 750);
-            } else {
-                // Spawn on top or bottom
-                x = Phaser.Math.Between(50, 1150);
-                y = Math.random() < 0.5 ? -50 : 850;
-            }
-
-            // Create the enemy with data-driven properties
-            const enemy = this.add.text(x, y, enemyType, {
-                fontFamily: 'Arial',
-                fontSize: `${enemyData.size}px`,
-                color: enemyData.color,
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Add to physics group
-            enemies.add(enemy);
-
-            // Set enemy properties
-            enemy.body.setSize(enemy.width, enemy.height);
-            enemy.body.setCollideWorldBounds(false);
-
-            // Set enemy health based on data and current scaling
-            enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
-
-            // Set enemy speed based on data
-            enemy.speed = Phaser.Math.Between(enemyData.speedMin, enemyData.speedMax);
-
-            // Store additional properties from data
-            enemy.damage = enemyData.damage;
-            enemy.rank = enemyData.rank;
-            enemy.expValue = enemyData.expValue || 1;
-
-            // Store all language and educational properties
-            enemy.hiragana = enemyData.hiragana;
-            enemy.romaji = enemyData.romaji;
-            enemy.english = enemyData.english;
         }
 
         function fireProjectile() {
@@ -1621,11 +1622,6 @@
                 return;
             }
 
-            // Log position to verify update is happening
-            if (Math.random() < 0.01) { // Only log occasionally to avoid console spam
-                console.log("Updating after-images, player at:", player.x, player.y);
-            }
-
             // Add current position to history
             playerPositionHistory.unshift({ x: player.x, y: player.y });
 
@@ -1649,10 +1645,6 @@
                         playerPositionHistory[safeIndex].x,
                         playerPositionHistory[safeIndex].y
                     );
-
-                    if (i === 0 && Math.random() < 0.01) {
-                        console.log("After-image 0 position:", image.x, image.y);
-                    }
                 }
             }
         }

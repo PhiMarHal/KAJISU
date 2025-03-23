@@ -81,6 +81,13 @@
         let wasdKeys;
         let keyboardLayout = 'qwerty'; // Default to QWERTY
 
+        // Global variables for pause system
+        let pauseScreen = null;
+        let resumeButton = null;
+        let pauseMessage = null;
+        let pauseKeyP = null;
+
+
         let activeEffects = {
             timers: [],         // Store all active timers
             entities: [],       // Store all entities created by perks (landmines, afterimages, etc.)
@@ -175,6 +182,94 @@
         let playerPositionHistory = [];
         let healthRegenTimer = null;
 
+        // Setup pause system
+        function setupPauseSystem() {
+            const scene = this;
+
+            // Create pause key (P)
+            pauseKeyP = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+            pauseKeyP.on('down', function () {
+                if (!gameOver) {
+                    if (gamePaused) {
+                        resumeGame();
+                    } else {
+                        pauseGameWithOverlay();
+                    }
+                }
+            });
+
+            // Setup visibility change detection
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden && !gameOver && !gamePaused) {
+                    // Tab/window is hidden, pause the game
+                    pauseGameWithOverlay();
+                }
+                // We don't auto-resume when tab becomes visible again
+            });
+
+            // Create pause overlay elements (initially hidden)
+            createPauseScreen.call(this);
+
+            console.log("Pause system initialized");
+        }
+
+        // Create the pause screen elements
+        function createPauseScreen() {
+            // Create semi-transparent background
+            pauseScreen = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
+            pauseScreen.setVisible(false);
+            pauseScreen.setDepth(1000); // Make sure it appears on top
+
+            // Create pause message
+            pauseMessage = this.add.text(
+                600, 300,
+                'GAME PAUSED',
+                { fontFamily: 'Arial', fontSize: '40px', color: '#ffffff', fontStyle: 'bold' }
+            ).setOrigin(0.5);
+            pauseMessage.setVisible(false);
+            pauseMessage.setDepth(1001);
+
+            // Create resume button
+            resumeButton = this.add.text(
+                600, 500,
+                'RESUME GAME',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '32px',
+                    color: '#ffffff',
+                    backgroundColor: '#008800',
+                    padding: { left: 15, right: 15, top: 10, bottom: 10 }
+                }
+            ).setOrigin(0.5);
+            resumeButton.setVisible(false);
+            resumeButton.setDepth(1001);
+            resumeButton.setInteractive();
+
+            // Add resume button functionality
+            resumeButton.on('pointerdown', resumeGame);
+            resumeButton.on('pointerover', function () {
+                this.setStyle({ backgroundColor: '#00aa00' });
+            });
+            resumeButton.on('pointerout', function () {
+                this.setStyle({ backgroundColor: '#008800' });
+            });
+        }
+
+        // Pause the game and show overlay
+        function pauseGameWithOverlay() {
+            if (gameOver) return;
+
+            // Pause game systems
+            pauseGame();
+
+            // Show pause screen elements
+            pauseScreen.setVisible(true);
+            pauseMessage.setVisible(true);
+            resumeButton.setVisible(true);
+
+            console.log("Game paused with overlay");
+        }
+
         // Perk system helper functions
         function initializePerks() {
             playerPerks = {};
@@ -267,6 +362,8 @@
 
             // Detect keyboard layout
             detectKeyboardLayout.call(this);
+
+            setupPauseSystem.call(this);
 
 
             // Create player text - using kanji character
@@ -577,6 +674,7 @@
             enemy.romaji = enemyData.romaji;
             enemy.english = enemyData.english;
         }
+
         // Store all game timers in a central array
         let gameTimers = [];
 
@@ -586,17 +684,18 @@
             return timer; // Return the timer for convenience
         }
 
-        // Pause all game systems
+        // Enhanced pauseGame function
         function pauseGame() {
+            // Set the flag
             gamePaused = true;
 
             // Pause physics
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                scene.physics.pause();
+            const activeScene = game.scene.scenes[0];
+            if (activeScene && activeScene.physics) {
+                activeScene.physics.pause();
             }
 
-            // Pause all registered timers
+            // Pause all timers
             gameTimers.forEach(timer => {
                 if (timer && timer.paused !== undefined) {
                     timer.paused = true;
@@ -604,23 +703,34 @@
             });
         }
 
-        // Resume all game systems
+        // Resume the game and hide overlay
         function resumeGame() {
+            if (gameOver) return;
+
+            // Hide pause screen elements
+            if (pauseScreen) pauseScreen.setVisible(false);
+            if (pauseMessage) pauseMessage.setVisible(false);
+            if (resumeButton) resumeButton.setVisible(false);
+
+            // Set pause flag
             gamePaused = false;
 
             // Resume physics
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                scene.physics.resume();
+            const activeScene = game.scene.scenes[0];
+            if (activeScene && activeScene.physics) {
+                activeScene.physics.resume();
             }
 
-            // Resume all registered timers
+            // Resume all timers
             gameTimers.forEach(timer => {
                 if (timer && timer.paused !== undefined) {
                     timer.paused = false;
                 }
             });
+
+            console.log("Game resumed");
         }
+
 
         // Clean up timers that are no longer active
         function cleanupTimers() {
@@ -1747,6 +1857,11 @@
 
             // Clean up old timers
             cleanupTimers();
+
+            // Hide pause screen if it was visible
+            if (pauseScreen) pauseScreen.setVisible(false);
+            if (pauseMessage) pauseMessage.setVisible(false);
+            if (resumeButton) resumeButton.setVisible(false);
 
             // Reset player stats to base values
             playerHealth = basePlayerHealth;

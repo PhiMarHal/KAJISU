@@ -1523,33 +1523,48 @@
             });
         }
 
+        // Updated after-image system with proper transparency
+
         window.activateAfterImages = function () {
             // Get the current active scene
             const scene = game.scene.scenes[0];
             if (scene) {
+                console.log("Activating after-images with transparency fix");
                 afterImageEnabled = true;
 
-                // Ensure any existing after-images are properly cleaned up
-                cleanupAfterImages();
+                // Clear any existing after images
+                afterImages.forEach(image => {
+                    if (image && image.active) {
+                        image.destroy();
+                    }
+                });
+                afterImages = [];
 
-                // Reset position history - start with current position
+                // Reset position history with current position
                 playerPositionHistory = [];
 
-                // Fill history with current position to prevent undefined access
-                for (let i = 0; i < 20; i++) {
+                // Fill history with current position
+                for (let i = 0; i < 80; i++) {
                     playerPositionHistory.push({ x: player.x, y: player.y });
                 }
 
-                // Create after images
+                // Create after images with proper alpha values
                 for (let i = 0; i < 4; i++) {
+                    const alphaValue = 0.4;
+
+                    console.log(`Creating after-image ${i} with alpha: ${alphaValue}`);
+
+                    // Create the text object with explicit alpha setting
                     const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, {
                         fontFamily: 'Arial',
                         fontSize: '32px',
-                        color: '#00cc66',
-                        alpha: 0.6 - (i * 0.15) // Fade out for older images
+                        color: '#00cc66'
                     }).setOrigin(0.5);
 
-                    // Ensure after-images render behind the player
+                    // Set alpha as a separate property to ensure it's applied
+                    afterImage.alpha = alphaValue;
+
+                    // Ensure these render behind the player
                     afterImage.setDepth(player.depth - 1);
 
                     // Add to physics group for collision detection
@@ -1559,52 +1574,23 @@
                     // Add damage property
                     afterImage.damage = playerDamage;
 
-                    // Register this image for tracking
+                    // Add to array
                     afterImages.push(afterImage);
-
-                    // Also register as an entity for the global cleanup system
-                    registerEffect('entity', afterImage);
                 }
 
-                // Set up timer to update position history
+                // Remove any existing timer
                 if (afterImageTimer) {
                     afterImageTimer.remove();
+                    afterImageTimer = null;
                 }
 
-                // Use a more conservative update rate initially
-                afterImageTimer = registerTimer(scene.time.addEvent({
+                // Create a new timer
+                afterImageTimer = scene.time.addEvent({
                     delay: 20,
-                    callback: function () {
-                        // Only update if the feature is still enabled
-                        if (!afterImageEnabled) return;
-
-                        // Add current position to history
-                        playerPositionHistory.unshift({ x: player.x, y: player.y });
-
-                        // Limit history size
-                        if (playerPositionHistory.length > 20) {
-                            playerPositionHistory = playerPositionHistory.slice(0, 20);
-                        }
-
-                        // Update after-image positions with direct indexing
-                        for (let i = 0; i < afterImages.length; i++) {
-                            const image = afterImages[i];
-                            if (image && image.active) {
-                                // Use fixed delays for each image
-                                const posIndex = 4 + (i * 4);
-
-                                // Always use a valid index
-                                const safeIndex = Math.min(posIndex, playerPositionHistory.length - 1);
-                                image.setPosition(
-                                    playerPositionHistory[safeIndex].x,
-                                    playerPositionHistory[safeIndex].y
-                                );
-                            }
-                        }
-                    },
+                    callback: updateAfterImages,
                     callbackScope: scene,
                     loop: true
-                }));
+                });
 
                 // Add overlap detection with enemies
                 scene.physics.add.overlap(afterImages, enemies, afterImageHitEnemy, null, scene);
@@ -1628,26 +1614,76 @@
             }
         };
 
-        // Dedicated cleanup function for after-images
+        // Separate update function outside the timer callback
+        function updateAfterImages() {
+            // Verify that the feature is enabled and we have a player
+            if (!afterImageEnabled || !player || !player.active) {
+                return;
+            }
+
+            // Log position to verify update is happening
+            if (Math.random() < 0.01) { // Only log occasionally to avoid console spam
+                console.log("Updating after-images, player at:", player.x, player.y);
+            }
+
+            // Add current position to history
+            playerPositionHistory.unshift({ x: player.x, y: player.y });
+
+            // Limit history size
+            if (playerPositionHistory.length > 80) {
+                playerPositionHistory = playerPositionHistory.slice(0, 80);
+            }
+
+            // Update after-image positions
+            for (let i = 0; i < afterImages.length; i++) {
+                const image = afterImages[i];
+                if (image && image.active) {
+                    // Use fixed spacing for each image
+                    const posIndex = 16 + (i * 16);
+
+                    // Always use a valid index
+                    const safeIndex = Math.min(posIndex, playerPositionHistory.length - 1);
+
+                    // Set position and log first image position occasionally
+                    image.setPosition(
+                        playerPositionHistory[safeIndex].x,
+                        playerPositionHistory[safeIndex].y
+                    );
+
+                    if (i === 0 && Math.random() < 0.01) {
+                        console.log("After-image 0 position:", image.x, image.y);
+                    }
+                }
+            }
+        }
+
+        // Improved cleanup function
         function cleanupAfterImages() {
-            // Stop the timer if it exists
+            console.log("Cleaning up after-images");
+
+            // Stop the timer first
             if (afterImageTimer) {
+                console.log("Removing after-image timer");
                 afterImageTimer.remove();
                 afterImageTimer = null;
             }
 
-            // Destroy all after-images
-            afterImages.forEach(image => {
+            // Then destroy all images
+            afterImages.forEach((image, index) => {
                 if (image && image.active) {
+                    console.log(`Destroying after-image ${index}`);
                     image.destroy();
                 }
             });
 
-            // Reset the array
+            // Clear arrays
             afterImages = [];
+            playerPositionHistory = [];
 
-            // Reset the feature flag
+            // Reset flag
             afterImageEnabled = false;
+
+            console.log("After-image cleanup complete");
         }
 
 

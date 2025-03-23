@@ -63,7 +63,7 @@
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 0 },
-                    debug: false
+                    debug: true
                 }
             },
             scene: {
@@ -877,20 +877,32 @@
             }
         }
 
-        function createSingleProjectile(angle) {
-            // Create a projectile
-            const projectile = this.add.text(player.x, player.y, '*', {
+        // Dedicated function for creating projectiles
+        function createProjectileBase(scene, x, y, color = '#ffff00', symbol = '★') {
+            // Create the projectile
+            const projectile = scene.add.text(x, y, symbol, {
                 fontFamily: 'Arial',
                 fontSize: `${projectileSize}px`,
-                color: '#ffff00',
+                color: color,
                 fontStyle: 'bold'
             }).setOrigin(0.5);
 
             // Add to physics group
             projectiles.add(projectile);
 
-            // Set projectile properties
-            projectile.body.setSize(projectile.width, projectile.height);
+            // Set projectile properties (smaller hitbox for better visual feel)
+            projectile.body.setSize(projectile.width / 2, projectile.height / 2);
+
+            // Set base damage value
+            projectile.damage = playerDamage;
+
+            // Return the created projectile
+            return projectile;
+        }
+
+        function createSingleProjectile(angle) {
+            // Create base projectile
+            const projectile = createProjectileBase(this, player.x, player.y);
 
             // Set projectile velocity based on angle
             const speed = 400;
@@ -908,9 +920,6 @@
                     projectile.setColor('#00ffff'); // Cyan color for slow shots
                 }
             }
-
-            // Set damage value
-            projectile.damage = playerDamage;
         }
 
         // Unified projectile hit enemy function
@@ -1301,17 +1310,6 @@
             }
         }
 
-        function startOrbitingProjectileTimer(scene) {
-            // Start the timer for orbiting projectiles
-            const cooldown = 4000; // 4 seconds base cooldown
-            orbitingProjectileTimer = scene.time.addEvent({
-                delay: cooldown,
-                callback: spawnOrbitingProjectile,
-                callbackScope: scene,
-                loop: true
-            });
-        }
-
         // Updated modifyStat function that handles negative values
         window.modifyStat = function (statName, amount) {
             switch (statName) {
@@ -1533,30 +1531,15 @@
             }
         };
 
-        // Make sure the spawnOrbitingProjectile function properly sets up the orbiting behavior
         function spawnOrbitingProjectile() {
-            // Create an orbiting projectile
-            const projectile = this.add.text(player.x, player.y, '*', {
-                fontFamily: 'Arial',
-                fontSize: `${projectileSize}px`,
-                color: '#ff9900',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Add to physics group
-            projectiles.add(projectile);
-
-            // Set projectile properties
-            projectile.body.setSize(projectile.width, projectile.height);
+            // Create an orbiting projectile with orange color
+            const projectile = createProjectileBase(this, player.x, player.y, '#ff9900');
 
             // Set as orbiting projectile
             projectile.isOrbiting = true;
             projectile.orbitAngle = Math.random() * Math.PI * 2; // Random starting angle
-            projectile.orbitRadius = 50; // Distance from player
+            projectile.orbitRadius = 12 * playerFireRate; // Distance from player
             projectile.orbitSpeed = 0.05; // Speed of orbit
-
-            // Apply perks to the orbiting projectile
-            projectile.damage = playerDamage;
 
             // Add to orbiting projectiles array
             orbitingProjectiles.push(projectile);
@@ -1587,24 +1570,12 @@
         }
 
         function dropLandmine() {
-            // Create a landmine at the player's current position
-            const landmine = this.add.text(player.x, player.y, '*', {
-                fontFamily: 'Arial',
-                fontSize: `${projectileSize}px`,
-                color: '#ffbf00',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Add to physics group for collision detection
-            projectiles.add(landmine);
-
-            // Set landmine properties
-            landmine.body.setSize(landmine.width, landmine.height);
-            landmine.body.immovable = true; // Landmine doesn't move when hit
+            // Create a landmine at the player's current position with gold color
+            const landmine = createProjectileBase(this, player.x, player.y, '#ffbf00');
 
             // Special landmine properties
+            landmine.body.immovable = true; // Landmine doesn't move when hit
             landmine.isLandmine = true;
-            landmine.damage = playerDamage;
 
             // Flash effect when spawning
             this.tweens.add({
@@ -1613,24 +1584,6 @@
                 alpha: { from: 0.2, to: 1 },
                 duration: 300,
                 ease: 'Bounce.out'
-            });
-
-            // Show notification (optional - remove if you don't want it)
-            const notification = this.add.text(player.x, player.y - 50, 'MINE PLANTED!', {
-                fontFamily: 'Arial',
-                fontSize: '16px',
-                color: '#ffbf00'
-            }).setOrigin(0.5);
-
-            // Animate the notification
-            this.tweens.add({
-                targets: notification,
-                y: notification.y - 30,
-                alpha: 0,
-                duration: 1000,
-                onComplete: function () {
-                    notification.destroy();
-                }
             });
         }
 

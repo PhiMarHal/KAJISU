@@ -71,6 +71,72 @@ const ENEMY_TYPES = {
         hiragana: 'さめ',
         romaji: 'same',
         english: 'Shark'
+    },
+    '妖': {
+        rank: 1,
+        hiragana: 'あやかし',
+        romaji: 'ayakashi',
+        english: 'Phantom'
+    },
+    '冥': {
+        rank: 1,
+        hiragana: 'めい',
+        romaji: 'mei',
+        english: 'Specter'
+    },
+    '霊': {
+        rank: 1,
+        hiragana: 'れい',
+        romaji: 'rei',
+        english: 'Spirit'
+    },
+    '怨': {
+        rank: 1,
+        hiragana: 'おん',
+        romaji: 'on',
+        english: 'Grudge'
+    },
+    '邪': {
+        rank: 1,
+        hiragana: 'じゃ',
+        romaji: 'ja',
+        english: 'Evil'
+    },
+    '呪': {
+        rank: 1,
+        hiragana: 'のろい',
+        romaji: 'noroi',
+        english: 'Curse'
+    },
+    '魂': {
+        rank: 1,
+        hiragana: 'たましい',
+        romaji: 'tamashii',
+        english: 'Soul'
+    },
+    '闇': {
+        rank: 1,
+        hiragana: 'やみ',
+        romaji: 'yami',
+        english: 'Darkness'
+    },
+    '妄': {
+        rank: 1,
+        hiragana: 'もう',
+        romaji: 'mou',
+        english: 'Delusion'
+    },
+    '憑': {
+        rank: 1,
+        hiragana: 'つき',
+        romaji: 'tsuki',
+        english: 'Possession'
+    },
+    '煉': {
+        rank: 1,
+        hiragana: 'れん',
+        romaji: 'ren',
+        english: 'Purgatory'
     }
 };
 

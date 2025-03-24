@@ -867,10 +867,10 @@
 
                 // Check for double shot if we have that perk
                 if (hasPerk('DOUBLE_SHOT')) {
-                    const doubleChance = playerLuck / BASE_STATS.LUK * 0.05; // 5% base chance scaled by luck
+                    const doubleChance = playerLuck / BASE_STATS.LUK * 0.08; // 8% base chance scaled by luck
                     if (Math.random() < doubleChance) {
                         // Fire a second projectile with slight angle variation
-                        const angleVariation = (Math.random() - 0.5) * 0.3; // Small random angle variation
+                        const angleVariation = (Math.random() - 0.5) * 0.2; // Small random angle variation
                         createSingleProjectile.call(this, angle + angleVariation);
                     }
                 }

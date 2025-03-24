@@ -854,6 +854,19 @@ const PERKS = {
         onAcquire: function () {
             window.activateAfterImages();
         }
+    },
+    "PURPLE_OWL": {
+        kanji: "紫梟",
+        hiragana: "むらさきふくろう",
+        romaji: "murasakifukurou",
+        english: "Purple Owl",
+        description: "Chance to fire a second projectile",
+        color: "#9370db",
+        hoverColor: 0x7350bb,
+        onAcquire: function () {
+            // This perk adds DOUBLE_SHOT ability
+            acquiredPerks.push('DOUBLE_SHOT');
+        }
     }
 };
 

@@ -63,7 +63,7 @@
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 0 },
-                    debug: true
+                    debug: false
                 }
             },
             scene: {
@@ -86,6 +86,11 @@
         let resumeButton = null;
         let pauseMessage = null;
         let pauseKeyP = null;
+
+        // Add these variables for stats tracking
+        let statsText = null;
+        let statsVisible = false;
+        let debugModeEnabled = false;
 
 
         let activeEffects = {
@@ -114,7 +119,7 @@
         let playerLuck = basePlayerLuck;
         let shootingDelay = baseShootingDelay; // ms between shots
         let playerFireRate = basePlayerFireRate; // Multiplier for shooting rate
-        let projectileSize = basePlayerDamage * 8; // Calculate projectile size based on damage
+        let projectileSizeFactor = 4; // Multiply player damage by this to get proj size
         let healthBar;
         let healthBarBg;
         let healthText;
@@ -353,6 +358,104 @@
             // No image assets to preload
         }
 
+        // debug funcs
+        function setupPerformanceMonitor() {
+            // Create stats text display (initially hidden)
+            statsText = this.add.text(1000, 10, 'FPS: 0', {
+                fontFamily: 'Arial',
+                fontSize: '14px',
+                color: '#00ff00',
+                backgroundColor: '#000000',
+                padding: { x: 5, y: 5 }
+            });
+            statsText.setDepth(1000);
+            statsText.visible = false;
+            statsVisible = false;
+
+            // Add key listener for O key to toggle stats and debug mode
+            const keyO = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.O);
+            keyO.on('down', function () {
+                // Toggle debug mode and stats visibility
+                toggleDebugMode.call(this);
+            }, this);
+
+            console.log("Performance monitor initialized (press O to toggle)");
+        }
+
+        // Function to toggle debug mode and stats
+        function toggleDebugMode() {
+            // Toggle debug mode
+            debugModeEnabled = !debugModeEnabled;
+
+            // Toggle stats visibility
+            if (statsText) {
+                statsText.visible = debugModeEnabled;
+                statsVisible = debugModeEnabled;
+            }
+
+            // Toggle physics debug rendering
+            this.physics.world.drawDebug = debugModeEnabled;
+
+            // When enabling debug mode, we need to create the debug graphics if it doesn't exist
+            if (debugModeEnabled && !this.physics.world.debugGraphic) {
+                this.physics.world.createDebugGraphic();
+            }
+
+            // Toggle the visibility of the debug graphics
+            if (this.physics.world.debugGraphic) {
+                this.physics.world.debugGraphic.visible = debugModeEnabled;
+            }
+
+            console.log(`Debug mode ${debugModeEnabled ? 'enabled' : 'disabled'}`);
+        }
+
+        // Add this to your update function
+        function updatePerformanceStats(time, delta) {
+            if (statsText && statsVisible) {
+                const fps = Math.round(this.game.loop.actualFps);
+
+                // Get physics bodies count
+                let bodyCount = 0;
+                if (this.physics && this.physics.world) {
+                    bodyCount = this.physics.world.bodies.size;
+                }
+
+                // Count active game objects by type
+                const totalObjects = this.children.list.length;
+                let enemyCount = 0;
+                let projectileCount = 0;
+
+                if (enemies) {
+                    enemyCount = enemies.getChildren().length;
+                }
+                if (projectiles) {
+                    projectileCount = projectiles.getChildren().length;
+                }
+
+                // Calculate frame time from delta
+                const frameTime = delta.toFixed(2);
+
+                // Get memory usage if available
+                let memoryUsage = "N/A";
+                if (window.performance && window.performance.memory) {
+                    memoryUsage = Math.round(window.performance.memory.usedJSHeapSize / 1048576) + " MB";
+                }
+
+                // Update stats text
+                statsText.setText(
+                    `DEBUG MODE ON\n` +
+                    `FPS: ${fps}\n` +
+                    `Frame Time: ${frameTime}ms\n` +
+                    `Memory: ${memoryUsage}\n` +
+                    `Total Objects: ${totalObjects}\n` +
+                    `Enemies: ${enemyCount}\n` +
+                    `Projectiles: ${projectileCount}\n` +
+                    `Physics Bodies: ${bodyCount}`
+                );
+            }
+        }
+
+
         function create() {
             // Initialize perk system first
             initializePerks();
@@ -364,7 +467,7 @@
             detectKeyboardLayout.call(this);
 
             setupPauseSystem.call(this);
-
+            setupPerformanceMonitor.call(this);
 
             // Create player text - using kanji character
             player = this.add.text(600, 400, HERO_CHARACTER, {
@@ -510,6 +613,8 @@
         function update(time, delta) {
             if (gameOver) return;
             if (gamePaused) return; // Skip updates when game is paused for level up
+
+            updatePerformanceStats.call(this, time, delta);
 
             // Increment elapsed time
             elapsedTime += delta / 1000; // delta is in milliseconds
@@ -882,7 +987,7 @@
             // Create the projectile
             const projectile = scene.add.text(x, y, symbol, {
                 fontFamily: 'Arial',
-                fontSize: `${projectileSize}px`,
+                fontSize: `${projectileSizeFactor * playerDamage}px`,
                 color: color,
                 fontStyle: 'bold'
             }).setOrigin(0.5);
@@ -1356,7 +1461,6 @@
                     playerDamage += amount;
                     // Ensure damage doesn't go below 1
                     playerDamage = Math.max(1, playerDamage);
-                    projectileSize = playerDamage * 8;
                     break;
                 case 'speed':
                     playerSpeed += amount;
@@ -1861,7 +1965,6 @@
             playerSpeed = basePlayerSpeed;
             playerDamage = basePlayerDamage;
             playerLuck = basePlayerLuck;
-            projectileSize = basePlayerDamage * 8;
             playerFireRate = basePlayerFireRate;
 
             // Reset XP and level
@@ -1896,7 +1999,6 @@
             playerDamage = basePlayerDamage;
             playerLuck = basePlayerLuck;
             playerFireRate = basePlayerFireRate;
-            projectileSize = basePlayerDamage * 8;
 
             // Clear learning feedback
             if (this.learningFeedback) {

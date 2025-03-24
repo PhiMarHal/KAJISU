@@ -867,6 +867,19 @@ const PERKS = {
             // This perk adds DOUBLE_SHOT ability
             acquiredPerks.push('DOUBLE_SHOT');
         }
+    },
+    "PURPLE_HEDGEHOG": {
+        kanji: "紫針鼠",
+        hiragana: "むらさきはりねずみ",
+        romaji: "murasakiharinezumi",
+        english: "Purple Hedgehog",
+        description: "Release projectiles in all directions when hit",
+        color: "#9370db",
+        hoverColor: 0x7350bb,
+        onAcquire: function () {
+            // Add to acquired perks
+            acquiredPerks.push('PURPLE_HEDGEHOG');
+        }
     }
 };
 

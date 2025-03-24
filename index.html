@@ -1037,6 +1037,11 @@
                 }
             });
 
+            // Check for Purple Hedgehog perk and trigger defensive burst
+            if (hasPerk('PURPLE_HEDGEHOG')) {
+                triggerDefensiveBurst.call(this);
+            }
+
             if (shieldActive) {
                 // Shield absorbs the hit
                 shieldActive = false;
@@ -1051,9 +1056,6 @@
                     yoyo: true,
                     repeat: 1
                 });
-
-                // Remove the enemy
-                enemy.destroy();
 
                 // Start shield cooldown with the base duration (16 seconds)
                 // The function will apply the Luck multiplier internally
@@ -1092,6 +1094,43 @@
             // Check if player is dead
             if (playerHealth < 1) {
                 playerDeath.call(this);
+            }
+        }
+
+        // Function to create the defensive burst effect (simplified)
+        function triggerDefensiveBurst() {
+            // Calculate number of projectiles based on luck (2 * LUCK)
+            const projectileCount = playerLuck * 2;
+
+            // Visual effect at player position
+            const burstEffect = this.add.circle(player.x, player.y, 40, 0x9370db, 0.5);
+            this.tweens.add({
+                targets: burstEffect,
+                alpha: 0,
+                scale: 2,
+                duration: 300,
+                onComplete: function () {
+                    burstEffect.destroy();
+                }
+            });
+
+            // Create each projectile in the burst
+            for (let i = 0; i < projectileCount; i++) {
+                // Calculate angle for even distribution (in radians)
+                const angle = (i / projectileCount) * Math.PI * 2;
+
+                // Create projectile using shared base
+                const projectile = createProjectileBase(this, player.x, player.y, '#9370db');
+
+                // Set velocity based on angle
+                const speed = 400;
+                projectile.body.setVelocity(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed
+                );
+
+                // Add special property
+                projectile.isDefensiveBurst = true;
             }
         }
 

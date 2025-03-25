@@ -926,7 +926,7 @@
 
         function updatePlayerStatsText() {
             // Build the stats text based on current stats and perks
-            let statsText = `POW: ${playerDamage}\nAGL: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
+            let statsText = `POW: ${playerDamage}\nAGI: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
 
             // Add cooldown reduction if you're keeping that feature
             const cooldownReduction = (1 - (BASE_STATS.LUK / playerLuck)) * 100;
@@ -971,7 +971,7 @@
                 createSingleProjectile.call(this, angle);
 
                 // Check for double shot if we have that perk
-                if (hasPerk('DOUBLE_SHOT')) {
+                if (hasPerk('PURPLE_OWL')) {
                     const doubleChance = playerLuck / BASE_STATS.LUK * 0.08; // 8% base chance scaled by luck
                     if (Math.random() < doubleChance) {
                         // Fire a second projectile with slight angle variation
@@ -1604,17 +1604,21 @@
                     orbitingProjectileTimer.remove();
                 }
 
-                // Calculate cooldown based on Luck (higher luck = lower multiplier)
+                // Calculate cooldown based on Luck
                 const baseCooldown = 4000; // 4 seconds base cooldown
-                const luckMultiplier = BASE_STATS.LUK / playerLuck;
+                const luckMultiplier = BASE_STATS.AGI / playerLuck;
                 const actualCooldown = baseCooldown * luckMultiplier;
 
-                orbitingProjectileTimer = scene.time.addEvent({
+                // Create and properly register the timer
+                orbitingProjectileTimer = registerTimer(scene.time.addEvent({
                     delay: actualCooldown,
                     callback: spawnOrbitingProjectile,
                     callbackScope: scene,
                     loop: true
-                });
+                }));
+
+                // Also register with perk effects system
+                window.registerEffect('timer', orbitingProjectileTimer);
             }
         };
 
@@ -1630,19 +1634,44 @@
                     landmineTimer.remove();
                 }
 
-                // Calculate cooldown based on Luck (higher luck = lower multiplier)
+                // Calculate cooldown based on Agility
                 const baseCooldown = 4000; // 4 seconds base cooldown
-                const luckMultiplier = BASE_STATS.LUK / playerLuck;
+                const luckMultiplier = BASE_STATS.AGI / playerFireRate;
                 const actualCooldown = baseCooldown * luckMultiplier;
 
-                landmineTimer = scene.time.addEvent({
+                // Create and properly register the timer
+                landmineTimer = registerTimer(scene.time.addEvent({
                     delay: actualCooldown,
                     callback: dropLandmine,
                     callbackScope: scene,
                     loop: true
-                });
+                }));
+
+                // Also register with perk effects system
+                window.registerEffect('timer', landmineTimer);
             }
         };
+
+        function dropLandmine() {
+            // Create a landmine at the player's current position with gold color
+            const landmine = createProjectileBase(this, player.x, player.y, '#ffbf00');
+
+            // Special landmine properties
+            landmine.body.immovable = true; // Landmine doesn't move when hit
+            landmine.isLandmine = true;
+
+            // Register entity for cleanup
+            window.registerEffect('entity', landmine);
+
+            // Flash effect when spawning
+            this.tweens.add({
+                targets: landmine,
+                scale: { from: 0.5, to: 1 },
+                alpha: { from: 0.2, to: 1 },
+                duration: 300,
+                ease: 'Bounce.out'
+            });
+        }
 
         // Function to fully heal the player
         window.fullHeal = function () {
@@ -1681,11 +1710,14 @@
             // Set as orbiting projectile
             projectile.isOrbiting = true;
             projectile.orbitAngle = Math.random() * Math.PI * 2; // Random starting angle
-            projectile.orbitRadius = 12 * playerFireRate; // Distance from player
-            projectile.orbitSpeed = 0.05; // Speed of orbit
+            projectile.orbitRadius = 12 * playerLuck; // Distance from player
+            projectile.orbitSpeed = 0.01; // Speed of orbit
 
             // Add to orbiting projectiles array
             orbitingProjectiles.push(projectile);
+
+            // Register entity for cleanup
+            window.registerEffect('entity', projectile);
 
             // Flash effect when spawning
             this.tweens.add({
@@ -1711,26 +1743,6 @@
             // Update projectile position
             projectile.setPosition(x, y);
         }
-
-        function dropLandmine() {
-            // Create a landmine at the player's current position with gold color
-            const landmine = createProjectileBase(this, player.x, player.y, '#ffbf00');
-
-            // Special landmine properties
-            landmine.body.immovable = true; // Landmine doesn't move when hit
-            landmine.isLandmine = true;
-
-            // Flash effect when spawning
-            this.tweens.add({
-                targets: landmine,
-                scale: { from: 0.5, to: 1 },
-                alpha: { from: 0.2, to: 1 },
-                duration: 300,
-                ease: 'Bounce.out'
-            });
-        }
-
-        // Updated after-image system with proper transparency
 
         window.activateAfterImages = function () {
             // Get the current active scene
@@ -1759,8 +1771,6 @@
                 for (let i = 0; i < 4; i++) {
                     const alphaValue = 0.4;
 
-                    console.log(`Creating after-image ${i} with alpha: ${alphaValue}`);
-
                     // Create the text object with explicit alpha setting
                     const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, {
                         fontFamily: 'Arial',
@@ -1781,6 +1791,9 @@
                     // Add damage property
                     afterImage.damage = playerDamage;
 
+                    // Register entity for cleanup
+                    window.registerEffect('entity', afterImage);
+
                     // Add to array
                     afterImages.push(afterImage);
                 }
@@ -1791,13 +1804,16 @@
                     afterImageTimer = null;
                 }
 
-                // Create a new timer
-                afterImageTimer = scene.time.addEvent({
+                // Create a new timer and register it properly
+                afterImageTimer = registerTimer(scene.time.addEvent({
                     delay: 20,
                     callback: updateAfterImages,
                     callbackScope: scene,
                     loop: true
-                });
+                }));
+
+                // Also register with perk effects system
+                window.registerEffect('timer', afterImageTimer);
 
                 // Add overlap detection with enemies
                 scene.physics.add.overlap(afterImages, enemies, afterImageHitEnemy, null, scene);
@@ -1855,7 +1871,6 @@
             }
         }
 
-        // Improved cleanup function
         function cleanupAfterImages() {
             console.log("Cleaning up after-images");
 
@@ -1883,8 +1898,6 @@
 
             console.log("After-image cleanup complete");
         }
-
-
 
         function afterImageHitEnemy(afterImage, enemy) {
             // Skip if either object is already destroyed

@@ -67,7 +67,7 @@ const PERKS = {
         hiragana: "すし",
         romaji: "sushi",
         english: "Sushi",
-        description: "+1 END and fully heals",
+        description: "+1 END, full heal",
         color: "#FFFFFF",
         hoverColor: 0xE0E0E0,
         onAcquire: function () {
@@ -864,8 +864,7 @@ const PERKS = {
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
-            // This perk adds DOUBLE_SHOT ability
-            acquiredPerks.push('DOUBLE_SHOT');
+            // logic in index.html
         }
     },
     "PURPLE_HEDGEHOG": {
@@ -877,8 +876,7 @@ const PERKS = {
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
-            // Add to acquired perks
-            acquiredPerks.push('PURPLE_HEDGEHOG');
+            // logic in index.html
         }
     }
 };

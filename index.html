@@ -218,7 +218,6 @@
             console.log("Pause system initialized");
         }
 
-        // Create the pause screen elements
         function createPauseScreen() {
             // Create semi-transparent background
             pauseScreen = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
@@ -227,7 +226,7 @@
 
             // Create pause message
             pauseMessage = this.add.text(
-                600, 300,
+                600, 200,
                 'GAME PAUSED',
                 { fontFamily: 'Arial', fontSize: '40px', color: '#ffffff', fontStyle: 'bold' }
             ).setOrigin(0.5);
@@ -236,7 +235,7 @@
 
             // Create resume button
             resumeButton = this.add.text(
-                600, 500,
+                600, 650,
                 'RESUME GAME',
                 {
                     fontFamily: 'Arial',
@@ -258,7 +257,25 @@
             resumeButton.on('pointerout', function () {
                 this.setStyle({ backgroundColor: '#008800' });
             });
+
+            // Create container for perks display
+            this.pausePerksContainer = this.add.container(0, 0);
+            this.pausePerksContainer.setDepth(1001);
+            this.pausePerksContainer.setVisible(false);
+
+            // Create perks title
+            const perksTitle = this.add.text(
+                600, 300,
+                'ACQUIRED PERKS',
+                { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', fontStyle: 'bold' }
+            ).setOrigin(0.5);
+
+            // Add to container
+            this.pausePerksContainer.add(perksTitle);
+
+            // We'll add perk icons when the pause screen is shown
         }
+
 
         // Pause the game and show overlay
         function pauseGameWithOverlay() {
@@ -272,8 +289,214 @@
             pauseMessage.setVisible(true);
             resumeButton.setVisible(true);
 
+            // Update and show perks
+            updatePauseScreenPerks.call(this);
+
             console.log("Game paused with overlay");
         }
+
+        function updatePauseScreenPerks() {
+            const scene = game.scene.scenes[0];
+
+            // Clear existing perk icons first
+            if (scene.perkIcons) {
+                scene.perkIcons.forEach(icon => {
+                    icon.destroy();
+                });
+            }
+
+            // Clear existing perk card if any
+            if (scene.activePerkCard) {
+                scene.activePerkCard.forEach(element => {
+                    element.destroy();
+                });
+                scene.activePerkCard = null;
+            }
+
+            // Initialize perk icons array
+            scene.perkIcons = [];
+
+            // Set container visible
+            scene.pausePerksContainer.setVisible(true);
+
+            // If no perks, show a message
+            if (acquiredPerks.length === 0) {
+                const noPerkText = scene.add.text(
+                    600, 350,
+                    'No perks acquired yet',
+                    { fontFamily: 'Arial', fontSize: '20px', color: '#aaaaaa' }
+                ).setOrigin(0.5);
+                scene.perkIcons.push(noPerkText);
+                scene.pausePerksContainer.add(noPerkText);
+                return;
+            }
+
+            // Create temporary text objects to measure each kanji's width
+            const measurements = [];
+            acquiredPerks.forEach(perkId => {
+                const perk = PERKS[perkId];
+                if (!perk) return;
+
+                // Create temp text for measurement
+                const tempText = scene.add.text(0, 0, perk.kanji, {
+                    fontFamily: 'Arial',
+                    fontSize: '32px',
+                    fontStyle: 'bold'
+                });
+
+                // Store the width and perk info
+                measurements.push({
+                    perkId: perkId,
+                    width: tempText.width
+                });
+
+                // Remove the temp text
+                tempText.destroy();
+            });
+
+            // Configuration for multi-row layout
+            const spacing = 20; // Pixels between kanji horizontally
+            const perksPerRow = 8; // Maximum perks per row
+            const rowHeight = 70; // Vertical spacing between rows
+            const startY = 320; // Starting Y position for the first row
+
+            // Split perks into rows
+            const rows = [];
+            for (let i = 0; i < measurements.length; i += perksPerRow) {
+                rows.push(measurements.slice(i, i + perksPerRow));
+            }
+
+            // Process each row
+            rows.forEach((row, rowIndex) => {
+                // Calculate total width of this row with spacing
+                const rowWidth = row.reduce((sum, item) => sum + item.width, 0) +
+                    (spacing * (row.length - 1));
+
+                // Calculate starting X position to center this row
+                let currentX = 600 - (rowWidth / 2);
+                const y = startY + (rowIndex * rowHeight);
+
+                // Create perk icons for this row
+                row.forEach(item => {
+                    const perkId = item.perkId;
+                    const perk = PERKS[perkId];
+
+                    // Position this kanji centered on its width
+                    const centerX = currentX + (item.width / 2);
+
+                    // Create the perk icon (kanji)
+                    const perkIcon = scene.add.text(
+                        centerX, y,
+                        perk.kanji,
+                        {
+                            fontFamily: 'Arial',
+                            fontSize: '32px',
+                            color: perk.color,
+                            fontStyle: 'bold',
+                            stroke: '#000000',
+                            strokeThickness: 4
+                        }
+                    ).setOrigin(0.5);
+
+                    // Make interactive
+                    perkIcon.setInteractive();
+
+                    // Add hover effects - adjusting card position based on row
+                    perkIcon.on('pointerover', function () {
+                        this.setScale(1.2);
+
+                        // If this is the bottom row and there are multiple rows,
+                        // show the card above instead of below
+                        const cardY = (rowIndex >= rows.length - 1 && rows.length > 1)
+                            ? y - 150 // Place card above
+                            : y + 150; // Place card below
+
+                        showPerkCard.call(scene, perkId, centerX, cardY);
+                    });
+
+                    perkIcon.on('pointerout', function () {
+                        this.setScale(1);
+                        hidePerkCard.call(scene);
+                    });
+
+                    // Store reference
+                    scene.perkIcons.push(perkIcon);
+
+                    // Add to container
+                    scene.pausePerksContainer.add(perkIcon);
+
+                    // Move currentX position for the next kanji
+                    currentX += item.width + spacing;
+                });
+            });
+        }
+
+        // Function to show detailed perk card
+        function showPerkCard(perkId, x, y) {
+            const scene = this;
+            const perk = PERKS[perkId];
+
+            // Clear any existing perk card
+            hidePerkCard.call(scene);
+
+            // Create card elements
+            scene.activePerkCard = [];
+
+            // Card background
+            const cardBg = scene.add.rectangle(x, y, 220, 320, 0x444444, 1)
+                .setStrokeStyle(2, 0x000000);
+            scene.activePerkCard.push(cardBg);
+
+            // Kanji (larger font)
+            const kanjiText = scene.add.text(
+                x, y - 60,
+                perk.kanji,
+                { fontFamily: 'Arial', fontSize: '36px', color: perk.color, fontStyle: 'bold' }
+            ).setOrigin(0.5);
+            scene.activePerkCard.push(kanjiText);
+
+            // Hiragana - romaji
+            const readingText = scene.add.text(
+                x, y - 15,
+                `${perk.hiragana} - ${perk.romaji}`,
+                { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff' }
+            ).setOrigin(0.5);
+            scene.activePerkCard.push(readingText);
+
+            // English
+            const englishText = scene.add.text(
+                x, y + 15,
+                perk.english,
+                { fontFamily: 'Arial', fontSize: '20px', color: perk.color }
+            ).setOrigin(0.5);
+            scene.activePerkCard.push(englishText);
+
+            // Description
+            const descText = scene.add.text(
+                x, y + 65,
+                perk.description,
+                { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', align: 'center' }
+            ).setOrigin(0.5);
+            scene.activePerkCard.push(descText);
+
+            // Add all card elements to the container
+            scene.activePerkCard.forEach(element => {
+                scene.pausePerksContainer.add(element);
+            });
+        }
+
+        // Function to hide perk card
+        function hidePerkCard() {
+            const scene = this;
+
+            if (scene.activePerkCard) {
+                scene.activePerkCard.forEach(element => {
+                    element.destroy();
+                });
+                scene.activePerkCard = null;
+            }
+        }
+
 
         // Perk system helper functions
         function initializePerks() {
@@ -817,6 +1040,12 @@
             if (pauseMessage) pauseMessage.setVisible(false);
             if (resumeButton) resumeButton.setVisible(false);
 
+            // Hide perks container
+            const scene = game.scene.scenes[0];
+            if (scene && scene.pausePerksContainer) {
+                scene.pausePerksContainer.setVisible(false);
+            }
+
             // Set pause flag
             gamePaused = false;
 
@@ -925,22 +1154,8 @@
         }
 
         function updatePlayerStatsText() {
-            // Build the stats text based on current stats and perks
+            // Build the stats text based on current stats, without listing perks
             let statsText = `POW: ${playerDamage}\nAGI: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
-
-            // Add cooldown reduction if you're keeping that feature
-            const cooldownReduction = (1 - (BASE_STATS.LUK / playerLuck)) * 100;
-
-            // Add perks section if we have any
-            if (acquiredPerks.length > 0) {
-                statsText += "\n\nPerks:";
-                acquiredPerks.forEach(perkId => {
-                    const perk = PERKS[perkId];
-                    if (perk) {
-                        statsText += `\n• ${perk.kanji} ${perk.english}`;
-                    }
-                });
-            }
 
             // Update the text
             playerStatsText.setText(statsText);

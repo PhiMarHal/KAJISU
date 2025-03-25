@@ -226,7 +226,7 @@
 
             // Create pause message
             pauseMessage = this.add.text(
-                600, 200,
+                600, 100,
                 'GAME PAUSED',
                 { fontFamily: 'Arial', fontSize: '40px', color: '#ffffff', fontStyle: 'bold' }
             ).setOrigin(0.5);
@@ -235,11 +235,11 @@
 
             // Create resume button
             resumeButton = this.add.text(
-                600, 650,
+                600, 700,
                 'RESUME GAME',
                 {
                     fontFamily: 'Arial',
-                    fontSize: '32px',
+                    fontSize: '36px',
                     color: '#ffffff',
                     backgroundColor: '#008800',
                     padding: { left: 15, right: 15, top: 10, bottom: 10 }
@@ -265,9 +265,9 @@
 
             // Create perks title
             const perksTitle = this.add.text(
-                600, 300,
-                'ACQUIRED PERKS',
-                { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', fontStyle: 'bold' }
+                600, 200,
+                'MY PERKS',
+                { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }
             ).setOrigin(0.5);
 
             // Add to container
@@ -313,8 +313,21 @@
                 scene.activePerkCard = null;
             }
 
-            // Initialize perk icons array
+            // Clear pagination controls if they exist
+            if (scene.paginationControls) {
+                scene.paginationControls.forEach(control => {
+                    control.destroy();
+                });
+            }
+
+            // Initialize arrays
             scene.perkIcons = [];
+            scene.paginationControls = [];
+
+            // Set or initialize current page
+            if (scene.currentPerkPage === undefined) {
+                scene.currentPerkPage = 0;
+            }
 
             // Set container visible
             scene.pausePerksContainer.setVisible(true);
@@ -354,16 +367,29 @@
                 tempText.destroy();
             });
 
-            // Configuration for multi-row layout
+            // Configuration for paginated layout
             const spacing = 20; // Pixels between kanji horizontally
             const perksPerRow = 8; // Maximum perks per row
+            const rowsPerPage = 4; // Maximum rows per page
+            const perksPerPage = perksPerRow * rowsPerPage; // Perks per page (32)
             const rowHeight = 70; // Vertical spacing between rows
-            const startY = 320; // Starting Y position for the first row
+            const startY = 280; // Starting Y position for the first row
 
-            // Split perks into rows
+            // Calculate total number of pages
+            const totalPages = Math.ceil(measurements.length / perksPerPage);
+
+            // Ensure current page is valid
+            scene.currentPerkPage = Math.min(scene.currentPerkPage, totalPages - 1);
+            scene.currentPerkPage = Math.max(0, scene.currentPerkPage);
+
+            // Get perks for the current page
+            const startIndex = scene.currentPerkPage * perksPerPage;
+            const currentPagePerks = measurements.slice(startIndex, startIndex + perksPerPage);
+
+            // Split current page perks into rows
             const rows = [];
-            for (let i = 0; i < measurements.length; i += perksPerRow) {
-                rows.push(measurements.slice(i, i + perksPerRow));
+            for (let i = 0; i < currentPagePerks.length; i += perksPerRow) {
+                rows.push(currentPagePerks.slice(i, i + perksPerRow));
             }
 
             // Process each row
@@ -401,15 +427,11 @@
                     // Make interactive
                     perkIcon.setInteractive();
 
-                    // Add hover effects - adjusting card position based on row
                     perkIcon.on('pointerover', function () {
                         this.setScale(1.2);
 
-                        // If this is the bottom row and there are multiple rows,
-                        // show the card above instead of below
-                        const cardY = (rowIndex >= rows.length - 1 && rows.length > 1)
-                            ? y - 150 // Place card above
-                            : y + 150; // Place card below
+                        // Always place card below, regardless of row position
+                        const cardY = y + 150;
 
                         showPerkCard.call(scene, perkId, centerX, cardY);
                     });
@@ -429,6 +451,83 @@
                     currentX += item.width + spacing;
                 });
             });
+
+            // Only show pagination if we have multiple pages
+            if (totalPages > 1) {
+                // Create left arrow (if not on first page)
+                if (scene.currentPerkPage > 0) {
+                    const leftArrow = scene.add.text(
+                        520, 580,
+                        '◀',
+                        {
+                            fontFamily: 'Arial',
+                            fontSize: '48px',
+                            color: '#ffffff'
+                        }
+                    ).setOrigin(0.5);
+
+                    leftArrow.setInteractive();
+                    leftArrow.on('pointerdown', () => {
+                        scene.currentPerkPage--;
+                        updatePauseScreenPerks.call(scene);
+                    });
+
+                    leftArrow.on('pointerover', function () {
+                        this.setColor('#aaffaa');
+                    });
+
+                    leftArrow.on('pointerout', function () {
+                        this.setColor('#ffffff');
+                    });
+
+                    scene.paginationControls.push(leftArrow);
+                    scene.pausePerksContainer.add(leftArrow);
+                }
+
+                // Create page counter
+                const pageCounter = scene.add.text(
+                    600, 580,
+                    `${scene.currentPerkPage + 1}/${totalPages}`,
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '40px',
+                        color: '#ffffff'
+                    }
+                ).setOrigin(0.5);
+
+                scene.paginationControls.push(pageCounter);
+                scene.pausePerksContainer.add(pageCounter);
+
+                // Create right arrow (if not on last page)
+                if (scene.currentPerkPage < totalPages - 1) {
+                    const rightArrow = scene.add.text(
+                        680, 580,
+                        '▶',
+                        {
+                            fontFamily: 'Arial',
+                            fontSize: '48px',
+                            color: '#ffffff'
+                        }
+                    ).setOrigin(0.5);
+
+                    rightArrow.setInteractive();
+                    rightArrow.on('pointerdown', () => {
+                        scene.currentPerkPage++;
+                        updatePauseScreenPerks.call(scene);
+                    });
+
+                    rightArrow.on('pointerover', function () {
+                        this.setColor('#aaffaa');
+                    });
+
+                    rightArrow.on('pointerout', function () {
+                        this.setColor('#ffffff');
+                    });
+
+                    scene.paginationControls.push(rightArrow);
+                    scene.pausePerksContainer.add(rightArrow);
+                }
+            }
         }
 
         // Function to show detailed perk card

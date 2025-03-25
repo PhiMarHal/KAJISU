@@ -1033,11 +1033,15 @@
                 }
             });
 
-            // Update projectiles (destroy if out of bounds)
             projectiles.getChildren().forEach(projectile => {
                 if (projectile.y < -50 || projectile.y > 850 ||
                     projectile.x < -50 || projectile.x > 1250) {
                     projectile.destroy();
+                }
+
+                // Update distance-based damage if applicable
+                if (projectile.hasDistanceDamage) {
+                    updateProjectileDistance.call(this, projectile);
                 }
             });
 
@@ -1370,6 +1374,21 @@
                 Math.sin(angle) * speed
             );
 
+            // Record starting position for distance-based damage if we have the Silver Sniper perk
+            if (hasPerk('CRIMSON_SCATTER')) {
+                projectile.startX = player.x;
+                projectile.startY = player.y;
+                projectile.hasDistanceDamage = true;
+
+                // Set initial scale and damage based on the maximum (2x)
+                projectile.setScale(2.0);
+                projectile.baseDamage = playerDamage;
+                projectile.damage = projectile.baseDamage * 2.0;
+
+                // Update size and damage based on distance
+                updateProjectileDistance.call(this, projectile);
+            }
+
             // Apply slow effect if we have that perk
             projectile.isSlowShot = false;
             if (hasPerk('SLOW_SHOT')) {
@@ -1379,6 +1398,28 @@
                     projectile.setColor('#00ffff'); // Cyan color for slow shots
                 }
             }
+        }
+
+        function updateProjectileDistance(projectile) {
+            if (!projectile || !projectile.active || !projectile.hasDistanceDamage) return;
+
+            // Calculate distance from starting position
+            const dx = projectile.x - projectile.startX;
+            const dy = projectile.y - projectile.startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Maximum distance for damage scaling
+            const maxDistance = 400;
+
+            // Calculate damage multiplier based on distance (2.0 at distance 0, 0.4 at maxDistance)
+            let damageMultiplier = 2.0 - (1.6 * Math.min(distance, maxDistance) / maxDistance);
+
+            // Update projectile damage
+            projectile.damage = projectile.baseDamage * damageMultiplier;
+
+            // Update projectile scale to reflect damage (visual feedback)
+            const scaleValue = 0.5 + damageMultiplier;
+            projectile.setScale(scaleValue);
         }
 
         // Unified projectile hit enemy function

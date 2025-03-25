@@ -878,6 +878,17 @@ const PERKS = {
         onAcquire: function () {
             // logic in index.html
         }
+    },
+    "CRIMSON_SCATTER": {
+        kanji: "紅散",
+        hiragana: "こうさん",
+        romaji: "kousan",
+        english: "Crimson Scatter",
+        description: "Higher damage at short range",
+        color: "#FF3030",
+        hoverColor: 0xC02020,
+        onAcquire: function () {
+        }
     }
 };
 

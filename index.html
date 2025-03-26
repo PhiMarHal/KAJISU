@@ -54,24 +54,133 @@
 
     <script>
         // --- Constants ---
-        const SCREEN_WIDTH = 1200; const SCREEN_HEIGHT = 800; const HEALTH_BAR_WIDTH = 200; const HEALTH_BAR_HEIGHT = 10; const EXP_BAR_HEIGHT = 5; const BASE_SHOOTING_DELAY = 2000; const BASE_HERO_EXP_TO_LEVEL = 5; const BASE_ENEMY_HEALTH = 40; const BASE_SPAWN_DELAY = 4000; const ENEMY_HEALTH_SCALE_FACTOR = 1.0; const ENEMY_COUNT_SCALE_FACTOR = 1.25; const PROJECTILE_SPEED = 400; const PLAYER_INVINCIBILITY_DURATION = 500; const DEBUG_MODE_KEY = Phaser.Input.Keyboard.KeyCodes.O; const PAUSE_KEY = Phaser.Input.Keyboard.KeyCodes.P; const LEVEL_UP_DEBUG_KEY = Phaser.Input.Keyboard.KeyCodes.R;
+        const SCREEN_WIDTH = 1200;
+        const SCREEN_HEIGHT = 800;
+        const HEALTH_BAR_WIDTH = 200;
+        const HEALTH_BAR_HEIGHT = 10;
+        const EXP_BAR_HEIGHT = 5;
+        const BASE_SHOOTING_DELAY = 2000;
+        const BASE_HERO_EXP_TO_LEVEL = 5;
+        const BASE_ENEMY_HEALTH = 40;
+        const BASE_SPAWN_DELAY = 4000;
+        const ENEMY_HEALTH_SCALE_FACTOR = 1.0;
+        const ENEMY_COUNT_SCALE_FACTOR = 1.25;
+        const PROJECTILE_SPEED = 400;
+        const PLAYER_INVINCIBILITY_DURATION = 500;
+        const DEBUG_MODE_KEY = Phaser.Input.Keyboard.KeyCodes.O;
+        const PAUSE_KEY = Phaser.Input.Keyboard.KeyCodes.P;
+        const LEVEL_UP_DEBUG_KEY = Phaser.Input.Keyboard.KeyCodes.R;
 
         // Game configuration
-        const config = { type: Phaser.AUTO, width: SCREEN_WIDTH, height: SCREEN_HEIGHT, parent: 'game-container', physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } }, scene: { preload: preload, create: create, update: update } };
+        const config = {
+            type: Phaser.AUTO,
+            width: SCREEN_WIDTH,
+            height: SCREEN_HEIGHT,
+            parent: 'game-container',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
 
         // --- Global Game Variables (Original Structure) ---
-        let player; let enemies; let projectiles; let cursors; let wasdKeys; let keyboardLayout = 'qwerty';
-        let pauseScreen = null; let resumeButton = null; let pauseMessage = null; let pauseKeyP = null;
-        let statsText = null; let statsVisible = false; let debugModeEnabled = false;
-        let activeEffects = { timers: [], entities: [], activePerks: [] };
-        let basePlayerHealth = BASE_STATS.END; let baseMaxHealth = BASE_STATS.END; let basePlayerSpeed = 8; let basePlayerDamage = BASE_STATS.POW; let basePlayerLuck = BASE_STATS.LUK; let basePlayerFireRate = BASE_STATS.AGI; let baseShootingDelay = BASE_SHOOTING_DELAY; let baseHeroExpToLevel = BASE_HERO_EXP_TO_LEVEL; let acquiredPerks = [];
-        let playerHealth = basePlayerHealth; let maxPlayerHealth = baseMaxHealth; let playerSpeed = basePlayerSpeed; let playerDamage = basePlayerDamage; let playerLuck = basePlayerLuck; let shootingDelay = baseShootingDelay; let playerFireRate = basePlayerFireRate; let projectileSizeFactor = 4;
-        let healthBar; let healthBarBg; let healthText; let expBar; let expBarBg; let expText; let playerStatsText; let killCountText; let heroLevelText; let learningFeedback;
-        let score = 0; let touchInput = { x: 0, y: 0, isActive: false }; let gameOver = false; let gameOverText; let restartButton; let playerInvincible = false; let elapsedTime = 0; let gamePaused = false;
-        let enemySpawner = null; let projectileFirer = null; let healthRegenTimer = null; let shieldCooldownTimer = null; let orbitingProjectileTimer = null; let landmineTimer = null; let afterImageTimer = null;
-        let enemyHealthScaleFactor = ENEMY_HEALTH_SCALE_FACTOR; let enemyCountScaleFactor = ENEMY_COUNT_SCALE_FACTOR; let gameStartTime = 0; let lastDifficultyUpdateTime = 0; let baseEnemyHealth = BASE_ENEMY_HEALTH; let currentEnemyHealth = baseEnemyHealth; let baseSpawnDelay = BASE_SPAWN_DELAY;
-        let playerLevel = 1; let heroExp = 0; let heroExpToLevel = baseHeroExpToLevel; let levelUpCards = [];
-        let shieldVisual = null; let shieldActive = false; let orbitingProjectiles = []; let landmines = []; let afterImages = []; let afterImageEnabled = false; let playerPositionHistory = [];
+        let player;
+        let enemies;
+        let projectiles;
+        let cursors;
+        let wasdKeys;
+        let keyboardLayout = 'qwerty';
+
+        let pauseScreen = null;
+        let resumeButton = null;
+        let pauseMessage = null;
+        let pauseKeyP = null;
+
+        let statsText = null;
+        let statsVisible = false;
+        let debugModeEnabled = false;
+
+        let activeEffects = {
+            timers: [],
+            entities: [],
+            activePerks: []
+        };
+
+        let basePlayerHealth = BASE_STATS.END;
+        let baseMaxHealth = BASE_STATS.END;
+        let basePlayerSpeed = 8;
+        let basePlayerDamage = BASE_STATS.POW;
+        let basePlayerLuck = BASE_STATS.LUK;
+        let basePlayerFireRate = BASE_STATS.AGI;
+        let baseShootingDelay = BASE_SHOOTING_DELAY;
+        let baseHeroExpToLevel = BASE_HERO_EXP_TO_LEVEL;
+        let acquiredPerks = [];
+
+        let playerHealth = basePlayerHealth;
+        let maxPlayerHealth = baseMaxHealth;
+        let playerSpeed = basePlayerSpeed;
+        let playerDamage = basePlayerDamage;
+        let playerLuck = basePlayerLuck;
+        let shootingDelay = baseShootingDelay;
+        let playerFireRate = basePlayerFireRate;
+        let projectileSizeFactor = 4;
+
+        let healthBar;
+        let healthBarBg;
+        let healthText;
+        let expBar;
+        let expBarBg;
+        let expText;
+        let playerStatsText;
+        let killCountText;
+        let heroLevelText;
+        let learningFeedback;
+
+        let score = 0;
+        let touchInput = { x: 0, y: 0, isActive: false };
+        let gameOver = false;
+        let gameOverText;
+        let restartButton;
+        let playerInvincible = false;
+        let elapsedTime = 0;
+        let gamePaused = false;
+
+        let enemySpawner = null;
+        let projectileFirer = null;
+        let healthRegenTimer = null;
+        let shieldCooldownTimer = null;
+        let orbitingProjectileTimer = null;
+        let landmineTimer = null;
+        let afterImageTimer = null;
+
+        let enemyHealthScaleFactor = ENEMY_HEALTH_SCALE_FACTOR;
+        let enemyCountScaleFactor = ENEMY_COUNT_SCALE_FACTOR;
+        let gameStartTime = 0;
+        let lastDifficultyUpdateTime = 0;
+        let baseEnemyHealth = BASE_ENEMY_HEALTH;
+        let currentEnemyHealth = baseEnemyHealth;
+        let baseSpawnDelay = BASE_SPAWN_DELAY;
+
+        let playerLevel = 1;
+        let heroExp = 0;
+        let heroExpToLevel = baseHeroExpToLevel;
+        let levelUpCards = [];
+
+        let shieldVisual = null;
+        let shieldActive = false;
+        let orbitingProjectiles = [];
+        let landmines = [];
+        let afterImages = [];
+        let afterImageEnabled = false;
+        let playerPositionHistory = [];
 
         // --- Helper Functions ---
         function xpForNextLevel(heroLevel) { return Math.ceil(baseHeroExpToLevel * Math.pow(1.2, heroLevel - 1)); }
@@ -127,8 +236,9 @@
             const size = Math.max(8, projectileSizeFactor * playerDamage);
             const projectile = scene.add.text(x, y, symbol, { fontFamily: 'Arial', fontSize: `${size}px`, color: color, fontStyle: 'bold' }).setOrigin(0.5);
             projectiles.add(projectile);
-            // Use setSize centered, smaller than visual
+            // Use setSize centered based on original logic (half visual size)
             projectile.body.setSize(projectile.width / 2, projectile.height / 2);
+            // Centering is handled by text origin 0.5
             projectile.damage = playerDamage;
             projectile.isOrbiting = false; projectile.isLandmine = false; projectile.isSlowShot = false; projectile.hasDistanceDamage = false; projectile.isDefensiveBurst = false;
             return projectile;
@@ -163,18 +273,19 @@
             if (!scene || gameOver) { console.log("After image activation condition not met (scene/gameOver)."); return; }
             console.log("Activating after-images!");
             afterImageEnabled = true;
-            cleanupAfterImages(false);
-            playerPositionHistory = []; for (let i = 0; i < 80; i++) { playerPositionHistory.push({ x: player.x, y: player.y }); }
-            const numImages = 4; const baseAlpha = 0.4;
-            for (let i = 0; i < numImages; i++) { const alpha = baseAlpha * ((numImages - i) / numImages); const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, { fontFamily: 'Arial', fontSize: '32px', color: '#00cc66' }).setOrigin(0.5).setAlpha(alpha).setDepth(player.depth - 1); scene.physics.world.enable(afterImage); afterImage.body.setSize(afterImage.width, afterImage.height); afterImage.damage = playerDamage; window.registerEffect('entity', afterImage); afterImages.push(afterImage); }
+            cleanupAfterImages(false); // Use internal cleanup function
+            playerPositionHistory = []; for (let i = 0; i < 80; i++) { playerPositionHistory.push({ x: player.x, y: player.y }); } // Original buffer size
+            const numImages = 4; const baseAlpha = 0.4; // Original number and alpha
+            for (let i = 0; i < numImages; i++) { const alpha = baseAlpha; /* Constant alpha from original? Let's use original calculation -> ((numImages - i) / numImages) * baseAlpha;*/ const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, { fontFamily: 'Arial', fontSize: '32px', color: '#00cc66' }).setOrigin(0.5).setAlpha(alpha).setDepth(player.depth - 1); scene.physics.world.enable(afterImage); afterImage.body.setSize(afterImage.width, afterImage.height); afterImage.damage = playerDamage; window.registerEffect('entity', afterImage); afterImages.push(afterImage); }
             if (afterImageTimer) afterImageTimer.remove();
             afterImageTimer = scene.time.addEvent({
-                delay: 20,
+                delay: 20, // Original delay
                 callback: updateActiveAfterImages,
-                callbackScope: scene, // <<< ADDED BACK - Needed for timer system
+                callbackScope: scene, // <<< ADDED BACK
                 loop: true
             });
-            window.registerEffect('timer', afterImageTimer);
+            window.registerEffect('timer', afterImageTimer); // Register for pausing
+            // Ensure overlap exists (checking scene property to avoid duplicates)
             if (!scene.afterImageOverlap) { scene.afterImageOverlap = scene.physics.add.overlap(afterImages, enemies, afterImageHitEnemy, null, scene); }
             showTemporaryPlayerText.call(scene, 'AFTER-IMAGES ACTIVE!', '#00cc66');
         };
@@ -183,43 +294,35 @@
 
         // --- Perk Helper Functions ---
 
-        // CORRECTED spawnOrbitingProjectile symbol, radius, speed
+        // CORRECTED spawnOrbitingProjectile speed
         function spawnOrbitingProjectile() {
             const scene = this;
             if (gameOver || gamePaused || orbitingProjectiles.length >= 6) return;
-            const projectile = createProjectileBase(scene, player.x, player.y, '#ff9900', '★'); // Reverted symbol
+            const projectile = createProjectileBase(scene, player.x, player.y, '#ff9900', '★');
             projectile.isOrbiting = true;
             projectile.orbitAngle = Math.random() * Math.PI * 2;
-            projectile.orbitRadius = 12 * playerLuck; // Reverted radius
-            projectile.orbitSpeed = 0.01 + (playerLuck / BASE_STATS.LUK) * 0.005; // Reverted speed calculation
+            projectile.orbitRadius = 12 * playerLuck;
+            projectile.orbitSpeed = 0.01 + (playerLuck / BASE_STATS.LUK) * 0.005; // <<< CORRECTED
             projectile.damage *= 0.5;
             orbitingProjectiles.push(projectile);
             window.registerEffect('entity', projectile);
             scene.tweens.add({ targets: projectile, scale: { from: 2, to: 1 }, alpha: { from: 0.8, to: 1 }, duration: 300, ease: 'Cubic.out' });
         }
         function updateOrbitingProjectiles() { if (!player || !player.active || orbitingProjectiles.length === 0) return; orbitingProjectiles.forEach(projectile => { if (projectile && projectile.active && projectile.isOrbiting) { projectile.orbitAngle += projectile.orbitSpeed * (game.loop.delta / 16.666); const x = player.x + Math.cos(projectile.orbitAngle) * projectile.orbitRadius; const y = player.y + Math.sin(projectile.orbitAngle) * projectile.orbitRadius; projectile.setPosition(x, y); } }); }
-
-        // CORRECTED dropLandmine symbol
-        function dropLandmine() {
-            const scene = this;
-            if (gameOver || gamePaused || landmines.length >= 8) return;
-            const landmine = createProjectileBase(scene, player.x, player.y, '#ffbf00', '★'); // Reverted symbol
-            landmine.isLandmine = true; landmine.body.immovable = true; landmine.body.moves = false;
-            landmine.damage *= 1.5;
-            landmines.push(landmine);
-            window.registerEffect('entity', landmine);
-            scene.tweens.add({ targets: landmine, scale: { from: 0.5, to: 1 }, alpha: { from: 0.2, to: 1 }, duration: 300, ease: 'Bounce.easeOut' });
-        }
+        function dropLandmine() { const scene = this; if (gameOver || gamePaused || landmines.length >= 8) return; const landmine = createProjectileBase(scene, player.x, player.y, '#ffbf00', '★'); landmine.isLandmine = true; landmine.body.immovable = true; landmine.body.moves = false; landmine.damage *= 1.5; landmines.push(landmine); window.registerEffect('entity', landmine); scene.tweens.add({ targets: landmine, scale: { from: 0.5, to: 1 }, alpha: { from: 0.2, to: 1 }, duration: 300, ease: 'Bounce.easeOut' }); }
 
         // CORRECTED updateActiveAfterImages logic
         function updateActiveAfterImages() {
             if (!afterImageEnabled || !player || !player.active || gamePaused) return;
             playerPositionHistory.unshift({ x: player.x, y: player.y });
-            if (playerPositionHistory.length > 80) { playerPositionHistory.pop(); }
+            // Use slice to limit buffer size
+            if (playerPositionHistory.length > 80) {
+                playerPositionHistory = playerPositionHistory.slice(0, 80);
+            }
             for (let i = 0; i < afterImages.length; i++) {
                 const image = afterImages[i];
                 if (image && image.active) {
-                    const posIndex = 16 + (i * 16);
+                    const posIndex = 16 + (i * 16); // Original index calculation
                     const safeIndex = Math.min(posIndex, playerPositionHistory.length - 1);
                     if (safeIndex >= 0) { image.setPosition(playerPositionHistory[safeIndex].x, playerPositionHistory[safeIndex].y); }
                 }

@@ -529,8 +529,7 @@
                 }
             }
         }
-
-        // More flexible perk card creation function with options
+        // Update the createPerkCard function with better text layout
         function createPerkCard(scene, perkId, x, y, options = {}) {
             const defaults = {
                 container: null,
@@ -566,35 +565,42 @@
                 }
             }
 
-            // If we're here, we're creating the content elements
-
-            // Kanji (larger font)
+            // Adjust vertical positions to accommodate split text
+            // Kanji (moved up slightly)
             const kanjiText = scene.add.text(
-                x, y - 60,
+                x, y - 70,
                 perk.kanji,
                 { fontFamily: 'Arial', fontSize: '36px', color: perk.color, fontStyle: 'bold' }
             ).setOrigin(0.5);
             cardElements.push(kanjiText);
 
-            // Hiragana - romaji
-            const readingText = scene.add.text(
-                x, y - 15,
-                `${perk.hiragana} - ${perk.romaji}`,
-                { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff' }
+            // Hiragana (on its own line)
+            const hiraganaText = scene.add.text(
+                x, y - 25,
+                perk.hiragana,
+                { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff' }
             ).setOrigin(0.5);
-            cardElements.push(readingText);
+            cardElements.push(hiraganaText);
 
-            // English
+            // Romaji (on its own line)
+            const romajiText = scene.add.text(
+                x, y,
+                perk.romaji,
+                { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', fontStyle: 'italic' }
+            ).setOrigin(0.5);
+            cardElements.push(romajiText);
+
+            // English (moved down slightly)
             const englishText = scene.add.text(
-                x, y + 15,
+                x, y + 30,
                 perk.english,
                 { fontFamily: 'Arial', fontSize: '20px', color: perk.color }
             ).setOrigin(0.5);
             cardElements.push(englishText);
 
-            // Description
+            // Description (moved down slightly)
             const descText = scene.add.text(
-                x, y + 65,
+                x, y + 75,
                 perk.description,
                 { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', align: 'center', wordWrap: { width: 200 } }
             ).setOrigin(0.5);
@@ -1418,8 +1424,7 @@
             projectile.damage = projectile.baseDamage * damageMultiplier;
 
             // Update projectile scale to reflect damage (visual feedback)
-            const scaleValue = 0.5 + damageMultiplier;
-            projectile.setScale(scaleValue);
+            projectile.setScale(damageMultiplier);
         }
 
         // Unified projectile hit enemy function

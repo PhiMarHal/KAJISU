@@ -92,6 +92,26 @@
         let statsVisible = false;
         let debugModeEnabled = false;
 
+        // Store all game timers in a central array
+        let gameTimers = [];
+
+        // Register a timer with the central system
+        function registerTimer(timer) {
+            if (timer && timer instanceof Phaser.Time.TimerEvent) {
+                gameTimers.push(timer);
+                // If game is currently paused, pause the new timer too
+                if (gamePaused && timer.paused !== undefined) {
+                    timer.paused = true;
+                }
+            }
+            return timer; // Return the timer for convenience
+        }
+
+        // Clean up timers that are no longer active
+        function cleanupTimers() {
+            gameTimers = gameTimers.filter(timer =>
+                timer && !timer.hasOwnProperty('removed') && !timer.removed);
+        }
 
         let activeEffects = {
             timers: [],         // Store all active timers
@@ -187,6 +207,79 @@
         let playerPositionHistory = [];
         let healthRegenTimer = null;
 
+        // Enhanced pauseGame function
+        function pauseGame(isLevelUpPause = false) {
+            // Set the flag
+            gamePaused = true;
+
+            // Pause physics
+            const activeScene = game.scene.scenes[0];
+            if (activeScene && activeScene.physics) {
+                activeScene.physics.pause();
+            }
+
+            // Pause all registered timers
+            gameTimers.forEach(timer => {
+                if (timer && timer.paused !== undefined) {
+                    timer.paused = true;
+                }
+            });
+
+            // Pause all effect timers
+            activeEffects.timers.forEach(timer => {
+                if (timer && timer.paused !== undefined) {
+                    timer.paused = true;
+                }
+            });
+        }
+
+        // Resume the game and hide overlay
+        function resumeGame() {
+            if (gameOver) return;
+
+            // If level up is in progress, don't resume
+            if (levelUpCards && levelUpCards.length > 0) {
+                console.log("Cannot resume, level up screen is active");
+                return;
+            }
+
+            // Hide pause screen elements
+            if (pauseScreen) pauseScreen.setVisible(false);
+            if (pauseMessage) pauseMessage.setVisible(false);
+            if (resumeButton) resumeButton.setVisible(false);
+
+            // Hide perks container
+            const scene = game.scene.scenes[0];
+            if (scene && scene.pausePerksContainer) {
+                scene.pausePerksContainer.setVisible(false);
+            }
+
+            // Set pause flag
+            gamePaused = false;
+
+            // Resume physics
+            const activeScene = game.scene.scenes[0];
+            if (activeScene && activeScene.physics) {
+                activeScene.physics.resume();
+            }
+
+            // Resume all registered timers
+            gameTimers.forEach(timer => {
+                if (timer && timer.paused !== undefined) {
+                    timer.paused = false;
+                }
+            });
+
+            // Resume all effect timers
+            activeEffects.timers.forEach(timer => {
+                if (timer && timer.paused !== undefined) {
+                    timer.paused = false;
+                }
+            });
+
+            console.log("Game resumed");
+        }
+
         // Setup pause system
         function setupPauseSystem() {
             const scene = this;
@@ -272,10 +365,7 @@
 
             // Add to container
             this.pausePerksContainer.add(perksTitle);
-
-            // We'll add perk icons when the pause screen is shown
         }
-
 
         // Pause the game and show overlay
         function pauseGameWithOverlay() {
@@ -399,104 +489,6 @@
             }
 
             return cardElements;
-        }
-
-        // Improved level up cards with hover effects
-        function showLevelUpCards() {
-            // Pause the game
-            pauseGame();
-
-            // Create semi-transparent background
-            const levelUpBackground = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
-
-            // Create level up title with improved styling
-            const levelUpTitle = this.add.text(
-                600, 200,
-                'LEVEL UP! Choose a perk:',
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '32px',
-                    color: '#ffffff',
-                    fontStyle: 'bold',
-                    stroke: '#000000',
-                    strokeThickness: 4
-                }
-            ).setOrigin(0.5);
-
-            // Get random perks (excluding already acquired ones)
-            const selectedPerks = PerkSystem.getRandomPerks(3, acquiredPerks);
-
-            // Create three card choices with improved visuals
-            const card1 = this.add.rectangle(300, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x888888);
-            const card2 = this.add.rectangle(600, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x888888);
-            const card3 = this.add.rectangle(900, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x888888);
-
-            // Make cards interactive
-            [card1, card2, card3].forEach(card => {
-                card.setInteractive({ useHandCursor: true });
-            });
-
-            // Store all level up UI elements
-            const cardElements = [];
-
-            // Add card content for each perk
-            for (let i = 0; i < selectedPerks.length; i++) {
-                const cardX = 300 + (i * 300);
-                const perk = selectedPerks[i];
-
-                if (!perk) continue; // Skip if we have fewer than 3 available perks
-
-                // Create perk card contents WITHOUT background
-                const elements = createPerkCard(this, perk.id, cardX, 400, {
-                    createBackground: false
-                });
-
-                // Add elements to our tracking array
-                cardElements.push(...elements);
-
-                // Set card data and interactivity
-                const card = [card1, card2, card3][i];
-                card.perkId = perk.id;
-
-                // Add enhanced hover effects
-                card.on('pointerover', function () {
-                    // Change color on hover
-                    this.fillColor = perk.hoverColor || 0x666666;
-                    // Enhanced highlight with thicker stroke
-                    this.setStrokeStyle(4, 0xffffff);
-                    // Scale effect on hover
-                    this.scene.tweens.add({
-                        targets: this,
-                        scaleX: 1.05,
-                        scaleY: 1.05,
-                        duration: 100,
-                        ease: 'Power1'
-                    });
-                });
-
-                card.on('pointerout', function () {
-                    // Reset color and stroke on mouse out
-                    this.fillColor = 0x444444;
-                    this.setStrokeStyle(2, 0x888888);
-                    // Reset scale
-                    this.scene.tweens.add({
-                        targets: this,
-                        scaleX: 1,
-                        scaleY: 1,
-                        duration: 100,
-                        ease: 'Power1'
-                    });
-                });
-
-                card.on('pointerdown', () => selectCard.call(this, perk.id));
-            }
-
-            // Store all level up UI elements
-            levelUpCards = [
-                levelUpBackground, levelUpTitle,
-                card1, card2, card3,
-                ...cardElements
-            ];
         }
 
         // Improved pause screen perks display with better visuals
@@ -778,7 +770,6 @@
             }
         }
 
-
         // Perk system helper functions
         function initializePerks() {
             playerPerks = {};
@@ -801,6 +792,10 @@
         window.registerEffect = function (type, item) {
             if (type === 'timer' && item) {
                 activeEffects.timers.push(item);
+                // If game is paused, also pause the new timer
+                if (gamePaused && item.paused !== undefined) {
+                    item.paused = true;
+                }
             } else if (type === 'entity' && item) {
                 activeEffects.entities.push(item);
             }
@@ -830,10 +825,28 @@
             // Reset other specific effect variables
             afterImageEnabled = false;
             afterImages = [];
-            landmines = [];
+            playerPositionHistory = [];
             shieldActive = false;
             if (shieldVisual) {
                 shieldVisual.setVisible(false);
+            }
+
+            // Clear specific timers
+            if (shieldCooldownTimer) {
+                shieldCooldownTimer.remove();
+                shieldCooldownTimer = null;
+            }
+            if (orbitingProjectileTimer) {
+                orbitingProjectileTimer.remove();
+                orbitingProjectileTimer = null;
+            }
+            if (landmineTimer) {
+                landmineTimer.remove();
+                landmineTimer = null;
+            }
+            if (afterImageTimer) {
+                afterImageTimer.remove();
+                afterImageTimer = null;
             }
 
             // Any other effect-specific cleanup
@@ -959,7 +972,6 @@
             }
         }
 
-
         function create() {
             // Initialize perk system first
             initializePerks();
@@ -990,12 +1002,16 @@
             this.physics.world.enable(player);
             player.body.setCollideWorldBounds(true);
 
-            // For healthBar (in create function):
+            // Create health bar background
             healthBarBg = this.add.rectangle(600, 25, 200, 10, 0x333333).setOrigin(0.5);
+
+            // Create health bar - improved positioning with left-anchored origin
             healthBar = this.add.rectangle(500, 25, 200, 10, 0x00ff00).setOrigin(0, 0.5);
 
-            // For expBar (in create function):
+            // Create exp bar background
             expBarBg = this.add.rectangle(600, 40, 200, 5, 0x333333).setOrigin(0.5);
+
+            // Create exp bar - improved positioning with left-anchored origin
             expBar = this.add.rectangle(500, 40, 0, 5, 0x00ffff).setOrigin(0, 0.5);
 
             // Create health text
@@ -1107,8 +1123,6 @@
             // Start the game by calling startGame (replaces the need for duplicate initialization)
             startGame.call(this);
         }
-
-        // Modified update function to properly handle difficulty scaling during pauses
 
         function update(time, delta) {
             if (gameOver) return;
@@ -1284,75 +1298,6 @@
             enemy.english = enemyData.english;
         }
 
-        // Store all game timers in a central array
-        let gameTimers = [];
-
-        // Register a timer with the central system
-        function registerTimer(timer) {
-            gameTimers.push(timer);
-            return timer; // Return the timer for convenience
-        }
-
-        // Enhanced pauseGame function
-        function pauseGame() {
-            // Set the flag
-            gamePaused = true;
-
-            // Pause physics
-            const activeScene = game.scene.scenes[0];
-            if (activeScene && activeScene.physics) {
-                activeScene.physics.pause();
-            }
-
-            // Pause all timers
-            gameTimers.forEach(timer => {
-                if (timer && timer.paused !== undefined) {
-                    timer.paused = true;
-                }
-            });
-        }
-
-        // Resume the game and hide overlay
-        function resumeGame() {
-            if (gameOver) return;
-
-            // Hide pause screen elements
-            if (pauseScreen) pauseScreen.setVisible(false);
-            if (pauseMessage) pauseMessage.setVisible(false);
-            if (resumeButton) resumeButton.setVisible(false);
-
-            // Hide perks container
-            const scene = game.scene.scenes[0];
-            if (scene && scene.pausePerksContainer) {
-                scene.pausePerksContainer.setVisible(false);
-            }
-
-            // Set pause flag
-            gamePaused = false;
-
-            // Resume physics
-            const activeScene = game.scene.scenes[0];
-            if (activeScene && activeScene.physics) {
-                activeScene.physics.resume();
-            }
-
-            // Resume all timers
-            gameTimers.forEach(timer => {
-                if (timer && timer.paused !== undefined) {
-                    timer.paused = false;
-                }
-            });
-
-            console.log("Game resumed");
-        }
-
-
-        // Clean up timers that are no longer active
-        function cleanupTimers() {
-            gameTimers = gameTimers.filter(timer =>
-                timer && !timer.hasOwnProperty('removed') && !timer.removed);
-        }
-
         // Setup health regeneration
         function setupHealthRegeneration() {
             // Calculate delay based on max health (100s / maxHealth)
@@ -1442,7 +1387,6 @@
             expText.setText(`XP: ${heroExp}/${heroExpToLevel}`);
         }
 
-
         function levelUp() {
             // Increase player level
             playerLevel++;
@@ -1450,8 +1394,7 @@
             // Set new XP threshold
             heroExpToLevel = xpForNextLevel(playerLevel);
 
-            // Reset current XP to 0 (subtracting the needed XP to level)
-            // We only reset to 0, we don't carry over excess XP
+            // Reset current XP to 0
             heroExp = 0;
 
             // Update the level text
@@ -1669,7 +1612,6 @@
                 // Landmines are destroyed after they hit something
                 projectile.destroy();
             }
-
         }
 
         function playerHitEnemy(player, enemy) {
@@ -1728,27 +1670,6 @@
                 // Start shield cooldown with the base duration (16 seconds)
                 // The function will apply the Luck multiplier internally
                 window.startShieldCooldown(16000);
-
-                return;
-
-                // Show cooldown notification
-                const cooldownSeconds = (cooldownTime / 1000).toFixed(1);
-                const cooldownNotification = this.add.text(player.x, player.y - 40, `SHIELD COOLDOWN: ${cooldownSeconds}s`, {
-                    fontFamily: 'Arial',
-                    fontSize: '14px',
-                    color: '#e74c3c'
-                }).setOrigin(0.5);
-
-                // Animate the notification
-                this.tweens.add({
-                    targets: cooldownNotification,
-                    y: cooldownNotification.y - 20,
-                    alpha: 0,
-                    duration: 1000,
-                    onComplete: function () {
-                        cooldownNotification.destroy();
-                    }
-                });
 
                 return;
             }
@@ -1813,6 +1734,104 @@
             gameOverText.setText(`GAME OVER\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`);
             gameOverText.setVisible(true);
             restartButton.setVisible(true);
+        }
+
+        // Improved level up cards with hover effects
+        function showLevelUpCards() {
+            // Pause the game
+            pauseGame();
+
+            // Create semi-transparent background
+            const levelUpBackground = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
+
+            // Create level up title with improved styling
+            const levelUpTitle = this.add.text(
+                600, 200,
+                'LEVEL UP! Choose a perk:',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '32px',
+                    color: '#ffffff',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5);
+
+            // Get random perks (excluding already acquired ones)
+            const selectedPerks = PerkSystem.getRandomPerks(3, acquiredPerks);
+
+            // Create three card choices with improved visuals
+            const card1 = this.add.rectangle(300, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x888888);
+            const card2 = this.add.rectangle(600, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x888888);
+            const card3 = this.add.rectangle(900, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x888888);
+
+            // Make cards interactive
+            [card1, card2, card3].forEach(card => {
+                card.setInteractive({ useHandCursor: true });
+            });
+
+            // Store all level up UI elements
+            const cardElements = [];
+
+            // Add card content for each perk
+            for (let i = 0; i < selectedPerks.length; i++) {
+                const cardX = 300 + (i * 300);
+                const perk = selectedPerks[i];
+
+                if (!perk) continue; // Skip if we have fewer than 3 available perks
+
+                // Create perk card contents WITHOUT background
+                const elements = createPerkCard(this, perk.id, cardX, 400, {
+                    createBackground: false
+                });
+
+                // Add elements to our tracking array
+                cardElements.push(...elements);
+
+                // Set card data and interactivity
+                const card = [card1, card2, card3][i];
+                card.perkId = perk.id;
+
+                // Add enhanced hover effects
+                card.on('pointerover', function () {
+                    // Change color on hover
+                    this.fillColor = perk.hoverColor || 0x666666;
+                    // Enhanced highlight with thicker stroke
+                    this.setStrokeStyle(4, 0xffffff);
+                    // Scale effect on hover
+                    this.scene.tweens.add({
+                        targets: this,
+                        scaleX: 1.05,
+                        scaleY: 1.05,
+                        duration: 100,
+                        ease: 'Power1'
+                    });
+                });
+
+                card.on('pointerout', function () {
+                    // Reset color and stroke on mouse out
+                    this.fillColor = 0x444444;
+                    this.setStrokeStyle(2, 0x888888);
+                    // Reset scale
+                    this.scene.tweens.add({
+                        targets: this,
+                        scaleX: 1,
+                        scaleY: 1,
+                        duration: 100,
+                        ease: 'Power1'
+                    });
+                });
+
+                card.on('pointerdown', () => selectCard.call(this, perk.id));
+            }
+
+            // Store all level up UI elements
+            levelUpCards = [
+                levelUpBackground, levelUpTitle,
+                card1, card2, card3,
+                ...cardElements
+            ];
         }
 
         function shuffleArray(array) {
@@ -1934,6 +1953,9 @@
 
         // Updated modifyStat function that handles negative values
         window.modifyStat = function (statName, amount) {
+            const scene = game.scene.scenes[0];
+            if (!scene) return;
+
             switch (statName) {
                 case 'damage':
                     playerDamage += amount;
@@ -1956,10 +1978,7 @@
                         // If increasing max health, also increase current health
                         playerHealth += amount;
                     }
-                    const scene = game.scene.scenes[0];
-                    if (scene) {
-                        setupHealthRegeneration.call(scene);
-                    }
+                    setupHealthRegeneration.call(scene);
                     break;
                 case 'luck':
                     playerLuck += amount;
@@ -1995,6 +2014,7 @@
         window.activateShield = function () {
             // Get the current active scene
             const scene = game.scene.scenes[0];
+            if (!scene) return;
 
             // Activate the shield
             shieldActive = true;
@@ -2016,13 +2036,19 @@
         window.startShieldCooldown = function (baseDuration = 16000) {
             // Get the current active scene
             const scene = game.scene.scenes[0];
+            if (!scene) return;
 
             // Calculate actual duration based on Luck (higher luck = lower multiplier)
             const luckMultiplier = BASE_STATS.LUK / playerLuck;
             const duration = baseDuration * luckMultiplier;
 
-            // Set up a new cooldown timer
-            shieldCooldownTimer = scene.time.delayedCall(
+            // Remove any existing shield cooldown timer
+            if (shieldCooldownTimer) {
+                shieldCooldownTimer.remove();
+            }
+
+            // Set up a new cooldown timer using the timer registration system
+            shieldCooldownTimer = registerTimer(scene.time.delayedCall(
                 duration,
                 function () {
                     window.activateShield();
@@ -2048,7 +2074,7 @@
                 },
                 [],
                 scene
-            );
+            ));
 
             // Show cooldown notification
             const cooldownSeconds = (duration / 1000).toFixed(1);
@@ -2433,7 +2459,6 @@
             });
         }
 
-
         function startGame() {
             // Reset game state variables
             gameOver = false;
@@ -2470,13 +2495,8 @@
             // Reset UI
             heroLevelText.setText('Hero Level: 1');
             player.setFontSize(32);
-            healthBar.width = 200;
-            healthBar.x = 600;
-            healthBar.fillColor = 0x00ff00;
-            healthText.setText(`Health: ${playerHealth}/${maxPlayerHealth}`);
-            expBar.width = 0;
-            expBar.x = 500;
-            expText.setText(`XP: 0/${heroExpToLevel}`);
+            updateHealthBar();
+            updateExpBar();
             killCountText.setText('Enemies killed: 0');
 
             // Reset all perk effects
@@ -2514,7 +2534,7 @@
             // Resume physics
             this.physics.resume();
 
-            // Update enemy spawner creation
+            // Update enemy spawner creation with timer registration
             enemySpawner = registerTimer(this.time.addEvent({
                 delay: baseSpawnDelay,
                 callback: spawnEnemy,
@@ -2522,7 +2542,7 @@
                 loop: true
             }));
 
-            // Update projectile firer creation
+            // Update projectile firer creation with timer registration
             projectileFirer = registerTimer(this.time.addEvent({
                 delay: shootingDelay / playerFireRate,
                 callback: fireProjectile,
@@ -2539,7 +2559,8 @@
 
             // Update player stats text
             updatePlayerStatsText();
-        }</script>
+        }
+    </script>
 </body>
 
 </html>

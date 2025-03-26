@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Word Survivors</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
+    <!-- Assuming bestiary.js defines: HERO_CHARACTER, HERO_HIRAGANA, HERO_ROMAJI, HERO_ENGLISH, BASE_STATS, getRandomEnemyType(), getEnemyData() -->
     <script src="bestiary.js"></script>
+    <!-- Assuming perks.js defines: PERKS, PerkSystem.applyPerk(), PerkSystem.getRandomPerks() -->
     <script src="perks.js"></script>
     <style>
         body {
@@ -21,15 +23,15 @@
             font-family: Arial, sans-serif;
             touch-action: none;
             overflow: hidden;
-            /* Prevent scrollbars */
         }
 
         #game-container {
             width: 1200px;
+            /* Use config.width in JS */
             height: 800px;
+            /* Use config.height in JS */
             position: relative;
             margin: 0 auto;
-            /* Center horizontally */
         }
 
         #game-ui {
@@ -53,11 +55,29 @@
     </div>
 
     <script>
+        // --- Constants ---
+        const SCREEN_WIDTH = 1200;
+        const SCREEN_HEIGHT = 800;
+        const HEALTH_BAR_WIDTH = 200;
+        const HEALTH_BAR_HEIGHT = 10;
+        const EXP_BAR_HEIGHT = 5;
+        const BASE_SHOOTING_DELAY = 2000;
+        const BASE_HERO_EXP_TO_LEVEL = 5;
+        const BASE_ENEMY_HEALTH = 40;
+        const BASE_SPAWN_DELAY = 4000;
+        const ENEMY_HEALTH_SCALE_FACTOR = 1.0;
+        const ENEMY_COUNT_SCALE_FACTOR = 1.25;
+        const PROJECTILE_SPEED = 400;
+        const PLAYER_INVINCIBILITY_DURATION = 500;
+        const DEBUG_MODE_KEY = Phaser.Input.Keyboard.KeyCodes.O;
+        const PAUSE_KEY = Phaser.Input.Keyboard.KeyCodes.P;
+        const LEVEL_UP_DEBUG_KEY = Phaser.Input.Keyboard.KeyCodes.R;
+
         // Game configuration
         const config = {
             type: Phaser.AUTO,
-            width: 1200,
-            height: 800,
+            width: SCREEN_WIDTH,
+            height: SCREEN_HEIGHT,
             parent: 'game-container',
             physics: {
                 default: 'arcade',
@@ -73,53 +93,52 @@
             }
         };
 
-        // Game variables
+        // --- Global Game Variables (Original Structure) ---
         let player;
         let enemies;
         let projectiles;
         let cursors;
         let wasdKeys;
-        let keyboardLayout = 'qwerty'; // Default to QWERTY
+        let keyboardLayout = 'qwerty';
 
-        // Global variables for pause system
+        // Pause system
         let pauseScreen = null;
         let resumeButton = null;
         let pauseMessage = null;
         let pauseKeyP = null;
 
-        // Add these variables for stats tracking
+        // Stats tracking
         let statsText = null;
         let statsVisible = false;
         let debugModeEnabled = false;
 
-
+        // Perk effects (Timer Refactor: still need activeEffects for perk-specific timers/entities)
         let activeEffects = {
-            timers: [],         // Store all active timers
-            entities: [],       // Store all entities created by perks (landmines, afterimages, etc.)
-            activePerks: []     // Store all acquired perks
+            timers: [],
+            entities: [],
+            activePerks: []
         };
 
-        const HEALTH_SCALE_FACTOR = 100; // Multiply all health values by 100 internally
-        let playerHealthDisplay = 0; // For displaying to player
-
-        // Initial player stats
+        // Player stats
         let basePlayerHealth = BASE_STATS.END;
         let baseMaxHealth = BASE_STATS.END;
-        let basePlayerSpeed = 8;
+        let basePlayerSpeed = 8; // Keep base, but don't display current
         let basePlayerDamage = BASE_STATS.POW;
         let basePlayerLuck = BASE_STATS.LUK;
         let basePlayerFireRate = BASE_STATS.AGI;
-        let baseShootingDelay = 2000;
-        let baseHeroExpToLevel = 5;
+        let baseShootingDelay = BASE_SHOOTING_DELAY;
+        let baseHeroExpToLevel = BASE_HERO_EXP_TO_LEVEL;
         let acquiredPerks = [];
         let playerHealth = basePlayerHealth;
         let maxPlayerHealth = baseMaxHealth;
-        let playerSpeed = basePlayerSpeed;
+        let playerSpeed = basePlayerSpeed; // Current speed, not displayed
         let playerDamage = basePlayerDamage;
         let playerLuck = basePlayerLuck;
-        let shootingDelay = baseShootingDelay; // ms between shots
-        let playerFireRate = basePlayerFireRate; // Multiplier for shooting rate
-        let projectileSizeFactor = 4; // Multiply player damage by this to get proj size
+        let shootingDelay = baseShootingDelay;
+        let playerFireRate = basePlayerFireRate;
+        let projectileSizeFactor = 4;
+
+        // UI elements
         let healthBar;
         let healthBarBg;
         let healthText;
@@ -127,45 +146,59 @@
         let expBarBg;
         let expText;
         let playerStatsText;
+        let killCountText;
+        let heroLevelText;
+        let learningFeedback;
+
+        // Game state
         let score = 0;
-        let level = 1;
         let touchInput = { x: 0, y: 0, isActive: false };
         let gameOver = false;
         let gameOverText;
         let restartButton;
-        let killCountText;
-        let enemyDamage = 1;
         let playerInvincible = false;
-
-        // Track elapsed time
-        let elapsedTime = 0; // in seconds
-
-        // Game timers
-        let enemySpawner = null;
-        let projectileFirer = null;
-
-        // Difficulty scaling factors
-        let enemyHealthScaleFactor = 1.0;
-        let enemyCountScaleFactor = 1.25;
-        let gameStartTime = 0;
-        let baseEnemyHealth = 40;
-        let currentEnemyHealth = 40;
-        let baseSpawnDelay = 4000; // 8 seconds between spawns initially
-
-        // Hero experience system
-        let playerLevel = 1;
-        let heroExp = 0;
-        let heroExpToLevel = 5;
-        let heroLevelText;
-        let levelUpCards = [];
+        let elapsedTime = 0;
         let gamePaused = false;
 
-        // Helper function to calculate XP needed for next level
+        // Timers (Direct References with Timer Refactor)
+        let enemySpawner = null;
+        let projectileFirer = null;
+        let healthRegenTimer = null;
+        let shieldCooldownTimer = null;
+        let orbitingProjectileTimer = null;
+        let landmineTimer = null;
+        let afterImageTimer = null;
+
+        // Difficulty scaling
+        let enemyHealthScaleFactor = ENEMY_HEALTH_SCALE_FACTOR;
+        let enemyCountScaleFactor = ENEMY_COUNT_SCALE_FACTOR;
+        let gameStartTime = 0;
+        let lastDifficultyUpdateTime = 0;
+        let baseEnemyHealth = BASE_ENEMY_HEALTH;
+        let currentEnemyHealth = baseEnemyHealth;
+        let baseSpawnDelay = BASE_SPAWN_DELAY;
+
+        // Hero XP/Level
+        let playerLevel = 1;
+        let heroExp = 0;
+        let heroExpToLevel = baseHeroExpToLevel;
+        let levelUpCards = [];
+
+        // Perk-specific variables
+        let shieldVisual = null;
+        let shieldActive = false;
+        let orbitingProjectiles = [];
+        let landmines = [];
+        let afterImages = [];
+        let afterImageEnabled = false;
+        let playerPositionHistory = [];
+
+        // --- Helper Functions ---
+
         function xpForNextLevel(heroLevel) {
             return Math.ceil(baseHeroExpToLevel * Math.pow(1.2, heroLevel - 1));
         }
 
-        // Format time to hh:mm:ss
         function formatTime(seconds) {
             const hours = Math.floor(seconds / 3600);
             const minutes = Math.floor((seconds % 3600) / 60);
@@ -173,2273 +206,468 @@
             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
-        // Perk system variables
-        let playerPerks = {};
-        let shieldVisual = null;
-        let shieldCooldownTimer = null;
-        let shieldActive = false;
-        let orbitingProjectiles = [];
-        let orbitingProjectileTimer = null;
-        let landmineTimer = null;
-        let afterImages = [];
-        let afterImageEnabled = false;
-        let afterImageTimer = null;
-        let playerPositionHistory = [];
-        let healthRegenTimer = null;
+        // --- Timer Management (Refactored) ---
 
-        // Setup pause system
+        function pauseGame(isLevelUpPause = false) {
+            const scene = this;
+            if (gamePaused) return;
+            console.log(`Pausing game... (Level Up Pause: ${isLevelUpPause})`);
+            gamePaused = true;
+            if (scene.physics) scene.physics.pause();
+            if (enemySpawner) enemySpawner.paused = true;
+            if (projectileFirer) projectileFirer.paused = true;
+            if (healthRegenTimer) healthRegenTimer.paused = true;
+            if (shieldCooldownTimer) shieldCooldownTimer.paused = true;
+            if (orbitingProjectileTimer) orbitingProjectileTimer.paused = true;
+            if (landmineTimer) landmineTimer.paused = true;
+            if (afterImageTimer) afterImageTimer.paused = true;
+            activeEffects.timers.forEach(timer => { if (timer) timer.paused = true; });
+            console.log("Game timers paused.");
+        }
+
+        function resumeGame() {
+            const scene = this;
+            if (!gamePaused || gameOver) return;
+            if (levelUpCards && levelUpCards.length > 0) { console.log("Cannot resume, level up screen is active."); return; }
+            console.log("Resuming game...");
+            gamePaused = false;
+            if (pauseScreen) pauseScreen.setVisible(false);
+            if (pauseMessage) pauseMessage.setVisible(false);
+            if (resumeButton) resumeButton.setVisible(false);
+            if (scene.pausePerksContainer) scene.pausePerksContainer.setVisible(false);
+            hidePerkCard.call(scene);
+            if (scene.physics) scene.physics.resume();
+            if (enemySpawner) enemySpawner.paused = false;
+            if (projectileFirer) projectileFirer.paused = false;
+            if (healthRegenTimer) healthRegenTimer.paused = false;
+            if (shieldCooldownTimer) shieldCooldownTimer.paused = false;
+            if (orbitingProjectileTimer) orbitingProjectileTimer.paused = false;
+            if (landmineTimer) landmineTimer.paused = false;
+            if (afterImageTimer) afterImageTimer.paused = false;
+            activeEffects.timers.forEach(timer => { if (timer) timer.paused = false; });
+            console.log("Game timers resumed.");
+        }
+
+        // --- Pause System Functions ---
+
         function setupPauseSystem() {
             const scene = this;
-
-            // Create pause key (P)
-            pauseKeyP = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+            pauseKeyP = scene.input.keyboard.addKey(PAUSE_KEY);
             pauseKeyP.on('down', function () {
                 if (!gameOver) {
-                    if (gamePaused) {
-                        resumeGame();
-                    } else {
-                        pauseGameWithOverlay();
-                    }
+                    const isLevelUpActive = levelUpCards && levelUpCards.length > 0;
+                    if (gamePaused && !isLevelUpActive) { resumeGame.call(scene); }
+                    else if (!gamePaused) { pauseGameWithOverlay.call(scene); }
                 }
             });
-
-            // Setup visibility change detection
             document.addEventListener('visibilitychange', function () {
-                if (document.hidden && !gameOver && !gamePaused) {
-                    // Tab/window is hidden, pause the game
-                    pauseGameWithOverlay();
-                }
-                // We don't auto-resume when tab becomes visible again
+                if (document.hidden && !gameOver && !gamePaused) { pauseGameWithOverlay.call(scene); }
             });
-
-            // Create pause overlay elements (initially hidden)
-            createPauseScreen.call(this);
-
+            createPauseScreen.call(scene);
             console.log("Pause system initialized");
         }
 
         function createPauseScreen() {
-            // Create semi-transparent background
-            pauseScreen = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
-            pauseScreen.setVisible(false);
-            pauseScreen.setDepth(1000); // Make sure it appears on top
-
-            // Create pause message
-            pauseMessage = this.add.text(
-                600, 100,
-                'GAME PAUSED',
-                { fontFamily: 'Arial', fontSize: '40px', color: '#ffffff', fontStyle: 'bold' }
-            ).setOrigin(0.5);
-            pauseMessage.setVisible(false);
-            pauseMessage.setDepth(1001);
-
-            // Create resume button
-            resumeButton = this.add.text(
-                600, 700,
-                'RESUME GAME',
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '36px',
-                    color: '#ffffff',
-                    backgroundColor: '#008800',
-                    padding: { left: 15, right: 15, top: 10, bottom: 10 }
-                }
-            ).setOrigin(0.5);
-            resumeButton.setVisible(false);
-            resumeButton.setDepth(1001);
-            resumeButton.setInteractive();
-
-            // Add resume button functionality
-            resumeButton.on('pointerdown', resumeGame);
-            resumeButton.on('pointerover', function () {
-                this.setStyle({ backgroundColor: '#00aa00' });
-            });
-            resumeButton.on('pointerout', function () {
-                this.setStyle({ backgroundColor: '#008800' });
-            });
-
-            // Create container for perks display
-            this.pausePerksContainer = this.add.container(0, 0);
-            this.pausePerksContainer.setDepth(1001);
-            this.pausePerksContainer.setVisible(false);
-
-            // Create perks title
-            const perksTitle = this.add.text(
-                600, 200,
-                'MY PERKS',
-                { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }
-            ).setOrigin(0.5);
-
-            // Add to container
-            this.pausePerksContainer.add(perksTitle);
-
-            // We'll add perk icons when the pause screen is shown
+            const scene = this;
+            pauseScreen = scene.add.rectangle(600, 400, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.7).setVisible(false).setDepth(1000).setInteractive();
+            pauseMessage = scene.add.text(600, 100, 'GAME PAUSED', { fontFamily: 'Arial', fontSize: '40px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setVisible(false).setDepth(1001);
+            resumeButton = scene.add.text(600, 700, 'RESUME GAME', { fontFamily: 'Arial', fontSize: '36px', color: '#ffffff', backgroundColor: '#008800', padding: { left: 15, right: 15, top: 10, bottom: 10 } }).setOrigin(0.5).setVisible(false).setDepth(1001).setInteractive({ useHandCursor: true });
+            resumeButton.on('pointerdown', () => resumeGame.call(scene));
+            resumeButton.on('pointerover', function () { this.setStyle({ backgroundColor: '#00aa00' }); });
+            resumeButton.on('pointerout', function () { this.setStyle({ backgroundColor: '#008800' }); });
+            scene.pausePerksContainer = scene.add.container(0, 0).setDepth(1001).setVisible(false);
+            const perksTitle = scene.add.text(600, 200, 'MY PERKS', { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+            scene.pausePerksContainer.add(perksTitle);
+            scene.perkIcons = []; scene.paginationControls = []; scene.activePerkCard = null; scene.currentPerkPage = 0;
         }
 
-
-        // Pause the game and show overlay
         function pauseGameWithOverlay() {
+            const scene = this;
             if (gameOver) return;
-
-            // Pause game systems
-            pauseGame();
-
-            // Show pause screen elements
-            pauseScreen.setVisible(true);
-            pauseMessage.setVisible(true);
-            resumeButton.setVisible(true);
-
-            // Update and show perks
-            updatePauseScreenPerks.call(this);
-
-            console.log("Game paused with overlay");
+            pauseGame.call(scene);
+            if (pauseScreen) pauseScreen.setVisible(true); if (pauseMessage) pauseMessage.setVisible(true); if (resumeButton) resumeButton.setVisible(true);
+            updatePauseScreenPerks.call(scene);
+            console.log("Game paused with overlay.");
         }
 
         function updatePauseScreenPerks() {
-            const scene = game.scene.scenes[0];
-
-            // Clear existing perk icons first
-            if (scene.perkIcons) {
-                scene.perkIcons.forEach(icon => {
-                    icon.destroy();
-                });
-            }
-
-            // Clear existing perk card if any
-            if (scene.activePerkCard) {
-                scene.activePerkCard.forEach(element => {
-                    element.destroy();
-                });
-                scene.activePerkCard = null;
-            }
-
-            // Clear pagination controls if they exist
-            if (scene.paginationControls) {
-                scene.paginationControls.forEach(control => {
-                    control.destroy();
-                });
-            }
-
-            // Initialize arrays
-            scene.perkIcons = [];
-            scene.paginationControls = [];
-
-            // Set or initialize current page
-            if (scene.currentPerkPage === undefined) {
-                scene.currentPerkPage = 0;
-            }
-
-            // Set container visible
-            scene.pausePerksContainer.setVisible(true);
-
-            // If no perks, show a message
-            if (acquiredPerks.length === 0) {
-                const noPerkText = scene.add.text(
-                    600, 350,
-                    'No perks acquired yet',
-                    { fontFamily: 'Arial', fontSize: '20px', color: '#aaaaaa' }
-                ).setOrigin(0.5);
-                scene.perkIcons.push(noPerkText);
-                scene.pausePerksContainer.add(noPerkText);
-                return;
-            }
-
-            // Create temporary text objects to measure each kanji's width
-            const measurements = [];
-            acquiredPerks.forEach(perkId => {
-                const perk = PERKS[perkId];
-                if (!perk) return;
-
-                // Create temp text for measurement
-                const tempText = scene.add.text(0, 0, perk.kanji, {
-                    fontFamily: 'Arial',
-                    fontSize: '32px',
-                    fontStyle: 'bold'
-                });
-
-                // Store the width and perk info
-                measurements.push({
-                    perkId: perkId,
-                    width: tempText.width
-                });
-
-                // Remove the temp text
-                tempText.destroy();
-            });
-
-            // Configuration for paginated layout
-            const spacing = 20; // Pixels between kanji horizontally
-            const perksPerRow = 8; // Maximum perks per row
-            const rowsPerPage = 4; // Maximum rows per page
-            const perksPerPage = perksPerRow * rowsPerPage; // Perks per page (32)
-            const rowHeight = 70; // Vertical spacing between rows
-            const startY = 280; // Starting Y position for the first row
-
-            // Calculate total number of pages
-            const totalPages = Math.ceil(measurements.length / perksPerPage);
-
-            // Ensure current page is valid
-            scene.currentPerkPage = Math.min(scene.currentPerkPage, totalPages - 1);
-            scene.currentPerkPage = Math.max(0, scene.currentPerkPage);
-
-            // Get perks for the current page
-            const startIndex = scene.currentPerkPage * perksPerPage;
-            const currentPagePerks = measurements.slice(startIndex, startIndex + perksPerPage);
-
-            // Split current page perks into rows
-            const rows = [];
-            for (let i = 0; i < currentPagePerks.length; i += perksPerRow) {
-                rows.push(currentPagePerks.slice(i, i + perksPerRow));
-            }
-
-            // Process each row
-            rows.forEach((row, rowIndex) => {
-                // Calculate total width of this row with spacing
-                const rowWidth = row.reduce((sum, item) => sum + item.width, 0) +
-                    (spacing * (row.length - 1));
-
-                // Calculate starting X position to center this row
-                let currentX = 600 - (rowWidth / 2);
-                const y = startY + (rowIndex * rowHeight);
-
-                // Create perk icons for this row
-                row.forEach(item => {
-                    const perkId = item.perkId;
-                    const perk = PERKS[perkId];
-
-                    // Position this kanji centered on its width
-                    const centerX = currentX + (item.width / 2);
-
-                    // Create the perk icon (kanji)
-                    const perkIcon = scene.add.text(
-                        centerX, y,
-                        perk.kanji,
-                        {
-                            fontFamily: 'Arial',
-                            fontSize: '32px',
-                            color: perk.color,
-                            fontStyle: 'bold',
-                            stroke: '#000000',
-                            strokeThickness: 4
-                        }
-                    ).setOrigin(0.5);
-
-                    // Make interactive
-                    perkIcon.setInteractive();
-
-                    perkIcon.on('pointerover', function () {
-                        this.setScale(1.2);
-
-                        // Always place card below, regardless of row position
-                        const cardY = y + 150;
-
-                        showPerkCard.call(scene, perkId, centerX, cardY);
-                    });
-
-                    perkIcon.on('pointerout', function () {
-                        this.setScale(1);
-                        hidePerkCard.call(scene);
-                    });
-
-                    // Store reference
-                    scene.perkIcons.push(perkIcon);
-
-                    // Add to container
-                    scene.pausePerksContainer.add(perkIcon);
-
-                    // Move currentX position for the next kanji
-                    currentX += item.width + spacing;
-                });
-            });
-
-            // Only show pagination if we have multiple pages
-            if (totalPages > 1) {
-                // Create left arrow (if not on first page)
-                if (scene.currentPerkPage > 0) {
-                    const leftArrow = scene.add.text(
-                        520, 580,
-                        '◀',
-                        {
-                            fontFamily: 'Arial',
-                            fontSize: '48px',
-                            color: '#ffffff'
-                        }
-                    ).setOrigin(0.5);
-
-                    leftArrow.setInteractive();
-                    leftArrow.on('pointerdown', () => {
-                        scene.currentPerkPage--;
-                        updatePauseScreenPerks.call(scene);
-                    });
-
-                    leftArrow.on('pointerover', function () {
-                        this.setColor('#aaffaa');
-                    });
-
-                    leftArrow.on('pointerout', function () {
-                        this.setColor('#ffffff');
-                    });
-
-                    scene.paginationControls.push(leftArrow);
-                    scene.pausePerksContainer.add(leftArrow);
-                }
-
-                // Create page counter
-                const pageCounter = scene.add.text(
-                    600, 580,
-                    `${scene.currentPerkPage + 1}/${totalPages}`,
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '40px',
-                        color: '#ffffff'
-                    }
-                ).setOrigin(0.5);
-
-                scene.paginationControls.push(pageCounter);
-                scene.pausePerksContainer.add(pageCounter);
-
-                // Create right arrow (if not on last page)
-                if (scene.currentPerkPage < totalPages - 1) {
-                    const rightArrow = scene.add.text(
-                        680, 580,
-                        '▶',
-                        {
-                            fontFamily: 'Arial',
-                            fontSize: '48px',
-                            color: '#ffffff'
-                        }
-                    ).setOrigin(0.5);
-
-                    rightArrow.setInteractive();
-                    rightArrow.on('pointerdown', () => {
-                        scene.currentPerkPage++;
-                        updatePauseScreenPerks.call(scene);
-                    });
-
-                    rightArrow.on('pointerover', function () {
-                        this.setColor('#aaffaa');
-                    });
-
-                    rightArrow.on('pointerout', function () {
-                        this.setColor('#ffffff');
-                    });
-
-                    scene.paginationControls.push(rightArrow);
-                    scene.pausePerksContainer.add(rightArrow);
-                }
-            }
-        }
-        // Update the createPerkCard function with better text layout
-        function createPerkCard(scene, perkId, x, y, options = {}) {
-            const defaults = {
-                container: null,
-                createBackground: true,
-                backgroundOnly: false,
-                backgroundColor: 0x444444,
-                width: 220,
-                height: 320
-            };
-
-            // Merge provided options with defaults
-            const settings = { ...defaults, ...options };
-
-            const perk = PERKS[perkId];
-            if (!perk) return [];
-
-            // Card elements array
-            const cardElements = [];
-
-            // Only create background if requested
-            if (settings.createBackground) {
-                const cardBg = scene.add.rectangle(x, y, settings.width, settings.height, settings.backgroundColor, 1)
-                    .setStrokeStyle(2, 0x000000);
-                cardElements.push(cardBg);
-
-                // If we only want the background, return now
-                if (settings.backgroundOnly) {
-                    // Add to container if provided
-                    if (settings.container) {
-                        settings.container.add(cardBg);
-                    }
-                    return [cardBg];
-                }
-            }
-
-            // Adjust vertical positions to accommodate split text
-            // Kanji (moved up slightly)
-            const kanjiText = scene.add.text(
-                x, y - 70,
-                perk.kanji,
-                { fontFamily: 'Arial', fontSize: '36px', color: perk.color, fontStyle: 'bold' }
-            ).setOrigin(0.5);
-            cardElements.push(kanjiText);
-
-            // Hiragana (on its own line)
-            const hiraganaText = scene.add.text(
-                x, y - 25,
-                perk.hiragana,
-                { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff' }
-            ).setOrigin(0.5);
-            cardElements.push(hiraganaText);
-
-            // Romaji (on its own line)
-            const romajiText = scene.add.text(
-                x, y,
-                perk.romaji,
-                { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', fontStyle: 'italic' }
-            ).setOrigin(0.5);
-            cardElements.push(romajiText);
-
-            // English (moved down slightly)
-            const englishText = scene.add.text(
-                x, y + 30,
-                perk.english,
-                { fontFamily: 'Arial', fontSize: '20px', color: perk.color }
-            ).setOrigin(0.5);
-            cardElements.push(englishText);
-
-            // Description (moved down slightly)
-            const descText = scene.add.text(
-                x, y + 75,
-                perk.description,
-                { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', align: 'center', wordWrap: { width: 200 } }
-            ).setOrigin(0.5);
-            cardElements.push(descText);
-
-            // If a container is provided, add all elements to it
-            if (settings.container) {
-                cardElements.forEach(element => {
-                    settings.container.add(element);
-                });
-            }
-
-            return cardElements;
-        }
-
-        // Function to show detailed perk card
-        function showPerkCard(perkId, x, y) {
             const scene = this;
-
-            // Clear any existing perk card
+            if (scene.perkIcons) scene.perkIcons.forEach(icon => icon.destroy()); scene.perkIcons = [];
+            if (scene.paginationControls) scene.paginationControls.forEach(ctrl => ctrl.destroy()); scene.paginationControls = [];
             hidePerkCard.call(scene);
+            if (!scene.pausePerksContainer) return; scene.pausePerksContainer.setVisible(true);
+            if (acquiredPerks.length === 0) { const noPerkText = scene.add.text(600, 350, 'No perks acquired yet', { fontFamily: 'Arial', fontSize: '20px', color: '#aaaaaa' }).setOrigin(0.5); scene.perkIcons.push(noPerkText); scene.pausePerksContainer.add(noPerkText); return; }
+            const perksPerPage = 32; const totalPages = Math.ceil(acquiredPerks.length / perksPerPage); scene.currentPerkPage = Math.max(0, Math.min(scene.currentPerkPage, totalPages - 1));
+            const startIndex = scene.currentPerkPage * perksPerPage; const endIndex = startIndex + perksPerPage; const perksToShow = acquiredPerks.slice(startIndex, endIndex);
 
-            // Create card elements using the shared function with container
-            scene.activePerkCard = createPerkCard(scene, perkId, x, y, {
-                container: scene.pausePerksContainer
+            // --- Layout Constants --- REVERTED SPACING
+            const perksPerRow = 8;
+            const rowSpacing = 60; // Vertical space between rows
+            const colSpacing = 85; // << INCREASED Horizontal space between icons center
+            const startY = 280;
+            const gridWidth = (perksPerRow - 1) * colSpacing;
+            const startX = 600 - gridWidth / 2; // Center the grid horizontally
+
+            perksToShow.forEach((perkId, index) => {
+                const perk = PERKS[perkId]; if (!perk) return; const rowIndex = Math.floor(index / perksPerRow); const colIndex = index % perksPerRow; const iconX = startX + colIndex * colSpacing; const iconY = startY + rowIndex * rowSpacing; const perkIcon = scene.add.text(iconX, iconY, perk.kanji, { fontFamily: 'Arial', fontSize: '36px', color: perk.color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+                perkIcon.on('pointerover', function () { this.setScale(1.2); let cardPopupY = iconY + 80; const cardHeightEstimate = 320; if (cardPopupY + cardHeightEstimate / 2 > SCREEN_HEIGHT - 20) cardPopupY = iconY - (cardHeightEstimate / 2 + 30); showPerkCard.call(scene, perkId, iconX, cardPopupY); });
+                perkIcon.on('pointerout', function () { this.setScale(1.0); hidePerkCard.call(scene); }); scene.perkIcons.push(perkIcon); scene.pausePerksContainer.add(perkIcon);
             });
-        }
-
-
-        // Function to hide perk card
-        function hidePerkCard() {
-            const scene = this;
-
-            if (scene.activePerkCard) {
-                scene.activePerkCard.forEach(element => {
-                    element.destroy();
-                });
-                scene.activePerkCard = null;
+            if (totalPages > 1) {
+                const paginationY = startY + Math.ceil(perksToShow.length / perksPerRow) * rowSpacing + 0; const pageText = scene.add.text(600, paginationY, `${scene.currentPerkPage + 1}/${totalPages}`, { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff' }).setOrigin(0.5); scene.paginationControls.push(pageText); scene.pausePerksContainer.add(pageText);
+                if (scene.currentPerkPage > 0) { const leftArrow = scene.add.text(540, paginationY, '◀', { fontFamily: 'Arial', fontSize: '36px', color: '#ffffff' }).setOrigin(0.5).setInteractive({ useHandCursor: true }); leftArrow.on('pointerdown', () => { scene.currentPerkPage--; updatePauseScreenPerks.call(scene); }); leftArrow.on('pointerover', function () { this.setColor('#aaffaa'); }); leftArrow.on('pointerout', function () { this.setColor('#ffffff'); }); scene.paginationControls.push(leftArrow); scene.pausePerksContainer.add(leftArrow); }
+                if (scene.currentPerkPage < totalPages - 1) { const rightArrow = scene.add.text(660, paginationY, '▶', { fontFamily: 'Arial', fontSize: '36px', color: '#ffffff' }).setOrigin(0.5).setInteractive({ useHandCursor: true }); rightArrow.on('pointerdown', () => { scene.currentPerkPage++; updatePauseScreenPerks.call(scene); }); rightArrow.on('pointerover', function () { this.setColor('#aaffaa'); }); rightArrow.on('pointerout', function () { this.setColor('#ffffff'); }); scene.paginationControls.push(rightArrow); scene.pausePerksContainer.add(rightArrow); }
             }
         }
 
-
-        // Perk system helper functions
-        function initializePerks() {
-            playerPerks = {};
+        function createPerkCard(scene, perkId, x, y, options = {}) {
+            const defaults = { container: null, createBackground: true, backgroundColor: 0x444444, width: 220, height: 320, depth: 0, strokeWidth: 2, strokeColor: 0x000000, backgroundOnly: false };
+            const settings = { ...defaults, ...options }; const perk = PERKS[perkId]; if (!perk) return [];
+            const cardElements = []; const cardWidth = settings.width; const cardHeight = settings.height;
+            if (settings.createBackground) { const cardBg = scene.add.rectangle(x, y, cardWidth, cardHeight, settings.backgroundColor, 1).setStrokeStyle(settings.strokeWidth, settings.strokeColor).setDepth(settings.depth); cardElements.push(cardBg); if (settings.backgroundOnly) { if (settings.container) settings.container.add(cardBg); return [cardBg]; } }
+            const contentWidth = cardWidth * 0.9; const kanjiY = y - cardHeight * 0.35; const kanjiText = scene.add.text(x, kanjiY, perk.kanji, { fontFamily: 'Arial', fontSize: '48px', color: perk.color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5).setDepth(settings.depth + 1); cardElements.push(kanjiText);
+            const hiraganaY = kanjiY + 40; const hiraganaText = scene.add.text(x, hiraganaY, perk.hiragana, { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff' }).setOrigin(0.5).setDepth(settings.depth + 1); cardElements.push(hiraganaText);
+            const romajiY = hiraganaY + 25; const romajiText = scene.add.text(x, romajiY, perk.romaji, { fontFamily: 'Arial', fontSize: '16px', color: '#dddddd', fontStyle: 'italic' }).setOrigin(0.5).setDepth(settings.depth + 1); cardElements.push(romajiText);
+            const englishY = romajiY + 35; const englishText = scene.add.text(x, englishY, perk.english, { fontFamily: 'Arial', fontSize: '22px', color: perk.color, fontStyle: 'bold' }).setOrigin(0.5).setDepth(settings.depth + 1); cardElements.push(englishText);
+            const descY = englishY + 55; const descText = scene.add.text(x, descY, perk.description, { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', align: 'center', wordWrap: { width: contentWidth } }).setOrigin(0.5, 0).setDepth(settings.depth + 1); cardElements.push(descText);
+            if (settings.container) { cardElements.forEach(element => settings.container.add(element)); } return cardElements;
         }
 
-        // Update the acquirePerk function to register perks
+        function showPerkCard(perkId, x, y) {
+            const scene = this; hidePerkCard.call(scene);
+            scene.activePerkCard = createPerkCard(scene, perkId, x, y, { container: scene.pausePerksContainer, depth: 1100, backgroundColor: 0x333333, strokeColor: 0xeeeeee, strokeWidth: 2 });
+        }
+
+        function hidePerkCard() {
+            const scene = this; if (scene.activePerkCard) { scene.activePerkCard.forEach(element => element.destroy()); scene.activePerkCard = null; }
+        }
+
+        // --- Perk System Functions ---
+
+        function initializePerks() { /* No state needed */ }
+
         function acquirePerk(scene, perkId) {
-            // Skip if already acquired
             if (acquiredPerks.includes(perkId)) return false;
-
-            // Add to acquired perks list
-            acquiredPerks.push(perkId);
-            activeEffects.activePerks.push(perkId);
-
-            // Apply the perk
+            acquiredPerks.push(perkId); activeEffects.activePerks.push(perkId);
             return PerkSystem.applyPerk(scene, perkId);
         }
 
-        // Add this helper function to register effects
         window.registerEffect = function (type, item) {
-            if (type === 'timer' && item) {
+            if (!item) return;
+            if (type === 'timer' && item instanceof Phaser.Time.TimerEvent) {
                 activeEffects.timers.push(item);
-            } else if (type === 'entity' && item) {
+                const scene = game.scene.scenes[0];
+                if (scene && gamePaused) item.paused = true;
+            } else if (type === 'entity' && item instanceof Phaser.GameObjects.GameObject) {
                 activeEffects.entities.push(item);
-            }
+            } else { console.warn("Unknown effect type or invalid item:", type, item); }
         };
 
-        // Add this cleanup function to your startGame function
         function clearAllPerkEffects() {
-            // Clear all timers
-            activeEffects.timers.forEach(timer => {
-                if (timer) {
-                    timer.remove();
-                }
-            });
-
-            // Clear all entities
-            activeEffects.entities.forEach(entity => {
-                if (entity && entity.active) {
-                    entity.destroy();
-                }
-            });
-
-            // Reset active effects
-            activeEffects.timers = [];
-            activeEffects.entities = [];
+            activeEffects.timers.forEach(timer => { if (timer) timer.remove(); }); activeEffects.timers = [];
+            activeEffects.entities.forEach(entity => { if (entity && entity.active) entity.destroy(); }); activeEffects.entities = [];
+            afterImageEnabled = false; afterImages.forEach(img => { if (img && img.active) img.destroy(); }); afterImages = []; playerPositionHistory = [];
+            landmines.forEach(mine => { if (mine && mine.active) mine.destroy(); }); landmines = [];
+            orbitingProjectiles.forEach(orb => { if (orb && orb.active) orb.destroy(); }); orbitingProjectiles = [];
+            shieldActive = false; if (shieldVisual) shieldVisual.setVisible(false);
+            if (shieldCooldownTimer) { shieldCooldownTimer.remove(); shieldCooldownTimer = null; }
+            if (orbitingProjectileTimer) { orbitingProjectileTimer.remove(); orbitingProjectileTimer = null; }
+            if (landmineTimer) { landmineTimer.remove(); landmineTimer = null; }
+            if (afterImageTimer) { afterImageTimer.remove(); afterImageTimer = null; }
             activeEffects.activePerks = [];
-
-            // Reset other specific effect variables
-            afterImageEnabled = false;
-            afterImages = [];
-            landmines = [];
-            shieldActive = false;
-            if (shieldVisual) {
-                shieldVisual.setVisible(false);
-            }
-
-            // Any other effect-specific cleanup
-            orbitingProjectiles = [];
+            console.log("Cleared all perk effects and timers.");
         }
 
-        function resetAllPerks() {
-            // Call onReset for all perks that were acquired
-            for (const perkId in playerPerks) {
-                if (perkRegistry[perkId] && perkRegistry[perkId].onReset) {
-                    perkRegistry[perkId].onReset();
-                }
-            }
-            // Reset the perks object
-            playerPerks = {};
-        }
-
-        function hasPerk(perkId) {
-            return acquiredPerks.includes(perkId);
-        }
+        function hasPerk(perkId) { return acquiredPerks.includes(perkId); }
 
         // Create the game instance
         const game = new Phaser.Game(config);
 
-        function preload() {
-            // No image assets to preload
+        // --- Phaser Scene Methods ---
+
+        function preload() { /* No assets */ }
+
+        function create() {
+            const scene = this;
+            initializePerks();
+            gameStartTime = scene.time.now; lastDifficultyUpdateTime = scene.time.now;
+            detectKeyboardLayout.call(scene); setupPauseSystem.call(scene); setupPerformanceMonitor.call(scene);
+
+            player = scene.add.text(600, 400, HERO_CHARACTER, { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+            player.hiragana = HERO_HIRAGANA; player.romaji = HERO_ROMAJI; player.english = HERO_ENGLISH;
+            scene.physics.world.enable(player); player.body.setCollideWorldBounds(true);
+
+            healthBarBg = scene.add.rectangle(600, 25, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT, 0x333333).setOrigin(0.5);
+            healthBar = scene.add.rectangle(500, 25, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT, 0x00ff00).setOrigin(0, 0.5);
+            expBarBg = scene.add.rectangle(600, 40, HEALTH_BAR_WIDTH, EXP_BAR_HEIGHT, 0x333333).setOrigin(0.5);
+            expBar = scene.add.rectangle(500, 40, 0, EXP_BAR_HEIGHT, 0x00ffff).setOrigin(0, 0.5);
+            healthText = scene.add.text(600, 15, '', { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }).setOrigin(0.5);
+            expText = scene.add.text(600, 50, '', { fontFamily: 'Arial', fontSize: '12px', color: '#00ffff' }).setOrigin(0.5);
+            playerStatsText = scene.add.text(10, 100, '', { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' });
+            shieldVisual = scene.add.circle(player.x, player.y, 30, 0x3498db, 0.4).setStrokeStyle(3, 0x0088ff).setVisible(false);
+
+            enemies = scene.physics.add.group(); projectiles = scene.physics.add.group();
+
+            scene.physics.add.collider(projectiles, enemies, projectileHitEnemy, null, scene);
+            scene.physics.add.overlap(player, enemies, playerHitEnemy, null, scene);
+
+            cursors = scene.input.keyboard.createCursorKeys();
+            updateWASDKeys.call(scene);
+            scene.input.on('pointerdown', (pointer) => { if (!gamePaused && !gameOver) { touchInput.isActive = true; touchInput.x = pointer.x; touchInput.y = pointer.y; } });
+            scene.input.on('pointermove', (pointer) => { if (touchInput.isActive && !gamePaused && !gameOver) { touchInput.x = pointer.x; touchInput.y = pointer.y; } });
+            scene.input.on('pointerup', (pointer) => { if (pointer.primaryDown === false) touchInput.isActive = false; });
+            scene.input.on('pointerupoutside', (pointer) => { if (pointer.primaryDown === false) touchInput.isActive = false; });
+
+            setupDebugKeys.call(scene);
+
+            killCountText = scene.add.text(600, 65, '', { fontFamily: 'Arial', fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
+            heroLevelText = scene.add.text(600, 85, '', { fontFamily: 'Arial', fontSize: '14px', color: '#00ffff' }).setOrigin(0.5);
+            gameOverText = scene.add.text(600, 400, 'GAME OVER', { fontFamily: 'Arial', fontSize: '40px', color: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5).setVisible(false).setDepth(2000);
+            restartButton = scene.add.text(600, 600, 'PLAY AGAIN', { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', backgroundColor: '#880000', padding: { left: 15, right: 15, top: 10, bottom: 10 } }).setOrigin(0.5).setVisible(false).setInteractive().setDepth(2000);
+            restartButton.on('pointerdown', () => startGame.call(scene));
+            learningFeedback = scene.add.text(600, SCREEN_HEIGHT - 30, '', { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff' }).setOrigin(0.5).setAlpha(0.5);
+
+            startGame.call(scene);
         }
 
-        // debug funcs
+        function update(time, delta) {
+            const scene = this;
+            if (gameOver || gamePaused) return;
+            updatePerformanceStats.call(scene, time, delta);
+            elapsedTime += delta / 1000;
+            document.getElementById('level').innerText = `Time Survived: ${formatTime(elapsedTime)}`;
+            document.getElementById('kills').textContent = `Enemies killed: ${score}`;
+            killCountText.setText(`Enemies killed: ${score}`);
+
+            player.body.setVelocity(0);
+            let targetVelocityX = 0; let targetVelocityY = 0; const moveSpeed = playerSpeed * 50;
+            if (cursors.left.isDown || (wasdKeys && wasdKeys.left.isDown)) targetVelocityX = -moveSpeed;
+            else if (cursors.right.isDown || (wasdKeys && wasdKeys.right.isDown)) targetVelocityX = moveSpeed;
+            if (cursors.up.isDown || (wasdKeys && wasdKeys.up.isDown)) targetVelocityY = -moveSpeed;
+            else if (cursors.down.isDown || (wasdKeys && wasdKeys.down.isDown)) targetVelocityY = moveSpeed;
+            if (touchInput.isActive) { const dx = touchInput.x - player.x; const dy = touchInput.y - player.y; const distance = Math.sqrt(dx * dx + dy * dy); if (distance > 5) { targetVelocityX = (dx / distance) * moveSpeed; targetVelocityY = (dy / distance) * moveSpeed; } else { targetVelocityX = 0; targetVelocityY = 0; } }
+            player.body.setVelocity(targetVelocityX, targetVelocityY); if (targetVelocityX !== 0 && targetVelocityY !== 0) player.body.velocity.normalize().scale(moveSpeed);
+
+            enemies.getChildren().forEach(enemy => { if (enemy && enemy.active) scene.physics.moveToObject(enemy, player, enemy.speed); });
+
+            projectiles.getChildren().forEach(projectile => { if (projectile && projectile.active) { if (projectile.y < -50 || projectile.y > SCREEN_HEIGHT + 50 || projectile.x < -50 || projectile.x > SCREEN_WIDTH + 50) destroyProjectile(projectile); if (projectile.hasDistanceDamage) updateProjectileDistance(projectile); } });
+
+            updateOrbitingProjectiles(); updateActiveAfterImages();
+
+            if (shieldVisual && shieldVisual.visible) shieldVisual.setPosition(player.x, player.y);
+
+            updateHealthBar(); updateExpBar(); updatePlayerStatsText();
+
+            if (time > lastDifficultyUpdateTime + 1000) { updateDifficultyScaling(); lastDifficultyUpdateTime = time; }
+
+            if (heroExp >= heroExpToLevel) levelUp.call(scene);
+        }
+
+        // --- Debugging Functions ---
+
         function setupPerformanceMonitor() {
-            // Create stats text display (initially hidden)
-            statsText = this.add.text(1000, 10, 'FPS: 0', {
-                fontFamily: 'Arial',
-                fontSize: '14px',
-                color: '#00ff00',
-                backgroundColor: '#000000',
-                padding: { x: 5, y: 5 }
-            });
-            statsText.setDepth(1000);
-            statsText.visible = false;
+            const scene = this;
+            statsText = scene.add.text(SCREEN_WIDTH - 10, 10, 'FPS: 0', { fontFamily: 'Arial', fontSize: '14px', color: '#00ff00', backgroundColor: '#000000cc', padding: { x: 5, y: 3 }, align: 'right' }).setOrigin(1, 0).setDepth(3000).setVisible(false);
             statsVisible = false;
-
-            // Add key listener for O key to toggle stats and debug mode
-            const keyO = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.O);
-            keyO.on('down', function () {
-                // Toggle debug mode and stats visibility
-                toggleDebugMode.call(this);
-            }, this);
-
+            const keyO = scene.input.keyboard.addKey(DEBUG_MODE_KEY);
+            keyO.on('down', function () { toggleDebugMode.call(this); }, scene);
             console.log("Performance monitor initialized (press O to toggle)");
         }
 
-        // Function to toggle debug mode and stats
         function toggleDebugMode() {
-            // Toggle debug mode
-            debugModeEnabled = !debugModeEnabled;
-
-            // Toggle stats visibility
-            if (statsText) {
-                statsText.visible = debugModeEnabled;
-                statsVisible = debugModeEnabled;
-            }
-
-            // Toggle physics debug rendering
-            this.physics.world.drawDebug = debugModeEnabled;
-
-            // When enabling debug mode, we need to create the debug graphics if it doesn't exist
-            if (debugModeEnabled && !this.physics.world.debugGraphic) {
-                this.physics.world.createDebugGraphic();
-            }
-
-            // Toggle the visibility of the debug graphics
-            if (this.physics.world.debugGraphic) {
-                this.physics.world.debugGraphic.visible = debugModeEnabled;
-            }
-
+            const scene = this;
+            debugModeEnabled = !debugModeEnabled; statsVisible = debugModeEnabled;
+            if (statsText) statsText.visible = debugModeEnabled;
+            scene.physics.world.drawDebug = debugModeEnabled;
+            if (debugModeEnabled && !scene.physics.world.debugGraphic) scene.physics.world.createDebugGraphic();
+            if (scene.physics.world.debugGraphic) { scene.physics.world.debugGraphic.visible = debugModeEnabled; scene.physics.world.debugGraphic.clear(); }
             console.log(`Debug mode ${debugModeEnabled ? 'enabled' : 'disabled'}`);
         }
 
-        // Add this to your update function
         function updatePerformanceStats(time, delta) {
+            const scene = this;
             if (statsText && statsVisible) {
-                const fps = Math.round(this.game.loop.actualFps);
-
-                // Get physics bodies count
-                let bodyCount = 0;
-                if (this.physics && this.physics.world) {
-                    bodyCount = this.physics.world.bodies.size;
-                }
-
-                // Count active game objects by type
-                const totalObjects = this.children.list.length;
-                let enemyCount = 0;
-                let projectileCount = 0;
-
-                if (enemies) {
-                    enemyCount = enemies.getChildren().length;
-                }
-                if (projectiles) {
-                    projectileCount = projectiles.getChildren().length;
-                }
-
-                // Calculate frame time from delta
-                const frameTime = delta.toFixed(2);
-
-                // Get memory usage if available
-                let memoryUsage = "N/A";
-                if (window.performance && window.performance.memory) {
-                    memoryUsage = Math.round(window.performance.memory.usedJSHeapSize / 1048576) + " MB";
-                }
-
-                // Update stats text
-                statsText.setText(
-                    `DEBUG MODE ON\n` +
-                    `FPS: ${fps}\n` +
-                    `Frame Time: ${frameTime}ms\n` +
-                    `Memory: ${memoryUsage}\n` +
-                    `Total Objects: ${totalObjects}\n` +
-                    `Enemies: ${enemyCount}\n` +
-                    `Projectiles: ${projectileCount}\n` +
-                    `Physics Bodies: ${bodyCount}`
-                );
+                const fps = Math.round(scene.game.loop.actualFps); let bodyCount = scene.physics.world.bodies.size;
+                let enemyCount = enemies ? enemies.countActive(true) : 0; let projectileCount = projectiles ? projectiles.countActive(true) : 0;
+                const frameTime = delta.toFixed(2); let memoryUsage = "N/A"; if (window.performance && window.performance.memory) { memoryUsage = Math.round(window.performance.memory.usedJSHeapSize / 1048576) + " MB"; }
+                statsText.setText([`DEBUG MODE ON`, `FPS: ${fps}`, `Frame Time: ${frameTime}ms`, `Memory: ${memoryUsage}`, `Total Objects: ${scene.children.list.length}`, `Enemies: ${enemyCount}`, `Projectiles: ${projectileCount}`, `Physics Bodies: ${bodyCount}`].join('\n'));
             }
+            if (debugModeEnabled && scene.physics.world.debugGraphic) scene.physics.world.debugGraphic.clear();
         }
 
-
-        function create() {
-            // Initialize perk system first
-            initializePerks();
-
-            // Record game start time for difficulty scaling
-            gameStartTime = this.time.now;
-
-            // Detect keyboard layout
-            detectKeyboardLayout.call(this);
-
-            setupPauseSystem.call(this);
-            setupPerformanceMonitor.call(this);
-
-            // Create player text - using kanji character
-            player = this.add.text(600, 400, HERO_CHARACTER, {
-                fontFamily: 'Arial',
-                fontSize: '32px',
-                color: '#ffffff',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Store all language and educational properties
-            player.hiragana = HERO_HIRAGANA;
-            player.romaji = HERO_ROMAJI;
-            player.english = HERO_ENGLISH;
-
-            // Add physics to player
-            this.physics.world.enable(player);
-            player.body.setCollideWorldBounds(true);
-
-            // Create health bar background
-            healthBarBg = this.add.rectangle(600, 25, 200, 10, 0x333333);
-
-            // Create health bar
-            healthBar = this.add.rectangle(600, 25, 200, 10, 0x00ff00);
-
-            // Create exp bar background
-            expBarBg = this.add.rectangle(600, 40, 200, 5, 0x333333);
-
-            // Create exp bar
-            expBar = this.add.rectangle(600, 40, 0, 5, 0x00ffff);
-
-            // Create health text
-            healthText = this.add.text(
-                600, 15,
-                `Health: ${playerHealth}/${maxPlayerHealth}`,
-                { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }
-            ).setOrigin(0.5);
-
-            // Create exp text
-            expText = this.add.text(
-                600, 50,
-                `XP: ${heroExp}/${heroExpToLevel}`,
-                { fontFamily: 'Arial', fontSize: '12px', color: '#00ffff' }
-            ).setOrigin(0.5);
-
-            // Create player stats text
-            playerStatsText = this.add.text(
-                10, 100,
-                `Speed: ${playerSpeed}\nDamage: ${playerDamage}\nLuck: ${playerLuck}`,
-                { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }
-            );
-
-            // Create shield visual (initially invisible)
-            shieldVisual = this.add.circle(player.x, player.y, 30, 0x3498db, 0.4);
-            shieldVisual.setStrokeStyle(3, 0x0088ff);
-            shieldVisual.setVisible(false);
-
-            // Add health regeneration
-            setupHealthRegeneration.call(this);
-
-            // Create enemy group
-            enemies = this.physics.add.group();
-
-            // Create projectile group
-            projectiles = this.physics.add.group();
-
-            // Set up collision between projectiles and enemies
-            this.physics.add.collider(projectiles, enemies, projectileHitEnemy, null, this);
-
-            // Set up collision between player and enemies
-            this.physics.add.overlap(player, enemies, playerHitEnemy, null, this);
-
-            // Set up cursor keys for movement
-            cursors = this.input.keyboard.createCursorKeys();
-
-            // Set up WASD keys for movement based on detected layout
-            updateWASDKeys.call(this);
-
-            // Set up touch controls
-            this.input.on('pointerdown', (pointer) => {
-                touchInput.isActive = true;
-                touchInput.x = pointer.x;
-                touchInput.y = pointer.y;
-            });
-
-            this.input.on('pointermove', (pointer) => {
-                if (touchInput.isActive) {
-                    touchInput.x = pointer.x;
-                    touchInput.y = pointer.y;
+        function setupDebugKeys() {
+            const scene = this;
+            const keyR = scene.input.keyboard.addKey(LEVEL_UP_DEBUG_KEY);
+            keyR.on('down', () => {
+                if (!gamePaused && !gameOver && debugModeEnabled) {
+                    console.log("Debug: Triggering Level Up via R key.");
+                    const xpNeeded = heroExpToLevel - heroExp;
+                    heroExp += Math.max(1, xpNeeded);
+                    updateExpBar();
                 }
             });
-
-            this.input.on('pointerup', () => {
-                touchInput.isActive = false;
-            });
-
-            // Debug function to lvl up
-            setupDebugKeys.call(this);
-
-            // Kill count text (on-screen)
-            killCountText = this.add.text(
-                600, 65,
-                'Enemies killed: 0',
-                { fontFamily: 'Arial', fontSize: '14px', color: '#ffffff' }
-            ).setOrigin(0.5);
-
-            // Hero level text
-            heroLevelText = this.add.text(
-                600, 85,
-                'Hero Level: 1',
-                { fontFamily: 'Arial', fontSize: '14px', color: '#00ffff' }
-            ).setOrigin(0.5);
-
-            // Create the game over screen (hidden initially)
-            gameOverText = this.add.text(
-                600, 400,
-                'GAME OVER',
-                { fontFamily: 'Arial', fontSize: '40px', color: '#ff0000', fontStyle: 'bold' }
-            ).setOrigin(0.5).setVisible(false);
-
-            // Create restart button (hidden initially)
-            restartButton = this.add.text(
-                600, 600,
-                'PLAY AGAIN',
-                { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', backgroundColor: '#880000', padding: { left: 15, right: 15, top: 10, bottom: 10 } }
-            ).setOrigin(0.5).setVisible(false).setInteractive();
-
-            // Add restart button functionality
-            restartButton.on('pointerdown', startGame, this);
-
-            // Create learning feedback text (initially empty)
-            this.learningFeedback = this.add.text(
-                600, 770,
-                '',
-                { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff' }
-            ).setOrigin(0.5);
-
-            // Start the game by calling startGame (replaces the need for duplicate initialization)
-            startGame.call(this);
         }
 
-        // Modified update function to properly handle difficulty scaling during pauses
+        // --- Game Logic Functions ---
 
-        function update(time, delta) {
-            if (gameOver) return;
-            if (gamePaused) return; // Skip updates when game is paused for level up
+        function setupHealthRegeneration() { const scene = this; if (healthRegenTimer) { healthRegenTimer.remove(); healthRegenTimer = null; } if (maxPlayerHealth <= 0) return; const regenDelay = Math.max(50, 100000 / maxPlayerHealth); healthRegenTimer = scene.time.addEvent({ delay: regenDelay, callback: regenerateHealth, callbackScope: scene, loop: true }); console.log(`Health regen set: +1 HP every ${(regenDelay / 1000).toFixed(2)}s`); }
+        function regenerateHealth() { const scene = this; if (gameOver || gamePaused) return; if (playerHealth < maxPlayerHealth) { playerHealth = Math.min(maxPlayerHealth, playerHealth + 1); updateHealthBar(); showRegenEffect.call(scene); } }
+        function showRegenEffect() { const scene = this; if (!player || !player.active) return; const healEffect = scene.add.text(player.x, player.y - 20, '+1', { fontFamily: 'Arial', fontSize: '16px', color: '#00ff00', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5); scene.tweens.add({ targets: healEffect, y: healEffect.y - 25, alpha: 0, duration: 1000, ease: 'Cubic.easeOut', onComplete: () => healEffect.destroy() }); }
+        function updateHealthBar() { const healthPercentage = Math.max(0, playerHealth) / maxPlayerHealth; healthBar.width = healthPercentage * HEALTH_BAR_WIDTH; healthBar.x = 500; healthText.setText(`Health: ${Math.ceil(playerHealth)} / ${maxPlayerHealth}`); }
+        function updateExpBar() { const expPercentage = (heroExpToLevel > 0) ? (heroExp / heroExpToLevel) : 0; expBar.width = expPercentage * HEALTH_BAR_WIDTH; expBar.x = 500; expText.setText(`XP: ${heroExp} / ${heroExpToLevel}`); }
+        function levelUp() { const scene = this; if (gamePaused) return; console.log(`Level Up! Reached Level ${playerLevel + 1}`); playerLevel++; heroExp -= heroExpToLevel; if (heroExp < 0) heroExp = 0; heroExpToLevel = xpForNextLevel(playerLevel); heroLevelText.setText(`Hero Level: ${playerLevel}`); updateExpBar(); showLevelUpCards.call(scene); const lvlUpEffect = scene.add.text(player.x, player.y - 40, 'LEVEL UP!', { fontFamily: 'Arial', fontSize: '24px', color: '#ffff00', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5); scene.tweens.add({ targets: lvlUpEffect, y: lvlUpEffect.y - 50, alpha: 0, duration: 1500, ease: 'Cubic.easeOut', onComplete: () => lvlUpEffect.destroy() }); }
 
-            updatePerformanceStats.call(this, time, delta);
-
-            // Increment elapsed time
-            elapsedTime += delta / 1000; // delta is in milliseconds
-
-            // Update the level display to show time survived
-            const levelDisplay = document.getElementById('level');
-            levelDisplay.innerText = `Time Survived: ${formatTime(elapsedTime)}`;
-
-            // Player movement with keyboard
-            player.body.setVelocity(0);
-
-            if (cursors.left.isDown || wasdKeys.left.isDown) {
-                player.body.setVelocityX(-playerSpeed * 50);
-            } else if (cursors.right.isDown || wasdKeys.right.isDown) {
-                player.body.setVelocityX(playerSpeed * 50);
-            }
-
-            if (cursors.up.isDown || wasdKeys.up.isDown) {
-                player.body.setVelocityY(-playerSpeed * 50);
-            } else if (cursors.down.isDown || wasdKeys.down.isDown) {
-                player.body.setVelocityY(playerSpeed * 50);
-            }
-
-            // Player movement with touch
-            if (touchInput.isActive) {
-                // Calculate direction vector
-                const dx = touchInput.x - player.x;
-                const dy = touchInput.y - player.y;
-
-                // Normalize and scale
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance > 5) {  // Add a small threshold to prevent jitter
-                    player.body.setVelocityX((dx / distance) * playerSpeed * 50);
-                    player.body.setVelocityY((dy / distance) * playerSpeed * 50);
-                }
-            }
-
-            // Update enemies to follow player
-            enemies.getChildren().forEach(enemy => {
-                this.physics.moveToObject(enemy, player, enemy.speed);
-            });
-
-            // Keep shield visual positioned on player
-            if (shieldVisual) {
-                shieldVisual.x = player.x;
-                shieldVisual.y = player.y;
-            }
-
-            // Update orbiting projectiles
-            orbitingProjectiles.forEach(projectile => {
-                if (projectile && projectile.active) {
-                    updateOrbitingProjectile(projectile, player);
-                }
-            });
-
-            projectiles.getChildren().forEach(projectile => {
-                if (projectile.y < -50 || projectile.y > 850 ||
-                    projectile.x < -50 || projectile.x > 1250) {
-                    projectile.destroy();
-                }
-
-                // Update distance-based damage if applicable
-                if (projectile.hasDistanceDamage) {
-                    updateProjectileDistance.call(this, projectile);
-                }
-            });
-
-            // Update health bar
-            updateHealthBar();
-
-            // Update UI
-            document.getElementById('kills').textContent = `Enemies killed: ${score}`;
-
-            // Update in-game kill count
-            killCountText.setText(`Enemies killed: ${score}`);
-
-            // Update health and exp text
-            healthText.setText(`Health: ${Math.ceil(playerHealth)}/${maxPlayerHealth}`);
-            expText.setText(`XP: ${heroExp}/${heroExpToLevel}`);
-
-            // Calculate difficulty scaling based on elapsed time instead of raw time
-            const minutesElapsed = elapsedTime / 60;
-
-            // Update the spawn rate gradually by modifying the existing timer
-            if (enemySpawner) {
-                // Calculate new delay based on time played
-                const newSpawnDelay = Math.max(200, baseSpawnDelay / Math.pow(enemyCountScaleFactor, minutesElapsed));
-
-                // If the timer needs updating, adjust it
-                if (Math.abs(enemySpawner.delay - newSpawnDelay) > (enemySpawner.delay * 0.1)) {
-                    // Gradually transition to the new delay rather than recreating the timer
-                    enemySpawner.delay = newSpawnDelay;
-                    enemySpawner.reset({
-                        delay: newSpawnDelay,
-                        callback: spawnEnemy,
-                        callbackScope: this,
-                        loop: true
-                    });
-                }
-            }
-
-            // Update current enemy health based on elapsed time (optional scaling)
-            currentEnemyHealth = baseEnemyHealth * Math.pow(enemyHealthScaleFactor, minutesElapsed);
-
-            // Update player stats text
-            updatePlayerStatsText();
-
-            // Update player level
-            if (heroExp >= heroExpToLevel) {
-                levelUp.call(this);
-            }
+        // REVERTED updatePlayerStatsText
+        function updatePlayerStatsText() {
+            let stats = [
+                `POW: ${playerDamage}`,
+                `AGI: ${playerFireRate}`, // Removed .toFixed(1)
+                `END: ${maxPlayerHealth}`,
+                // `SPD: ${playerSpeed}`, // Removed SPD line
+                `LUK: ${playerLuck}`
+            ];
+            if (playerStatsText) playerStatsText.setText(stats.join('\n'));
         }
 
-        // Modified spawnEnemy function to use the currentEnemyHealth value calculated in update
         function spawnEnemy() {
-            if (gameOver) return;
-
-            // Choose a random enemy type
-            const enemyType = getRandomEnemyType();
-
-            // Get the enemy data with defaults applied
-            const enemyData = getEnemyData(enemyType);
-
-            // Choose a random spawn position outside the screen
+            const scene = this;
+            if (gameOver || gamePaused) return;
+            const enemyType = getRandomEnemyType(); const enemyData = getEnemyData(enemyType);
+            if (!enemyData) { console.warn("Could not get data for enemy type:", enemyType); return; }
             let x, y;
-            if (Math.random() < 0.5) {
-                // Spawn on left or right side
-                x = Math.random() < 0.5 ? -50 : 1250;
-                y = Phaser.Math.Between(50, 750);
-            } else {
-                // Spawn on top or bottom
-                x = Phaser.Math.Between(50, 1150);
-                y = Math.random() < 0.5 ? -50 : 850;
-            }
-
-            // Create the enemy with data-driven properties
-            const enemy = this.add.text(x, y, enemyType, {
-                fontFamily: 'Arial',
-                fontSize: `${enemyData.size}px`,
-                color: enemyData.color,
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Add to physics group
+            if (Math.random() < 0.5) { x = Math.random() < 0.5 ? -50 : SCREEN_WIDTH + 50; y = Phaser.Math.Between(50, SCREEN_HEIGHT - 50); }
+            else { x = Phaser.Math.Between(50, SCREEN_WIDTH - 50); y = Math.random() < 0.5 ? -50 : SCREEN_HEIGHT + 50; }
+            const enemy = scene.add.text(x, y, enemyType, { fontFamily: 'Arial', fontSize: `${enemyData.size}px`, color: enemyData.color, fontStyle: 'bold' }).setOrigin(0.5);
             enemies.add(enemy);
-
-            // Set enemy properties
             enemy.body.setSize(enemy.width, enemy.height);
             enemy.body.setCollideWorldBounds(false);
-
-            // Set enemy health based on data and current scaling
-            // Use the currentEnemyHealth value that's updated in the update function
+            enemy.body.immovable = false; // Correct way to make pushable
             enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
-
-            // Set enemy speed based on data
             enemy.speed = Phaser.Math.Between(enemyData.speedMin, enemyData.speedMax);
-
-            // Store additional properties from data
-            enemy.damage = enemyData.damage;
-            enemy.rank = enemyData.rank;
-            enemy.expValue = enemyData.expValue || 1;
-
-            // Store all language and educational properties
-            enemy.hiragana = enemyData.hiragana;
-            enemy.romaji = enemyData.romaji;
-            enemy.english = enemyData.english;
+            enemy.damage = enemyData.damage; enemy.rank = enemyData.rank; enemy.expValue = enemyData.expValue || 1;
+            enemy.hiragana = enemyData.hiragana; enemy.romaji = enemyData.romaji; enemy.english = enemyData.english;
         }
 
-        // Store all game timers in a central array
-        let gameTimers = [];
-
-        // Register a timer with the central system
-        function registerTimer(timer) {
-            gameTimers.push(timer);
-            return timer; // Return the timer for convenience
-        }
-
-        // Enhanced pauseGame function
-        function pauseGame() {
-            // Set the flag
-            gamePaused = true;
-
-            // Pause physics
-            const activeScene = game.scene.scenes[0];
-            if (activeScene && activeScene.physics) {
-                activeScene.physics.pause();
-            }
-
-            // Pause all timers
-            gameTimers.forEach(timer => {
-                if (timer && timer.paused !== undefined) {
-                    timer.paused = true;
-                }
-            });
-        }
-
-        // Resume the game and hide overlay
-        function resumeGame() {
-            if (gameOver) return;
-
-            // Hide pause screen elements
-            if (pauseScreen) pauseScreen.setVisible(false);
-            if (pauseMessage) pauseMessage.setVisible(false);
-            if (resumeButton) resumeButton.setVisible(false);
-
-            // Hide perks container
-            const scene = game.scene.scenes[0];
-            if (scene && scene.pausePerksContainer) {
-                scene.pausePerksContainer.setVisible(false);
-            }
-
-            // Set pause flag
-            gamePaused = false;
-
-            // Resume physics
-            const activeScene = game.scene.scenes[0];
-            if (activeScene && activeScene.physics) {
-                activeScene.physics.resume();
-            }
-
-            // Resume all timers
-            gameTimers.forEach(timer => {
-                if (timer && timer.paused !== undefined) {
-                    timer.paused = false;
-                }
-            });
-
-            console.log("Game resumed");
-        }
-
-
-        // Clean up timers that are no longer active
-        function cleanupTimers() {
-            gameTimers = gameTimers.filter(timer =>
-                timer && !timer.hasOwnProperty('removed') && !timer.removed);
-        }
-
-        // Setup health regeneration
-        function setupHealthRegeneration() {
-            // Calculate delay based on max health (100s / maxHealth)
-            const regenDelay = Math.ceil(100000 / maxPlayerHealth); // In milliseconds
-
-            // Remove any existing regen timer
-            if (healthRegenTimer) {
-                healthRegenTimer.remove();
-            }
-
-            // Create and register health regeneration timer
-            healthRegenTimer = registerTimer(this.time.addEvent({
-                delay: regenDelay,
-                callback: regenerateHealth,
-                callbackScope: this,
-                loop: true
-            }));
-
-            console.log(`Health regeneration timer set: +1 HP every ${regenDelay / 1000} seconds`);
-        }
-
-        function regenerateHealth() {
-            if (gameOver || gamePaused) return;
-
-            // Only regenerate if health is below max
-            if (playerHealth < maxPlayerHealth) {
-                // Add 1 HP
-                playerHealth = Math.min(playerHealth + 1, maxPlayerHealth);
-
-                // Update health bar and text
-                updateHealthBar();
-
-                // Show visual effect
-                showRegenEffect(this);
-            }
-        }
-
-        function showRegenEffect(scene) {
-            // Create a healing indicator
-            const healEffect = scene.add.text(player.x, player.y - 20, '+1', {
-                fontFamily: 'Arial',
-                fontSize: '16px',
-                color: '#00ff00'
-            }).setOrigin(0.5);
-
-            // Animate the healing indicator
-            scene.tweens.add({
-                targets: healEffect,
-                y: healEffect.y - 15,
-                alpha: 0,
-                duration: 800,
-                onComplete: function () {
-                    healEffect.destroy();
-                }
-            });
-        }
-
-        function updateHealthBar() {
-            const healthPercentage = playerHealth / maxPlayerHealth;
-            healthBar.width = healthPercentage * 200;
-            healthBar.x = 500 + (healthBar.width / 2);
-
-            // Show only integer health in display, but use decimal precision internally
-            healthText.setText(`Health: ${Math.floor(playerHealth)}/${maxPlayerHealth}`);
-        }
-
-        function updateExpBar() {
-            const expPercentage = heroExp / heroExpToLevel;
-            expBar.width = expPercentage * 200;
-            expBar.x = 500 + (expBar.width / 2);
-            expText.setText(`XP: ${heroExp}/${heroExpToLevel}`);
-        }
-
-        function levelUp() {
-            playerLevel++; // Level up
-            heroExpToLevel = xpForNextLevel(playerLevel); // Update XP needed for the next level
-            heroExp = 0; // Reset XP
-            heroLevelText.setText(`Hero Level: ${playerLevel}`);
-            showLevelUpCards.call(this);
-        }
-
-        function updatePlayerStatsText() {
-            // Build the stats text based on current stats, without listing perks
-            let statsText = `POW: ${playerDamage}\nAGI: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
-
-            // Update the text
-            playerStatsText.setText(statsText);
-        }
-
-        function fireProjectile() {
-            if (gameOver) return;
-
-            // Find the closest enemy within 400px
-            let closestEnemy = null;
-            let closestDistance = 400;
-
-            enemies.getChildren().forEach(enemy => {
-                if (!enemy) return; // Skip if enemy is null or undefined
-
-                const distance = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closestEnemy = enemy;
-                }
-            });
-
-            if (closestEnemy) {
-                // Calculate direction to the enemy
-                const angle = Phaser.Math.Angle.Between(player.x, player.y, closestEnemy.x, closestEnemy.y);
-
-                // Create the main projectile
-                createSingleProjectile.call(this, angle);
-
-                // Check for double shot if we have that perk
-                if (hasPerk('PURPLE_OWL')) {
-                    const doubleChance = playerLuck / BASE_STATS.LUK * 0.08; // 8% base chance scaled by luck
-                    if (Math.random() < doubleChance) {
-                        // Fire a second projectile with slight angle variation
-                        const angleVariation = (Math.random() - 0.5) * 0.2; // Small random angle variation
-                        createSingleProjectile.call(this, angle + angleVariation);
-                    }
-                }
-            }
-        }
-
-        // Dedicated function for creating projectiles
-        function createProjectileBase(scene, x, y, color = '#ffff00', symbol = '★') {
-            // Create the projectile
-            const projectile = scene.add.text(x, y, symbol, {
-                fontFamily: 'Arial',
-                fontSize: `${projectileSizeFactor * playerDamage}px`,
-                color: color,
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Add to physics group
-            projectiles.add(projectile);
-
-            // Set projectile properties (smaller hitbox for better visual feel)
-            projectile.body.setSize(projectile.width / 2, projectile.height / 2);
-
-            // Set base damage value
-            projectile.damage = playerDamage;
-
-            // Return the created projectile
-            return projectile;
-        }
-
-        function createSingleProjectile(angle) {
-            // Create base projectile
-            const projectile = createProjectileBase(this, player.x, player.y);
-
-            // Set projectile velocity based on angle
-            const speed = 400;
-            projectile.body.setVelocity(
-                Math.cos(angle) * speed,
-                Math.sin(angle) * speed
-            );
-
-            // Record starting position for distance-based damage if we have the Silver Sniper perk
-            if (hasPerk('CRIMSON_SCATTER')) {
-                projectile.startX = player.x;
-                projectile.startY = player.y;
-                projectile.hasDistanceDamage = true;
-
-                // Set initial scale and damage based on the maximum (2x)
-                projectile.setScale(2.0);
-                projectile.baseDamage = playerDamage;
-                projectile.damage = projectile.baseDamage * 2.0;
-
-                // Update size and damage based on distance
-                updateProjectileDistance.call(this, projectile);
-            }
-
-            // Apply slow effect if we have that perk
-            projectile.isSlowShot = false;
-            if (hasPerk('SLOW_SHOT')) {
-                const slowChance = playerLuck / BASE_STATS.LUK * 0.05; // 5% base chance scaled by luck
-                projectile.isSlowShot = Math.random() < slowChance;
-                if (projectile.isSlowShot) {
-                    projectile.setColor('#00ffff'); // Cyan color for slow shots
-                }
-            }
-        }
-
-        function updateProjectileDistance(projectile) {
-            if (!projectile || !projectile.active || !projectile.hasDistanceDamage) return;
-
-            // Calculate distance from starting position
-            const dx = projectile.x - projectile.startX;
-            const dy = projectile.y - projectile.startY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            // Maximum distance for damage scaling
-            const maxDistance = 400;
-
-            // Calculate damage multiplier based on distance (2.0 at distance 0, 0.4 at maxDistance)
-            let damageMultiplier = 2.0 - (1.6 * Math.min(distance, maxDistance) / maxDistance);
-
-            // Update projectile damage
-            projectile.damage = projectile.baseDamage * damageMultiplier;
-
-            // Update projectile scale to reflect damage (visual feedback)
-            projectile.setScale(damageMultiplier);
-        }
-
-        // Unified projectile hit enemy function
-        function projectileHitEnemy(projectile, enemy) {
-            // Skip if projectile is already destroyed
-            if (!projectile.active || !enemy.active) return;
-
-            // Apply damage to enemy
-            enemy.health -= projectile.damage;
-
-            // Apply slow effect if it's a slow shot
-            if (projectile.isSlowShot) {
-                // Slow the enemy by half
-                enemy.speed = Math.max(10, enemy.speed * 0.5);
-
-                // Add visual indication of slowed enemy
-                enemy.setColor('#00ffff'); // Cyan color for slowed enemies
-
-                // For longer slow duration, you could add a timer to reset color
-                this.time.delayedCall(2000, function () {
-                    if (enemy && enemy.active) {
-                        enemy.setColor('#ff5555');
-                    }
-                });
-            }
-
-            // Only destroy enemy if health is 0 or below
-            if (enemy.health <= 0) {
-                // Display kanji information in the learning feedback area
-                if (this.learningFeedback) {
-                    this.learningFeedback.setText(
-                        `Defeated ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
-                    );
-
-                    // Flash or highlight the text to draw attention
-                    this.tweens.add({
-                        targets: this.learningFeedback,
-                        alpha: { from: 0.5, to: 1 },
-                        duration: 300,
-                        ease: 'Cubic.out'
-                    });
-                }
-
-                enemy.destroy();
-
-                // Increment score
-                score++;
-
-                // Add experience
-                heroExp++;
-
-                // Update exp bar
-                updateExpBar();
-            } else {
-                // Flash the enemy when hit but not destroyed
-                this.tweens.add({
-                    targets: enemy,
-                    alpha: 0.3,
-                    duration: 50,
-                    yoyo: true,
-                    repeat: 1
-                });
-            }
-
-            // Handle projectile destruction
-            if (!projectile.isLandmine) {
-                // Handle special projectile removal (orbiting, etc.)
-                if (projectile.isOrbiting) {
-                    // Remove from orbiting projectiles array
-                    const index = orbitingProjectiles.indexOf(projectile);
-                    if (index !== -1) {
-                        orbitingProjectiles.splice(index, 1);
-                    }
-                }
-
-                // Standard projectile removal
-                projectile.destroy();
-            } else {
-                // Landmines are destroyed after they hit something
-                projectile.destroy();
-            }
-
-        }
-
-        function playerHitEnemy(player, enemy) {
-            // Check if player was already hit
-            if (playerInvincible) return;
-
-            // Make the player invincible to damage while flashing
-            playerInvincible = true;
-
-            // Flash the player when hit
-            this.tweens.add({
-                targets: player,
-                alpha: 0.5,
-                scale: 1.2,
-                duration: 250,
-                yoyo: true,
-                repeat: 1,
-                onComplete: function () {
-                    // Ensure alpha is reset properly
-                    player.alpha = 1;
-                    player.scale = 1;
-                }
-            });
-
-            // Remove invincibility after 500ms
-            this.time.delayedCall(500, function () {
-                playerInvincible = false;
-
-                // Double-check alpha is reset even if tween was interrupted
-                if (player.active) {
-                    player.alpha = 1;
-                    player.scale = 1;
-                }
-            });
-
-            // Check for Purple Hedgehog perk and trigger defensive burst
-            if (hasPerk('PURPLE_HEDGEHOG')) {
-                triggerDefensiveBurst.call(this);
-            }
-
-            if (shieldActive) {
-                // Shield absorbs the hit
-                shieldActive = false;
-                shieldVisual.setVisible(false);
-
-                // Flash the shield effect
-                this.tweens.add({
-                    targets: player,
-                    alpha: 0.5,
-                    scale: 1.2,
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 1
-                });
-
-                // Start shield cooldown with the base duration (16 seconds)
-                // The function will apply the Luck multiplier internally
-                window.startShieldCooldown(16000);
-
-                return;
-
-                // Show cooldown notification
-                const cooldownSeconds = (cooldownTime / 1000).toFixed(1);
-                const cooldownNotification = this.add.text(player.x, player.y - 40, `SHIELD COOLDOWN: ${cooldownSeconds}s`, {
-                    fontFamily: 'Arial',
-                    fontSize: '14px',
-                    color: '#e74c3c'
-                }).setOrigin(0.5);
-
-                // Animate the notification
-                this.tweens.add({
-                    targets: cooldownNotification,
-                    y: cooldownNotification.y - 20,
-                    alpha: 0,
-                    duration: 1000,
-                    onComplete: function () {
-                        cooldownNotification.destroy();
-                    }
-                });
-
-                return;
-            }
-
-            // Apply damage to player
-            playerHealth -= enemyDamage;
-
-            // Update health text and bar
-            updateHealthBar();
-
-            // Check if player is dead
-            if (playerHealth < 1) {
-                playerDeath.call(this);
-            }
-        }
-
-        // Function to create the defensive burst effect (simplified)
-        function triggerDefensiveBurst() {
-            // Calculate number of projectiles based on luck (2 * LUCK)
-            const projectileCount = playerLuck * 2;
-
-            // Visual effect at player position
-            const burstEffect = this.add.circle(player.x, player.y, 40, 0x9370db, 0.5);
-            this.tweens.add({
-                targets: burstEffect,
-                alpha: 0,
-                scale: 2,
-                duration: 300,
-                onComplete: function () {
-                    burstEffect.destroy();
-                }
-            });
-
-            // Create each projectile in the burst
-            for (let i = 0; i < projectileCount; i++) {
-                // Calculate angle for even distribution (in radians)
-                const angle = (i / projectileCount) * Math.PI * 2;
-
-                // Create projectile using shared base
-                const projectile = createProjectileBase(this, player.x, player.y, '#9370db');
-
-                // Set velocity based on angle
-                const speed = 400;
-                projectile.body.setVelocity(
-                    Math.cos(angle) * speed,
-                    Math.sin(angle) * speed
-                );
-
-                // Add special property
-                projectile.isDefensiveBurst = true;
-            }
-        }
-
-        function playerDeath() {
-            // Set game over state
-            gameOver = true;
-
-            // Pause the game physics to stop all movement
-            pauseGame();
-
-            // Show game over text and restart button
-            gameOverText.setText(`GAME OVER\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`);
-            gameOverText.setVisible(true);
-            restartButton.setVisible(true);
-        }
-
-        function showLevelUpCards() {
-            // Pause the game
-            pauseGame();
-
-            // Create semi-transparent background
-            const levelUpBackground = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
-
-            // Create level up title
-            const levelUpTitle = this.add.text(
-                600, 200,
-                'LEVEL UP! Choose a perk:',
-                { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }
-            ).setOrigin(0.5);
-
-            // Get random perks (excluding already acquired ones)
-            const selectedPerks = PerkSystem.getRandomPerks(3, acquiredPerks);
-
-            // Create three card choices - preserve your original code for card backgrounds
-            const card1 = this.add.rectangle(300, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x000000);
-            const card2 = this.add.rectangle(600, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x000000);
-            const card3 = this.add.rectangle(900, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x000000);
-
-            // Store all level up UI elements
-            const cardElements = [];
-
-            // Add card content for each perk
-            for (let i = 0; i < selectedPerks.length; i++) {
-                const cardX = 300 + (i * 300);
-                const perk = selectedPerks[i];
-
-                if (!perk) continue; // Skip if we have fewer than 3 available perks
-
-                // Create perk card contents WITHOUT background
-                const elements = createPerkCard(this, perk.id, cardX, 400, {
-                    createBackground: false
-                });
-
-                // Add elements to our tracking array
-                cardElements.push(...elements);
-
-                // Set card data and interactivity - preserve your original code
-                const card = [card1, card2, card3][i];
-                card.perkId = perk.id;
-
-                // Add hover effects - preserve your original code
-                card.setInteractive()
-                    .on('pointerover', function () {
-                        this.fillColor = perk.hoverColor;
-                    })
-                    .on('pointerout', function () {
-                        this.fillColor = 0x444444;
-                    })
-                    .on('pointerdown', () => selectCard.call(this, perk.id));
-            }
-
-            // Store all level up UI elements - update to include cardElements
-            levelUpCards = [
-                levelUpBackground, levelUpTitle,
-                card1, card2, card3,
-                ...cardElements
-            ];
-        }
-
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
+        function fireProjectile() { const scene = this; if (gameOver || gamePaused || !player || !player.active) return; let closestEnemy = null; let closestDistanceSq = 400 * 400; enemies.getChildren().forEach(enemy => { if (!enemy || !enemy.active) return; const distanceSq = Phaser.Math.Distance.Squared(player.x, player.y, enemy.x, enemy.y); if (distanceSq < closestDistanceSq) { closestDistanceSq = distanceSq; closestEnemy = enemy; } }); if (closestEnemy) { const angle = Phaser.Math.Angle.Between(player.x, player.y, closestEnemy.x, closestEnemy.y); createSingleProjectile.call(scene, angle); if (hasPerk('PURPLE_OWL')) { const doubleChance = (playerLuck / BASE_STATS.LUK) * 0.08; if (Math.random() < doubleChance) { const angleVariation = (Math.random() - 0.5) * 0.2; createSingleProjectile.call(scene, angle + angleVariation); } } } }
+        function createProjectileBase(scene, x, y, color = '#ffff00', symbol = '★') { const size = Math.max(8, projectileSizeFactor * playerDamage); const projectile = scene.add.text(x, y, symbol, { fontFamily: 'Arial', fontSize: `${size}px`, color: color, fontStyle: 'bold' }).setOrigin(0.5); projectiles.add(projectile); projectile.body.setSize(projectile.width * 0.7, projectile.height * 0.7).setCircle(projectile.width * 0.35); projectile.damage = playerDamage; projectile.isOrbiting = false; projectile.isLandmine = false; projectile.isSlowShot = false; projectile.hasDistanceDamage = false; projectile.isDefensiveBurst = false; return projectile; }
+        function createSingleProjectile(angle) { const scene = this; const projectile = createProjectileBase(scene, player.x, player.y); projectile.body.setVelocity(Math.cos(angle) * PROJECTILE_SPEED, Math.sin(angle) * PROJECTILE_SPEED); if (hasPerk('CRIMSON_SCATTER')) { projectile.startX = player.x; projectile.startY = player.y; projectile.hasDistanceDamage = true; projectile.baseDamage = playerDamage; projectile.damage = projectile.baseDamage * 2.0; projectile.setScale(2.0); } if (hasPerk('CYAN_SLOW')) { const slowChance = (playerLuck / BASE_STATS.LUK) * 0.05; projectile.isSlowShot = (Math.random() < slowChance); if (projectile.isSlowShot) projectile.setColor('#00ffff'); } return projectile; }
+        function updateProjectileDistance(projectile) { if (!projectile || !projectile.active || !projectile.hasDistanceDamage) return; const dx = projectile.x - projectile.startX; const dy = projectile.y - projectile.startY; const distance = Math.sqrt(dx * dx + dy * dy); const maxDistance = 400; const scaleMultiplier = Math.max(0.4, 2.0 - (1.6 * Math.min(distance, maxDistance) / maxDistance)); projectile.damage = projectile.baseDamage * scaleMultiplier; projectile.setScale(scaleMultiplier); }
+        function projectileHitEnemy(projectile, enemy) { const scene = this; if (!projectile.active || !enemy.active) return; const damageDealt = projectile.damage; enemy.health -= damageDealt; if (projectile.isSlowShot && !enemy.isSlowed) { enemy.isSlowed = true; const originalSpeed = enemy.speed; enemy.speed = Math.max(10, enemy.speed * 0.5); enemy.setColor('#00ffff'); scene.time.delayedCall(2000, () => { if (enemy && enemy.active) { const enemyData = getEnemyData(enemy.text); enemy.speed = originalSpeed; enemy.setColor(enemyData?.color || '#ff5555'); enemy.isSlowed = false; } }, [], scene); } if (enemy.health <= 0) { handleEnemyDefeat.call(scene, enemy); } else { scene.tweens.add({ targets: enemy, alpha: 0.3, duration: 50, yoyo: true, repeat: 1 }); } if (!projectile.isLandmine) { destroyProjectile(projectile); } else { destroyProjectile(projectile); } }
+        function destroyProjectile(projectile) { if (!projectile || !projectile.active) return; if (projectile.isOrbiting) { const index = orbitingProjectiles.indexOf(projectile); if (index > -1) orbitingProjectiles.splice(index, 1); } if (projectile.isLandmine) { const index = landmines.indexOf(projectile); if (index > -1) landmines.splice(index, 1); } projectile.destroy(); }
+        function handleEnemyDefeat(enemy) { const scene = this; if (!enemy || !enemy.active) return; if (learningFeedback) { const enemyData = getEnemyData(enemy.text); learningFeedback.setText(`Defeated ${enemy.text} (${enemyData?.hiragana || '?'}) [${enemyData?.romaji || '?'}] - ${enemyData?.english || '?'}`); learningFeedback.setAlpha(1); scene.time.delayedCall(3000, () => { if (learningFeedback) learningFeedback.setAlpha(0.5); }, [], scene); } score++; heroExp += enemy.expValue || 1; updateExpBar(); enemy.destroy(); }
+        function playerHitEnemy(player, enemy) { const scene = this; if (playerInvincible || !player.active || !enemy.active) return; if (hasPerk('PURPLE_HEDGEHOG')) triggerDefensiveBurst.call(scene); if (shieldActive && hasPerk('BLUE_TURTLE')) { shieldActive = false; if (shieldVisual) shieldVisual.setVisible(false); const baseCooldown = 16000; window.startShieldCooldown(baseCooldown); makePlayerInvincible.call(scene, 200); return; } const damageTaken = enemy.damage || 1; playerHealth -= damageTaken; updateHealthBar(); if (playerHealth <= 0) { playerHealth = 0; updateHealthBar(); playerDeath.call(scene); } else { makePlayerInvincible.call(scene, PLAYER_INVINCIBILITY_DURATION); } }
+        function makePlayerInvincible(duration) { const scene = this; if (playerInvincible) return; playerInvincible = true; if (!player || !player.active) { playerInvincible = false; return; } scene.tweens.add({ targets: player, alpha: 0.3, duration: duration / 4, yoyo: true, repeat: 1, onComplete: () => { if (player && player.active) player.setAlpha(1); } }); scene.time.delayedCall(duration, () => { playerInvincible = false; if (player && player.active) player.setAlpha(1); }, [], scene); }
+        function triggerDefensiveBurst() { const scene = this; const projectileCount = Math.max(1, Math.floor(playerLuck * 0.5)); const burstColor = '#9370db'; const burstEffect = scene.add.circle(player.x, player.y, 10, burstColor, 0.8); scene.tweens.add({ targets: burstEffect, radius: 60, alpha: 0, duration: 300, ease: 'Expo.easeOut', onComplete: () => burstEffect.destroy() }); for (let i = 0; i < projectileCount; i++) { const angle = (i / projectileCount) * Math.PI * 2; const projectile = createProjectileBase(scene, player.x, player.y, burstColor); projectile.isDefensiveBurst = true; const burstSpeed = PROJECTILE_SPEED * 0.8; projectile.body.setVelocity(Math.cos(angle) * burstSpeed, Math.sin(angle) * burstSpeed); scene.time.delayedCall(400, () => destroyProjectile(projectile), [], scene); } }
+        function playerDeath() { const scene = this; if (gameOver) return; console.log("Player Died!"); gameOver = true; if (player && player.body) player.body.stop(); pauseGame.call(scene, true); scene.tweens.add({ targets: player, alpha: 0, scale: 0.5, angle: 180, duration: 500, ease: 'Linear', onComplete: () => { if (player) player.setVisible(false); } }); gameOverText.setText(`GAME OVER\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`); gameOverText.setVisible(true).setAlpha(0).setScale(0.5); restartButton.setVisible(true).setAlpha(0).setScale(0.5); scene.tweens.add({ targets: [gameOverText, restartButton], alpha: 1, scale: 1, duration: 500, delay: 300, ease: 'Cubic.easeOut' }); }
+        function showLevelUpCards() { const scene = this; pauseGame.call(scene, true); const levelUpBackground = scene.add.rectangle(600, 400, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.85).setInteractive().setDepth(1500); const levelUpTitle = scene.add.text(600, 150, 'LEVEL UP!', { fontFamily: 'Arial', fontSize: '48px', color: '#ffff00', fontStyle: 'bold', stroke: '#000000', strokeThickness: 6 }).setOrigin(0.5).setDepth(1501); const subTitle = scene.add.text(600, 220, 'Choose a Kanji Power:', { fontFamily: 'Arial', fontSize: '28px', color: '#ffffff' }).setOrigin(0.5).setDepth(1501); const availablePerks = PerkSystem.getRandomPerks(3, acquiredPerks); const cardWidth = 220; const cardHeight = 320; const cardY = 400 + 50; const spacing = 50; const startX = 600 - (cardWidth + spacing); levelUpCards = [levelUpBackground, levelUpTitle, subTitle]; for (let i = 0; i < 3; i++) { const cardX = startX + i * (cardWidth + spacing); const cardBg = scene.add.rectangle(cardX, cardY, cardWidth, cardHeight, 0x2a2a2a).setStrokeStyle(3, 0xcccccc).setDepth(1501); levelUpCards.push(cardBg); if (i < availablePerks.length) { const perk = availablePerks[i]; if (!perk) continue; const perkElements = createPerkCard(scene, perk.id, cardX, cardY, { createBackground: false, width: cardWidth, height: cardHeight }); perkElements.forEach(el => { el.setDepth(1502); levelUpCards.push(el); }); cardBg.setData('perkId', perk.id); cardBg.setInteractive({ useHandCursor: true }); cardBg.on('pointerover', function () { this.setFillStyle(0x4a4a4a); this.setStrokeStyle(4, 0xffffff); scene.tweens.add({ targets: this, scale: 1.05, duration: 150, ease: 'Cubic.easeOut' }); }); cardBg.on('pointerout', function () { this.setFillStyle(0x2a2a2a); this.setStrokeStyle(3, 0xcccccc); scene.tweens.add({ targets: this, scale: 1.0, duration: 100, ease: 'Cubic.easeOut' }); }); cardBg.on('pointerdown', () => { if (!gamePaused) return; selectCard.call(scene, cardBg.getData('perkId')); }); } else { const noPerkText = scene.add.text(cardX, cardY, 'N/A', { fontFamily: 'Arial', fontSize: '24px', color: '#777777' }).setOrigin(0.5).setDepth(1502); levelUpCards.push(noPerkText); } } }
+
+        // REVERTED selectCard feedback text
         function selectCard(perkType) {
-            // Acquire the selected perk
-            acquirePerk(this, perkType);
-
-            // Update player stats text
-            updatePlayerStatsText();
-
-            // Update health bar
-            updateHealthBar();
-
-            // Close the cards and resume the game
-            closeLevelUpCards.call(this);
-
-            // Flash the hero when completing level up
-            this.tweens.add({
-                targets: player,
-                alpha: 0.2,
-                scale: 1.5,
-                duration: 200,
-                yoyo: true,
-                repeat: 1,
-                onComplete: function () {
-                    player.setScale(1);
-                    player.alpha = 1;
-                }
-            });
+            const scene = this;
+            const acquiredSuccess = acquirePerk(scene, perkType);
+            if (acquiredSuccess) {
+                const perk = PERKS[perkType];
+                // Show KANJI in feedback
+                const feedbackText = scene.add.text(600, SCREEN_HEIGHT - 50, `Acquired: ${perk.kanji}!`, {
+                    fontFamily: 'Arial', fontSize: '28px', color: perk.color, stroke: '#000000', strokeThickness: 4
+                }).setOrigin(0.5).setDepth(2000);
+                scene.tweens.add({ targets: feedbackText, alpha: 0, y: feedbackText.y - 50, duration: 2000, onComplete: () => feedbackText.destroy() });
+            }
+            updatePlayerStatsText(); updateHealthBar();
+            closeLevelUpCards.call(scene);
         }
 
-        function closeLevelUpCards() {
-            // Remove all level up UI elements
-            levelUpCards.forEach(element => element.destroy());
-            levelUpCards = [];
-
-            resumeGame();
-        }
-
-        function detectKeyboardLayout() {
-            // Detect keyboard layout
-            try {
-                // Check for navigator.keyboard API support (modern browsers)
-                if (navigator.keyboard && navigator.keyboard.getLayoutMap) {
-                    navigator.keyboard.getLayoutMap()
-                        .then(keyboardLayoutMap => {
-                            // Check for AZERTY layout by looking at the key for 'KeyQ'
-                            const qKey = keyboardLayoutMap.get('KeyQ');
-                            if (qKey === 'a' || qKey === 'A') {
-                                // AZERTY detected
-                                keyboardLayout = 'azerty';
-                                updateWASDKeys.call(this);
-                            }
-                        })
-                        .catch(error => {
-                            console.log('Error detecting keyboard layout:', error);
-                        });
-                } else {
-                    // Fallback method: check browser language
-                    const language = navigator.language || navigator.userLanguage;
-                    if (language && (language.startsWith('fr') || language.startsWith('be'))) {
-                        // French or Belgian language often uses AZERTY
-                        keyboardLayout = 'azerty';
-                        updateWASDKeys.call(this);
-                    }
-                }
-            } catch (error) {
-                console.log('Error in keyboard layout detection:', error);
-            }
-
-            // Update the controls text
-            updateControlsText.call(this);
-        }
-
-        function updateWASDKeys() {
-            // Update keys based on detected layout
-            if (keyboardLayout === 'azerty') {
-                // AZERTY layout uses ZQSD for movement
-                wasdKeys = this.input.keyboard.addKeys({
-                    up: Phaser.Input.Keyboard.KeyCodes.Z,
-                    down: Phaser.Input.Keyboard.KeyCodes.S,
-                    left: Phaser.Input.Keyboard.KeyCodes.Q,
-                    right: Phaser.Input.Keyboard.KeyCodes.D
-                });
-            } else {
-                // QWERTY layout uses WASD for movement
-                wasdKeys = this.input.keyboard.addKeys({
-                    up: Phaser.Input.Keyboard.KeyCodes.W,
-                    down: Phaser.Input.Keyboard.KeyCodes.S,
-                    left: Phaser.Input.Keyboard.KeyCodes.A,
-                    right: Phaser.Input.Keyboard.KeyCodes.D
-                });
-            }
-        }
-
-        function updateControlsText() {
-            // Update the controls text based on the detected keyboard layout
-            let controlsInfo = 'Controls: Arrow Keys';
-
-            if (keyboardLayout === 'azerty') {
-                controlsInfo += ' or ZQSD';
-            } else {
-                controlsInfo += ' or WASD';
-            }
-
-            controlsInfo += ' or Touch/Click to move';
-
-            if (this.controlsText) {
-                this.controlsText.setText(controlsInfo);
-            }
-        }
-
-        // Updated modifyStat function that handles negative values
-        window.modifyStat = function (statName, amount) {
-            switch (statName) {
-                case 'damage':
-                    playerDamage += amount;
-                    // Ensure damage doesn't go below 1
-                    playerDamage = Math.max(1, playerDamage);
-                    break;
-                case 'speed':
-                    playerSpeed += amount;
-                    // Ensure speed doesn't go below 1
-                    playerSpeed = Math.max(1, playerSpeed);
-                    break;
-                case 'health':
-                    maxPlayerHealth += amount;
-                    // Ensure maxHealth doesn't go below 1
-                    maxPlayerHealth = Math.max(1, maxPlayerHealth);
-                    // If reducing max health, also cap current health
-                    if (amount < 0 && playerHealth > maxPlayerHealth) {
-                        playerHealth = maxPlayerHealth;
-                    } else if (amount > 0) {
-                        // If increasing max health, also increase current health
-                        playerHealth += amount;
-                    }
-                    const scene = game.scene.scenes[0];
-                    if (scene) {
-                        setupHealthRegeneration.call(scene);
-                    }
-                    break;
-                case 'luck':
-                    playerLuck += amount;
-                    // Ensure luck doesn't go below 1
-                    playerLuck = Math.max(1, playerLuck);
-                    break;
-                case 'fireRate':
-                    playerFireRate += amount;
-
-                    // Ensure fire rate doesn't go below 1
-                    playerFireRate = Math.max(1, playerFireRate);
-
-                    // Update the projectile timer if it exists
-                    if (projectileFirer) {
-                        const newDelay = shootingDelay / playerFireRate;
-                        projectileFirer.delay = newDelay;
-
-                        // Reset with proper callback scope
-                        projectileFirer.reset({
-                            delay: newDelay,
-                            callback: fireProjectile,
-                            callbackScope: game.scene.scenes[0],
-                            loop: true
-                        });
-                    }
-                    break;
-            }
-            // Update UI
-            updatePlayerStatsText();
-        };
-
-        // Add shield cooldown functionality
-        window.activateShield = function () {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-
-            // Activate the shield
-            shieldActive = true;
-            if (shieldVisual) {
-                shieldVisual.setVisible(true);
-
-                // Add a visual effect
-                scene.tweens.add({
-                    targets: shieldVisual,
-                    scale: { from: 0.5, to: 1 },
-                    alpha: { from: 0.8, to: 0.4 },
-                    duration: 500,
-                    ease: 'Cubic.out'
-                });
-            }
-        };
-
-        // Function to start shield cooldown
-        window.startShieldCooldown = function (baseDuration = 16000) {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-
-            // Calculate actual duration based on Luck (higher luck = lower multiplier)
-            const luckMultiplier = BASE_STATS.LUK / playerLuck;
-            const duration = baseDuration * luckMultiplier;
-
-            // Set up a new cooldown timer
-            shieldCooldownTimer = scene.time.delayedCall(
-                duration,
-                function () {
-                    window.activateShield();
-
-                    // Add a text notification
-                    const notification = scene.add.text(player.x, player.y - 50, 'SHIELD READY!', {
-                        fontFamily: 'Arial',
-                        fontSize: '16px',
-                        color: '#3498db'
-                    }).setOrigin(0.5);
-
-                    // Animate the notification
-                    scene.tweens.add({
-                        targets: notification,
-                        y: notification.y - 30,
-                        alpha: 0,
-                        duration: 1500,
-                        onComplete: function () { notification.destroy(); }
-                    });
-
-                    // Clear the cooldown timer reference
-                    shieldCooldownTimer = null;
-                },
-                [],
-                scene
-            );
-
-            // Show cooldown notification
-            const cooldownSeconds = (duration / 1000).toFixed(1);
-            const cooldownNotification = scene.add.text(player.x, player.y - 40, `SHIELD COOLDOWN: ${cooldownSeconds}s`, {
-                fontFamily: 'Arial',
-                fontSize: '14px',
-                color: '#e74c3c'
-            }).setOrigin(0.5);
-
-            // Animate the notification
-            scene.tweens.add({
-                targets: cooldownNotification,
-                y: cooldownNotification.y - 20,
-                alpha: 0,
-                duration: 1000,
-                onComplete: function () {
-                    cooldownNotification.destroy();
-                }
-            });
-        };
-
-        window.activateOrbitingProjectile = function () {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                // First spawn one immediately
-                spawnOrbitingProjectile.call(scene);
-
-                // Then set up the timer for regular spawning
-                if (orbitingProjectileTimer) {
-                    orbitingProjectileTimer.remove();
-                }
-
-                // Calculate cooldown based on Luck
-                const baseCooldown = 4000; // 4 seconds base cooldown
-                const luckMultiplier = BASE_STATS.AGI / playerLuck;
-                const actualCooldown = baseCooldown * luckMultiplier;
-
-                // Create and properly register the timer
-                orbitingProjectileTimer = registerTimer(scene.time.addEvent({
-                    delay: actualCooldown,
-                    callback: spawnOrbitingProjectile,
-                    callbackScope: scene,
-                    loop: true
-                }));
-
-                // Also register with perk effects system
-                window.registerEffect('timer', orbitingProjectileTimer);
-            }
-        };
-
-        window.activateLandmines = function () {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                // First drop one immediately
-                dropLandmine.call(scene);
-
-                // Then set up the timer for regular drops
-                if (landmineTimer) {
-                    landmineTimer.remove();
-                }
-
-                // Calculate cooldown based on Agility
-                const baseCooldown = 4000; // 4 seconds base cooldown
-                const luckMultiplier = BASE_STATS.AGI / playerFireRate;
-                const actualCooldown = baseCooldown * luckMultiplier;
-
-                // Create and properly register the timer
-                landmineTimer = registerTimer(scene.time.addEvent({
-                    delay: actualCooldown,
-                    callback: dropLandmine,
-                    callbackScope: scene,
-                    loop: true
-                }));
-
-                // Also register with perk effects system
-                window.registerEffect('timer', landmineTimer);
-            }
-        };
-
-        function dropLandmine() {
-            // Create a landmine at the player's current position with gold color
-            const landmine = createProjectileBase(this, player.x, player.y, '#ffbf00');
-
-            // Special landmine properties
-            landmine.body.immovable = true; // Landmine doesn't move when hit
-            landmine.isLandmine = true;
-
-            // Register entity for cleanup
-            window.registerEffect('entity', landmine);
-
-            // Flash effect when spawning
-            this.tweens.add({
-                targets: landmine,
-                scale: { from: 0.5, to: 1 },
-                alpha: { from: 0.2, to: 1 },
-                duration: 300,
-                ease: 'Bounce.out'
-            });
-        }
-
-        // Function to fully heal the player
-        window.fullHeal = function () {
-            playerHealth = maxPlayerHealth;
-
-            // Update the health bar
-            updateHealthBar();
-
-            // Visual effect to show healing
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                // Show healing particles or effect
-                const healEffect = scene.add.text(player.x, player.y - 40, '+HEAL', {
-                    fontFamily: 'Arial',
-                    fontSize: '18px',
-                    color: '#00ff00'
-                }).setOrigin(0.5);
-
-                // Animate the effect
-                scene.tweens.add({
-                    targets: healEffect,
-                    y: healEffect.y - 30,
-                    alpha: 0,
-                    duration: 1000,
-                    onComplete: function () {
-                        healEffect.destroy();
-                    }
-                });
-            }
-        };
-
-        function spawnOrbitingProjectile() {
-            // Create an orbiting projectile with orange color
-            const projectile = createProjectileBase(this, player.x, player.y, '#ff9900');
-
-            // Set as orbiting projectile
-            projectile.isOrbiting = true;
-            projectile.orbitAngle = Math.random() * Math.PI * 2; // Random starting angle
-            projectile.orbitRadius = 12 * playerLuck; // Distance from player
-            projectile.orbitSpeed = 0.01; // Speed of orbit
-
-            // Add to orbiting projectiles array
-            orbitingProjectiles.push(projectile);
-
-            // Register entity for cleanup
-            window.registerEffect('entity', projectile);
-
-            // Flash effect when spawning
-            this.tweens.add({
-                targets: projectile,
-                scale: { from: 2, to: 1 },
-                alpha: { from: 0.8, to: 1 },
-                duration: 300,
-                ease: 'Cubic.out'
-            });
-        }
-
-        // Ensure the updateOrbitingProjectile function is called in the update loop
-        function updateOrbitingProjectile(projectile, playerObj) {
-            if (!projectile || !projectile.active) return;
-
-            // Update the orbit angle
-            projectile.orbitAngle += projectile.orbitSpeed;
-
-            // Calculate new position based on player position and orbit angle
-            const x = playerObj.x + Math.cos(projectile.orbitAngle) * projectile.orbitRadius;
-            const y = playerObj.y + Math.sin(projectile.orbitAngle) * projectile.orbitRadius;
-
-            // Update projectile position
-            projectile.setPosition(x, y);
-        }
-
-        window.activateAfterImages = function () {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                console.log("Activating after-images with transparency fix");
-                afterImageEnabled = true;
-
-                // Clear any existing after images
-                afterImages.forEach(image => {
-                    if (image && image.active) {
-                        image.destroy();
-                    }
-                });
-                afterImages = [];
-
-                // Reset position history with current position
-                playerPositionHistory = [];
-
-                // Fill history with current position
-                for (let i = 0; i < 80; i++) {
-                    playerPositionHistory.push({ x: player.x, y: player.y });
-                }
-
-                // Create after images with proper alpha values
-                for (let i = 0; i < 4; i++) {
-                    const alphaValue = 0.4;
-
-                    // Create the text object with explicit alpha setting
-                    const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, {
-                        fontFamily: 'Arial',
-                        fontSize: '32px',
-                        color: '#00cc66'
-                    }).setOrigin(0.5);
-
-                    // Set alpha as a separate property to ensure it's applied
-                    afterImage.alpha = alphaValue;
-
-                    // Ensure these render behind the player
-                    afterImage.setDepth(player.depth - 1);
-
-                    // Add to physics group for collision detection
-                    scene.physics.world.enable(afterImage);
-                    afterImage.body.setSize(afterImage.width, afterImage.height);
-
-                    // Add damage property
-                    afterImage.damage = playerDamage;
-
-                    // Register entity for cleanup
-                    window.registerEffect('entity', afterImage);
-
-                    // Add to array
-                    afterImages.push(afterImage);
-                }
-
-                // Remove any existing timer
-                if (afterImageTimer) {
-                    afterImageTimer.remove();
-                    afterImageTimer = null;
-                }
-
-                // Create a new timer and register it properly
-                afterImageTimer = registerTimer(scene.time.addEvent({
-                    delay: 20,
-                    callback: updateAfterImages,
-                    callbackScope: scene,
-                    loop: true
-                }));
-
-                // Also register with perk effects system
-                window.registerEffect('timer', afterImageTimer);
-
-                // Add overlap detection with enemies
-                scene.physics.add.overlap(afterImages, enemies, afterImageHitEnemy, null, scene);
-
-                // Visual effect for activation
-                const activationEffect = scene.add.text(player.x, player.y - 50, 'AFTER-IMAGES ACTIVATED!', {
-                    fontFamily: 'Arial',
-                    fontSize: '16px',
-                    color: '#00cc66'
-                }).setOrigin(0.5);
-
-                scene.tweens.add({
-                    targets: activationEffect,
-                    y: activationEffect.y - 30,
-                    alpha: 0,
-                    duration: 1500,
-                    onComplete: function () {
-                        activationEffect.destroy();
-                    }
-                });
-            }
-        };
-
-        // Separate update function outside the timer callback
-        function updateAfterImages() {
-            // Verify that the feature is enabled and we have a player
-            if (!afterImageEnabled || !player || !player.active) {
-                return;
-            }
-
-            // Add current position to history
-            playerPositionHistory.unshift({ x: player.x, y: player.y });
-
-            // Limit history size
-            if (playerPositionHistory.length > 80) {
-                playerPositionHistory = playerPositionHistory.slice(0, 80);
-            }
-
-            // Update after-image positions
-            for (let i = 0; i < afterImages.length; i++) {
-                const image = afterImages[i];
-                if (image && image.active) {
-                    // Use fixed spacing for each image
-                    const posIndex = 16 + (i * 16);
-
-                    // Always use a valid index
-                    const safeIndex = Math.min(posIndex, playerPositionHistory.length - 1);
-
-                    // Set position and log first image position occasionally
-                    image.setPosition(
-                        playerPositionHistory[safeIndex].x,
-                        playerPositionHistory[safeIndex].y
-                    );
-                }
-            }
-        }
-
-        function cleanupAfterImages() {
-            console.log("Cleaning up after-images");
-
-            // Stop the timer first
-            if (afterImageTimer) {
-                console.log("Removing after-image timer");
-                afterImageTimer.remove();
-                afterImageTimer = null;
-            }
-
-            // Then destroy all images
-            afterImages.forEach((image, index) => {
-                if (image && image.active) {
-                    console.log(`Destroying after-image ${index}`);
-                    image.destroy();
-                }
-            });
-
-            // Clear arrays
-            afterImages = [];
-            playerPositionHistory = [];
-
-            // Reset flag
-            afterImageEnabled = false;
-
-            console.log("After-image cleanup complete");
-        }
-
-        function afterImageHitEnemy(afterImage, enemy) {
-            // Skip if either object is already destroyed
-            if (!afterImage.active || !enemy.active) return;
-
-            // Apply damage to enemy (once per second to avoid rapid damage)
-            if (!enemy.lastAfterImageHit || (this.time.now - enemy.lastAfterImageHit > 1000)) {
-                enemy.health -= afterImage.damage;
-                enemy.lastAfterImageHit = this.time.now;
-
-                // Visual effect for damage
-                this.tweens.add({
-                    targets: enemy,
-                    alpha: 0.3,
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 1
-                });
-
-                // Check if enemy is defeated
-                if (enemy.health <= 0) {
-                    // Display kanji information
-                    if (this.learningFeedback) {
-                        this.learningFeedback.setText(
-                            `Defeated ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
-                        );
-
-                        this.tweens.add({
-                            targets: this.learningFeedback,
-                            alpha: { from: 0.5, to: 1 },
-                            duration: 300,
-                            ease: 'Cubic.out'
-                        });
-                    }
-
-                    enemy.destroy();
-                    score++;
-                    heroExp++;
-                    updateExpBar();
-                }
-            }
-        }
-
-        // DEBUG FUNCTIONS
-        function setupDebugKeys() {
-            // Add debug key (R key for instant level up)
-            this.input.keyboard.on('keydown-R', function (event) {
-                if (!gamePaused && !gameOver) {
-                    // Add enough XP to level up
-                    const xpNeeded = heroExpToLevel - heroExp;
-                    heroExp += xpNeeded;
-                    updateExpBar();
-                    console.log("Debug: Instant level up triggered");
-                }
-            });
-        }
-
-
+        function closeLevelUpCards() { const scene = this; levelUpCards.forEach(element => element.destroy()); levelUpCards = []; resumeGame.call(scene); }
+        function detectKeyboardLayout() { const scene = this; keyboardLayout = 'qwerty'; try { if (navigator.keyboard && navigator.keyboard.getLayoutMap) { navigator.keyboard.getLayoutMap().then(map => { if (map.get('KeyQ')?.toLowerCase() === 'a') { keyboardLayout = 'azerty'; console.log("AZERTY API"); updateWASDKeys.call(scene); } else { console.log("QWERTY API"); } }).catch(e => console.warn("Layout API failed:", e)); } else { const lang = (navigator.language || navigator.userLanguage || '').toLowerCase(); if (lang.startsWith('fr')) { keyboardLayout = 'azerty'; console.log("AZERTY lang"); updateWASDKeys.call(scene); } else { console.log("QWERTY lang"); } } } catch (e) { console.error("Layout detection error:", e); } }
+        function updateWASDKeys() { const scene = this; if (keyboardLayout === 'azerty') { wasdKeys = scene.input.keyboard.addKeys({ up: Phaser.Input.Keyboard.KeyCodes.Z, down: Phaser.Input.Keyboard.KeyCodes.S, left: Phaser.Input.Keyboard.KeyCodes.Q, right: Phaser.Input.Keyboard.KeyCodes.D }); } else { wasdKeys = scene.input.keyboard.addKeys({ up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S, left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D }); } }
+        function updateDifficultyScaling() { const minutesElapsed = elapsedTime / 60; if (enemySpawner) { const targetSpawnDelay = Math.max(200, baseSpawnDelay / Math.pow(enemyCountScaleFactor, minutesElapsed)); if (Math.abs(enemySpawner.delay - targetSpawnDelay) > (enemySpawner.delay * 0.05)) { enemySpawner.delay = targetSpawnDelay; } } currentEnemyHealth = baseEnemyHealth * Math.pow(enemyHealthScaleFactor, minutesElapsed); }
+
+        // --- Perk Activation / Bridge Functions ---
+        window.activateShield = function () { const scene = game.scene.scenes[0]; if (!scene || gameOver || !hasPerk('BLUE_TURTLE') || shieldActive) return; console.log("Activating Shield!"); shieldActive = true; if (shieldVisual) { shieldVisual.setPosition(player.x, player.y); shieldVisual.setVisible(true).setAlpha(0); scene.tweens.add({ targets: shieldVisual, alpha: { from: 0.8, to: 0.4 }, scale: { from: 0.5, to: 1 }, duration: 400, ease: 'Cubic.easeOut' }); } showTemporaryPlayerText.call(scene, 'SHIELD READY!', '#3498db'); };
+        window.startShieldCooldown = function (baseDuration = 16000) { const scene = game.scene.scenes[0]; if (!scene || gameOver || !hasPerk('BLUE_TURTLE')) return; if (shieldCooldownTimer) { shieldCooldownTimer.remove(); shieldCooldownTimer = null; } const luckMultiplier = Math.max(0.2, BASE_STATS.LUK / playerLuck); const duration = baseDuration * luckMultiplier; console.log(`Starting shield cooldown: ${duration.toFixed(0)}ms`); const cooldownSeconds = (duration / 1000).toFixed(1); showTemporaryPlayerText.call(scene, `SHIELD COOLDOWN: ${cooldownSeconds}s`, '#e74c3c', 1500); shieldCooldownTimer = scene.time.delayedCall(duration, window.activateShield, [], window); };
+        window.activateOrbitingProjectile = function () { const scene = game.scene.scenes[0]; if (!scene || gameOver || !hasPerk('ORANGE_ORBIT')) return; if (orbitingProjectileTimer) { orbitingProjectileTimer.remove(); orbitingProjectileTimer = null; } spawnOrbitingProjectile.call(scene); const baseCooldown = 4000; const rateMultiplier = Math.max(0.2, BASE_STATS.AGI / playerFireRate); const actualCooldown = baseCooldown * rateMultiplier; console.log(`Setting orb timer: ${actualCooldown.toFixed(0)}ms`); orbitingProjectileTimer = scene.time.addEvent({ delay: actualCooldown, callback: spawnOrbitingProjectile, callbackScope: scene, loop: true }); };
+        window.activateLandmines = function () { const scene = game.scene.scenes[0]; if (!scene || gameOver || !hasPerk('GOLD_MINE')) return; if (landmineTimer) { landmineTimer.remove(); landmineTimer = null; } dropLandmine.call(scene); const baseCooldown = 5000; const rateMultiplier = Math.max(0.2, BASE_STATS.AGI / playerFireRate); const actualCooldown = baseCooldown * rateMultiplier; console.log(`Setting mine timer: ${actualCooldown.toFixed(0)}ms`); landmineTimer = scene.time.addEvent({ delay: actualCooldown, callback: dropLandmine, callbackScope: scene, loop: true }); };
+        window.activateAfterImages = function () { const scene = game.scene.scenes[0]; if (!scene || gameOver || !hasPerk('GREEN_GHOST')) return; console.log("Activating after-images..."); afterImageEnabled = true; cleanupAfterImages(false); playerPositionHistory = Array(80).fill({ x: player.x, y: player.y }); const numImages = 4; const baseAlpha = 0.4; for (let i = 0; i < numImages; i++) { const alpha = baseAlpha * ((numImages - i) / numImages); const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, { fontFamily: 'Arial', fontSize: '32px', color: '#00cc66' }).setOrigin(0.5).setAlpha(alpha).setDepth(player.depth - 1); scene.physics.world.enable(afterImage); afterImage.body.setSize(player.width * 0.8, player.height * 0.8).setCircle(player.width * 0.4); afterImage.body.immovable = true; afterImage.body.moves = false; afterImage.damage = playerDamage * 0.25; afterImages.push(afterImage); } if (!scene.afterImageOverlap) { scene.afterImageOverlap = scene.physics.add.overlap(afterImages, enemies, afterImageHitEnemy, null, scene); } const updateDelay = 30; if (afterImageTimer) afterImageTimer.remove(); afterImageTimer = scene.time.addEvent({ delay: updateDelay, callback: updateActiveAfterImages, callbackScope: scene, loop: true }); showTemporaryPlayerText.call(scene, 'AFTER-IMAGES ACTIVE!', '#00cc66'); };
+        window.fullHeal = function () { const scene = game.scene.scenes[0]; if (!scene || gameOver || gamePaused) return; const amountHealed = maxPlayerHealth - playerHealth; if (amountHealed <= 0) return; playerHealth = maxPlayerHealth; updateHealthBar(); if (!player || !player.active) return; const healEffect = scene.add.text(player.x, player.y - 40, `+${Math.round(amountHealed)} HEAL!`, { fontFamily: 'Arial', fontSize: '20px', color: '#00ff00', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5); scene.tweens.add({ targets: healEffect, y: healEffect.y - 40, alpha: 0, duration: 1500, ease: 'Cubic.easeOut', onComplete: () => healEffect.destroy() }); };
+
+        // --- Perk Helper Functions ---
+        function spawnOrbitingProjectile() { const scene = this; if (gameOver || gamePaused || orbitingProjectiles.length >= 6) return; const projectile = createProjectileBase(scene, player.x, player.y, '#ff9900', '❂'); projectile.isOrbiting = true; projectile.orbitAngle = Math.random() * Math.PI * 2; projectile.orbitRadius = 80 + playerLuck * 2; projectile.orbitSpeed = 0.01 + (playerLuck / BASE_STATS.LUK) * 0.005; projectile.damage *= 0.5; orbitingProjectiles.push(projectile); scene.tweens.add({ targets: projectile, scale: { from: 0.2, to: 1 }, alpha: { from: 0, to: 1 }, duration: 300, ease: 'Back.easeOut' }); }
+        function updateOrbitingProjectiles() { if (!player || !player.active || orbitingProjectiles.length === 0) return; orbitingProjectiles.forEach(projectile => { if (projectile && projectile.active && projectile.isOrbiting) { projectile.orbitAngle += projectile.orbitSpeed * (game.loop.delta / 16.666); const x = player.x + Math.cos(projectile.orbitAngle) * projectile.orbitRadius; const y = player.y + Math.sin(projectile.orbitAngle) * projectile.orbitRadius; projectile.setPosition(x, y); } }); }
+        function dropLandmine() { const scene = this; if (gameOver || gamePaused || landmines.length >= 8) return; const landmine = createProjectileBase(scene, player.x, player.y, '#ffbf00', '◎'); landmine.isLandmine = true; landmine.body.immovable = true; landmine.body.moves = false; landmine.damage *= 1.5; landmines.push(landmine); scene.tweens.add({ targets: landmine, scale: { from: 0.3, to: 1 }, alpha: { from: 0, to: 1 }, duration: 200, ease: 'Bounce.easeOut' }); }
+        function updateActiveAfterImages() { if (!afterImageEnabled || !player || !player.active || gamePaused) return; playerPositionHistory.unshift({ x: player.x, y: player.y }); if (playerPositionHistory.length > 100) { playerPositionHistory.pop(); } const baseDelay = 10; const delayIncrement = 10; afterImages.forEach((image, index) => { if (image && image.active) { const historyIndex = Math.min(baseDelay + index * delayIncrement, playerPositionHistory.length - 1); if (historyIndex >= 0) { const pos = playerPositionHistory[historyIndex]; image.setPosition(pos.x, pos.y); } } }); }
+        function cleanupAfterImages(log = true) { if (log) console.log("Cleaning up after-images..."); if (afterImageTimer) { afterImageTimer.remove(); afterImageTimer = null; } afterImages.forEach(image => { if (image && image.destroy) image.destroy(); }); afterImages = []; playerPositionHistory = []; afterImageEnabled = false; if (log) console.log("After-image cleanup complete."); }
+        function afterImageHitEnemy(afterImage, enemy) { const scene = this; if (!afterImage.active || !enemy.active) return; const now = scene.time.now; const lastHitTime = enemy.getData('lastAfterImageHit') || 0; const cooldown = 500; if (now - lastHitTime > cooldown) { const damageDealt = afterImage.damage || (playerDamage * 0.25); enemy.health -= damageDealt; enemy.setData('lastAfterImageHit', now); scene.tweens.add({ targets: enemy, alpha: 0.3, duration: 50, yoyo: true, repeat: 1 }); if (enemy.health <= 0) handleEnemyDefeat.call(scene, enemy); } }
+        function showTemporaryPlayerText(text, color = '#ffffff', duration = 1500) { const scene = this; if (!player || !player.active) return; const notification = scene.add.text(player.x, player.y - 50, text, { fontFamily: 'Arial', fontSize: '16px', color: color, stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setDepth(2000); scene.tweens.add({ targets: notification, y: notification.y - 30, alpha: 0, duration: duration, ease: 'Cubic.easeOut', onComplete: () => notification.destroy() }); }
+
+        // --- Game Start ---
         function startGame() {
-            // Reset game state variables
-            gameOver = false;
-            gamePaused = false;
-            elapsedTime = 0;
-            score = 0;
-            level = 1;
+            const scene = this;
+            console.log("Starting/Restarting Game...");
+            gameOver = false; gamePaused = false; elapsedTime = 0; score = 0;
 
-            // Clean up old timers
-            cleanupTimers();
-
-            // Hide pause screen if it was visible
-            if (pauseScreen) pauseScreen.setVisible(false);
-            if (pauseMessage) pauseMessage.setVisible(false);
-            if (resumeButton) resumeButton.setVisible(false);
-
-            // Reset player stats to base values
-            playerHealth = basePlayerHealth;
-            maxPlayerHealth = baseMaxHealth;
-            playerSpeed = basePlayerSpeed;
-            playerDamage = basePlayerDamage;
-            playerLuck = basePlayerLuck;
-            playerFireRate = basePlayerFireRate;
-
-            // Reset XP and level
-            heroExp = 0;
-            playerLevel = 1;
-            heroExpToLevel = xpForNextLevel(playerLevel);
-
-            // Reset player position
-            player.x = 600;
-            player.y = 400;
-
-            // Reset UI
-            heroLevelText.setText('Hero Level: 1');
-            player.setFontSize(32);
-            healthBar.width = 200;
-            healthBar.x = 600;
-            healthBar.fillColor = 0x00ff00;
-            healthText.setText(`Health: ${playerHealth}/${maxPlayerHealth}`);
-            expBar.width = 0;
-            expBar.x = 500;
-            expText.setText(`XP: 0/${heroExpToLevel}`);
-            killCountText.setText('Enemies killed: 0');
-
-            // Reset all perk effects
+            if (enemySpawner) { enemySpawner.remove(); enemySpawner = null; }
+            if (projectileFirer) { projectileFirer.remove(); projectileFirer = null; }
+            if (healthRegenTimer) { healthRegenTimer.remove(); healthRegenTimer = null; }
             clearAllPerkEffects();
+
+            if (pauseScreen) pauseScreen.setVisible(false); if (pauseMessage) pauseMessage.setVisible(false); if (resumeButton) resumeButton.setVisible(false);
+            if (scene.pausePerksContainer) scene.pausePerksContainer.setVisible(false);
+
+            playerHealth = basePlayerHealth; maxPlayerHealth = baseMaxHealth; playerSpeed = basePlayerSpeed; playerDamage = basePlayerDamage; playerLuck = basePlayerLuck; playerFireRate = basePlayerFireRate; shootingDelay = baseShootingDelay;
+            heroExp = 0; playerLevel = 1; heroExpToLevel = xpForNextLevel(playerLevel);
+            if (player) { player.setPosition(600, 400); player.setAlpha(1); player.setScale(1); player.setActive(true); player.setVisible(true); } else { console.error("Player not found!"); return; }
             acquiredPerks = [];
 
-            // Reset player stats to base values
-            playerHealth = basePlayerHealth;
-            maxPlayerHealth = baseMaxHealth;
-            playerSpeed = basePlayerSpeed;
-            playerDamage = basePlayerDamage;
-            playerLuck = basePlayerLuck;
-            playerFireRate = basePlayerFireRate;
+            updateHealthBar(); updateExpBar(); heroLevelText.setText(`Hero Level: ${playerLevel}`); killCountText.setText('Enemies killed: 0'); updatePlayerStatsText(); if (learningFeedback) learningFeedback.setText('');
+            gameStartTime = scene.time.now; currentEnemyHealth = baseEnemyHealth; lastDifficultyUpdateTime = scene.time.now;
+            enemies.clear(true, true); projectiles.clear(true, true);
+            orbitingProjectiles = []; landmines = []; afterImages = [];
 
-            // Clear learning feedback
-            if (this.learningFeedback) {
-                this.learningFeedback.setText('');
-            }
+            gameOverText.setVisible(false); restartButton.setVisible(false);
+            scene.physics.resume();
 
-            // Restart health regeneration
-            setupHealthRegeneration.call(this);
-
-            // Reset difficulty scaling
-            gameStartTime = this.time.now;
-            currentEnemyHealth = baseEnemyHealth;
-
-            // Clear enemies and projectiles
-            enemies.clear(true, true);
-            projectiles.clear(true, true);
-
-            // Hide game over elements
-            gameOverText.setVisible(false);
-            restartButton.setVisible(false);
-
-            // Resume physics
-            this.physics.resume();
-
-            // Update enemy spawner creation
-            enemySpawner = registerTimer(this.time.addEvent({
+            enemySpawner = scene.time.addEvent({
                 delay: baseSpawnDelay,
                 callback: spawnEnemy,
-                callbackScope: this,
+                callbackScope: scene, // <<< CORRECT
                 loop: true
-            }));
-
-            // Update projectile firer creation
-            projectileFirer = registerTimer(this.time.addEvent({
+            });
+            projectileFirer = scene.time.addEvent({
                 delay: shootingDelay / playerFireRate,
                 callback: fireProjectile,
-                callbackScope: this,
+                callbackScope: scene, // <<< CORRECT
                 loop: true
-            }));
+            });
+            setupHealthRegeneration.call(scene);
 
-            // Reset perks system
-            resetAllPerks();
-            // If using the new perks system
-            if (typeof acquiredPerks !== 'undefined') {
-                acquiredPerks = [];
+            console.log("Game Started!");
+        }
+
+        // --- Bridge for modifyStat ---
+        function _modifyStatInternal(statName, amount) {
+            console.log(`Modifying stat: ${statName} by ${amount}`);
+            switch (statName) {
+                case 'damage': playerDamage = Math.max(1, playerDamage + amount); break;
+                case 'speed': playerSpeed = Math.max(1, playerSpeed + amount); break; // Update global but don't display
+                case 'health':
+                    const oldMax = maxPlayerHealth; maxPlayerHealth = Math.max(10, maxPlayerHealth + amount);
+                    const diff = maxPlayerHealth - oldMax; playerHealth = Math.min(maxPlayerHealth, playerHealth + Math.max(0, diff));
+                    setupHealthRegeneration.call(this); break; // Needs scene context
+                case 'luck': playerLuck = Math.max(1, playerLuck + amount); break;
+                case 'fireRate':
+                    playerFireRate = Math.max(0.1, playerFireRate + amount);
+                    if (projectileFirer) { const newDelay = shootingDelay / playerFireRate; projectileFirer.delay = newDelay; console.log(`Projectile firer delay updated to ${newDelay.toFixed(0)}ms`); } break;
+                default: console.warn("Attempted to modify unknown stat:", statName); return;
             }
+            updatePlayerStatsText(); updateHealthBar();
+        }
+        window.modifyStat = function (statName, amount) {
+            const scene = game.scene.scenes[0];
+            if (scene) _modifyStatInternal.call(scene, statName, amount);
+            else console.error("Bridge modifyStat: Scene not found");
+        };
 
-            // Update player stats text
-            updatePlayerStatsText();
-        }</script>
+    </script>
 </body>
 
 </html>

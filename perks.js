@@ -218,6 +218,17 @@ const PERKS = {
             window.fullHeal();
         }
     },
+    "GREEN_VENOM": {
+        kanji: "緑毒",
+        hiragana: "みどりどく",
+        romaji: "midoridoku",
+        english: "Green Venom",
+        description: "Chance to fire poisonous projectiles that deal damage over time",
+        color: "#2aad27",
+        hoverColor: 0x1a8d17,
+        onAcquire: function () {
+        }
+    },
 
     // Red animal perks (damage focused)
     "RED_TIGER": {

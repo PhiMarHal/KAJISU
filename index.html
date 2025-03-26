@@ -129,6 +129,7 @@
         let basePlayerDamage = BASE_STATS.POW;
         let basePlayerLuck = BASE_STATS.LUK;
         let basePlayerFireRate = BASE_STATS.AGI;
+        let baseProcChance = 0.2;
         let baseShootingDelay = 2000;
         let baseHeroExpToLevel = 5;
         let acquiredPerks = [];
@@ -365,6 +366,10 @@
 
             // Add to container
             this.pausePerksContainer.add(perksTitle);
+        }
+
+        function calculateProcChance(luck, baseChance) {
+            return baseChance * Math.sqrt(luck / BASE_STATS.LUK);
         }
 
         // Pause the game and show overlay
@@ -1442,7 +1447,9 @@
 
                 // Check for double shot if we have that perk
                 if (hasPerk('PURPLE_OWL')) {
-                    const doubleChance = playerLuck / BASE_STATS.LUK * 0.08; // 8% base chance scaled by luck
+                    // Base chance: 20% at Luck 4
+                    const doubleChance = calculateProcChance(playerLuck, baseProcChance);
+
                     if (Math.random() < doubleChance) {
                         // Fire a second projectile with slight angle variation
                         const angleVariation = (Math.random() - 0.5) * 0.2; // Small random angle variation
@@ -1504,10 +1511,22 @@
             // Apply slow effect if we have that perk
             projectile.isSlowShot = false;
             if (hasPerk('SLOW_SHOT')) {
-                const slowChance = playerLuck / BASE_STATS.LUK * 0.05; // 5% base chance scaled by luck
+                const slowChance = calculateProcChance(playerLuck, baseProcChance);
+
                 projectile.isSlowShot = Math.random() < slowChance;
                 if (projectile.isSlowShot) {
                     projectile.setColor('#00ffff'); // Cyan color for slow shots
+                }
+            }
+
+            // Apply poison effect if we have the Green Venom perk
+            projectile.isPoisonShot = false;
+            if (hasPerk('GREEN_VENOM')) {
+                const poisonChance = calculateProcChance(playerLuck, baseProcChance);
+
+                projectile.isPoisonShot = Math.random() < poisonChance;
+                if (projectile.isPoisonShot) {
+                    projectile.setColor('#2aad27'); // Sickly green color for poison shots
                 }
             }
         }
@@ -1534,6 +1553,37 @@
         }
 
         // Unified projectile hit enemy function
+        // First, let's create a dedicated function to handle enemy defeat
+        function defeatedEnemy(enemy) {
+            // Display kanji information in the learning feedback area
+            if (this.learningFeedback) {
+                this.learningFeedback.setText(
+                    `Defeated ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
+                );
+
+                // Flash or highlight the text to draw attention
+                this.tweens.add({
+                    targets: this.learningFeedback,
+                    alpha: { from: 0.5, to: 1 },
+                    duration: 300,
+                    ease: 'Cubic.out'
+                });
+            }
+
+            // Destroy the enemy entity
+            enemy.destroy();
+
+            // Increment score
+            score++;
+
+            // Add experience
+            heroExp++;
+
+            // Update exp bar
+            updateExpBar();
+        }
+
+        // Now modify projectileHitEnemy to use the new function
         function projectileHitEnemy(projectile, enemy) {
             // Skip if projectile is already destroyed
             if (!projectile.active || !enemy.active) return;
@@ -1557,33 +1607,14 @@
                 });
             }
 
+            // Apply poison effect if it's a poison shot
+            if (projectile.isPoisonShot && enemy.health > 0) {
+                applyPoisonEffect.call(this, enemy, projectile.damage);
+            }
+
             // Only destroy enemy if health is 0 or below
             if (enemy.health <= 0) {
-                // Display kanji information in the learning feedback area
-                if (this.learningFeedback) {
-                    this.learningFeedback.setText(
-                        `Defeated ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
-                    );
-
-                    // Flash or highlight the text to draw attention
-                    this.tweens.add({
-                        targets: this.learningFeedback,
-                        alpha: { from: 0.5, to: 1 },
-                        duration: 300,
-                        ease: 'Cubic.out'
-                    });
-                }
-
-                enemy.destroy();
-
-                // Increment score
-                score++;
-
-                // Add experience
-                heroExp++;
-
-                // Update exp bar
-                updateExpBar();
+                defeatedEnemy.call(this, enemy);
             } else {
                 // Flash the enemy when hit but not destroyed
                 this.tweens.add({
@@ -2423,27 +2454,63 @@
 
                 // Check if enemy is defeated
                 if (enemy.health <= 0) {
-                    // Display kanji information
-                    if (this.learningFeedback) {
-                        this.learningFeedback.setText(
-                            `Defeated ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
-                        );
-
-                        this.tweens.add({
-                            targets: this.learningFeedback,
-                            alpha: { from: 0.5, to: 1 },
-                            duration: 300,
-                            ease: 'Cubic.out'
-                        });
-                    }
-
-                    enemy.destroy();
-                    score++;
-                    heroExp++;
-                    updateExpBar();
+                    defeatedEnemy.call(this, enemy);
                 }
             }
         }
+
+        function applyPoisonEffect(enemy, baseDamage) {
+            // Store original color to reset after poison
+            enemy.originalColor = enemy.style.color || '#ff5555';
+            // Set enemy color to indicate poison
+            enemy.setColor('#2aad27');
+            // Calculate poison tick damage
+            const tickDamage = playerDamage * 0.5;
+
+            // Track completed ticks (for timer completion detection)
+            let completedTicks = 0;
+            const totalTicks = 4;
+
+            // Create and register the poison timer
+            const poisonTimer = registerTimer(this.time.addEvent({
+                delay: 1000, // 1 second between ticks
+                callback: function () {
+                    // Skip if enemy is destroyed
+                    if (!enemy || !enemy.active) {
+                        return;
+                    }
+
+                    // Apply poison damage
+                    enemy.health -= tickDamage;
+
+                    // Flash enemy to show damage
+                    this.tweens.add({
+                        targets: enemy,
+                        alpha: 0.6,
+                        duration: 100,
+                        yoyo: true
+                    });
+
+                    // Count this tick
+                    completedTicks++;
+
+                    // Check if enemy is defeated by poison
+                    if (enemy.health <= 0) {
+                        defeatedEnemy.call(this, enemy);
+                    }
+                    // Reset color if this is the last tick and enemy still alive
+                    else if (completedTicks === totalTicks && enemy.active) {
+                        enemy.setColor(enemy.originalColor);
+                    }
+                },
+                callbackScope: this,
+                repeat: totalTicks - 1 // 4 ticks total (first run + 3 repeats)
+            }));
+
+            // Register the timer for proper cleanup
+            window.registerEffect('timer', poisonTimer);
+        }
+
 
         // DEBUG FUNCTIONS
         function setupDebugKeys() {

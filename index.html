@@ -1131,8 +1131,15 @@
             this.learningFeedback = this.add.text(
                 600, 770,
                 '',
-                { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff' }
-            ).setOrigin(0.5);
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '32px',
+                    color: '#ffffff',
+                    stroke: '#000000', // Add stroke for better readability with different colors
+                    strokeThickness: 2,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(100); // Ensure it displays above other elements
 
             // Start the game by calling startGame (replaces the need for duplicate initialization)
             startGame.call(this);
@@ -1814,32 +1821,68 @@
 
 
         // Modify the defeatedEnemy function to handle quests
-        function defeatedEnemy(enemy) {
-            // Display kanji information in the learning feedback area
-            // Only show learning feedback if not in quest mode
-            if (!questMode) {
-                if (this.learningFeedback) {
-                    this.learningFeedback.setText(
-                        `Defeated ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
-                    );
+        // Helper function to get a legible random color
+        function getRandomLegibleColor() {
+            const legibleColors = [
+                '#ffffff', // white
+                '#ffff00', // yellow
+                '#00ffff', // cyan
+                '#ff00ff', // magenta
+                '#00ff88', // mint green
+                '#ff8800', // orange
+                '#88ff00', // lime
+                '#00bbff', // sky blue
+                '#ff88ff', // pink
+                '#ffbb00', // gold
+                '#00ffbb', // turquoise
+                '#bbff00'  // chartreuse
+            ];
 
-                    // Flash or highlight the text to draw attention
-                    this.tweens.add({
-                        targets: this.learningFeedback,
-                        alpha: { from: 0.5, to: 1 },
-                        duration: 300,
-                        ease: 'Cubic.out'
-                    });
-                }
-            } else {
-                // In quest mode, check quest progress
-                checkQuestProgress.call(this, enemy);
+            return legibleColors[Math.floor(Math.random() * legibleColors.length)];
+        }
+
+        // Helper function to get a random defeat synonym
+        function getRandomDefeatSynonym() {
+            return DEFEAT_SYNONYMS[Math.floor(Math.random() * DEFEAT_SYNONYMS.length)];
+        }
+
+        // Modify the defeatedEnemy function with a more subtle animation
+        function defeatedEnemy(enemy) {
+            // Display kanji information in the learning feedback area with a mild animation
+            if (this.learningFeedback) {
+                // Select a random synonym
+                const defeatSynonym = getRandomDefeatSynonym();
+
+                // Set white color for this text
+                const textColor = '#ffffff';
+
+                // Update the text with the random synonym
+                this.learningFeedback.setText(
+                    `${defeatSynonym} ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
+                );
+
+                // Set the new random color
+                this.learningFeedback.setColor(textColor);
+
+                // Reset scale for animation
+                this.learningFeedback.setScale(1);
+
+                // Create subtle scale animation (grow, then back to normal)
+                this.tweens.add({
+                    targets: this.learningFeedback,
+                    scale: { from: 0.95, to: 1 }, // Grow slightly
+                    duration: 80, // Fast animation (half the time of perk hover)
+                    ease: 'Sine.easeOut',
+                    onComplete: () => {
+                    }
+                });
             }
+
+            // Create the large kanji animation
+            showKanjiAnimation.call(this, enemy);
 
             // Destroy the enemy entity
             enemy.destroy();
-
-            showKanjiAnimation.call(this, enemy);
 
             // Increment score
             score++;
@@ -1850,6 +1893,7 @@
             // Update exp bar
             updateExpBar();
         }
+
 
         function showKanjiAnimation(enemy) {
             // Create the large kanji text with the enemy's character
@@ -1878,6 +1922,16 @@
                 }
             });
         }
+
+        function getRandomLegibleColor() {
+            return LEGIBLE_COLORS[Math.floor(Math.random() * LEGIBLE_COLORS.length)];
+        }
+
+        // Helper function to get a random defeat synonym
+        function getRandomDefeatSynonym() {
+            return DEFEAT_SYNONYMS[Math.floor(Math.random() * DEFEAT_SYNONYMS.length)];
+        }
+
 
         // Now modify projectileHitEnemy to use the new function
         function projectileHitEnemy(projectile, enemy) {

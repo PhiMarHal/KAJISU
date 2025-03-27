@@ -140,6 +140,41 @@ const ENEMY_TYPES = {
     }
 };
 
+const DEFEAT_SYNONYMS = [
+    "defeated",
+    "removed",
+    "deleted",
+    "relocated",
+    "disentangled",
+    "terminated",
+    "vanquished",
+    "eliminated",
+    "dispatched",
+    "neutralized",
+    "subdued",
+    "erased",
+    "eradicated",
+    "ousted",
+    "banished",
+    "dissolved",
+    "pacified"
+];
+
+const LEGIBLE_COLORS = [
+    '#ffffff', // white
+    '#ffff00', // yellow
+    '#00ffff', // cyan
+    '#ff00ff', // magenta
+    '#00ff88', // mint green
+    '#ff8800', // orange
+    '#88ff00', // lime
+    '#00bbff', // sky blue
+    '#ff88ff', // pink
+    '#ffbb00', // gold
+    '#00ffbb', // turquoise
+    '#bbff00'  // chartreuse
+];
+
 // Hero kanji with readings and translation
 const HERO_CHARACTER = '勇';
 const HERO_HIRAGANA = 'ゆう';

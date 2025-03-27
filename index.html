@@ -884,6 +884,12 @@
 
         // Create the game instance
         const game = new Phaser.Game(config);
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
+            // Set the willReadFrequently attribute
+            canvas.getContext('2d', { willReadFrequently: true });
+            console.log("Set willReadFrequently to true on canvas");
+        }
 
         function preload() {
             // No image assets to preload
@@ -1941,6 +1947,9 @@
             // Apply damage to enemy
             enemy.health -= projectile.damage;
 
+            // Apply instant knockback instead of velocity-based knockback
+            applyKnockback(projectile, enemy);
+
             // Apply slow effect if it's a slow shot
             if (projectile.isSlowShot) {
                 // Slow the enemy by half
@@ -1992,6 +2001,46 @@
             } else {
                 // Landmines are destroyed after they hit something
                 projectile.destroy();
+            }
+        }
+
+        function applyKnockback(projectile, enemy) {
+            // Skip if no valid velocity
+            if (!projectile.body || !projectile.body.velocity) return;
+
+            // Base knockback strength - very mild
+            const baseKnockback = 5;
+
+            // Scale knockback with player's AGI
+            const knockbackStrength = baseKnockback * (playerFireRate / BASE_STATS.AGI);
+
+            // Calculate direction from projectile velocity
+            const projectileSpeed = Math.sqrt(
+                projectile.body.velocity.x * projectile.body.velocity.x +
+                projectile.body.velocity.y * projectile.body.velocity.y
+            );
+
+            if (projectileSpeed === 0) return;
+
+            // Normalize the velocity vector and multiply by knockback strength
+            const knockbackX = (projectile.body.velocity.x / projectileSpeed) * knockbackStrength;
+            const knockbackY = (projectile.body.velocity.y / projectileSpeed) * knockbackStrength;
+
+            // Apply knockback as direct position change
+            enemy.x += knockbackX;
+            enemy.y += knockbackY;
+
+            // Visual feedback - small "push" animation
+            if (enemy.scene) {
+                enemy.scene.tweens.add({
+                    targets: enemy,
+                    x: enemy.x + (knockbackX * 0.2), // Small additional movement
+                    y: enemy.y + (knockbackY * 0.2),
+                    duration: 100,
+                    ease: 'Sine.out',
+                    yoyo: true, // Come back a bit for natural motion
+                    repeat: 0
+                });
             }
         }
 

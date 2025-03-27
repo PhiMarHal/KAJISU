@@ -181,6 +181,15 @@
         let levelUpCards = [];
         let gamePaused = false;
 
+        // Quest variables
+        let questMode = false;
+        let questStartTime = 6 * 60; // Time in seconds before quests start
+        let currentQuest = null;
+        let previousQuestType = null;
+        let questTransitionShown = false;
+        let questCount = 0; // Counter for completed quests
+        const BASE_QUEST_DIFFICULTY = 4; // Base requirement of 4 kills
+
         // Helper function to calculate XP needed for next level
         function xpForNextLevel(heroLevel) {
             return Math.ceil(baseHeroExpToLevel * Math.pow(1.2, heroLevel - 1));
@@ -1397,20 +1406,22 @@
         }
 
         function levelUp() {
+            // Calculate excess XP
+            const excessXP = heroExp - heroExpToLevel;
+
             // Increase player level
             playerLevel++;
 
             // Set new XP threshold
             heroExpToLevel = xpForNextLevel(playerLevel);
 
-            // Reset current XP to 0
-            heroExp = 0;
+            // Set XP to excess amount (instead of resetting to 0)
+            heroExp = Math.max(0, excessXP);
 
             // Update the level text
             heroLevelText.setText(`Hero Level: ${playerLevel}`);
 
-            // IMPORTANT: Explicitly update the XP bar with new values
-            // This ensures the bar shows as empty with the new XP threshold
+            // Update the XP bar with new values
             updateExpBar();
 
             // Show level up cards
@@ -1556,16 +1567,16 @@
             projectile.setScale(damageMultiplier);
         }
 
-        // Add these variables to your global variables section
-        let questMode = false;
-        let questStartTime = 5 * 60; // Time in seconds before quests start (5 minutes)
-        let currentQuest = null;
-        let previousQuestType = null;
-        let questTransitionShown = false;
+
 
         // Quest data structure (used when active)
         function createQuest(enemyType) {
             const enemyData = getEnemyData(enemyType);
+
+            // Calculate required kills based on quest count
+            // First quest: 4, Second quest: 8, Third quest: 12, etc.
+            const required = BASE_QUEST_DIFFICULTY * (questCount + 1);
+
             return {
                 enemyType: enemyType,
                 kanji: enemyType,
@@ -1573,7 +1584,7 @@
                 romaji: enemyData.romaji,
                 english: enemyData.english,
                 killed: 0,
-                required: Math.floor(10 + (playerLevel * 0.5)), // Scales with player level
+                required: required,
                 completed: false
             };
         }
@@ -1725,7 +1736,7 @@
                 // Create a popup effect to indicate progress
                 const progressText = this.add.text(
                     enemy.x, enemy.y - 30,
-                    `Quest +1`,
+                    `QUEST`,
                     { fontFamily: 'Arial', fontSize: '16px', color: '#ffff00', stroke: '#000000', strokeThickness: 3 }
                 ).setOrigin(0.5);
 
@@ -1760,6 +1771,9 @@
 
             // Update the XP bar
             updateExpBar();
+
+            // Increment quest counter for next quest
+            questCount++;
 
             // Show completion effect
             const completionText = this.add.text(600, 400, 'QUEST COMPLETE', {
@@ -1797,6 +1811,7 @@
                 }
             });
         }
+
 
         // Modify the defeatedEnemy function to handle quests
         function defeatedEnemy(enemy) {
@@ -2784,6 +2799,13 @@
             elapsedTime = 0;
             score = 0;
             level = 1;
+
+            // Reset quest system variables
+            questMode = false;
+            questTransitionShown = false;
+            questCount = 0;
+            currentQuest = null;
+            previousQuestType = null;
 
             // Clean up old timers
             cleanupTimers();

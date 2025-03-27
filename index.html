@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Word Survivors</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
+    <script src="artillery.js"></script>
     <script src="bestiary.js"></script>
     <script src="perks.js"></script>
     <style>
@@ -1210,13 +1211,21 @@
                 }
             });
 
+            // Updated projectile processing
             projectiles.getChildren().forEach(projectile => {
+                // Check if out of bounds
                 if (projectile.y < -50 || projectile.y > 850 ||
                     projectile.x < -50 || projectile.x > 1250) {
                     projectile.destroy();
+                    return;
                 }
 
-                // Update distance-based damage if applicable
+                // Process component updates
+                if (projectile.components && Object.keys(projectile.components).length > 0) {
+                    ProjectileComponentSystem.processEvent(projectile, 'update');
+                }
+
+                // Keep any existing special projectile updates
                 if (projectile.hasDistanceDamage) {
                     updateProjectileDistance.call(this, projectile);
                 }
@@ -1481,7 +1490,6 @@
             }
         }
 
-        // Dedicated function for creating projectiles
         function createProjectileBase(scene, x, y, color = '#ffff00', symbol = '★') {
             // Create the projectile
             const projectile = scene.add.text(x, y, symbol, {
@@ -1500,6 +1508,9 @@
             // Set base damage value
             projectile.damage = playerDamage;
 
+            // Initialize empty components object
+            projectile.components = {};
+
             // Return the created projectile
             return projectile;
         }
@@ -1515,65 +1526,50 @@
                 Math.sin(angle) * speed
             );
 
-            // Record starting position for distance-based damage if we have the Silver Sniper perk
+            // Apply perk components based on active perks
+
+            // Crimson Scatter (distance-based damage)
             if (hasPerk('CRIMSON_SCATTER')) {
-                projectile.startX = player.x;
-                projectile.startY = player.y;
-                projectile.hasDistanceDamage = true;
-
-                // Set initial scale and damage based on the maximum (2x)
-                projectile.setScale(2.0);
-                projectile.baseDamage = playerDamage;
-                projectile.damage = projectile.baseDamage * 2.0;
-
-                // Update size and damage based on distance
-                updateProjectileDistance.call(this, projectile);
+                ProjectileComponentSystem.addComponent(projectile, 'distanceDamage', {
+                    startX: player.x,
+                    startY: player.y,
+                    baseDamage: playerDamage
+                });
             }
 
-            // Apply slow effect if we have that perk
-            projectile.isSlowShot = false;
+            // Slow Shot
             if (hasPerk('SLOW_SHOT')) {
                 const slowChance = calculateProcChance(playerLuck, baseProcChance);
-
-                projectile.isSlowShot = Math.random() < slowChance;
-                if (projectile.isSlowShot) {
-                    projectile.setColor('#00ffff'); // Cyan color for slow shots
+                if (Math.random() < slowChance) {
+                    ProjectileComponentSystem.addComponent(projectile, 'slowEffect');
                 }
             }
 
-            // Apply poison effect if we have the Green Venom perk
-            projectile.isPoisonShot = false;
+            // Green Venom (poison)
             if (hasPerk('GREEN_VENOM')) {
                 const poisonChance = calculateProcChance(playerLuck, baseProcChance);
-
-                projectile.isPoisonShot = Math.random() < poisonChance;
-                if (projectile.isPoisonShot) {
-                    projectile.setColor('#2aad27'); // Sickly green color for poison shots
+                if (Math.random() < poisonChance) {
+                    ProjectileComponentSystem.addComponent(projectile, 'poisonEffect');
                 }
             }
 
-            // Apply split shot effect if we have the Azure Fork perk
-            projectile.isSplitShot = false;
+            // Azure Fork (split shot)
             if (hasPerk('AZURE_FORK')) {
                 const splitChance = calculateProcChance(playerLuck, baseProcChance);
-
-                projectile.isSplitShot = Math.random() < splitChance;
-                if (projectile.isSplitShot) {
-                    projectile.setColor('#1E90FF'); // Blue color for split shots
-                    projectile.hasSplit = false; // Flag to prevent infinite splitting
+                if (Math.random() < splitChance) {
+                    ProjectileComponentSystem.addComponent(projectile, 'splitEffect');
                 }
             }
 
-            // Apply fire effect if we have the Scarlet Ember perk
-            projectile.isFireShot = false;
+            // Scarlet Ember (fire)
             if (hasPerk('SCARLET_EMBER')) {
                 const fireChance = calculateProcChance(playerLuck, baseProcChance);
-
-                projectile.isFireShot = Math.random() < fireChance;
-                if (projectile.isFireShot) {
-                    projectile.setColor('#FF4500'); // Orange-red color for fire shots
+                if (Math.random() < fireChance) {
+                    ProjectileComponentSystem.addComponent(projectile, 'fireEffect');
                 }
             }
+
+            return projectile;
         }
 
         function updateProjectileDistance(projectile) {
@@ -1924,6 +1920,7 @@
         }
 
 
+        // Replace your current projectileHitEnemy function with this one
         function projectileHitEnemy(projectile, enemy) {
             // Skip if projectile is already destroyed
             if (!projectile.active || !enemy.active) return;
@@ -1931,36 +1928,8 @@
             // Apply damage to enemy
             enemy.health -= projectile.damage;
 
-            // Apply slow effect if it's a slow shot
-            if (projectile.isSlowShot) {
-                // Slow the enemy by half
-                enemy.speed = Math.max(10, enemy.speed * 0.5);
-
-                // Add visual indication of slowed enemy
-                enemy.setColor('#00ffff'); // Cyan color for slowed enemies
-
-                // For longer slow duration, you could add a timer to reset color
-                this.time.delayedCall(2000, function () {
-                    if (enemy && enemy.active) {
-                        enemy.setColor('#ff5555');
-                    }
-                });
-            }
-
-            // Apply poison effect if it's a poison shot
-            if (projectile.isPoisonShot && enemy.health > 0) {
-                applyPoisonEffect.call(this, enemy, projectile.damage);
-            }
-
-            // Check for split shot effect
-            if (projectile.isSplitShot && !projectile.hasSplit && enemy.health > 0) {
-                createSplitProjectiles.call(this, projectile, enemy);
-            }
-
-            // Create fire at the impact point if it's a fire shot
-            if (projectile.isFireShot) {
-                createFireAtLocation.call(this, enemy.x, enemy.y);
-            }
+            // Process hit event for all components
+            ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
 
             // Only destroy enemy if health is 0 or below
             if (enemy.health <= 0) {

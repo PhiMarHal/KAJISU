@@ -9,6 +9,7 @@
     <script src="artillery.js"></script>
     <script src="bestiary.js"></script>
     <script src="perks.js"></script>
+    <script src="ballistics.js"></script>
     <style>
         body {
             margin: 0;
@@ -1526,48 +1527,8 @@
                 Math.sin(angle) * speed
             );
 
-            // Apply perk components based on active perks
-
-            // Crimson Scatter (distance-based damage)
-            if (hasPerk('CRIMSON_SCATTER')) {
-                ProjectileComponentSystem.addComponent(projectile, 'distanceDamage', {
-                    startX: player.x,
-                    startY: player.y,
-                    baseDamage: playerDamage
-                });
-            }
-
-            // Slow Shot
-            if (hasPerk('SLOW_SHOT')) {
-                const slowChance = calculateProcChance(playerLuck, baseProcChance);
-                if (Math.random() < slowChance) {
-                    ProjectileComponentSystem.addComponent(projectile, 'slowEffect');
-                }
-            }
-
-            // Green Venom (poison)
-            if (hasPerk('GREEN_VENOM')) {
-                const poisonChance = calculateProcChance(playerLuck, baseProcChance);
-                if (Math.random() < poisonChance) {
-                    ProjectileComponentSystem.addComponent(projectile, 'poisonEffect');
-                }
-            }
-
-            // Azure Fork (split shot)
-            if (hasPerk('AZURE_FORK')) {
-                const splitChance = calculateProcChance(playerLuck, baseProcChance);
-                if (Math.random() < splitChance) {
-                    ProjectileComponentSystem.addComponent(projectile, 'splitEffect');
-                }
-            }
-
-            // Scarlet Ember (fire)
-            if (hasPerk('SCARLET_EMBER')) {
-                const fireChance = calculateProcChance(playerLuck, baseProcChance);
-                if (Math.random() < fireChance) {
-                    ProjectileComponentSystem.addComponent(projectile, 'fireEffect');
-                }
-            }
+            // Apply all registered perk effects automatically
+            ProjectilePerkRegistry.applyPerkEffects(projectile, this);
 
             return projectile;
         }

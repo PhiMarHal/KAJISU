@@ -1,0 +1,20 @@
+# Word Survivors Code Architecture
+
+## Files Overview
+
+**index.html** - Main game file containing the Phaser game initialization, core gameplay loop, player movement, enemy interactions, and UI rendering. 
+This file ties together all other modules and handles the game's main state.
+
+**bestiary.js** - Defines all enemy types using Japanese kanji characters, including their properties like rank, health, speed, translations, and readings. 
+It also provides utility functions to retrieve and generate random enemies during gameplay.
+
+**perks.js** - Contains definitions for all player upgrades ("perks") including their kanji representations, translations, effects, and visual styles. 
+Each perk has an onAcquire function that triggers when the player selects it during level-up.
+
+**artillery.js** - Implements the component-based system for projectiles. 
+It defines the framework for creating and managing reusable components that can be attached to projectiles, allowing for modular behavior like:
+poison effects, splitting shots, and fire trails.
+
+**ballistics.js** - Provides a registry system that connects perks to projectile components. 
+This file automates the application of effects to projectiles based on which perks the player has acquired.
+It eliminates the need to modify core game logic when adding new projectile-affecting perks.

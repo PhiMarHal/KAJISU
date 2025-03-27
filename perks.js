@@ -229,6 +229,30 @@ const PERKS = {
         onAcquire: function () {
         }
     },
+    "AZURE_FORK": {
+        kanji: "蒼叉",
+        hiragana: "あおまた",
+        romaji: "aomata",
+        english: "Azure Fork",
+        description: "Projectiles have a chance to split in two when hitting enemies",
+        color: "#1E90FF",
+        hoverColor: 0x0070DD,
+        onAcquire: function () {
+            // The logic for this is handled in the projectileHitEnemy function
+        }
+    },
+    "SCARLET_EMBER": {
+        kanji: "緋炎",
+        hiragana: "ひえん",
+        romaji: "hien",
+        english: "Scarlet Ember",
+        description: "Projectiles may leave fire that burns enemies over time",
+        color: "#FF4500",
+        hoverColor: 0xCC3700,
+        onAcquire: function () {
+            // Logic handled in projectileHitEnemy
+        }
+    },
 
     // Red animal perks (damage focused)
     "RED_TIGER": {

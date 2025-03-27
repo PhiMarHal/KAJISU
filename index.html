@@ -1551,6 +1551,29 @@
                     projectile.setColor('#2aad27'); // Sickly green color for poison shots
                 }
             }
+
+            // Apply split shot effect if we have the Azure Fork perk
+            projectile.isSplitShot = false;
+            if (hasPerk('AZURE_FORK')) {
+                const splitChance = calculateProcChance(playerLuck, baseProcChance);
+
+                projectile.isSplitShot = Math.random() < splitChance;
+                if (projectile.isSplitShot) {
+                    projectile.setColor('#1E90FF'); // Blue color for split shots
+                    projectile.hasSplit = false; // Flag to prevent infinite splitting
+                }
+            }
+
+            // Apply fire effect if we have the Scarlet Ember perk
+            projectile.isFireShot = false;
+            if (hasPerk('SCARLET_EMBER')) {
+                const fireChance = calculateProcChance(playerLuck, baseProcChance);
+
+                projectile.isFireShot = Math.random() < fireChance;
+                if (projectile.isFireShot) {
+                    projectile.setColor('#FF4500'); // Orange-red color for fire shots
+                }
+            }
         }
 
         function updateProjectileDistance(projectile) {
@@ -1901,7 +1924,6 @@
         }
 
 
-        // Now modify projectileHitEnemy to use the new function
         function projectileHitEnemy(projectile, enemy) {
             // Skip if projectile is already destroyed
             if (!projectile.active || !enemy.active) return;
@@ -1928,6 +1950,16 @@
             // Apply poison effect if it's a poison shot
             if (projectile.isPoisonShot && enemy.health > 0) {
                 applyPoisonEffect.call(this, enemy, projectile.damage);
+            }
+
+            // Check for split shot effect
+            if (projectile.isSplitShot && !projectile.hasSplit && enemy.health > 0) {
+                createSplitProjectiles.call(this, projectile, enemy);
+            }
+
+            // Create fire at the impact point if it's a fire shot
+            if (projectile.isFireShot) {
+                createFireAtLocation.call(this, enemy.x, enemy.y);
             }
 
             // Only destroy enemy if health is 0 or below
@@ -1960,6 +1992,160 @@
             } else {
                 // Landmines are destroyed after they hit something
                 projectile.destroy();
+            }
+        }
+
+        function createFireAtLocation(x, y) {
+            // Create the fire object using the kanji for fire: 火
+            const fire = this.add.text(x, y, '火', {
+                fontFamily: 'Arial',
+                fontSize: `${projectileSizeFactor * playerDamage}px`,
+                color: '#FF4500',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Add physics to fire for enemy overlap detection
+            this.physics.world.enable(fire);
+            fire.body.setSize(fire.width * 0.8, fire.height * 0.8); // Slightly smaller hitbox for better feel
+            fire.body.setImmovable(true);
+
+            // Set fire properties
+            fire.damage = playerDamage; // Damage per tick
+            fire.lastTickTime = 0; // Track the last time damage was applied
+            fire.tickInterval = 1000; // Damage every 1 second (in ms)
+
+            // Calculate duration based on player luck (in ms)
+            const duration = playerLuck * 1000;
+
+            // Create an array to track enemies already in the fire
+            fire.burningEnemies = [];
+
+            // Register entity for cleanup
+            window.registerEffect('entity', fire);
+
+            // Add overlap with enemies
+            const fireCollider = this.physics.add.overlap(fire, enemies, enemyInFire, null, this);
+
+            // Add pulsing animation for visual effect
+            this.tweens.add({
+                targets: fire,
+                scale: { from: 0.9, to: 1.1 },
+                duration: 500,
+                yoyo: true,
+                repeat: -1
+            });
+
+            // Gradually fade out and remove after duration
+            this.tweens.add({
+                targets: fire,
+                alpha: { from: 1, to: 0.2 },
+                duration: duration,
+                onComplete: function () {
+                    // Remove collider before destroying fire
+                    fireCollider.destroy();
+                    fire.destroy();
+                }
+            });
+
+            // For dramatic effect, add a brief expansion animation on creation
+            fire.setScale(0.5);
+            this.tweens.add({
+                targets: fire,
+                scale: 1,
+                duration: 200,
+                ease: 'Back.out'
+            });
+        }
+
+        function enemyInFire(fire, enemy) {
+            // Skip if either object doesn't exist
+            if (!fire.active || !enemy.active) return;
+
+            // Get current time
+            const currentTime = this.time.now;
+
+            // Check if this enemy is already being tracked
+            const enemyIndex = fire.burningEnemies.findIndex(e => e.enemy === enemy);
+
+            if (enemyIndex === -1) {
+                // Enemy not tracked yet, add it with current time
+                fire.burningEnemies.push({
+                    enemy: enemy,
+                    lastDamageTime: currentTime - fire.tickInterval // Apply damage immediately first time
+                });
+            }
+
+            // Find the enemy again (it's definitely in the array now)
+            const enemyData = fire.burningEnemies.find(e => e.enemy === enemy);
+
+            // Apply damage if enough time has passed
+            if (currentTime - enemyData.lastDamageTime >= fire.tickInterval) {
+                // Apply damage
+                enemy.health -= fire.damage;
+
+                // Update last damage time
+                enemyData.lastDamageTime = currentTime;
+
+                // Visual effect for fire damage
+                this.tweens.add({
+                    targets: enemy,
+                    alpha: 0.4,
+                    duration: 100,
+                    yoyo: true,
+                    repeat: 1
+                });
+
+                // Check if enemy is defeated
+                if (enemy.health <= 0) {
+                    defeatedEnemy.call(this, enemy);
+
+                    // Remove enemy from tracked array when destroyed
+                    const updatedIndex = fire.burningEnemies.findIndex(e => e.enemy === enemy);
+                    if (updatedIndex !== -1) {
+                        fire.burningEnemies.splice(updatedIndex, 1);
+                    }
+                }
+            }
+        }
+
+        function createSplitProjectiles(projectile, enemy) {
+            // Calculate the original trajectory angle
+            let angle = 0;
+
+            // If projectile has velocity, calculate angle from it
+            if (projectile.body.velocity.x !== 0 || projectile.body.velocity.y !== 0) {
+                angle = Math.atan2(projectile.body.velocity.y, projectile.body.velocity.x);
+            }
+
+            // Calculate perpendicular angles (90 degrees to each side)
+            const angle1 = angle + Math.PI / 2;
+            const angle2 = angle - Math.PI / 2;
+
+            // Create the two split projectiles
+            for (const splitAngle of [angle1, angle2]) {
+                // Create a new projectile at the enemy's position
+                const splitProjectile = createProjectileBase(this, enemy.x, enemy.y, '#1E90FF', '✧');
+
+                // Set half damage for split projectiles
+                splitProjectile.damage = projectile.damage / 2;
+
+                // Mark that this is a split projectile to prevent infinite splitting
+                splitProjectile.hasSplit = true;
+
+                // Set velocity based on the calculated angles
+                const speed = 300; // Slightly slower than regular projectiles
+                splitProjectile.body.setVelocity(
+                    Math.cos(splitAngle) * speed,
+                    Math.sin(splitAngle) * speed
+                );
+
+                // Add visual effect
+                this.tweens.add({
+                    targets: splitProjectile,
+                    alpha: { from: 0.7, to: 1 },
+                    scale: { from: 0.7, to: 1 },
+                    duration: 200
+                });
             }
         }
 

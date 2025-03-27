@@ -924,6 +924,19 @@ const PERKS = {
         hoverColor: 0xC02020,
         onAcquire: function () {
         }
+    },
+    "CRIMSON_FURY": {
+        kanji: "紅怒",
+        hiragana: "くれないいかり",
+        romaji: "kurenai ikari",
+        english: "Crimson Fury",
+        description: "Double damage when below 25% health",
+        color: "#FF0000",
+        hoverColor: 0xCC0000,
+        onAcquire: function () {
+            // The effect is handled by a state monitor system
+            // We'll implement this in the update function
+        }
     }
 };
 

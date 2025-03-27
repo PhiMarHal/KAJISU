@@ -143,6 +143,7 @@
         let shootingDelay = baseShootingDelay; // ms between shots
         let playerFireRate = basePlayerFireRate; // Multiplier for shooting rate
         let projectileSizeFactor = 4; // Multiply player damage by this to get proj size
+        let berserkMultiplier = 1.0;
         let healthBar;
         let healthBarBg;
         let healthText;
@@ -243,6 +244,10 @@
                     timer.paused = true;
                 }
             });
+        }
+
+        function getEffectiveDamage() {
+            return playerDamage * berserkMultiplier;
         }
 
         // Resume the game and hide overlay
@@ -1153,6 +1158,7 @@
             if (gamePaused) return; // Skip updates when game is paused for level up
 
             updatePerformanceStats.call(this, time, delta);
+            updatePlayerStateEffects();
 
             // Increment elapsed time
             elapsedTime += delta / 1000; // delta is in milliseconds
@@ -1446,8 +1452,9 @@
         }
 
         function updatePlayerStatsText() {
-            // Build the stats text based on current stats, without listing perks
-            let statsText = `POW: ${playerDamage}\nAGI: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
+            const effectiveDamage = getEffectiveDamage();
+
+            let statsText = `POW: ${effectiveDamage}\nAGI: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
 
             // Update the text
             playerStatsText.setText(statsText);
@@ -1492,10 +1499,13 @@
         }
 
         function createProjectileBase(scene, x, y, color = '#ffff00', symbol = '★') {
+            // Get the effective damage including all multipliers
+            const effectiveDamage = getEffectiveDamage();
+
             // Create the projectile
             const projectile = scene.add.text(x, y, symbol, {
                 fontFamily: 'Arial',
-                fontSize: `${projectileSizeFactor * playerDamage}px`,
+                fontSize: `${projectileSizeFactor * effectiveDamage}px`,
                 color: color,
                 fontStyle: 'bold'
             }).setOrigin(0.5);
@@ -1506,8 +1516,8 @@
             // Set projectile properties (smaller hitbox for better visual feel)
             projectile.body.setSize(projectile.width / 2, projectile.height / 2);
 
-            // Set base damage value
-            projectile.damage = playerDamage;
+            // Set damage value using the effective damage
+            projectile.damage = effectiveDamage;
 
             // Initialize empty components object
             projectile.components = {};
@@ -1830,19 +1840,13 @@
         function defeatedEnemy(enemy) {
             // Display kanji information in the learning feedback area with a mild animation
             if (this.learningFeedback) {
-                // Select a random synonym
-                const defeatSynonym = getRandomDefeatSynonym();
-
                 // Set white color for this text
                 const textColor = '#ffffff';
 
-                // Update the text with the random synonym
+                // Update the text
                 this.learningFeedback.setText(
-                    `${defeatSynonym} ${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
+                    `${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
                 );
-
-                // Set the new random color
-                this.learningFeedback.setColor(textColor);
 
                 // Reset scale for animation
                 this.learningFeedback.setScale(1);
@@ -1880,8 +1884,6 @@
             return DEFEAT_SYNONYMS[Math.floor(Math.random() * DEFEAT_SYNONYMS.length)];
         }
 
-
-        // Replace your current projectileHitEnemy function with this one
         function projectileHitEnemy(projectile, enemy) {
             // Skip if projectile is already destroyed
             if (!projectile.active || !enemy.active) return;
@@ -1985,6 +1987,77 @@
                 duration: 200,
                 ease: 'Back.out'
             });
+        }
+
+        // Fixed function using a damage multiplier instead of direct modification
+        function updatePlayerStateEffects() {
+            // Skip if game is over or paused
+            if (gameOver || gamePaused) return;
+
+            // Check for berserker state (Crimson Fury perk)
+            if (hasPerk('CRIMSON_FURY')) {
+                // Calculate health percentage
+                const healthPercentage = playerHealth / maxPlayerHealth;
+
+                // Check if player is below 25% health
+                const isBerserk = healthPercentage <= 0.25;
+
+                // If berserker state changed, update it
+                if (isBerserk !== player.isBerserk) {
+                    player.isBerserk = isBerserk;
+
+                    if (isBerserk) {
+                        // Enter berserker state
+                        console.log("Entering berserker state!");
+
+                        // Apply berserk damage multiplier
+                        berserkMultiplier = 2.0;
+
+                        // Store original color
+                        player.normalColor = player.style.color || '#ffffff';
+
+                        // Create color pulsing tween
+                        if (!player.berserkColorTween) {
+                            player.berserkColorTween = game.scene.scenes[0].tweens.add({
+                                targets: player,
+                                colorTween: { from: 0, to: 1 },
+                                duration: 1000, // 1 second in each direction, 2 seconds total for cycle
+                                yoyo: true,
+                                repeat: -1,
+                                onUpdate: function (tween, target) {
+                                    // Interpolate between white and red based on tween value
+                                    const value = target.colorTween;
+                                    const r = Math.floor(255); // Red always at max
+                                    const g = Math.floor(255 * (1 - value)); // Green reduces to 0
+                                    const b = Math.floor(255 * (1 - value)); // Blue reduces to 0
+
+                                    player.setColor(`rgb(${r},${g},${b})`);
+                                }
+                            });
+                        }
+
+                    } else {
+                        // Exit berserker state
+                        console.log("Exiting berserker state");
+
+                        // Remove berserk multiplier
+                        berserkMultiplier = 1.0;
+
+                        // Stop color pulsing and restore original color
+                        if (player.berserkColorTween) {
+                            player.berserkColorTween.stop();
+                            player.berserkColorTween = null;
+                            player.setColor(player.normalColor || '#ffffff');
+                        }
+                    }
+
+                    // Update player stats display
+                    updatePlayerStatsText();
+                }
+            } else {
+                // Make sure the multiplier is initialized even if perk isn't active yet
+                berserkMultiplier = berserkMultiplier || 1.0;
+            }
         }
 
         function enemyInFire(fire, enemy) {
@@ -2956,6 +3029,18 @@
                     heroExp += xpNeeded;
                     updateExpBar();
                     console.log("Debug: Instant level up triggered");
+                }
+            });
+
+            // Add debug key (T key for instant enemy spawn)
+            this.input.keyboard.on('keydown-T', function (event) {
+                if (!gamePaused && !gameOver) {
+                    // Access the main game scene and call spawnEnemy on it
+                    const activeScene = game.scene.scenes[0];
+                    if (activeScene) {
+                        spawnEnemy.call(activeScene);
+                        console.log("Debug: Enemy spawned using spawnEnemy()");
+                    }
                 }
             });
         }

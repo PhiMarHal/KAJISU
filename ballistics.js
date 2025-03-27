@@ -54,8 +54,8 @@ ProjectilePerkRegistry.registerPerkEffect('CRIMSON_SCATTER', {
     componentName: 'distanceDamage',
     applyChance: false, // Always apply, not chance-based
     configGenerator: (scene) => ({
-        startX: scene.player.x,
-        startY: scene.player.y,
+        startX: player.x, // Use the global player variable
+        startY: player.y, // Use the global player variable
         baseDamage: playerDamage
     })
 });

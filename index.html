@@ -1878,9 +1878,6 @@
                 });
             }
 
-            // Create the large kanji animation
-            showKanjiAnimation.call(this, enemy);
-
             // Destroy the enemy entity
             enemy.destroy();
 
@@ -1892,35 +1889,6 @@
 
             // Update exp bar
             updateExpBar();
-        }
-
-
-        function showKanjiAnimation(enemy) {
-            // Create the large kanji text with the enemy's character
-            const kanjiAnimation = this.add.text(600, 400, enemy.text, {
-                fontFamily: 'Arial',
-                fontSize: '400px',
-                color: enemy.style.color || '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 5
-            }).setOrigin(0.5);
-
-            // Set initial properties
-            kanjiAnimation.setAlpha(0.5);
-            kanjiAnimation.setScale(0.5);
-
-            // Create the animation
-            this.tweens.add({
-                targets: [kanjiAnimation],
-                scale: { from: 0.5, to: 1 },
-                alpha: { start: 0.5, to: 0 },
-                ease: 'Sine.easeOut',
-                duration: 4000,
-                onComplete: () => {
-
-                    kanjiAnimation.destroy();
-                }
-            });
         }
 
         function getRandomLegibleColor() {

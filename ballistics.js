@@ -9,10 +9,10 @@ const ProjectilePerkRegistry = {
     // Register a perk effect that can apply components to projectiles
     registerPerkEffect: function (perkId, options) {
         this.perkEffects[perkId] = {
-            componentName: options.componentName || null,
-            chanceMultiplier: options.chanceMultiplier || 1.0,
-            applyChance: options.applyChance || true,
-            configGenerator: options.configGenerator || null
+            componentName: options.componentName ?? null,
+            chanceMultiplier: options.chanceMultiplier ?? 1.0,
+            applyChance: options.applyChance ?? true,
+            configGenerator: options.configGenerator ?? null
         };
     },
 

@@ -3052,6 +3052,18 @@
             elapsedTime = 0;
             score = 0;
             level = 1;
+            berserkMultiplier = 1.0; // Reset berserk multiplier
+
+            // Also reset the player's berserk state
+            if (player) {
+                player.isBerserk = false;
+                // Stop color pulsing if it exists
+                if (player.berserkColorTween) {
+                    player.berserkColorTween.stop();
+                    player.berserkColorTween = null;
+                    player.setColor('#ffffff'); // Reset to default color
+                }
+            }
 
             // Reset quest system variables
             questMode = false;
@@ -3075,6 +3087,8 @@
             playerDamage = basePlayerDamage;
             playerLuck = basePlayerLuck;
             playerFireRate = basePlayerFireRate;
+
+
 
             // Reset XP and level
             heroExp = 0;
@@ -3126,6 +3140,16 @@
 
             // Resume physics
             this.physics.resume();
+
+            if (enemySpawner) {
+                enemySpawner.remove();
+                enemySpawner = null;
+            }
+
+            if (projectileFirer) {
+                projectileFirer.remove();
+                projectileFirer = null;
+            }
 
             // Update enemy spawner creation with timer registration
             enemySpawner = registerTimer(this.time.addEvent({

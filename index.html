@@ -6,10 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Word Survivors</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
+    <script src="hero.js"></script>
     <script src="artillery.js"></script>
     <script src="bestiary.js"></script>
     <script src="perks.js"></script>
     <script src="ballistics.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -1989,75 +1991,9 @@
             });
         }
 
-        // Fixed function using a damage multiplier instead of direct modification
         function updatePlayerStateEffects() {
-            // Skip if game is over or paused
-            if (gameOver || gamePaused) return;
-
-            // Check for berserker state (Crimson Fury perk)
-            if (hasPerk('CRIMSON_FURY')) {
-                // Calculate health percentage
-                const healthPercentage = playerHealth / maxPlayerHealth;
-
-                // Check if player is below 25% health
-                const isBerserk = healthPercentage <= 0.25;
-
-                // If berserker state changed, update it
-                if (isBerserk !== player.isBerserk) {
-                    player.isBerserk = isBerserk;
-
-                    if (isBerserk) {
-                        // Enter berserker state
-                        console.log("Entering berserker state!");
-
-                        // Apply berserk damage multiplier
-                        berserkMultiplier = 2.0;
-
-                        // Store original color
-                        player.normalColor = player.style.color || '#ffffff';
-
-                        // Create color pulsing tween
-                        if (!player.berserkColorTween) {
-                            player.berserkColorTween = game.scene.scenes[0].tweens.add({
-                                targets: player,
-                                colorTween: { from: 0, to: 1 },
-                                duration: 1000, // 1 second in each direction, 2 seconds total for cycle
-                                yoyo: true,
-                                repeat: -1,
-                                onUpdate: function (tween, target) {
-                                    // Interpolate between white and red based on tween value
-                                    const value = target.colorTween;
-                                    const r = Math.floor(255); // Red always at max
-                                    const g = Math.floor(255 * (1 - value)); // Green reduces to 0
-                                    const b = Math.floor(255 * (1 - value)); // Blue reduces to 0
-
-                                    player.setColor(`rgb(${r},${g},${b})`);
-                                }
-                            });
-                        }
-
-                    } else {
-                        // Exit berserker state
-                        console.log("Exiting berserker state");
-
-                        // Remove berserk multiplier
-                        berserkMultiplier = 1.0;
-
-                        // Stop color pulsing and restore original color
-                        if (player.berserkColorTween) {
-                            player.berserkColorTween.stop();
-                            player.berserkColorTween = null;
-                            player.setColor(player.normalColor || '#ffffff');
-                        }
-                    }
-
-                    // Update player stats display
-                    updatePlayerStatsText();
-                }
-            } else {
-                // Make sure the multiplier is initialized even if perk isn't active yet
-                berserkMultiplier = berserkMultiplier || 1.0;
-            }
+            // This now just calls the centralized player status system
+            updatePlayerStatus();
         }
 
         function enemyInFire(fire, enemy) {
@@ -3052,18 +2988,8 @@
             elapsedTime = 0;
             score = 0;
             level = 1;
-            berserkMultiplier = 1.0; // Reset berserk multiplier
-
-            // Also reset the player's berserk state
-            if (player) {
-                player.isBerserk = false;
-                // Stop color pulsing if it exists
-                if (player.berserkColorTween) {
-                    player.berserkColorTween.stop();
-                    player.berserkColorTween = null;
-                    player.setColor('#ffffff'); // Reset to default color
-                }
-            }
+            // Reset player status components
+            resetPlayerStatus();
 
             // Reset quest system variables
             questMode = false;

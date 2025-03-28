@@ -18,3 +18,7 @@ poison effects, splitting shots, and fire trails.
 **ballistics.js** - Provides a registry system that connects perks to projectile components. 
 This file automates the application of effects to projectiles based on which perks the player has acquired.
 It eliminates the need to modify core game logic when adding new projectile-affecting perks.
+
+**hero.js** - Manages the player character's state, attributes, and status effects through a component-based system. 
+It contains the hero's basic properties (kanji, translations, base stats) and implements a framework for applying, updating, and removing status effects triggered by perks or game conditions. 
+This centralized approach allows for flexible addition of new player states like berserker mode without modifying core game logic.

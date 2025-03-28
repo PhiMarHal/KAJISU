@@ -1,11 +1,3 @@
-// Base player stats
-const BASE_STATS = {
-    POW: 4,
-    AGI: 4,
-    LUK: 4,
-    END: 4,
-};
-
 // Map of all available perks
 const PERKS = {
     // =========================================================================

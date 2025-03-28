@@ -175,11 +175,7 @@ const LEGIBLE_COLORS = [
     '#bbff00'  // chartreuse
 ];
 
-// Hero kanji with readings and translation
-const HERO_CHARACTER = '勇';
-const HERO_HIRAGANA = 'ゆう';
-const HERO_ROMAJI = 'yuu';
-const HERO_ENGLISH = 'Brave';
+
 
 // Helper function to get complete enemy data with defaults applied
 function getEnemyData(enemyType) {

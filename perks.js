@@ -512,7 +512,7 @@ const PERKS = {
     "YELLOW_CRICKET": {
         kanji: "黄蟋蟀",
         hiragana: "きこおろぎ",
-        romaji: "kikohrogi",
+        romaji: "kikourogi",
         english: "Yellow Cricket",
         description: "+1 AGI",
         color: "#ffd700",
@@ -781,7 +781,7 @@ const PERKS = {
     "GREEN_CRICKET": {
         kanji: "緑蟋蟀",
         hiragana: "みどりこおろぎ",
-        romaji: "midorikohrogi",
+        romaji: "midorikourogi",
         english: "Green Cricket",
         description: "+1 LUK",
         color: "#00cc66",

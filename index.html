@@ -1155,30 +1155,6 @@
             // No image assets to preload
         }
 
-        // debug funcs
-        function setupPerformanceMonitor() {
-            // Create stats text display (initially hidden)
-            statsText = this.add.text(1000, 10, 'FPS: 0', {
-                fontFamily: 'Arial',
-                fontSize: '14px',
-                color: '#00ff00',
-                backgroundColor: '#000000',
-                padding: { x: 5, y: 5 }
-            });
-            statsText.setDepth(1000);
-            statsText.visible = false;
-            statsVisible = false;
-
-            // Add key listener for O key to toggle stats and debug mode
-            const keyO = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.O);
-            keyO.on('down', function () {
-                // Toggle debug mode and stats visibility
-                toggleDebugMode.call(this);
-            }, this);
-
-            console.log("Performance monitor initialized (press O to toggle)");
-        }
-
         // Function to toggle debug mode and stats
         function toggleDebugMode() {
             // Toggle debug mode
@@ -2538,7 +2514,7 @@
             restartButton.setVisible(true);
         }
 
-        // Improved level up cards with hover effects
+        // Enhanced level up cards with romaji typing challenge
         function showLevelUpCards() {
             // Pause the game
             pauseGame();
@@ -2548,8 +2524,8 @@
 
             // Create level up title with improved styling
             const levelUpTitle = this.add.text(
-                600, 200,
-                'LEVEL UP! Choose a perk:',
+                600, 150,
+                'LEVEL UP!',
                 {
                     fontFamily: 'Arial',
                     fontSize: '32px',
@@ -2560,91 +2536,799 @@
                 }
             ).setOrigin(0.5);
 
+            // Removed the subtitle text that was getting covered by cards
+
             // Get random perks (excluding already acquired ones)
-            const selectedPerks = PerkSystem.getRandomPerks(3, acquiredPerks);
-
-            // Create three card choices with improved visuals
-            const card1 = this.add.rectangle(300, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x888888);
-            const card2 = this.add.rectangle(600, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x888888);
-            const card3 = this.add.rectangle(900, 400, 200, 300, 0x444444, 1).setStrokeStyle(2, 0x888888);
-
-            // Make cards interactive
-            [card1, card2, card3].forEach(card => {
-                card.setInteractive({ useHandCursor: true });
-            });
+            const selectedPerks = PerkSystem.getRandomPerks(4, acquiredPerks);
 
             // Store all level up UI elements
             const cardElements = [];
 
-            // Add card content for each perk
-            for (let i = 0; i < selectedPerks.length; i++) {
-                const cardX = 300 + (i * 300);
-                const perk = selectedPerks[i];
+            // Create tracking variables for the challenge
+            this.perkChallenge = {
+                currentCards: 1,        // Start with 1 card
+                maxCards: 4,            // Maximum of 4 cards
+                selectedPerks: selectedPerks,
+                inputActive: true,      // Whether input is active
+                attempts: 0,            // Number of failed attempts on current card
+                currentIndex: 0,        // Current perk being challenged
+                cardElements: []        // Store card elements for updating
+            };
 
-                if (!perk) continue; // Skip if we have fewer than 3 available perks
+            // Create a container for cards
+            this.perkCardContainer = this.add.container(0, 0);
 
-                // Create perk card contents WITHOUT background
-                const elements = createPerkCard(this, perk.id, cardX, 400, {
-                    createBackground: false
-                });
+            // Create input field for romaji typing
+            createRomajiInput.call(this, 600, 580); // Moved lower vertically
 
-                // Add elements to our tracking array
-                cardElements.push(...elements);
+            // Create initial card(s)
+            updatePerkCardDisplay.call(this);
 
-                // Set card data and interactivity
-                const card = [card1, card2, card3][i];
-                card.perkId = perk.id;
-
-                // Add enhanced hover effects
-                card.on('pointerover', function () {
-                    // Change color on hover
-                    this.fillColor = perk.hoverColor || 0x666666;
-                    // Enhanced highlight with thicker stroke
-                    this.setStrokeStyle(4, 0xffffff);
-                    // Scale effect on hover
-                    this.scene.tweens.add({
-                        targets: this,
-                        scaleX: 1.05,
-                        scaleY: 1.05,
-                        duration: 100,
-                        ease: 'Power1'
-                    });
-                });
-
-                card.on('pointerout', function () {
-                    // Reset color and stroke on mouse out
-                    this.fillColor = 0x444444;
-                    this.setStrokeStyle(2, 0x888888);
-                    // Reset scale
-                    this.scene.tweens.add({
-                        targets: this,
-                        scaleX: 1,
-                        scaleY: 1,
-                        duration: 100,
-                        ease: 'Power1'
-                    });
-                });
-
-                card.on('pointerdown', () => selectCard.call(this, perk.id));
-            }
-
-            // Store all level up UI elements
+            // Store all level up UI elements in the global array
             levelUpCards = [
-                levelUpBackground, levelUpTitle,
-                card1, card2, card3,
-                ...cardElements
+                levelUpBackground,
+                levelUpTitle,
+                this.perkCardContainer,
+                this.inputBox,
+                this.inputText,
+                this.submitButton,
+                this.inputPrompt
             ];
         }
-
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
+        // Helper function to disable debug keys
+        function disableDebugKeys() {
+            // We'll use a simple approach: add a flag that the debug key handlers can check
+            this.debugKeysDisabled = true;
         }
 
+        // Helper function to restore debug keys
+        function restoreDebugKeys() {
+            // Clear the flag to allow debug keys to work again
+            this.debugKeysDisabled = false;
+        }
+
+        // Enhanced cleanup function
+        function closeLevelUpCards() {
+            console.log("Closing level up cards and cleaning up UI elements");
+
+            // Clean up the window key handler
+            if (this.romajiKeyHandler) {
+                window.removeEventListener('keydown', this.romajiKeyHandler);
+                this.romajiKeyHandler = null;
+            }
+
+            // Disable our custom handler
+            this.isRomajiInputActive = false;
+
+            // Re-enable debug keys
+            restoreDebugKeys.call(this);
+
+            // Extra safety: check if we're in a valid scene
+            if (!this.add) {
+                console.log("Not in a valid scene, forcing cleanup");
+                levelUpCards = [];
+                return;
+            }
+
+            // First, make all elements invisible for cleaner transition
+            if (Array.isArray(levelUpCards)) {
+                levelUpCards.forEach(element => {
+                    if (element && element.setVisible) {
+                        element.setVisible(false);
+                    }
+                });
+            }
+
+            // Then destroy all tracked UI elements
+            if (Array.isArray(levelUpCards)) {
+                levelUpCards.forEach(element => {
+                    if (element && typeof element !== 'undefined') {
+                        if (element.destroy) {
+                            element.destroy();
+                        } else if (element.removeAll) {
+                            element.removeAll(true);
+                            element.destroy();
+                        }
+                    }
+                });
+            }
+
+            // Extra safety to clean up specific elements that might be missed
+            if (this.perkCardContainer) {
+                this.perkCardContainer.removeAll(true);
+                this.perkCardContainer.destroy();
+                this.perkCardContainer = null;
+            }
+
+            if (this.inputBox) {
+                this.inputBox.destroy();
+                this.inputBox = null;
+            }
+
+            if (this.inputText) {
+                this.inputText.destroy();
+                this.inputText = null;
+            }
+
+            if (this.submitButton) {
+                this.submitButton.destroy();
+                this.submitButton = null;
+            }
+
+            if (this.inputPrompt) {
+                this.inputPrompt.destroy();
+                this.inputPrompt = null;
+            }
+
+            // Reset challenge state
+            this.perkChallenge = null;
+
+            // Reset global array
+            levelUpCards = [];
+
+            // Resume game
+            resumeGame();
+
+            console.log("Level up cards cleanup complete");
+        }
+
+        // Function to create the input field for romaji typing
+        function createRomajiInput(x, y) {
+            // Create input prompt
+            this.inputPrompt = this.add.text(
+                x, y - 50,
+                'TYPE ROMAJI TO UNLOCK MORE',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '18px',
+                    color: '#ffffff'
+                }
+            ).setOrigin(0.5);
+
+            // Create input box background
+            this.inputBox = this.add.rectangle(x, y, 300, 40, 0x333333, 1)
+                .setStrokeStyle(2, 0xaaaaaa);
+
+            // Create input text
+            this.inputText = this.add.text(
+                x - 140, y - 15,
+                '',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '20px',
+                    color: '#ffffff'
+                }
+            );
+
+            // Create submit button - below the input box
+            this.submitButton = this.add.text(
+                x, y + 50,
+                'Submit',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '18px',
+                    color: '#ffffff',
+                    backgroundColor: '#008800',
+                    padding: { left: 15, right: 15, top: 8, bottom: 8 }
+                }
+            ).setOrigin(0.5);
+
+            this.submitButton.setInteractive({ useHandCursor: true });
+
+            // Add button hover effects
+            this.submitButton.on('pointerover', function () {
+                this.setStyle({ backgroundColor: '#00aa00' });
+            });
+
+            this.submitButton.on('pointerout', function () {
+                this.setStyle({ backgroundColor: '#008800' });
+            });
+
+            // Add click event
+            this.submitButton.on('pointerdown', function () {
+                validateRomajiInput.call(this.scene);
+            });
+
+            // Set a flag to track our custom keyboard handler
+            this.isRomajiInputActive = true;
+
+            // Create a one-time-use generic keyboard event handler
+            this.romajiKeyHandler = function (event) {
+                // Only process if the challenge is active
+                if (!this.isRomajiInputActive || !this.perkChallenge || !this.perkChallenge.inputActive) return;
+
+                // Handle different key types
+                if (event.key === 'Backspace') {
+                    // Backspace - remove last character
+                    if (this.inputText.text.length > 0) {
+                        this.inputText.setText(this.inputText.text.slice(0, -1));
+                    }
+                }
+                else if (event.key === 'Enter') {
+                    // Enter - submit answer
+                    validateRomajiInput.call(this);
+                }
+                else if (/^[a-zA-Z\-]$/.test(event.key)) {
+                    // Letters and dash - add to input
+                    this.inputText.setText(this.inputText.text + event.key.toLowerCase());
+                }
+            };
+
+            // Bind the handler to the scene
+            this.romajiKeyHandler = this.romajiKeyHandler.bind(this);
+
+            // Add the handler to the window keydown event
+            window.addEventListener('keydown', this.romajiKeyHandler);
+
+            // Disable debug keys during the challenge
+            disableDebugKeys.call(this);
+        }
+
+        // Helper function to disable debug keys
+        function disableDebugKeys() {
+            // We'll use a simple approach: add a flag that the debug key handlers can check
+            this.debugKeysDisabled = true;
+        }
+
+        // Helper function to restore debug keys
+        function restoreDebugKeys() {
+            // Clear the flag to allow debug keys to work again
+            this.debugKeysDisabled = false;
+        }
+
+        // Enhanced cleanup function
+        function closeLevelUpCards() {
+            console.log("Closing level up cards and cleaning up UI elements");
+
+            // Clean up the window key handler
+            if (this.romajiKeyHandler) {
+                window.removeEventListener('keydown', this.romajiKeyHandler);
+                this.romajiKeyHandler = null;
+            }
+
+            // Disable our custom handler
+            this.isRomajiInputActive = false;
+
+            // Re-enable debug keys
+            restoreDebugKeys.call(this);
+
+            // Extra safety: check if we're in a valid scene
+            if (!this.add) {
+                console.log("Not in a valid scene, forcing cleanup");
+                levelUpCards = [];
+                return;
+            }
+
+            // First, make all elements invisible for cleaner transition
+            if (Array.isArray(levelUpCards)) {
+                levelUpCards.forEach(element => {
+                    if (element && element.setVisible) {
+                        element.setVisible(false);
+                    }
+                });
+            }
+
+            // Then destroy all tracked UI elements
+            if (Array.isArray(levelUpCards)) {
+                levelUpCards.forEach(element => {
+                    if (element && typeof element !== 'undefined') {
+                        if (element.destroy) {
+                            element.destroy();
+                        } else if (element.removeAll) {
+                            element.removeAll(true);
+                            element.destroy();
+                        }
+                    }
+                });
+            }
+
+            // Extra safety to clean up specific elements that might be missed
+            if (this.perkCardContainer) {
+                this.perkCardContainer.removeAll(true);
+                this.perkCardContainer.destroy();
+                this.perkCardContainer = null;
+            }
+
+            if (this.inputBox) {
+                this.inputBox.destroy();
+                this.inputBox = null;
+            }
+
+            if (this.inputText) {
+                this.inputText.destroy();
+                this.inputText = null;
+            }
+
+            if (this.submitButton) {
+                this.submitButton.destroy();
+                this.submitButton = null;
+            }
+
+            if (this.inputPrompt) {
+                this.inputPrompt.destroy();
+                this.inputPrompt = null;
+            }
+
+            // Reset challenge state
+            this.perkChallenge = null;
+
+            // Reset global array
+            levelUpCards = [];
+
+            // Resume game
+            resumeGame();
+
+            console.log("Level up cards cleanup complete");
+        }
+
+        // Updated setupDebugKeys function that handles all debug keys including performance monitor (O key)
+        function setupDebugKeys() {
+            // Add debug key (R key for instant level up)
+            this.input.keyboard.on('keydown-R', function (event) {
+                // Skip if debug keys are disabled
+                if (this.debugKeysDisabled) return;
+
+                if (!gamePaused && !gameOver) {
+                    // Add enough XP to level up
+                    const xpNeeded = heroExpToLevel - heroExp;
+                    heroExp += xpNeeded;
+                    updateExpBar();
+                    console.log("Debug: Instant level up triggered");
+                }
+            }, this);
+
+            // Add debug key (T key for instant enemy spawn)
+            this.input.keyboard.on('keydown-T', function (event) {
+                // Skip if debug keys are disabled
+                if (this.debugKeysDisabled) return;
+
+                if (!gamePaused && !gameOver) {
+                    // Access the main game scene and call spawnEnemyOfRank on it with rank 1
+                    const activeScene = game.scene.scenes[0];
+                    if (activeScene) {
+                        spawnEnemyOfRank.call(activeScene, 1);
+                        console.log("Debug: Rank 1 enemy spawned");
+                    }
+                }
+            }, this);
+
+            // Add debug key (O key for performance monitor toggle)
+            this.input.keyboard.on('keydown-O', function (event) {
+                // Skip if debug keys are disabled
+                if (this.debugKeysDisabled) return;
+
+                // Toggle debug mode and stats visibility
+                toggleDebugMode.call(this);
+            }, this);
+        }
+
+        // Update setupPerformanceMonitor to not add its own key listener
+        function setupPerformanceMonitor() {
+            // Create stats text display (initially hidden)
+            statsText = this.add.text(1000, 10, 'FPS: 0', {
+                fontFamily: 'Arial',
+                fontSize: '14px',
+                color: '#00ff00',
+                backgroundColor: '#000000',
+                padding: { x: 5, y: 5 }
+            });
+            statsText.setDepth(1000);
+            statsText.visible = false;
+            statsVisible = false;
+
+            // O key listener is now handled in setupDebugKeys
+
+            console.log("Performance monitor initialized (press O to toggle)");
+        }
+
+        // Helper function to handle debug keys state
+        function setupDebugKeysState(enabled) {
+            // Safely handle debug key state without accessing internal Phaser structures
+            try {
+                // Store the current state if we're disabling
+                if (!enabled) {
+                    this.debugKeysEnabled = false;
+
+                    // Disable the debug keys by removing their event handlers
+                    const debugKeys = ['R', 'T', 'O'];
+                    debugKeys.forEach(key => {
+                        const keyObj = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[key]);
+                        if (keyObj) {
+                            keyObj.enabled = false;
+                        }
+                    });
+                } else {
+                    this.debugKeysEnabled = true;
+
+                    // Re-enable the debug keys
+                    const debugKeys = ['R', 'T', 'O'];
+                    debugKeys.forEach(key => {
+                        const keyObj = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[key]);
+                        if (keyObj) {
+                            keyObj.enabled = true;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log("Error managing debug keys:", error);
+            }
+        }
+
+        // Helper function to generate random ID for keyboard event namespace
+        function randomKeyboardId() {
+            return 'romaji-input-' + Math.floor(Math.random() * 1000000);
+        }
+
+
+        // Function to update the display of perk cards
+        function updatePerkCardDisplay() {
+            console.log("Updating perk card display, cards: " + this.perkChallenge.currentCards);
+
+            // Clear previous cards
+            this.perkCardContainer.removeAll(true);
+            this.perkChallenge.cardElements = [];
+
+            // Calculate positions for cards
+            const cardCount = this.perkChallenge.currentCards;
+            const totalWidth = cardCount * 220 + (cardCount - 1) * 20; // Card width + spacing
+            const startX = 600 - (totalWidth / 2) + 110; // Center point - half of total width + half card width
+
+            // Create each card
+            for (let i = 0; i < cardCount; i++) {
+                const cardX = startX + i * 240; // 220 + 20 spacing
+                const perk = this.perkChallenge.selectedPerks[i];
+
+                if (!perk) {
+                    console.log("Warning: No perk found for index " + i);
+                    continue;
+                }
+
+                // Create card background
+                const cardBg = this.add.rectangle(cardX, 330, 200, 300, 0x444444, 1)
+                    .setStrokeStyle(2, 0xeeeeee);
+                this.perkCardContainer.add(cardBg);
+
+                // Make card interactive
+                cardBg.setInteractive({ useHandCursor: true });
+                cardBg.perkId = perk.id;
+
+                // Add hover effects
+                cardBg.on('pointerover', function () {
+                    this.fillColor = perk.hoverColor ?? 0x666666;
+                    this.setStrokeStyle(4, 0xffffff);
+                });
+
+                cardBg.on('pointerout', function () {
+                    this.fillColor = 0x444444;
+                    this.setStrokeStyle(2, 0xeeeeee);
+                });
+
+                cardBg.on('pointerdown', function () {
+                    selectCard.call(this.scene, perk.id);
+                });
+
+                // Track all elements for this card
+                let cardElements = [];
+
+                // Always show kanji
+                const kanjiText = this.add.text(
+                    cardX, 270,
+                    perk.kanji,
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '36px',
+                        color: perk.color,
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    }
+                ).setOrigin(0.5);
+                this.perkCardContainer.add(kanjiText);
+                cardElements.push(kanjiText);
+
+                // Determine what to show based on state
+                const isCurrentChallenge = (i === this.perkChallenge.currentIndex && this.perkChallenge.inputActive);
+                const attempts = i === this.perkChallenge.currentIndex ? this.perkChallenge.attempts : 0;
+
+                console.log(`Card ${i} - Current: ${isCurrentChallenge}, Attempts: ${attempts}`);
+
+                // Show hiragana if not the current challenge or after first attempt
+                if (!isCurrentChallenge || attempts >= 1) {
+                    // Hiragana
+                    const hiraganaText = this.add.text(
+                        cardX, 315,
+                        perk.hiragana,
+                        { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff' }
+                    ).setOrigin(0.5);
+                    this.perkCardContainer.add(hiraganaText);
+                    cardElements.push(hiraganaText);
+
+                    console.log(`Added hiragana for card ${i}: ${perk.hiragana}`);
+                }
+
+                // Show romaji and english only for completed cards or after 2 attempts
+                if (!isCurrentChallenge || attempts >= 2) {
+                    // Romaji
+                    const romajiText = this.add.text(
+                        cardX, 340,
+                        perk.romaji,
+                        { fontFamily: 'Arial', fontSize: '16px', color: '#dddddd', fontStyle: 'italic' }
+                    ).setOrigin(0.5);
+                    this.perkCardContainer.add(romajiText);
+                    cardElements.push(romajiText);
+
+                    // English
+                    const englishText = this.add.text(
+                        cardX, 370,
+                        perk.english,
+                        {
+                            fontFamily: 'Arial',
+                            fontSize: '20px',
+                            color: perk.color,
+                            fontStyle: 'bold'
+                        }
+                    ).setOrigin(0.5);
+                    this.perkCardContainer.add(englishText);
+                    cardElements.push(englishText);
+
+                    console.log(`Added romaji and english for card ${i}`);
+                }
+
+                // Always show description - position varies based on what else is shown
+                const descY = (!isCurrentChallenge || attempts >= 2) ? 420 :
+                    (attempts === 1) ? 360 : 340;
+
+                const descText = this.add.text(
+                    cardX, descY,
+                    perk.description,
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '16px',
+                        color: '#ffffff',
+                        align: 'center',
+                        wordWrap: { width: 180 }
+                    }
+                ).setOrigin(0.5);
+                this.perkCardContainer.add(descText);
+                cardElements.push(descText);
+
+                // Store card elements
+                this.perkChallenge.cardElements.push({
+                    background: cardBg,
+                    elements: cardElements
+                });
+            }
+
+            // Update input visibility
+            updateInputVisibility.call(this);
+        }
+        // Function to validate romaji input
+        function validateRomajiInput() {
+            if (!this.perkChallenge || !this.perkChallenge.inputActive) return;
+
+            const userInput = this.inputText.text.trim().toLowerCase();
+            const currentPerk = this.perkChallenge.selectedPerks[this.perkChallenge.currentIndex];
+
+            if (!currentPerk) return;
+
+            const correctRomaji = currentPerk.romaji.toLowerCase();
+
+            if (userInput === correctRomaji) {
+                // Correct answer
+                handleCorrectRomaji.call(this);
+            } else {
+                // Wrong answer
+                handleWrongRomaji.call(this);
+            }
+
+            // Clear input field
+            this.inputText.setText('');
+        }
+
+        // Function to handle correct romaji input
+        function handleCorrectRomaji() {
+            // Play success sound/effect
+            this.tweens.add({
+                targets: this.inputBox,
+                strokeStyle: { value: 0x00ff00 },
+                alpha: { value: 0.8 },
+                yoyo: true,
+                duration: 200,
+                repeat: 1,
+                onComplete: () => {
+                    this.inputBox.setStrokeStyle(2, 0xaaaaaa);
+                    this.inputBox.alpha = 1;
+                }
+            });
+
+            // Show success message
+            const successText = this.add.text(
+                600, 650,
+                'Correct!',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '24px',
+                    color: '#00ff00',
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5);
+
+            this.tweens.add({
+                targets: successText,
+                y: successText.y - 30,
+                alpha: 0,
+                duration: 1000,
+                onComplete: function () {
+                    successText.destroy();
+                }
+            });
+
+            // Unlock the current card (show full details)
+            this.perkChallenge.attempts = 2; // Force full details
+
+            // If this is the final card (4th), give XP reward
+            if (this.perkChallenge.currentCards >= this.perkChallenge.maxCards) {
+                // Award 25% of XP needed for next level
+                const xpReward = Math.ceil(heroExpToLevel * 0.25);
+                heroExp += xpReward;
+                updateExpBar();
+
+                // Show XP reward
+                const rewardText = this.add.text(
+                    600, 680,
+                    `+${xpReward} XP Bonus!`,
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '20px',
+                        color: '#00ffff',
+                        fontStyle: 'bold'
+                    }
+                ).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: rewardText,
+                    y: rewardText.y - 30,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: function () {
+                        rewardText.destroy();
+                    }
+                });
+
+                // End the input challenge
+                this.perkChallenge.inputActive = false;
+            } else {
+                // Increment current card count
+                this.perkChallenge.currentCards = Math.min(
+                    this.perkChallenge.currentCards + 1,
+                    this.perkChallenge.maxCards
+                );
+
+                // Update current challenge index
+                this.perkChallenge.currentIndex = this.perkChallenge.currentCards - 1;
+                this.perkChallenge.attempts = 0;
+            }
+
+            // Update card display
+            updatePerkCardDisplay.call(this);
+        }
+
+        // Function to handle incorrect romaji input
+        function handleWrongRomaji() {
+            console.log("Wrong romaji input, attempts: " + this.perkChallenge.attempts);
+
+            // Play failure sound/effect
+            this.tweens.add({
+                targets: this.inputBox,
+                strokeStyle: { value: 0xff0000 },
+                alpha: { value: 0.8 },
+                yoyo: true,
+                duration: 200,
+                repeat: 1,
+                onComplete: () => {
+                    this.inputBox.setStrokeStyle(2, 0xaaaaaa);
+                    this.inputBox.alpha = 1;
+                }
+            });
+
+            // Increment attempts
+            this.perkChallenge.attempts++;
+            console.log("Attempts increased to: " + this.perkChallenge.attempts);
+
+            if (this.perkChallenge.attempts === 1) {
+                // First wrong attempt - show hiragana hint
+                const hintText = this.add.text(
+                    600, 650,
+                    'Hint: Check the hiragana!',
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '18px',
+                        color: '#ffff00'
+                    }
+                ).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: hintText,
+                    y: hintText.y - 20,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: function () {
+                        hintText.destroy();
+                    }
+                });
+
+                // Force show hiragana for the current card
+                const currentPerk = this.perkChallenge.selectedPerks[this.perkChallenge.currentIndex];
+                const cardX = this.perkChallenge.cardElements[this.perkChallenge.currentIndex].background.x;
+
+                // Add hiragana text directly
+                const hiraganaText = this.add.text(
+                    cardX, 315,
+                    currentPerk.hiragana,
+                    { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff' }
+                ).setOrigin(0.5);
+
+                this.perkCardContainer.add(hiraganaText);
+                this.perkChallenge.cardElements[this.perkChallenge.currentIndex].elements.push(hiraganaText);
+
+                console.log("Added hiragana hint:", currentPerk.hiragana);
+            } else {
+                // Second wrong attempt - end input challenge
+                const failText = this.add.text(
+                    600, 650,
+                    'Challenge ended - pick a perk',
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '18px',
+                        color: '#ff6666'
+                    }
+                ).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: failText,
+                    y: failText.y - 20,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: function () {
+                        failText.destroy();
+                    }
+                });
+
+                // End input challenge and rebuild all cards with full details
+                this.perkChallenge.inputActive = false;
+
+                // Clear and rebuild all cards
+                this.perkCardContainer.removeAll(true);
+                updatePerkCardDisplay.call(this);
+
+                console.log("Challenge ended after second failure");
+            }
+        }
+        // Function to update input visibility
+        function updateInputVisibility() {
+            const isInputVisible = this.perkChallenge.inputActive;
+
+            // Show/hide input elements
+            this.inputBox.setVisible(isInputVisible);
+            this.inputText.setVisible(isInputVisible);
+            this.submitButton.setVisible(isInputVisible);
+            this.inputPrompt.setVisible(isInputVisible);
+
+            // If no longer active, show encouraging message
+            if (!isInputVisible) {
+                // Change subtitle text
+                levelUpCards.forEach(element => {
+                    if (element.text === 'Type romaji to unlock more choices') {
+                        element.setText('Choose a perk to continue');
+                    }
+                });
+            }
+        }
+
+        // Modified select card function
         function selectCard(perkType) {
+            console.log("Card selected with perk: " + perkType);
+
             // Acquire the selected perk
             acquirePerk(this, perkType);
 
@@ -2653,6 +3337,17 @@
 
             // Update health bar
             updateHealthBar();
+
+            // First make all the elements invisible for cleaner transition
+            levelUpCards.forEach(element => {
+                if (element && element.setVisible) {
+                    element.setVisible(false);
+                }
+            });
+
+            if (this.perkCardContainer) {
+                this.perkCardContainer.setVisible(false);
+            }
 
             // Close the cards and resume the game
             closeLevelUpCards.call(this);
@@ -2670,14 +3365,16 @@
                     player.alpha = 1;
                 }
             });
+
+            console.log("Level up complete, game resumed");
         }
 
-        function closeLevelUpCards() {
-            // Remove all level up UI elements
-            levelUpCards.forEach(element => element.destroy());
-            levelUpCards = [];
-
-            resumeGame();
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
         }
 
         function detectKeyboardLayout() {
@@ -3261,32 +3958,6 @@
             window.registerEffect('timer', poisonTimer);
         }
 
-
-        // DEBUG FUNCTIONS
-        function setupDebugKeys() {
-            // Add debug key (R key for instant level up)
-            this.input.keyboard.on('keydown-R', function (event) {
-                if (!gamePaused && !gameOver) {
-                    // Add enough XP to level up
-                    const xpNeeded = heroExpToLevel - heroExp;
-                    heroExp += xpNeeded;
-                    updateExpBar();
-                    console.log("Debug: Instant level up triggered");
-                }
-            });
-
-            // Add debug key (T key for instant enemy spawn)
-            this.input.keyboard.on('keydown-T', function (event) {
-                if (!gamePaused && !gameOver) {
-                    // Access the main game scene and call spawnEnemy on it
-                    const activeScene = game.scene.scenes[0];
-                    if (activeScene) {
-                        spawnEnemyOfRank.call(activeScene, 1);
-                        console.log("Debug: Enemy spawned using spawnEnemy()");
-                    }
-                }
-            });
-        }
 
         function startGame() {
             // Reset game state variables

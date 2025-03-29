@@ -1,17 +1,31 @@
-// Default values for any unspecified properties
-const ENEMY_DEFAULTS = {
-    rank: 1,
-    healthMultiplier: 1.0,
-    speedMin: 25,
-    speedMax: 100,
-    damage: 1,
-    color: '#ff5555',
-    size: 32,
-    expValue: 1
+// Default values for different ranks of enemies
+const ENEMY_RANK_DEFAULTS = {
+    // Rank 1 (basic enemies)
+    1: {
+        healthMultiplier: 1.0,
+        speedMin: 25,
+        speedMax: 100,
+        damage: 1,
+        color: '#ff5555',
+        size: 32,
+        expValue: 1
+    },
+    // Rank 2 (stronger enemies)
+    2: {
+        healthMultiplier: 4.0,
+        speedMin: 25,
+        speedMax: 100,
+        damage: 1,
+        color: '#ff5555',
+        size: 48,
+        expValue: 4
+    }
+    // Future ranks can be added here following the pattern
 };
 
 // The actual enemy definitions - using kanji characters with readings and translations
 const ENEMY_TYPES = {
+    // Rank 1 enemies
     '鬼': {
         rank: 1,
         hiragana: 'おに',
@@ -137,6 +151,80 @@ const ENEMY_TYPES = {
         hiragana: 'れん',
         romaji: 'ren',
         english: 'Purgatory'
+    },
+
+    // Rank 2 enemies - more powerful variants
+    '殺': {
+        rank: 2,
+        hiragana: 'さつ',
+        romaji: 'satsu',
+        english: 'Slayer'
+    },
+    '魘': {
+        rank: 2,
+        hiragana: 'えん',
+        romaji: 'en',
+        english: 'Nightmare'
+    },
+    '禍': {
+        rank: 2,
+        hiragana: 'わざわい',
+        romaji: 'wazawai',
+        english: 'Calamity'
+    },
+    '鬣': {
+        rank: 2,
+        hiragana: 'たてがみ',
+        romaji: 'tategami',
+        english: 'Predator'
+    },
+    '悪': {
+        rank: 2,
+        hiragana: 'あく',
+        romaji: 'aku',
+        english: 'Malice'
+    },
+    '屍': {
+        rank: 2,
+        hiragana: 'しかばね',
+        romaji: 'shikabane',
+        english: 'Corpse'
+    },
+    '凶': {
+        rank: 2,
+        hiragana: 'きょう',
+        romaji: 'kyou',
+        english: 'Doom'
+    },
+    '鵺': {
+        rank: 2,
+        hiragana: 'ぬえ',
+        romaji: 'nue',
+        english: 'Chimera'
+    },
+    '餓': {
+        rank: 2,
+        hiragana: 'うえ',
+        romaji: 'ue',
+        english: 'Hunger'
+    },
+    '狂': {
+        rank: 2,
+        hiragana: 'きょう',
+        romaji: 'kyou',
+        english: 'Madness'
+    },
+    '兇': {
+        rank: 2,
+        hiragana: 'きょう',
+        romaji: 'kyou',
+        english: 'Savage'
+    },
+    '鬧': {
+        rank: 2,
+        hiragana: 'かまびすし',
+        romaji: 'kamabisushi',
+        english: 'Chaos'
     }
 };
 
@@ -175,8 +263,6 @@ const LEGIBLE_COLORS = [
     '#bbff00'  // chartreuse
 ];
 
-
-
 // Helper function to get complete enemy data with defaults applied
 function getEnemyData(enemyType) {
     // If enemy type doesn't exist, use a random one
@@ -185,9 +271,15 @@ function getEnemyData(enemyType) {
         enemyType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
     }
 
-    // Merge defaults with specific enemy data
+    // Get the enemy's rank
+    const enemyRank = ENEMY_TYPES[enemyType].rank || 1;
+
+    // Get the defaults for this rank
+    const rankDefaults = ENEMY_RANK_DEFAULTS[enemyRank] || ENEMY_RANK_DEFAULTS[1];
+
+    // Merge rank defaults with specific enemy data
     return {
-        ...ENEMY_DEFAULTS,
+        ...rankDefaults,
         ...ENEMY_TYPES[enemyType],
         type: enemyType
     };
@@ -198,8 +290,20 @@ function getAllEnemyTypes() {
     return Object.keys(ENEMY_TYPES);
 }
 
+// Get enemy types by rank
+function getEnemyTypesByRank(rank) {
+    return Object.keys(ENEMY_TYPES).filter(key => ENEMY_TYPES[key].rank === rank);
+}
+
 // Choose a random enemy type
 function getRandomEnemyType() {
     const types = getAllEnemyTypes();
+    return types[Math.floor(Math.random() * types.length)];
+}
+
+// Choose a random enemy type of a specific rank
+function getRandomEnemyTypeByRank(rank) {
+    const types = getEnemyTypesByRank(rank);
+    if (types.length === 0) return getRandomEnemyType(); // Fallback if no enemies of this rank
     return types[Math.floor(Math.random() * types.length)];
 }

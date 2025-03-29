@@ -222,6 +222,241 @@
         let playerPositionHistory = [];
         let healthRegenTimer = null;
 
+        // Enemies
+        let enemySpawners = {}; // Object to store spawners for different ranks
+        let rankEnemyStartTimes = {
+            1: 0, // Rank 1 enemies start immediately
+            2: 15 * 60 // Rank 2 enemies start after 15 minutes
+            // Add more ranks and their start times here
+        };
+        let rankSpawnDelays = {
+            1: {
+                base: 4000,
+                min: 200
+            },
+            2: {
+                base: 8000,
+                min: 400
+            }
+            // Add more ranks and their spawn configurations here
+        };
+
+        function spawnEnemyOfRank(rank) {
+            if (gameOver) return;
+
+            // Get a random enemy type of this rank
+            const enemyType = getRandomEnemyTypeByRank(rank);
+
+            // Get the enemy data with rank defaults applied
+            const enemyData = getEnemyData(enemyType);
+
+            // Choose a random spawn position outside the screen
+            let x, y;
+            if (Math.random() < 0.5) {
+                // Spawn on left or right side
+                x = Math.random() < 0.5 ? -50 : 1250;
+                y = Phaser.Math.Between(50, 750);
+            } else {
+                // Spawn on top or bottom
+                x = Phaser.Math.Between(50, 1150);
+                y = Math.random() < 0.5 ? -50 : 850;
+            }
+
+            // Create the enemy with data-driven properties
+            const enemy = this.add.text(x, y, enemyType, {
+                fontFamily: 'Arial',
+                fontSize: `${enemyData.size}px`,
+                color: enemyData.color,
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Add to physics group
+            enemies.add(enemy);
+
+            // Set enemy properties
+            enemy.body.setSize(enemy.width, enemy.height);
+            enemy.body.setCollideWorldBounds(false);
+
+            // Set enemy health based on data and current scaling
+            enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
+
+            // Set enemy speed based on data
+            enemy.speed = Phaser.Math.Between(enemyData.speedMin, enemyData.speedMax);
+
+            // Store additional properties from data
+            enemy.damage = enemyData.damage;
+            enemy.rank = enemyData.rank;
+            enemy.expValue = enemyData.expValue || 1;
+
+            // Store all language and educational properties
+            enemy.hiragana = enemyData.hiragana;
+            enemy.romaji = enemyData.romaji;
+            enemy.english = enemyData.english;
+        }
+
+        // Function to call the rank-specific spawn function
+        function spawnEnemyRank1() {
+            spawnEnemyOfRank.call(this, 1);
+        }
+
+        function spawnEnemyRank2() {
+            spawnEnemyOfRank.call(this, 2);
+        }
+
+        // Updated function to manage enemy spawners for all ranks
+        function updateEnemySpawners() {
+            // Skip if game is over or paused
+            if (gameOver || gamePaused) return;
+
+            // Calculate minutes elapsed for difficulty scaling
+            const minutesElapsed = elapsedTime / 60;
+
+            // Process each rank
+            Object.keys(rankEnemyStartTimes).forEach(rank => {
+                const startTime = rankEnemyStartTimes[rank];
+                const rankConfig = rankSpawnDelays[rank];
+
+                // Check if this rank's enemies should start spawning yet
+                if (elapsedTime >= startTime) {
+                    // Create a spawner if it doesn't exist
+                    if (!enemySpawners[rank]) {
+                        // Determine which spawn function to use based on rank
+                        let spawnFunction;
+                        if (rank == 1) spawnFunction = spawnEnemyRank1;
+                        else if (rank == 2) spawnFunction = spawnEnemyRank2;
+                        // Add more ranks as needed
+
+                        // Create the spawner with initial delay
+                        enemySpawners[rank] = registerTimer(this.time.addEvent({
+                            delay: rankConfig.base,
+                            callback: spawnFunction,
+                            callbackScope: this,
+                            loop: true
+                        }));
+
+                        // If it's not rank 1, show an introduction
+                        if (rank > 1) {
+                            showRankIntroduction.call(this, rank);
+                        }
+                    } else {
+                        // Update existing spawner's delay based on elapsed time
+                        // Calculate time since this rank started
+                        const rankMinutesActive = (elapsedTime - startTime) / 60;
+
+                        // Only scale up to 15 minutes of active time for this rank
+                        const scalingMinutes = Math.min(15, rankMinutesActive);
+
+                        // Calculate new delay with minimum floor
+                        const newSpawnDelay = Math.max(
+                            rankConfig.min,
+                            rankConfig.base / Math.pow(enemyCountScaleFactor, scalingMinutes)
+                        );
+
+                        // Update the timer if needed
+                        if (Math.abs(enemySpawners[rank].delay - newSpawnDelay) > (enemySpawners[rank].delay * 0.1)) {
+                            enemySpawners[rank].delay = newSpawnDelay;
+                            enemySpawners[rank].reset({
+                                delay: newSpawnDelay,
+                                callback: rank == 1 ? spawnEnemyRank1 : spawnEnemyRank2, // Add more ranks as needed
+                                callbackScope: this,
+                                loop: true
+                            });
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to show a dramatic introduction when a new rank appears
+        function showRankIntroduction(rank) {
+            // Get a rank name based on the number
+            const rankNames = {
+                2: "Elite",
+                3: "Champion",
+                4: "Legendary"
+                // Add more as needed
+            };
+
+            const rankName = rankNames[rank] || `Rank ${rank}`;
+
+            // Create dramatic introduction text
+            const introText = this.add.text(600, 400, rankName, {
+                fontFamily: 'Arial',
+                fontSize: '80px',
+                color: '#ff0000',
+                stroke: '#000000',
+                strokeThickness: 6
+            }).setOrigin(0.5);
+            introText.setAlpha(0);
+
+            // Subtitle
+            const subtitle = this.add.text(600, 500, "ENEMIES APPEAR", {
+                fontFamily: 'Arial',
+                fontSize: '40px',
+                color: '#ffff00',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+            subtitle.setAlpha(0);
+
+            // Create dramatic animation
+            this.tweens.add({
+                targets: introText,
+                scale: { from: 0.5, to: 1.2 },
+                alpha: { from: 0, to: 1 },
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.tweens.add({
+                        targets: introText,
+                        scale: { from: 1.2, to: 1.5 },
+                        alpha: { from: 1, to: 0 },
+                        duration: 1500,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            introText.destroy();
+                        }
+                    });
+                }
+            });
+
+            this.tweens.add({
+                targets: subtitle,
+                alpha: { from: 0, to: 1 },
+                duration: 1000,
+                delay: 500,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.tweens.add({
+                        targets: subtitle,
+                        alpha: { from: 1, to: 0 },
+                        duration: 1000,
+                        delay: 1000,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            subtitle.destroy();
+                        }
+                    });
+                }
+            });
+        }
+
+        // Now replace your existing enemySpawner initialization in startGame with:
+        function initializeEnemySpawners() {
+            // Clean up any existing spawners
+            Object.values(enemySpawners).forEach(spawner => {
+                if (spawner) {
+                    spawner.remove();
+                }
+            });
+
+            // Reset the spawners object
+            enemySpawners = {};
+
+            // Rank 1 spawner will be created in the first update
+            // Other ranks will be created when their time comes
+        }
+
         // Enhanced pauseGame function
         function pauseGame(isLevelUpPause = false) {
             // Set the flag
@@ -1256,23 +1491,8 @@
             // Calculate difficulty scaling based on elapsed time instead of raw time
             const minutesElapsed = elapsedTime / 60;
 
-            // Update the spawn rate gradually by modifying the existing timer
-            if (enemySpawner) {
-                // Calculate new delay based on time played
-                const newSpawnDelay = Math.max(200, baseSpawnDelay / Math.pow(enemyCountScaleFactor, minutesElapsed));
-
-                // If the timer needs updating, adjust it
-                if (Math.abs(enemySpawner.delay - newSpawnDelay) > (enemySpawner.delay * 0.1)) {
-                    // Gradually transition to the new delay rather than recreating the timer
-                    enemySpawner.delay = newSpawnDelay;
-                    enemySpawner.reset({
-                        delay: newSpawnDelay,
-                        callback: spawnEnemy,
-                        callbackScope: this,
-                        loop: true
-                    });
-                }
-            }
+            // Call our new enemy spawner manager
+            updateEnemySpawners.call(this);
 
             // Update current enemy health based on elapsed time (optional scaling)
             currentEnemyHealth = baseEnemyHealth * Math.pow(enemyHealthScaleFactor, minutesElapsed);
@@ -1284,61 +1504,6 @@
             if (heroExp >= heroExpToLevel) {
                 levelUp.call(this);
             }
-        }
-
-        // Modified spawnEnemy function to use the currentEnemyHealth value calculated in update
-        function spawnEnemy() {
-            if (gameOver) return;
-
-            // Choose a random enemy type
-            const enemyType = getRandomEnemyType();
-
-            // Get the enemy data with defaults applied
-            const enemyData = getEnemyData(enemyType);
-
-            // Choose a random spawn position outside the screen
-            let x, y;
-            if (Math.random() < 0.5) {
-                // Spawn on left or right side
-                x = Math.random() < 0.5 ? -50 : 1250;
-                y = Phaser.Math.Between(50, 750);
-            } else {
-                // Spawn on top or bottom
-                x = Phaser.Math.Between(50, 1150);
-                y = Math.random() < 0.5 ? -50 : 850;
-            }
-
-            // Create the enemy with data-driven properties
-            const enemy = this.add.text(x, y, enemyType, {
-                fontFamily: 'Arial',
-                fontSize: `${enemyData.size}px`,
-                color: enemyData.color,
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Add to physics group
-            enemies.add(enemy);
-
-            // Set enemy properties
-            enemy.body.setSize(enemy.width, enemy.height);
-            enemy.body.setCollideWorldBounds(false);
-
-            // Set enemy health based on data and current scaling
-            // Use the currentEnemyHealth value that's updated in the update function
-            enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
-
-            // Set enemy speed based on data
-            enemy.speed = Phaser.Math.Between(enemyData.speedMin, enemyData.speedMax);
-
-            // Store additional properties from data
-            enemy.damage = enemyData.damage;
-            enemy.rank = enemyData.rank;
-            enemy.expValue = enemyData.expValue || 1;
-
-            // Store all language and educational properties
-            enemy.hiragana = enemyData.hiragana;
-            enemy.romaji = enemyData.romaji;
-            enemy.english = enemyData.english;
         }
 
         // Setup health regeneration
@@ -3014,8 +3179,6 @@
             playerLuck = basePlayerLuck;
             playerFireRate = basePlayerFireRate;
 
-
-
             // Reset XP and level
             heroExp = 0;
             playerLevel = 1;
@@ -3067,6 +3230,7 @@
             // Resume physics
             this.physics.resume();
 
+            // Remove existing timers
             if (enemySpawner) {
                 enemySpawner.remove();
                 enemySpawner = null;
@@ -3077,13 +3241,8 @@
                 projectileFirer = null;
             }
 
-            // Update enemy spawner creation with timer registration
-            enemySpawner = registerTimer(this.time.addEvent({
-                delay: baseSpawnDelay,
-                callback: spawnEnemy,
-                callbackScope: this,
-                loop: true
-            }));
+            // Initialize the enemy spawning system
+            initializeEnemySpawners();
 
             // Update projectile firer creation with timer registration
             projectileFirer = registerTimer(this.time.addEvent({

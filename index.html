@@ -367,77 +367,104 @@
             });
         }
 
-        // Function to show a dramatic introduction when a new rank appears
+        // Function to show a dramatic kanji-based introduction when a new rank appears
         function showRankIntroduction(rank) {
-            // Get a rank name based on the number
-            const rankNames = {
-                2: "Elite",
-                3: "Champion",
-                4: "Legendary"
-                // Add more as needed
-            };
+            // Threat kanji: 危 (ki) - meaning danger/threat/peril
+            const threatKanji = '危';
 
-            const rankName = rankNames[rank] || `Rank ${rank}`;
+            // Create a more atmospheric introduction with multiple kanji
+            const kanjiCount = 8; // Number of kanji to show
+            const duration = 4000; // Total duration: 4 seconds
 
-            // Create dramatic introduction text
-            const introText = this.add.text(600, 400, rankName, {
-                fontFamily: 'Arial',
-                fontSize: '80px',
-                color: '#ff0000',
-                stroke: '#000000',
-                strokeThickness: 6
-            }).setOrigin(0.5);
-            introText.setAlpha(0);
+            // Scale kanji size based on rank
+            const baseSize = 128; // Base font size for kanji
+            const sizeFactor = Math.min(1.5, 1 + (rank - 1) * 0.25); // Increase size for higher ranks
 
-            // Subtitle
-            const subtitle = this.add.text(600, 500, "ENEMIES APPEAR", {
-                fontFamily: 'Arial',
-                fontSize: '40px',
-                color: '#ffff00',
-                stroke: '#000000',
-                strokeThickness: 4
-            }).setOrigin(0.5);
-            subtitle.setAlpha(0);
+            // Create multiple kanji at different positions
+            for (let i = 0; i < kanjiCount; i++) {
+                // Calculate random position weighted toward the center
+                const randomAngle = Math.random() * Math.PI * 2;
+                const randomDistance = Math.random() * 300 + 100;
 
-            // Create dramatic animation
-            this.tweens.add({
-                targets: introText,
-                scale: { from: 0.5, to: 1.2 },
-                alpha: { from: 0, to: 1 },
-                duration: 1000,
-                ease: 'Power2',
-                onComplete: () => {
-                    this.tweens.add({
-                        targets: introText,
-                        scale: { from: 1.2, to: 1.5 },
-                        alpha: { from: 1, to: 0 },
-                        duration: 1500,
-                        ease: 'Power2',
-                        onComplete: () => {
-                            introText.destroy();
-                        }
-                    });
-                }
-            });
+                const x = 600 + Math.cos(randomAngle) * randomDistance;
+                const y = 400 + Math.sin(randomAngle) * randomDistance;
 
-            this.tweens.add({
-                targets: subtitle,
-                alpha: { from: 0, to: 1 },
-                duration: 1000,
-                delay: 500,
-                ease: 'Power2',
-                onComplete: () => {
-                    this.tweens.add({
-                        targets: subtitle,
-                        alpha: { from: 1, to: 0 },
-                        duration: 1000,
-                        delay: 1000,
-                        ease: 'Power2',
-                        onComplete: () => {
-                            subtitle.destroy();
-                        }
-                    });
-                }
+                // Randomize appearance time within the duration
+                const delay = Math.random() * 3000; // Random delay up to 3 seconds
+
+                // Create the kanji text with varying properties
+                const kanji = this.add.text(x, y, threatKanji, {
+                    fontFamily: 'Arial',
+                    fontSize: `${baseSize * sizeFactor}px`,
+                    color: '#ff0000',
+                    stroke: '#000000',
+                    strokeThickness: 6
+                }).setOrigin(0.5);
+
+                // Set initial alpha to 0
+                kanji.setAlpha(0);
+
+                // No rotation, keep it legible
+
+                // Fast fade in then fast fade out - total 1 second per kanji
+                this.tweens.add({
+                    targets: kanji,
+                    alpha: { from: 0, to: 0.7 }, // Not fully opaque
+                    scale: { from: 0.8, to: 1.2 },
+                    duration: 500, // 0.5 second fade in
+                    delay: delay,
+                    ease: 'Sine.easeInOut',
+                    onComplete: () => {
+                        this.tweens.add({
+                            targets: kanji,
+                            alpha: { from: 0.7, to: 0 },
+                            scale: { from: 1.2, to: 1.5 },
+                            duration: 500, // 0.5 second fade out
+                            ease: 'Sine.easeInOut',
+                            onComplete: () => {
+                                kanji.destroy();
+                            }
+                        });
+                    }
+                });
+            }
+
+            // After all kanji effects, show rank name briefly
+            // Get the rank name from bestiary.js
+            const rankName = ENEMY_RANK_NAMES[rank] || `${rank}`;
+
+            // Wait for most of the kanji to appear, then show the rank
+            this.time.delayedCall(2500, () => {
+                const rankText = this.add.text(600, 400, rankName, {
+                    fontFamily: 'Arial',
+                    fontSize: '200px',
+                    color: '#ff0000',
+                    stroke: '#000000',
+                    strokeThickness: 8
+                }).setOrigin(0.5);
+                rankText.setAlpha(0);
+
+                // Dramatic appearance of the rank number
+                this.tweens.add({
+                    targets: rankText,
+                    alpha: { from: 0, to: 0.9 },
+                    scale: { from: 0.5, to: 1.2 },
+                    duration: 800,
+                    ease: 'Cubic.easeOut',
+                    onComplete: () => {
+                        this.tweens.add({
+                            targets: rankText,
+                            alpha: { from: 0.9, to: 0 },
+                            scale: { from: 1.2, to: 1.5 },
+                            duration: 700,
+                            delay: 300,
+                            ease: 'Cubic.easeIn',
+                            onComplete: () => {
+                                rankText.destroy();
+                            }
+                        });
+                    }
+                });
             });
         }
 

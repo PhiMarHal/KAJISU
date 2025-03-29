@@ -23,6 +23,15 @@ const ENEMY_RANK_DEFAULTS = {
     // Future ranks can be added here following the pattern
 };
 
+// Rank names using kanji characters
+const ENEMY_RANK_NAMES = {
+    1: "壱", // Formal number 1 (ichi)
+    2: "弐", // Formal number 2 (ni)
+    3: "参", // Formal number 3 (san)
+    4: "肆", // Formal number 4 (shi)
+    5: "伍"  // Formal number 5 (go)
+};
+
 // The actual enemy definitions - using kanji characters with readings and translations
 const ENEMY_TYPES = {
     // Rank 1 enemies

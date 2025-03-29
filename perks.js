@@ -174,7 +174,7 @@ const PERKS = {
     "GYOZA": {
         kanji: "餃子",
         hiragana: "ぎょうざ",
-        romaji: "gyōza",
+        romaji: "gyouza",
         english: "Dumplings",
         description: "+1 END and fully heals",
         color: "#D3D3D3",
@@ -200,7 +200,7 @@ const PERKS = {
     "BENTO": {
         kanji: "弁当",
         hiragana: "べんとう",
-        romaji: "bentō",
+        romaji: "bentou",
         english: "Lunch Box",
         description: "+1 END and fully heals",
         color: "#FF6347",
@@ -941,7 +941,19 @@ const PERKS = {
         onAcquire: function () {
             window.activateImmortalArm();
         }
-    }
+    },
+    "GOD_HAMMER": {
+        kanji: "神鎚",
+        hiragana: "かみつち",
+        romaji: "kamitsuchi",
+        english: "God Hammer",
+        description: "Periodically drops a divine hammer on enemies",
+        color: "#FFD700",
+        hoverColor: 0xDAA520,
+        onAcquire: function () {
+            window.activateGodHammer();
+        }
+    },
 };
 
 // Helper functions for the perk system

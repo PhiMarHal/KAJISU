@@ -665,113 +665,247 @@
             console.log("Game paused with overlay");
         }
 
-        // Enhanced perk card creation function with better visual styling
-        function createPerkCard(scene, perkId, x, y, options = {}) {
+        // Generalized function to create perk card elements with consistent positioning
+        function createPerkCardElements(scene, perk, x, y, options = {}) {
             const defaults = {
                 container: null,
-                createBackground: true,
-                backgroundOnly: false,
+                showBackground: true,
+                showHiragana: true,
+                showRomaji: true,
+                showEnglish: true,
+                showDescription: true,
                 backgroundColor: 0x444444,
-                width: 220,
-                height: 320,
+                width: 200,
+                height: 300,
                 strokeWidth: 2,
-                strokeColor: 0x000000
+                strokeColor: 0xeeeeee,
+                makeInteractive: false,
+                perkCallback: null
             };
 
-            // Merge provided options with defaults
+            // Merge options with defaults
             const settings = { ...defaults, ...options };
 
+            // Elements array to return
+            const elements = [];
+
+            // Create card background if requested
+            if (settings.showBackground) {
+                const cardBg = scene.add.rectangle(x, y, settings.width, settings.height, settings.backgroundColor, 1)
+                    .setStrokeStyle(settings.strokeWidth, settings.strokeColor);
+
+                // Add to container if provided
+                if (settings.container) {
+                    settings.container.add(cardBg);
+                }
+
+                // Make interactive if requested
+                if (settings.makeInteractive && perk) {
+                    cardBg.setInteractive({ useHandCursor: true });
+                    cardBg.perkId = perk.id;
+
+                    // Add hover effects
+                    cardBg.on('pointerover', function () {
+                        this.fillColor = perk.hoverColor ?? 0x666666;
+                        this.setStrokeStyle(4, 0xffffff);
+                    });
+
+                    cardBg.on('pointerout', function () {
+                        this.fillColor = settings.backgroundColor;
+                        this.setStrokeStyle(settings.strokeWidth, settings.strokeColor);
+                    });
+
+                    // Add click handler if provided
+                    if (settings.perkCallback) {
+                        cardBg.on('pointerdown', function () {
+                            settings.perkCallback(perk.id);
+                        });
+                    }
+                }
+
+                elements.push(cardBg);
+            }
+
+            // Fixed positions relative to card center
+            const positions = {
+                kanji: y - 60,      // Kanji position
+                hiragana: y - 15,   // Hiragana position 
+                romaji: y + 10,     // Romaji position
+                english: y + 40,    // English position
+                description: y + 85 // Description position - 145 from kanji
+            };
+
+            // Always show kanji
+            if (perk) {
+                const kanjiText = scene.add.text(
+                    x, positions.kanji,
+                    perk.kanji,
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '36px',
+                        color: perk.color,
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    }
+                ).setOrigin(0.5);
+
+                if (settings.container) {
+                    settings.container.add(kanjiText);
+                }
+
+                elements.push(kanjiText);
+
+                // Show hiragana if requested
+                if (settings.showHiragana) {
+                    const hiraganaText = scene.add.text(
+                        x, positions.hiragana,
+                        perk.hiragana,
+                        { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff' }
+                    ).setOrigin(0.5);
+
+                    if (settings.container) {
+                        settings.container.add(hiraganaText);
+                    }
+
+                    elements.push(hiraganaText);
+                }
+
+                // Show romaji if requested
+                if (settings.showRomaji) {
+                    const romajiText = scene.add.text(
+                        x, positions.romaji,
+                        perk.romaji,
+                        { fontFamily: 'Arial', fontSize: '16px', color: '#dddddd', fontStyle: 'italic' }
+                    ).setOrigin(0.5);
+
+                    if (settings.container) {
+                        settings.container.add(romajiText);
+                    }
+
+                    elements.push(romajiText);
+                }
+
+                // Show english if requested
+                if (settings.showEnglish) {
+                    const englishText = scene.add.text(
+                        x, positions.english,
+                        perk.english,
+                        {
+                            fontFamily: 'Arial',
+                            fontSize: '20px',
+                            color: perk.color,
+                            fontStyle: 'bold'
+                        }
+                    ).setOrigin(0.5);
+
+                    if (settings.container) {
+                        settings.container.add(englishText);
+                    }
+
+                    elements.push(englishText);
+                }
+
+                // Show description if requested - always in the same position
+                if (settings.showDescription) {
+                    const descText = scene.add.text(
+                        x, positions.description,
+                        perk.description,
+                        {
+                            fontFamily: 'Arial',
+                            fontSize: '16px',
+                            color: '#ffffff',
+                            align: 'center',
+                            wordWrap: { width: settings.width - 20 }
+                        }
+                    ).setOrigin(0.5);
+
+                    if (settings.container) {
+                        settings.container.add(descText);
+                    }
+
+                    elements.push(descText);
+                }
+            }
+
+            return elements;
+        }
+
+        // Update the createPerkCard function to use our generalized function
+        function createPerkCard(scene, perkId, x, y, options = {}) {
             const perk = PERKS[perkId];
             if (!perk) return [];
 
-            // Card elements array
-            const cardElements = [];
+            return createPerkCardElements(scene, perk, x, y, {
+                ...options,
+                showHiragana: true,
+                showRomaji: true,
+                showEnglish: true,
+                showDescription: true
+            });
+        }
 
-            // Only create background if requested
-            if (settings.createBackground) {
-                const cardBg = scene.add.rectangle(x, y, settings.width, settings.height, settings.backgroundColor, 1)
-                    .setStrokeStyle(settings.strokeWidth, settings.strokeColor);
-                cardElements.push(cardBg);
+        // Update the updatePerkCardDisplay function to use our generalized function
+        function updatePerkCardDisplay() {
+            console.log("Updating perk card display, cards: " + this.perkChallenge.currentCards);
 
-                // If we only want the background, return now
-                if (settings.backgroundOnly) {
-                    // Add to container if provided
-                    if (settings.container) {
-                        settings.container.add(cardBg);
-                    }
-                    return [cardBg];
+            // First, completely clear the container and element tracking
+            this.perkCardContainer.removeAll(true); // true means destroy children
+            this.perkChallenge.cardElements = [];
+
+            // Calculate positions for cards
+            const cardCount = this.perkChallenge.currentCards;
+            const totalWidth = cardCount * 220 + (cardCount - 1) * 20; // Card width + spacing
+            const startX = 600 - (totalWidth / 2) + 110; // Center point - half of total width + half card width
+
+            console.log("Creating " + cardCount + " cards");
+
+            // Create each card
+            for (let i = 0; i < cardCount; i++) {
+                const cardX = startX + i * 240; // 220 + 20 spacing
+                const perk = this.perkChallenge.selectedPerks[i];
+
+                if (!perk) {
+                    console.log("Warning: No perk found for index " + i);
+                    continue;
                 }
-            }
 
-            // Kanji with improved visual styling
-            const kanjiText = scene.add.text(
-                x, y - 70,
-                perk.kanji,
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '36px',
-                    color: perk.color,
-                    fontStyle: 'bold',
-                    stroke: '#000000',
-                    strokeThickness: 4
-                }
-            ).setOrigin(0.5);
-            cardElements.push(kanjiText);
+                console.log("Creating card for perk: " + perk.id + " at position " + i);
 
-            // Hiragana
-            const hiraganaText = scene.add.text(
-                x, y - 25,
-                perk.hiragana,
-                { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff' }
-            ).setOrigin(0.5);
-            cardElements.push(hiraganaText);
+                // Determine what to show based on state
+                const isCurrentChallenge = (i === this.perkChallenge.currentCards - 1 &&
+                    this.perkChallenge.inputActive &&
+                    i === this.perkChallenge.currentIndex);
 
-            // Romaji
-            const romajiText = scene.add.text(
-                x, y,
-                perk.romaji,
-                { fontFamily: 'Arial', fontSize: '16px', color: '#dddddd', fontStyle: 'italic' }
-            ).setOrigin(0.5);
-            cardElements.push(romajiText);
+                // Show partial or full details based on attempts
+                const showHiragana = !isCurrentChallenge || this.perkChallenge.attempts >= 1;
+                const showRomaji = !isCurrentChallenge || this.perkChallenge.attempts >= 2;
+                const showEnglish = !isCurrentChallenge || this.perkChallenge.attempts >= 2;
 
-            // English
-            const englishText = scene.add.text(
-                x, y + 30,
-                perk.english,
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '20px',
-                    color: perk.color,
-                    fontStyle: 'bold'
-                }
-            ).setOrigin(0.5);
-            cardElements.push(englishText);
+                // Create card elements with appropriate options
+                const cardElements = createPerkCardElements(this, perk, cardX, 330, {
+                    container: this.perkCardContainer,
+                    showHiragana: showHiragana,
+                    showRomaji: showRomaji,
+                    showEnglish: showEnglish,
+                    makeInteractive: true,
+                    perkCallback: function (perkId) {
+                        selectCard.call(this, perkId);
+                    }.bind(this)
+                });
 
-            // Description with improved text wrapping
-            const descText = scene.add.text(
-                x, y + 75,
-                perk.description,
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '16px',
-                    color: '#ffffff',
-                    align: 'center',
-                    wordWrap: { width: settings.width - 20 }
-                }
-            ).setOrigin(0.5);
-            cardElements.push(descText);
-
-            // If a container is provided, add all elements to it
-            if (settings.container) {
-                cardElements.forEach(element => {
-                    settings.container.add(element);
+                // Store card elements including background
+                this.perkChallenge.cardElements.push({
+                    background: cardElements[0], // First element is the background
+                    elements: cardElements.slice(1) // Rest are text elements
                 });
             }
 
-            return cardElements;
-        }
+            // Update input visibility based on challenge state
+            updateInputVisibility.call(this);
 
-        // Improved pause screen perks display with better visuals
+            console.log("Card display updated, now showing " + this.perkChallenge.cardElements.length + " cards");
+        }// Improved pause screen perks display with better visuals
         function updatePauseScreenPerks() {
             const scene = game.scene.scenes[0];
 
@@ -2960,148 +3094,6 @@
         }
 
 
-        // Function to update the display of perk cards
-        function updatePerkCardDisplay() {
-            console.log("Updating perk card display, cards: " + this.perkChallenge.currentCards);
-
-            // Clear previous cards
-            this.perkCardContainer.removeAll(true);
-            this.perkChallenge.cardElements = [];
-
-            // Calculate positions for cards
-            const cardCount = this.perkChallenge.currentCards;
-            const totalWidth = cardCount * 220 + (cardCount - 1) * 20; // Card width + spacing
-            const startX = 600 - (totalWidth / 2) + 110; // Center point - half of total width + half card width
-
-            // Create each card
-            for (let i = 0; i < cardCount; i++) {
-                const cardX = startX + i * 240; // 220 + 20 spacing
-                const perk = this.perkChallenge.selectedPerks[i];
-
-                if (!perk) {
-                    console.log("Warning: No perk found for index " + i);
-                    continue;
-                }
-
-                // Create card background
-                const cardBg = this.add.rectangle(cardX, 330, 200, 300, 0x444444, 1)
-                    .setStrokeStyle(2, 0xeeeeee);
-                this.perkCardContainer.add(cardBg);
-
-                // Make card interactive
-                cardBg.setInteractive({ useHandCursor: true });
-                cardBg.perkId = perk.id;
-
-                // Add hover effects
-                cardBg.on('pointerover', function () {
-                    this.fillColor = perk.hoverColor ?? 0x666666;
-                    this.setStrokeStyle(4, 0xffffff);
-                });
-
-                cardBg.on('pointerout', function () {
-                    this.fillColor = 0x444444;
-                    this.setStrokeStyle(2, 0xeeeeee);
-                });
-
-                cardBg.on('pointerdown', function () {
-                    selectCard.call(this.scene, perk.id);
-                });
-
-                // Track all elements for this card
-                let cardElements = [];
-
-                // Always show kanji
-                const kanjiText = this.add.text(
-                    cardX, 270,
-                    perk.kanji,
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '36px',
-                        color: perk.color,
-                        fontStyle: 'bold',
-                        stroke: '#000000',
-                        strokeThickness: 4
-                    }
-                ).setOrigin(0.5);
-                this.perkCardContainer.add(kanjiText);
-                cardElements.push(kanjiText);
-
-                // Determine what to show based on state
-                const isCurrentChallenge = (i === this.perkChallenge.currentIndex && this.perkChallenge.inputActive);
-                const attempts = i === this.perkChallenge.currentIndex ? this.perkChallenge.attempts : 0;
-
-                console.log(`Card ${i} - Current: ${isCurrentChallenge}, Attempts: ${attempts}`);
-
-                // Show hiragana if not the current challenge or after first attempt
-                if (!isCurrentChallenge || attempts >= 1) {
-                    // Hiragana
-                    const hiraganaText = this.add.text(
-                        cardX, 315,
-                        perk.hiragana,
-                        { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff' }
-                    ).setOrigin(0.5);
-                    this.perkCardContainer.add(hiraganaText);
-                    cardElements.push(hiraganaText);
-
-                    console.log(`Added hiragana for card ${i}: ${perk.hiragana}`);
-                }
-
-                // Show romaji and english only for completed cards or after 2 attempts
-                if (!isCurrentChallenge || attempts >= 2) {
-                    // Romaji
-                    const romajiText = this.add.text(
-                        cardX, 340,
-                        perk.romaji,
-                        { fontFamily: 'Arial', fontSize: '16px', color: '#dddddd', fontStyle: 'italic' }
-                    ).setOrigin(0.5);
-                    this.perkCardContainer.add(romajiText);
-                    cardElements.push(romajiText);
-
-                    // English
-                    const englishText = this.add.text(
-                        cardX, 370,
-                        perk.english,
-                        {
-                            fontFamily: 'Arial',
-                            fontSize: '20px',
-                            color: perk.color,
-                            fontStyle: 'bold'
-                        }
-                    ).setOrigin(0.5);
-                    this.perkCardContainer.add(englishText);
-                    cardElements.push(englishText);
-
-                    console.log(`Added romaji and english for card ${i}`);
-                }
-
-                // Always show description - position varies based on what else is shown
-                const descY = (!isCurrentChallenge || attempts >= 2) ? 420 :
-                    (attempts === 1) ? 360 : 340;
-
-                const descText = this.add.text(
-                    cardX, descY,
-                    perk.description,
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '16px',
-                        color: '#ffffff',
-                        align: 'center',
-                        wordWrap: { width: 180 }
-                    }
-                ).setOrigin(0.5);
-                this.perkCardContainer.add(descText);
-                cardElements.push(descText);
-
-                // Store card elements
-                this.perkChallenge.cardElements.push({
-                    background: cardBg,
-                    elements: cardElements
-                });
-            }
-
-            // Update input visibility
-            updateInputVisibility.call(this);
-        }
         // Function to validate romaji input
         function validateRomajiInput() {
             if (!this.perkChallenge || !this.perkChallenge.inputActive) return;
@@ -3265,7 +3257,7 @@
                 const hiraganaText = this.add.text(
                     cardX, 315,
                     currentPerk.hiragana,
-                    { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff' }
+                    { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff' }
                 ).setOrigin(0.5);
 
                 this.perkCardContainer.add(hiraganaText);
@@ -3530,6 +3522,101 @@
                 });
             }
         };
+
+        // Add this activation function to index.html with your other perk activations
+        window.activateGodHammer = function () {
+            // Get the current active scene
+            const scene = game.scene.scenes[0];
+            if (!scene) return;
+
+            // Calculate cooldown based on player luck
+            const baseCooldown = 120000; // 120 seconds in milliseconds
+            const luckFactor = BASE_STATS.LUK / playerLuck;
+            const actualCooldown = Math.ceil(baseCooldown * luckFactor);
+
+            // Create and register timer for periodic hammer drops
+            const hammerTimer = scene.time.addEvent({
+                delay: actualCooldown,
+                callback: dropGodHammer,
+                callbackScope: scene,
+                loop: true
+            });
+
+            // Register with effect system for proper cleanup
+            window.registerEffect('timer', hammerTimer);
+
+            // Immediately drop first hammer
+            dropGodHammer.call(scene);
+        };
+
+        // Function to drop the God Hammer on enemies
+        function dropGodHammer() {
+
+
+            // Skip if no enemies
+            if (!enemies ?? enemies.getChildren().length === 0) return;
+
+            // Get all active enemies on screen
+            const activeEnemies = enemies.getChildren().filter(enemy =>
+                enemy.active &&
+                enemy.x >= 0 && enemy.x <= 1200 &&
+                enemy.y >= 0 && enemy.y <= 800
+            );
+
+            if (activeEnemies.length === 0) return;
+
+            // Select a random enemy to target
+            const targetEnemy = Phaser.Utils.Array.GetRandom(activeEnemies);
+
+            // Create the hammer at a position above the enemy
+            const hammerX = targetEnemy.x;
+            const hammerY = targetEnemy.y - 300;
+
+            // Create the hammer object using the kanji for "hammer": 鎚
+            const hammer = this.add.text(hammerX, hammerY, '鎚', {
+                fontFamily: 'Arial',
+                fontSize: '64px',
+                color: '#FFD700',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+
+            // Add physics body for collision detection
+            this.physics.world.enable(hammer);
+            hammer.body.setSize(hammer.width * 0.8, hammer.height * 0.8);
+
+            // Set properties for the hammer
+            hammer.damage = playerDamage * 4;
+            hammer.damageSourceId = 'godHammer';
+
+            // Register entity for cleanup
+            window.registerEffect('entity', hammer);
+
+            // Add overlap with enemies
+            this.physics.add.overlap(hammer, enemies, function (hammer, enemy) {
+                applyContactDamage.call(this, hammer, enemy, hammer.damage);
+            }, null, this);
+
+            // Add falling animation
+            this.tweens.add({
+                targets: hammer,
+                y: targetEnemy.y,
+                duration: 500,
+                ease: 'Bounce.easeOut',
+                onComplete: function () {
+                    // Fade out and remove the hammer after a short delay
+                    this.parent.scene.tweens.add({
+                        targets: hammer,
+                        alpha: 0,
+                        duration: 500,
+                        delay: 500,
+                        onComplete: function () {
+                            hammer.destroy();
+                        }
+                    });
+                }
+            });
+        }
 
         // Function to start shield cooldown
         window.startShieldCooldown = function (baseDuration = 16000) {

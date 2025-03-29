@@ -929,6 +929,18 @@ const PERKS = {
             // The effect is handled by a state monitor system
             // We'll implement this in the update function
         }
+    },
+    "IMMORTAL_ARM": {
+        kanji: "不死腕",
+        hiragana: "ふしうで",
+        romaji: "fushiude",
+        english: "Immortal Arm",
+        description: "Summons an arm that orbits you and damages enemies",
+        color: "#9932CC", // A deep purple color
+        hoverColor: 0x7922BC,
+        onAcquire: function () {
+            window.activateImmortalArm();
+        }
     }
 };
 

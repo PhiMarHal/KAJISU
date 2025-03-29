@@ -160,11 +160,11 @@
         let gameOverText;
         let restartButton;
         let killCountText;
-        let enemyDamage = 1;
         let playerInvincible = false;
 
         // Track elapsed time
         let elapsedTime = 0; // in seconds
+        let currentEnemyRank = 1;
 
         // Game timers
         let enemySpawner = null;
@@ -176,7 +176,7 @@
         let gameStartTime = 0;
         let baseEnemyHealth = 40;
         let currentEnemyHealth = 40;
-        let baseSpawnDelay = 4000; // 8 seconds between spawns initially
+        let baseSpawnDelay = 4000; // 4 seconds between spawns initially
 
         // Hero experience system
         let playerLevel = 1;
@@ -313,6 +313,7 @@
 
             // Process each rank
             Object.keys(rankEnemyStartTimes).forEach(rank => {
+                const rankNum = parseInt(rank);
                 const startTime = rankEnemyStartTimes[rank];
                 const rankConfig = rankSpawnDelays[rank];
 
@@ -320,23 +321,17 @@
                 if (elapsedTime >= startTime) {
                     // Create a spawner if it doesn't exist
                     if (!enemySpawners[rank]) {
-                        // Determine which spawn function to use based on rank
-                        let spawnFunction;
-                        if (rank == 1) spawnFunction = spawnEnemyRank1;
-                        else if (rank == 2) spawnFunction = spawnEnemyRank2;
-                        // Add more ranks as needed
-
-                        // Create the spawner with initial delay
+                        // Create the spawner with initial delay using a single unified spawn function
                         enemySpawners[rank] = registerTimer(this.time.addEvent({
                             delay: rankConfig.base,
-                            callback: spawnFunction,
+                            callback: function () { spawnEnemyOfRank.call(this, rankNum); },
                             callbackScope: this,
                             loop: true
                         }));
 
-                        // If it's not rank 1, show an introduction
-                        if (rank > 1) {
-                            showRankIntroduction.call(this, rank);
+                        // If it's not rank 1, show an introduction and update current enemy rank
+                        if (rankNum > 1) {
+                            showRankIntroduction.call(this, rankNum);
                         }
                     } else {
                         // Update existing spawner's delay based on elapsed time
@@ -357,7 +352,7 @@
                             enemySpawners[rank].delay = newSpawnDelay;
                             enemySpawners[rank].reset({
                                 delay: newSpawnDelay,
-                                callback: rank == 1 ? spawnEnemyRank1 : spawnEnemyRank2, // Add more ranks as needed
+                                callback: function () { spawnEnemyOfRank.call(this, rankNum); },
                                 callbackScope: this,
                                 loop: true
                             });
@@ -366,9 +361,11 @@
                 }
             });
         }
-
         // Function to show a dramatic kanji-based introduction when a new rank appears
         function showRankIntroduction(rank) {
+            // Update the current enemy rank when a new rank is introduced
+            currentEnemyRank = rank;
+
             // Threat kanji: 危 (ki) - meaning danger/threat/peril
             const threatKanji = '危';
 
@@ -403,8 +400,6 @@
 
                 // Set initial alpha to 0
                 kanji.setAlpha(0);
-
-                // No rotation, keep it legible
 
                 // Fast fade in then fast fade out - total 1 second per kanji
                 this.tweens.add({
@@ -1257,6 +1252,143 @@
             }
         }
 
+        // Function to activate the Immortal Arm (follows pattern of similar abilities)
+        window.activateImmortalArm = function () {
+            // Get the current active scene
+            const scene = game.scene.scenes[0];
+            if (!scene) return;
+
+            // Create the arm entity
+            createImmortalArm.call(scene);
+
+            // Visual effect for the activation
+            const activationEffect = scene.add.text(player.x, player.y - 50, 'IMMORTAL ARM ACTIVATED!', {
+                fontFamily: 'Arial',
+                fontSize: '16px',
+                color: '#9932CC',
+                stroke: '#ffffff',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+
+            scene.tweens.add({
+                targets: activationEffect,
+                y: activationEffect.y - 30,
+                alpha: 0,
+                duration: 1500,
+                onComplete: function () {
+                    activationEffect.destroy();
+                }
+            });
+        };
+
+        // Function to create the Immortal Arm
+        function createImmortalArm() {
+            // Create the arm with the kanji for "arm": 腕
+            const arm = this.add.text(player.x, player.y, '腕', {
+                fontFamily: 'Arial',
+                fontSize: '32px', // Same size as player
+                color: '#9932CC',
+                stroke: '#000000',
+                fontStyle: 'bold',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+
+            // Set properties for the orbiting arm
+            arm.orbitAngle = Math.random() * Math.PI * 2; // Random starting angle
+            arm.orbitRadius = 100; // Distance from player
+            arm.orbitSpeed = 0.02; // Speed of orbit
+            arm.damageSourceId = 'immortalArm'; // Unique ID for damage source
+
+            // Add physics to the arm for enemy overlap detection
+            this.physics.world.enable(arm);
+            arm.body.setSize(arm.width * 0.8, arm.height * 0.8);
+            arm.body.setImmovable(true);
+
+            // Register entity for cleanup
+            window.registerEffect('entity', arm);
+
+            // Add overlap with enemies
+            this.physics.add.overlap(arm, enemies, enemyHitByArm, null, this);
+
+            // Visual effect when spawning
+            this.tweens.add({
+                targets: arm,
+                scale: { from: 0, to: 1 },
+                duration: 500,
+                ease: 'Back.out'
+            });
+
+            // Create and register update timer
+            const updateTimer = this.time.addEvent({
+                delay: 16, // Update every frame (approximately)
+                callback: function () {
+                    updateImmortalArm.call(this, arm);
+                },
+                callbackScope: this,
+                loop: true
+            });
+
+            // Register the timer with the effects system
+            window.registerEffect('timer', updateTimer);
+
+            // Return the arm entity (though we don't need to store it globally)
+            return arm;
+        }
+
+        // Update function for a specific Immortal Arm instance
+        function updateImmortalArm(arm) {
+            if (!arm || !arm.active || !player || !player.active) return;
+
+            // Update the orbit angle
+            arm.orbitAngle += arm.orbitSpeed;
+
+            // Calculate new position based on player position and orbit angle
+            const x = player.x + Math.cos(arm.orbitAngle) * arm.orbitRadius;
+            const y = player.y + Math.sin(arm.orbitAngle) * arm.orbitRadius;
+
+            // Update arm position
+            arm.setPosition(x, y);
+        }
+
+        // Function to handle when an enemy hits the Immortal Arm
+        function enemyHitByArm(arm, enemy) {
+            applyContactDamage.call(this, arm, enemy, playerDamage);
+        }
+
+        // Generic function for handling contact-based damage with cooldown
+        function applyContactDamage(source, enemy, damage, cooldownMs = 1000) {
+            // Skip if either object is already destroyed
+            if (!source.active || !enemy.active) return;
+
+            // Ensure the cooldown tracking property exists on the enemy
+            enemy.lastContactDamage = enemy.lastContactDamage ?? {};
+
+            // Create a unique key for this damage source
+            const sourceKey = source.damageSourceId ?? (source.damageSourceId = `damage_${Date.now()}_${Math.random()}`);
+
+            // Check if we're still in the cooldown period for this damage source
+            const currentTime = this.time.now;
+            if (!enemy.lastContactDamage[sourceKey] || (currentTime - enemy.lastContactDamage[sourceKey] > cooldownMs)) {
+                // Apply damage to enemy
+                enemy.health -= damage;
+                enemy.lastContactDamage[sourceKey] = currentTime;
+
+                // Visual effect for damage
+                this.tweens.add({
+                    targets: enemy,
+                    alpha: 0.3,
+                    duration: 100,
+                    yoyo: true,
+                    repeat: 1
+                });
+
+                // Check if enemy is defeated
+                if (enemy.health <= 0) {
+                    defeatedEnemy.call(this, enemy);
+                }
+            }
+        }
+
         function create() {
             // Initialize perk system first
             initializePerks();
@@ -2030,10 +2162,9 @@
             return DEFEAT_SYNONYMS[Math.floor(Math.random() * DEFEAT_SYNONYMS.length)];
         }
 
-        // Modify the defeatedEnemy function with a more subtle animation
         function defeatedEnemy(enemy) {
-            // Display kanji information in the learning feedback area with a mild animation
-            if (this.learningFeedback) {
+            // Only show learning feedback for enemies of the current (highest) rank
+            if (this.learningFeedback && enemy.rank === currentEnemyRank) {
                 // Set white color for this text
                 const textColor = '#ffffff';
 
@@ -2050,9 +2181,7 @@
                     targets: this.learningFeedback,
                     scale: { from: 0.95, to: 1 }, // Grow slightly
                     duration: 80, // Fast animation (half the time of perk hover)
-                    ease: 'Sine.easeOut',
-                    onComplete: () => {
-                    }
+                    ease: 'Sine.easeOut'
                 });
             }
 
@@ -2067,7 +2196,13 @@
 
             // Update exp bar
             updateExpBar();
+
+            // Check quest progress (this needs to work for all enemy ranks)
+            if (questMode && currentQuest) {
+                checkQuestProgress.call(this, enemy);
+            }
         }
+
 
         function getRandomLegibleColor() {
             return LEGIBLE_COLORS[Math.floor(Math.random() * LEGIBLE_COLORS.length)];
@@ -2341,7 +2476,8 @@
             }
 
             // Apply damage to player
-            playerHealth -= enemyDamage;
+            const damageAmount = enemy.damage ?? 1;
+            playerHealth -= damageAmount;
 
             // Update health text and bar
             updateHealthBar();
@@ -3070,28 +3206,7 @@
         }
 
         function afterImageHitEnemy(afterImage, enemy) {
-            // Skip if either object is already destroyed
-            if (!afterImage.active || !enemy.active) return;
-
-            // Apply damage to enemy (once per second to avoid rapid damage)
-            if (!enemy.lastAfterImageHit || (this.time.now - enemy.lastAfterImageHit > 1000)) {
-                enemy.health -= afterImage.damage;
-                enemy.lastAfterImageHit = this.time.now;
-
-                // Visual effect for damage
-                this.tweens.add({
-                    targets: enemy,
-                    alpha: 0.3,
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 1
-                });
-
-                // Check if enemy is defeated
-                if (enemy.health <= 0) {
-                    defeatedEnemy.call(this, enemy);
-                }
-            }
+            applyContactDamage.call(this, afterImage, enemy, afterImage.damage);
         }
 
         function applyPoisonEffect(enemy, baseDamage) {
@@ -3166,7 +3281,7 @@
                     // Access the main game scene and call spawnEnemy on it
                     const activeScene = game.scene.scenes[0];
                     if (activeScene) {
-                        spawnEnemy.call(activeScene);
+                        spawnEnemyOfRank.call(activeScene, 1);
                         console.log("Debug: Enemy spawned using spawnEnemy()");
                     }
                 }
@@ -3182,6 +3297,9 @@
             level = 1;
             // Reset player status components
             resetPlayerStatus();
+
+            // Reset the current enemy rank
+            currentEnemyRank = 1;
 
             // Reset quest system variables
             questMode = false;

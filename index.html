@@ -11,6 +11,7 @@
     <script src="bestiary.js"></script>
     <script src="perks.js"></script>
     <script src="ballistics.js"></script>
+    <script src="menu.js"></script>
 
     <style>
         body {
@@ -1580,20 +1581,7 @@
             this.physics.world.enable(player);
             player.body.setCollideWorldBounds(true);
 
-            createHealthBar.call(this);
-
-            // Create exp bar background
-            expBarBg = this.add.rectangle(600, 40, 200, 5, 0x333333).setOrigin(0.5);
-
-            // Create exp bar - improved positioning with left-anchored origin
-            expBar = this.add.rectangle(500, 40, 0, 5, 0x00ffff).setOrigin(0, 0.5);
-
-            // Create exp text
-            expText = this.add.text(
-                600, 50,
-                `XP: ${heroExp}/${heroExpToLevel}`,
-                { fontFamily: 'Arial', fontSize: '12px', color: '#00ffff' }
-            ).setOrigin(0.5);
+            GameUI.createUI(this);
 
             // Create player stats text
             playerStatsText = this.add.text(
@@ -1785,15 +1773,14 @@
             });
 
             // Update health bar
-            updateHealthBar();
+            GameUI.updateHealthBar(this);
+            GameUI.updateExpBar(this);
 
             // Update UI
             document.getElementById('kills').textContent = `Enemies killed: ${score}`;
 
             // Update in-game kill count
             killCountText.setText(`Enemies killed: ${score}`);
-
-            expText.setText(`XP: ${heroExp}/${heroExpToLevel}`);
 
             // Calculate difficulty scaling based on elapsed time instead of raw time
             const minutesElapsed = elapsedTime / 60;
@@ -1831,7 +1818,7 @@
                 loop: true
             }));
 
-            updateHealthBar();
+            GameUI.updateHealthBar(this);
 
             console.log(`Health regeneration timer set: +1 HP every ${regenDelay / 1000} seconds`);
         }
@@ -1845,7 +1832,7 @@
                 playerHealth = Math.min(playerHealth + 1, maxPlayerHealth);
 
                 // Update health bar and text
-                updateHealthBar();
+                GameUI.updateHealthBar(this);
 
                 // Show visual effect
                 showRegenEffect(this);
@@ -1899,7 +1886,7 @@
             healthSeparators = this.add.group();
 
             // Initial health segments
-            updateHealthBar();
+            GameUI.updateHealthBar(this);
         }
 
         // Function to update the health bar with proper depth
@@ -1998,7 +1985,7 @@
             heroLevelText.setText(`Hero Level: ${playerLevel}`);
 
             // Update the XP bar with new values
-            updateExpBar();
+            GameUI.updateExpBar(this);
 
             // Show level up cards
             showLevelUpCards.call(this);
@@ -2322,7 +2309,7 @@
             heroExp += rewardXP;
 
             // Update the XP bar
-            updateExpBar();
+            GameUI.updateExpBar(this);
 
             // Increment quest counter for next quest
             questCount++;
@@ -2424,7 +2411,7 @@
             heroExp++;
 
             // Update exp bar
-            updateExpBar();
+            GameUI.updateExpBar(this);
 
             // Check quest progress (this needs to work for all enemy ranks)
             if (questMode && currentQuest) {
@@ -2709,7 +2696,7 @@
             playerHealth -= damageAmount;
 
             // Update health text and bar
-            updateHealthBar();
+            GameUI.updateHealthBar(this);
 
             // Check if player is dead
             if (playerHealth < 1) {
@@ -3125,7 +3112,7 @@
                     // Add enough XP to level up
                     const xpNeeded = heroExpToLevel - heroExp;
                     heroExp += xpNeeded;
-                    updateExpBar();
+                    GameUI.updateExpBar(this);
                     console.log("Debug: Instant level up triggered");
                 }
             }, this);
@@ -3282,7 +3269,7 @@
                 // Award 25% of XP needed for next level
                 const xpReward = Math.ceil(heroExpToLevel * 0.25);
                 heroExp += xpReward;
-                updateExpBar();
+                GameUI.updateExpBar(this);
 
                 // Show XP reward
                 const rewardText = this.add.text(
@@ -3447,7 +3434,7 @@
             updatePlayerStatsText();
 
             // Update health bar
-            updateHealthBar();
+            GameUI.updateHealthBar(this);
 
             // First make all the elements invisible for cleaner transition
             levelUpCards.forEach(element => {
@@ -3887,7 +3874,7 @@
             playerHealth = maxPlayerHealth;
 
             // Update the health bar
-            updateHealthBar();
+            GameUI.updateHealthBar(this);
 
             // Visual effect to show healing
             const scene = game.scene.scenes[0];
@@ -4213,8 +4200,8 @@
             // Reset UI
             heroLevelText.setText('Hero Level: 1');
             player.setFontSize(32);
-            updateHealthBar();
-            updateExpBar();
+            GameUI.updateHealthBar(this);
+            GameUI.updateExpBar(this);
             killCountText.setText('Enemies killed: 0');
 
             // Reset all perk effects

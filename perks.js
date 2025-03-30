@@ -70,7 +70,7 @@ const PERKS = {
     "RAMEN": {
         kanji: "拉麺",
         hiragana: "らーめん",
-        romaji: "rāmen",
+        romaji: "raamen",
         english: "Ramen",
         description: "+1 END and fully heals",
         color: "#FFA07A",
@@ -512,7 +512,7 @@ const PERKS = {
     "YELLOW_CRICKET": {
         kanji: "黄蟋蟀",
         hiragana: "きこおろぎ",
-        romaji: "kikourogi",
+        romaji: "kikoorogi",
         english: "Yellow Cricket",
         description: "+1 AGI",
         color: "#ffd700",
@@ -781,7 +781,7 @@ const PERKS = {
     "GREEN_CRICKET": {
         kanji: "緑蟋蟀",
         hiragana: "みどりこおろぎ",
-        romaji: "midorikourogi",
+        romaji: "midorikoorogi",
         english: "Green Cricket",
         description: "+1 LUK",
         color: "#00cc66",

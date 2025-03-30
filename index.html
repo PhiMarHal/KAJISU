@@ -45,11 +45,63 @@
             pointer-events: none;
             font-size: 14px;
         }
+
+        /* Game border decorations */
+        .border-decoration {
+            position: absolute;
+            background-color: transparent;
+            border-style: solid;
+            border-color: #FFD700;
+            /* Golden color */
+            z-index: 5;
+        }
+
+        /* Top-left L */
+        #border-top-left {
+            top: -8px;
+            left: -8px;
+            width: 200px;
+            height: 100px;
+            border-width: 8px 0 0 8px;
+        }
+
+        /* Top-right L */
+        #border-top-right {
+            top: -8px;
+            right: -8px;
+            width: 100px;
+            height: 200px;
+            border-width: 8px 8px 0 0;
+        }
+
+        /* Bottom-left L */
+        #border-bottom-left {
+            bottom: -8px;
+            left: -8px;
+            width: 100px;
+            height: 200px;
+            border-width: 0 0 8px 8px;
+        }
+
+        /* Bottom-right L */
+        #border-bottom-right {
+            bottom: -8px;
+            right: -8px;
+            width: 200px;
+            height: 100px;
+            border-width: 0 8px 8px 0;
+        }
     </style>
 </head>
 
 <body>
     <div id="game-container">
+        <!-- L-shaped border decorations -->
+        <div id="border-top-left" class="border-decoration"></div>
+        <div id="border-top-right" class="border-decoration"></div>
+        <div id="border-bottom-left" class="border-decoration"></div>
+        <div id="border-bottom-right" class="border-decoration"></div>
+
         <div id="game-ui">
             <div id="level">Time Survived: 00:00:00</div>
             <div id="kills">Enemies killed: 0</div>
@@ -148,7 +200,6 @@
         let berserkMultiplier = 1.0;
         let healthBar;
         let healthBarBg;
-        let healthText;
         let expBar;
         let expBarBg;
         let expText;
@@ -1529,24 +1580,13 @@
             this.physics.world.enable(player);
             player.body.setCollideWorldBounds(true);
 
-            // Create health bar background
-            healthBarBg = this.add.rectangle(600, 25, 200, 10, 0x333333).setOrigin(0.5);
-
-            // Create health bar - improved positioning with left-anchored origin
-            healthBar = this.add.rectangle(500, 25, 200, 10, 0x00ff00).setOrigin(0, 0.5);
+            createHealthBar.call(this);
 
             // Create exp bar background
             expBarBg = this.add.rectangle(600, 40, 200, 5, 0x333333).setOrigin(0.5);
 
             // Create exp bar - improved positioning with left-anchored origin
             expBar = this.add.rectangle(500, 40, 0, 5, 0x00ffff).setOrigin(0, 0.5);
-
-            // Create health text
-            healthText = this.add.text(
-                600, 15,
-                `Health: ${playerHealth}/${maxPlayerHealth}`,
-                { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }
-            ).setOrigin(0.5);
 
             // Create exp text
             expText = this.add.text(
@@ -1753,8 +1793,6 @@
             // Update in-game kill count
             killCountText.setText(`Enemies killed: ${score}`);
 
-            // Update health and exp text
-            healthText.setText(`Health: ${Math.ceil(playerHealth)}/${maxPlayerHealth}`);
             expText.setText(`XP: ${heroExp}/${heroExpToLevel}`);
 
             // Calculate difficulty scaling based on elapsed time instead of raw time
@@ -1792,6 +1830,8 @@
                 callbackScope: this,
                 loop: true
             }));
+
+            updateHealthBar();
 
             console.log(`Health regeneration timer set: +1 HP every ${regenDelay / 1000} seconds`);
         }
@@ -1832,20 +1872,97 @@
             });
         }
 
-        // Function to update the health bar display
+        // Function to create the health bar with proper depth
+        function createHealthBar() {
+            // Remove old health bar elements if they exist
+            if (healthBar) healthBar.destroy();
+            if (healthBarBg) healthBarBg.destroy();
+
+            // Container dimensions
+            const barWidth = 300;
+            const barHeight = 10;
+            const borderWidth = 2;
+            const innerMargin = 2; // Margin between border and health segments
+
+            // Create new container with golden border - set high depth
+            healthBarBg = this.add.rectangle(600, 20, barWidth + (borderWidth * 2), barHeight + (borderWidth * 2), 0xFFD700)
+                .setDepth(100); // Set high depth to ensure it's above game elements
+
+            // Create inner black background with margin
+            const innerBg = this.add.rectangle(600, 20, barWidth, barHeight, 0x000000)
+                .setDepth(100); // Same high depth
+
+            // Create a container for segments
+            healthSegments = this.add.group();
+
+            // Container for separators
+            healthSeparators = this.add.group();
+
+            // Initial health segments
+            updateHealthBar();
+        }
+
+        // Function to update the health bar with proper depth
         function updateHealthBar() {
-            // Calculate health percentage (clamped to valid range)
-            const healthPercentage = Math.max(0, Math.min(1, playerHealth / maxPlayerHealth));
+            // If segments don't exist yet or scene is not available, exit
+            if (!healthSegments || !healthSegments.scene) return;
 
-            // Set the width based on percentage of maximum width
-            healthBar.width = healthPercentage * 200;
+            // Clear existing segments and separators
+            healthSegments.clear(true, true);
+            if (healthSeparators) healthSeparators.clear(true, true);
 
-            // Position the bar correctly from the left edge (500)
-            // This is the key fix - we keep the origin at left (0) instead of center
-            healthBar.x = 500;
+            // Container dimensions
+            const barWidth = 300;
+            const barHeight = 10;
+            const segmentGap = 4; // Gap between segments
+            const innerMargin = 2; // Margin from the golden border
 
-            // Update the health text
-            healthText.setText(`Health: ${Math.ceil(playerHealth)}/${maxPlayerHealth}`);
+            // Actual content width (excluding margins)
+            const contentWidth = barWidth - (innerMargin * 2);
+
+            // Calculate segment width based on max health
+            const totalGapWidth = (maxPlayerHealth - 1) * segmentGap;
+            const segmentWidth = (contentWidth - totalGapWidth) / maxPlayerHealth;
+
+            // Get the current scene
+            const scene = healthSegments.scene;
+
+            // Starting X position (accounting for margin)
+            const startPosX = 450 + innerMargin;
+
+            // Create each segment
+            for (let i = 0; i < maxPlayerHealth; i++) {
+                // Only create filled segments for current health
+                const isFilled = i < playerHealth;
+
+                // Calculate segment position
+                const segmentX = startPosX + (i * (segmentWidth + segmentGap));
+
+                // Create segment with high depth
+                const segment = scene.add.rectangle(
+                    segmentX + (segmentWidth / 2),
+                    20,
+                    segmentWidth,
+                    barHeight - (innerMargin * 2),
+                    isFilled ? 0x00cc00 : 0x333333
+                ).setDepth(100); // Set high depth
+
+                // Add to group for easy management
+                healthSegments.add(segment);
+
+                // Add golden separator after each segment (except the last one)
+                if (i < maxPlayerHealth - 1) {
+                    const separatorX = segmentX + segmentWidth + (segmentGap / 2);
+                    const separator = scene.add.rectangle(
+                        separatorX,
+                        20,
+                        2,
+                        barHeight - (innerMargin * 2),
+                        0xFFD700
+                    ).setDepth(100); // Set high depth
+                    healthSeparators.add(separator);
+                }
+            }
         }
 
         // Function to update the experience bar display
@@ -2098,6 +2215,8 @@
                 }
             });
         }
+
+
 
         // Start a new quest
         function startNewQuest() {

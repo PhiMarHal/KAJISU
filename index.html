@@ -542,6 +542,9 @@
             if (activeScene && activeScene.physics) {
                 activeScene.physics.pause();
             }
+            if (activeScene.tweens) {
+                activeScene.tweens.pauseAll();
+            }
 
             // Pause all registered timers
             gameTimers.forEach(timer => {
@@ -595,6 +598,9 @@
             const activeScene = game.scene.scenes[0];
             if (activeScene && activeScene.physics) {
                 activeScene.physics.resume();
+            }
+            if (activeScene.tweens) {
+                activeScene.tweens.resumeAll();
             }
 
             // Resume all registered timers
@@ -2478,122 +2484,9 @@
             }
         }
 
-        function createFireAtLocation(x, y) {
-            // Create the fire object using the kanji for fire: 火
-            const fire = this.add.text(x, y, '火', {
-                fontFamily: 'Arial',
-                fontSize: `${projectileSizeFactor * playerDamage}px`,
-                color: '#FF4500',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Add physics to fire for enemy overlap detection
-            this.physics.world.enable(fire);
-            fire.body.setSize(fire.width * 0.8, fire.height * 0.8); // Slightly smaller hitbox for better feel
-            fire.body.setImmovable(true);
-
-            // Set fire properties
-            fire.damage = playerDamage; // Damage per tick
-            fire.lastTickTime = 0; // Track the last time damage was applied
-            fire.tickInterval = 1000; // Damage every 1 second (in ms)
-
-            // Calculate duration based on player luck (in ms)
-            const duration = playerLuck * 1000;
-
-            // Create an array to track enemies already in the fire
-            fire.burningEnemies = [];
-
-            // Register entity for cleanup
-            window.registerEffect('entity', fire);
-
-            // Add overlap with enemies
-            const fireCollider = this.physics.add.overlap(fire, enemies, enemyInFire, null, this);
-
-            // Add pulsing animation for visual effect
-            this.tweens.add({
-                targets: fire,
-                scale: { from: 0.9, to: 1.1 },
-                duration: 500,
-                yoyo: true,
-                repeat: -1
-            });
-
-            // Gradually fade out and remove after duration
-            this.tweens.add({
-                targets: fire,
-                alpha: { from: 1, to: 0.2 },
-                duration: duration,
-                onComplete: function () {
-                    // Remove collider before destroying fire
-                    fireCollider.destroy();
-                    fire.destroy();
-                }
-            });
-
-            // For dramatic effect, add a brief expansion animation on creation
-            fire.setScale(0.5);
-            this.tweens.add({
-                targets: fire,
-                scale: 1,
-                duration: 200,
-                ease: 'Back.out'
-            });
-        }
-
         function updatePlayerStateEffects() {
             // This now just calls the centralized player status system
             updatePlayerStatus();
-        }
-
-        function enemyInFire(fire, enemy) {
-            // Skip if either object doesn't exist
-            if (!fire.active || !enemy.active) return;
-
-            // Get current time
-            const currentTime = this.time.now;
-
-            // Check if this enemy is already being tracked
-            const enemyIndex = fire.burningEnemies.findIndex(e => e.enemy === enemy);
-
-            if (enemyIndex === -1) {
-                // Enemy not tracked yet, add it with current time
-                fire.burningEnemies.push({
-                    enemy: enemy,
-                    lastDamageTime: currentTime - fire.tickInterval // Apply damage immediately first time
-                });
-            }
-
-            // Find the enemy again (it's definitely in the array now)
-            const enemyData = fire.burningEnemies.find(e => e.enemy === enemy);
-
-            // Apply damage if enough time has passed
-            if (currentTime - enemyData.lastDamageTime >= fire.tickInterval) {
-                // Apply damage
-                enemy.health -= fire.damage;
-
-                // Update last damage time
-                enemyData.lastDamageTime = currentTime;
-
-                // Visual effect for fire damage
-                this.tweens.add({
-                    targets: enemy,
-                    alpha: 0.4,
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 1
-                });
-
-                // Check if enemy is defeated
-                if (enemy.health <= 0) {
-                    defeatedEnemy.call(this, enemy);
-
-                    // Remove enemy from tracked array when destroyed
-                    const updatedIndex = fire.burningEnemies.findIndex(e => e.enemy === enemy);
-                    if (updatedIndex !== -1) {
-                        fire.burningEnemies.splice(updatedIndex, 1);
-                    }
-                }
-            }
         }
 
         function createSplitProjectiles(projectile, enemy) {

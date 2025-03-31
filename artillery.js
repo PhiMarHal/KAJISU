@@ -186,64 +186,85 @@ ProjectileComponentSystem.registerComponent('splitEffect', {
 // Register component for fire effect
 ProjectileComponentSystem.registerComponent('fireEffect', {
     initialize: function (projectile) {
-        // Visual indicator
+        // Visual indicator for the projectile itself
         projectile.setColor('#FF4500');
+        this.fireDamage = playerDamage; // Store damage based on player state when projectile was created
+        this.fireDuration = playerLuck * 1000; // Store duration based on luck
+        this.fireTickInterval = 1000; // 1 second
     },
 
     onHit: function (projectile, enemy, scene) {
-        // Create fire at the enemy's position
-        // Create the fire object using the kanji for fire: 火
-        const fire = scene.add.text(enemy.x, enemy.y, '火', {
+        // Don't create fire if enemy is already dead
+        if (!enemy || !enemy.active || enemy.health <= 0) return;
+
+        // Create fire at the enemy's last known position (or projectile impact)
+        const fireX = projectile.x;
+        const fireY = projectile.y;
+
+        // --- Fire Object Logic START ---
+        const fire = scene.add.text(fireX, fireY, '火', {
             fontFamily: 'Arial',
-            fontSize: `${projectileSizeFactor * playerDamage}px`,
+            fontSize: `${projectileSizeFactor * this.fireDamage}px`, // Use stored damage
             color: '#FF4500',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // Add physics to fire for enemy overlap detection
         scene.physics.world.enable(fire);
         fire.body.setSize(fire.width * 0.8, fire.height * 0.8);
+        fire.body.setAllowGravity(false); // Ensure it doesn't fall if gravity is ever enabled
         fire.body.setImmovable(true);
 
-        // Set fire properties
-        fire.damage = playerDamage; // Damage per tick
-        fire.lastTickTime = 0; // Track the last time damage was applied
-        fire.tickInterval = 1000; // Damage every 1 second (in ms)
+        // Custom properties for the fire object
+        fire.damagePerTick = this.fireDamage; // Use damage from the projectile component
+        fire.tickInterval = this.fireTickInterval;
+        fire.damageSourceId = `fire_${Date.now()}_${Math.random()}`; // Unique ID for contact damage cooldown
 
-        // Calculate duration based on player luck (in ms)
-        const duration = playerLuck * 1000;
-
-        // Create an array to track enemies already in the fire
-        fire.burningEnemies = [];
-
-        // Register entity for cleanup
+        // Register the fire entity for cleanup on game reset
         window.registerEffect('entity', fire);
 
-        // Add overlap with enemies
-        const fireCollider = scene.physics.add.overlap(fire, enemies, enemyInFire, null, scene);
+        // --- Damage Ticking Timer ---
+        const damageTimer = registerTimer(scene.time.addEvent({
+            delay: fire.tickInterval,
+            callback: function () {
+                if (!fire.active) return; // Stop if fire is gone
 
-        // Add pulsing animation for visual effect
-        scene.tweens.add({
+                // Find enemies overlapping the fire
+                scene.physics.overlap(fire, enemies, (fireInstance, overlappedEnemy) => {
+                    // Use the generic contact damage function from index.html
+                    // Pass a shorter cooldown specific to fire ticks (e.g., slightly less than tick interval)
+                    applyContactDamage.call(scene, fireInstance, overlappedEnemy, fireInstance.damagePerTick, fireInstance.tickInterval - 100);
+                });
+            },
+            callbackScope: scene, // Ensure 'this' is the scene inside callback
+            loop: true
+        }));
+
+        // --- Visual Tweens (Managed by Scene Tween Manager) ---
+        const pulseTween = scene.tweens.add({
             targets: fire,
             scale: { from: 0.9, to: 1.1 },
             duration: 500,
             yoyo: true,
-            repeat: -1
+            repeat: -1 // Loop indefinitely until stopped
         });
 
-        // Gradually fade out and remove after duration
-        scene.tweens.add({
+        const fadeTween = scene.tweens.add({
             targets: fire,
-            alpha: { from: 1, to: 0.2 },
-            duration: duration,
+            alpha: { from: 1, to: 0 },
+            duration: this.fireDuration, // Use stored duration
+            delay: 100, // Start fade slightly after creation
             onComplete: function () {
-                // Remove collider before destroying fire
-                fireCollider.destroy();
-                fire.destroy();
+                // Cleanup when fade is complete
+                damageTimer.remove(); // Stop the damage timer
+                pulseTween.stop(); // Stop the pulse tween
+                // Remove from effect registry? (Optional, depends on how reset works)
+                // const index = activeEffects.entities.indexOf(fire);
+                // if (index > -1) activeEffects.entities.splice(index, 1);
+                fire.destroy(); // Destroy the fire object
             }
         });
 
-        // For dramatic effect, add a brief expansion animation on creation
+        // Initial spawn effect
         fire.setScale(0.5);
         scene.tweens.add({
             targets: fire,
@@ -251,5 +272,6 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
             duration: 200,
             ease: 'Back.out'
         });
+        // --- Fire Object Logic END ---
     }
 });

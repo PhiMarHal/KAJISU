@@ -199,6 +199,7 @@
         let playerFireRate = basePlayerFireRate; // Multiplier for shooting rate
         let projectileSizeFactor = 4; // Multiply player damage by this to get proj size
         let berserkMultiplier = 1.0;
+        let archerMultiplier = 1.0;
         let healthBar;
         let healthBarBg;
         let expBar;
@@ -559,6 +560,11 @@
 
         function getEffectiveDamage() {
             return playerDamage * berserkMultiplier;
+        }
+
+        // Function to calculate the effective fire rate
+        function getEffectiveFireRate() {
+            return playerFireRate * archerMultiplier;
         }
 
         // Resume the game and hide overlay
@@ -3267,8 +3273,23 @@
             // If this is the final card (4th), give XP reward
             if (this.perkChallenge.currentCards >= this.perkChallenge.maxCards) {
                 // Award 25% of XP needed for next level
+                const currentLevel = playerLevel;
+                const currentExpToLevel = heroExpToLevel;
+                const currentExp = heroExp;
+
                 const xpReward = Math.ceil(heroExpToLevel * 0.25);
+                console.log(`Level ${currentLevel}: Calculating reward as 25% of ${currentExpToLevel} = ${xpReward}`);
+
                 heroExp += xpReward;
+                console.log(`XP before: ${currentExp}, after: ${heroExp}, needed: ${heroExpToLevel}`);
+
+                // After updating the XP bar, check if something unexpected happened
+                setTimeout(() => {
+                    console.log(`Post-update check: Level ${playerLevel}, XP ${heroExp}/${heroExpToLevel}`);
+                    if (playerLevel > currentLevel) {
+                        console.log(`WARNING: Level changed from ${currentLevel} to ${playerLevel} after challenge reward!`);
+                    }
+                }, 100);
                 GameUI.updateExpBar(this);
 
                 // Show XP reward
@@ -3590,7 +3611,7 @@
 
                     // Update the projectile timer if it exists
                     if (projectileFirer) {
-                        const newDelay = shootingDelay / playerFireRate;
+                        const newDelay = shootingDelay / getEffectiveFireRate();
                         projectileFirer.delay = newDelay;
 
                         // Reset with proper callback scope
@@ -3681,7 +3702,7 @@
             // Create the hammer object using the kanji for "hammer": 鎚
             const hammer = this.add.text(hammerX, hammerY, '鎚', {
                 fontFamily: 'Arial',
-                fontSize: '64px',
+                fontSize: '96px',
                 color: '#FFD700',
                 stroke: '#000000',
                 strokeThickness: 4
@@ -3689,7 +3710,7 @@
 
             // Add physics body for collision detection
             this.physics.world.enable(hammer);
-            hammer.body.setSize(hammer.width * 0.8, hammer.height * 0.8);
+            hammer.body.setSize(hammer.width * 1, hammer.height * 1);
 
             // Set properties for the hammer
             hammer.damage = playerDamage * 4;
@@ -4208,14 +4229,6 @@
             clearAllPerkEffects();
             acquiredPerks = [];
 
-            // Reset player stats to base values
-            playerHealth = basePlayerHealth;
-            maxPlayerHealth = baseMaxHealth;
-            playerSpeed = basePlayerSpeed;
-            playerDamage = basePlayerDamage;
-            playerLuck = basePlayerLuck;
-            playerFireRate = basePlayerFireRate;
-
             // Clear learning feedback
             if (this.learningFeedback) {
                 this.learningFeedback.setText('');
@@ -4255,7 +4268,7 @@
 
             // Update projectile firer creation with timer registration
             projectileFirer = registerTimer(this.time.addEvent({
-                delay: shootingDelay / playerFireRate,
+                delay: shootingDelay / getEffectiveFireRate(),
                 callback: fireProjectile,
                 callbackScope: this,
                 loop: true

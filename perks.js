@@ -122,7 +122,7 @@ const PERKS = {
     "TEMPURA": {
         kanji: "天麩羅",
         hiragana: "てんぷら",
-        romaji: "tempura",
+        romaji: "tenpura",
         english: "Tempura",
         description: "+1 END and fully heals",
         color: "#FFD700",
@@ -954,6 +954,18 @@ const PERKS = {
             window.activateGodHammer();
         }
     },
+    "ETERNAL_RHYTHM": {
+        kanji: "永律",
+        hiragana: "えいりつ",
+        romaji: "eiritsu",
+        english: "Eternal Rhythm",
+        description: "While moving, gradually increases fire rate up to 2x",
+        color: "#FFDD00",
+        hoverColor: 0xDDBB00,
+        onAcquire: function () {
+            // The component is added by the PlayerPerkRegistry system
+        }
+    }
 };
 
 // Helper functions for the perk system

@@ -17,7 +17,7 @@ const UI = {
         height: 5,
         borderWidth: 2,
         innerMargin: 1,
-        y: 40,
+        y: 44,
         centerX: 600,
         startX: 500,
         textColor: "#00ffff",

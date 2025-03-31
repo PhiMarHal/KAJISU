@@ -487,6 +487,251 @@ PlayerPerkRegistry.registerPerkEffect('ETERNAL_RHYTHM', {
     }
 });
 
+// God Hammer component
+PlayerComponentSystem.registerComponent('godHammerAbility', {
+    // Store timer reference
+    hammerTimer: null,
+
+    initialize: function (player) {
+        console.log("Initializing God Hammer ability");
+
+        // Get the scene
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Create and register timer in one step
+        this.hammerTimer = CooldownManager.createTimer({
+            statName: 'luck',
+            baseCooldown: 120000,
+            formula: 'divide',
+            component: this,
+            callback: dropGodHammer,
+            callbackScope: scene
+        });
+
+        // Immediately drop first hammer
+        dropGodHammer.call(scene);
+    },
+
+    cleanup: function (player) {
+        console.log("Deactivating God Hammer ability");
+
+        // Single call to remove timer
+        CooldownManager.removeTimer(this.hammerTimer);
+        this.hammerTimer = null;
+    }
+});
+
+// Function to drop the God Hammer on enemies
+function dropGodHammer() {
+    // Skip if no enemies
+    if (!enemies || enemies.getChildren().length === 0) return;
+
+    // Get all active enemies on screen
+    const activeEnemies = enemies.getChildren().filter(enemy =>
+        enemy.active &&
+        enemy.x >= 0 && enemy.x <= 1200 &&
+        enemy.y >= 0 && enemy.y <= 800
+    );
+
+    if (activeEnemies.length === 0) return;
+
+    // Select a random enemy to target
+    const targetEnemy = Phaser.Utils.Array.GetRandom(activeEnemies);
+
+    // Create the hammer at a position above the enemy
+    const hammerX = targetEnemy.x;
+    const hammerY = targetEnemy.y - 300;
+
+    // Create the hammer object using the kanji for "hammer": 鎚
+    const hammer = this.add.text(hammerX, hammerY, '鎚', {
+        fontFamily: 'Arial',
+        fontSize: '96px',
+        color: '#FFD700',
+        stroke: '#000000',
+        strokeThickness: 4
+    }).setOrigin(0.5);
+
+    // Add physics body for collision detection
+    this.physics.world.enable(hammer);
+    hammer.body.setSize(hammer.width * 1, hammer.height * 1);
+
+    // Set properties for the hammer
+    hammer.damage = playerDamage * 4;
+    hammer.damageSourceId = 'godHammer';
+
+    // Register entity for cleanup
+    window.registerEffect('entity', hammer);
+
+    // Add overlap with enemies
+    this.physics.add.overlap(hammer, enemies, function (hammer, enemy) {
+        applyContactDamage.call(this, hammer, enemy, hammer.damage);
+    }, null, this);
+
+    // Add falling animation
+    this.tweens.add({
+        targets: hammer,
+        y: targetEnemy.y,
+        duration: 500,
+        ease: 'Bounce.easeOut',
+        onComplete: function () {
+            // Fade out and remove the hammer after a short delay
+            this.parent.scene.tweens.add({
+                targets: hammer,
+                alpha: 0,
+                duration: 500,
+                delay: 500,
+                onComplete: function () {
+                    hammer.destroy();
+                }
+            });
+        }
+    });
+}
+
+// Register the perk with the PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('GOD_HAMMER', {
+    componentName: 'godHammerAbility',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
+// Activation function (will be called from perks.js)
+window.activateGodHammer = function () {
+    // Simply add the component through the component system
+    PlayerComponentSystem.addComponent('godHammerAbility');
+};
+
+// Register component for Divine Beacon ability
+PlayerComponentSystem.registerComponent('divineBeaconAbility', {
+    // Store timer reference
+    beaconTimer: null,
+
+    initialize: function (player) {
+        console.log("Initializing Divine Beacon ability");
+
+        // Get the scene
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Create and register timer in one step
+        this.beaconTimer = CooldownManager.createTimer({
+            statName: 'luck',
+            baseCooldown: 60000,
+            formula: 'divide',
+            component: this,
+            callback: this.spawnBeacon,
+            callbackScope: scene
+        });
+
+        // Immediately spawn first beacon
+        this.spawnBeacon.call(scene);
+    },
+
+    spawnBeacon: function () {
+        // Skip if game is over or paused
+        if (gameOver || gamePaused) return;
+
+        // Random position on screen (with padding from edges)
+        const x = Phaser.Math.Between(100, 1100);
+        const y = Phaser.Math.Between(100, 700);
+
+        // Create the beacon using the kanji for "heaven/sky": 天
+        const beacon = this.add.text(x, y, '天', {
+            fontFamily: 'Arial',
+            fontSize: '24px',
+            color: '#FFD700', // Gold color
+            stroke: '#FFFFFF',
+            strokeThickness: 4,
+            shadow: {
+                offsetX: 0,
+                offsetY: 0,
+                color: '#FFFFFF',
+                blur: 10,
+                stroke: true,
+                fill: true
+            }
+        }).setOrigin(0.5);
+
+        // Add physics body for collision detection
+        this.physics.world.enable(beacon);
+        beacon.body.setSize(beacon.width * 0.8, beacon.height * 0.8);
+
+        // Set as immovable
+        beacon.body.immovable = true;
+
+        // Add a unique ID to prevent duplicate collection
+        beacon.beaconId = 'beacon_' + Date.now() + '_' + Math.random();
+
+        // Register entity for cleanup
+        window.registerEffect('entity', beacon);
+
+        // Add overlap with player
+        this.physics.add.overlap(beacon, player, function (beacon, player) {
+            // Only collect if not already collected
+            if (beacon.collected) return;
+
+            // Mark as collected to prevent multiple triggers
+            beacon.collected = true;
+
+            // Trigger hammer drop
+            dropGodHammer.call(this);
+
+            // Visual effect for collection
+            this.tweens.add({
+                targets: beacon,
+                alpha: 0,
+                scale: 2,
+                duration: 500,
+                onComplete: function () {
+                    beacon.destroy();
+                }
+            });
+
+            // Create radial flash effect
+            const flash = this.add.circle(beacon.x, beacon.y, 5, 0xFFFFFF, 1);
+            this.tweens.add({
+                targets: flash,
+                radius: 100,
+                alpha: 0,
+                duration: 500,
+                onComplete: function () {
+                    flash.destroy();
+                }
+            });
+
+        }, null, this);
+
+        // Add pulsing animation
+        this.tweens.add({
+            targets: beacon,
+            scale: { from: 0.9, to: 1.1 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1
+        });
+    },
+
+    cleanup: function (player) {
+        console.log("Deactivating Divine Beacon ability");
+
+        // Single call to remove timer
+        CooldownManager.removeTimer(this.beaconTimer);
+        this.beaconTimer = null;
+    }
+});
+
+// Register the perk with the PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('DIVINE_BEACON', {
+    componentName: 'divineBeaconAbility',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
 // Function to update player status in game loop
 function updatePlayerStatus() {
     // Skip if game is over or paused
@@ -497,6 +742,9 @@ function updatePlayerStatus() {
 
     // Process update event for all active components
     PlayerComponentSystem.processEvent('update');
+
+    // Update cooldowns based on stat changes
+    CooldownManager.update();
 }
 
 // Function to reset player status (call during game restart)

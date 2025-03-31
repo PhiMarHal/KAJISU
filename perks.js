@@ -951,7 +951,7 @@ const PERKS = {
         color: "#FFD700",
         hoverColor: 0xDAA520,
         onAcquire: function () {
-            window.activateGodHammer();
+            // component added in hero.js
         }
     },
     "ETERNAL_RHYTHM": {
@@ -964,6 +964,18 @@ const PERKS = {
         hoverColor: 0xDDBB00,
         onAcquire: function () {
             // The component is added by the PlayerPerkRegistry system
+        }
+    },
+    "DIVINE_BEACON": {
+        kanji: "天標",
+        hiragana: "てんしるべ",
+        romaji: "tenshirube",
+        english: "Divine Beacon",
+        description: "Periodically spawns heavenly markers that summon God Hammers when collected",
+        color: "#FFD700",
+        hoverColor: 0xDEB887,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
         }
     }
 };

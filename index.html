@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Word Survivors</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
+    <script src="cooldown.js"></script>
     <script src="hero.js"></script>
     <script src="artillery.js"></script>
     <script src="bestiary.js"></script>
@@ -2459,75 +2460,18 @@
                 this.tweens.add({
                     targets: enemy,
                     alpha: 0.3,
-                    duration: 50,
+                    duration: 100,
                     yoyo: true,
-                    repeat: 1
+                    repeat: 0
                 });
             }
 
-            // Handle projectile destruction
-            if (!projectile.isLandmine) {
-                // Handle special projectile removal (orbiting, etc.)
-                if (projectile.isOrbiting) {
-                    // Remove from orbiting projectiles array
-                    const index = orbitingProjectiles.indexOf(projectile);
-                    if (index !== -1) {
-                        orbitingProjectiles.splice(index, 1);
-                    }
-                }
-
-                // Standard projectile removal
-                projectile.destroy();
-            } else {
-                // Landmines are destroyed after they hit something
-                projectile.destroy();
-            }
+            projectile.destroy();
         }
 
         function updatePlayerStateEffects() {
             // This now just calls the centralized player status system
             updatePlayerStatus();
-        }
-
-        function createSplitProjectiles(projectile, enemy) {
-            // Calculate the original trajectory angle
-            let angle = 0;
-
-            // If projectile has velocity, calculate angle from it
-            if (projectile.body.velocity.x !== 0 || projectile.body.velocity.y !== 0) {
-                angle = Math.atan2(projectile.body.velocity.y, projectile.body.velocity.x);
-            }
-
-            // Calculate perpendicular angles (90 degrees to each side)
-            const angle1 = angle + Math.PI / 2;
-            const angle2 = angle - Math.PI / 2;
-
-            // Create the two split projectiles
-            for (const splitAngle of [angle1, angle2]) {
-                // Create a new projectile at the enemy's position
-                const splitProjectile = createProjectileBase(this, enemy.x, enemy.y, '#1E90FF', '✧');
-
-                // Set half damage for split projectiles
-                splitProjectile.damage = projectile.damage / 2;
-
-                // Mark that this is a split projectile to prevent infinite splitting
-                splitProjectile.hasSplit = true;
-
-                // Set velocity based on the calculated angles
-                const speed = 300; // Slightly slower than regular projectiles
-                splitProjectile.body.setVelocity(
-                    Math.cos(splitAngle) * speed,
-                    Math.sin(splitAngle) * speed
-                );
-
-                // Add visual effect
-                this.tweens.add({
-                    targets: splitProjectile,
-                    alpha: { from: 0.7, to: 1 },
-                    scale: { from: 0.7, to: 1 },
-                    duration: 200
-                });
-            }
         }
 
         function playerHitEnemy(player, enemy) {
@@ -3543,101 +3487,6 @@
             }
         };
 
-        // Add this activation function to index.html with your other perk activations
-        window.activateGodHammer = function () {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-            if (!scene) return;
-
-            // Calculate cooldown based on player luck
-            const baseCooldown = 120000; // 120 seconds in milliseconds
-            const luckFactor = BASE_STATS.LUK / playerLuck;
-            const actualCooldown = Math.ceil(baseCooldown * luckFactor);
-
-            // Create and register timer for periodic hammer drops
-            const hammerTimer = scene.time.addEvent({
-                delay: actualCooldown,
-                callback: dropGodHammer,
-                callbackScope: scene,
-                loop: true
-            });
-
-            // Register with effect system for proper cleanup
-            window.registerEffect('timer', hammerTimer);
-
-            // Immediately drop first hammer
-            dropGodHammer.call(scene);
-        };
-
-        // Function to drop the God Hammer on enemies
-        function dropGodHammer() {
-
-
-            // Skip if no enemies
-            if (!enemies ?? enemies.getChildren().length === 0) return;
-
-            // Get all active enemies on screen
-            const activeEnemies = enemies.getChildren().filter(enemy =>
-                enemy.active &&
-                enemy.x >= 0 && enemy.x <= 1200 &&
-                enemy.y >= 0 && enemy.y <= 800
-            );
-
-            if (activeEnemies.length === 0) return;
-
-            // Select a random enemy to target
-            const targetEnemy = Phaser.Utils.Array.GetRandom(activeEnemies);
-
-            // Create the hammer at a position above the enemy
-            const hammerX = targetEnemy.x;
-            const hammerY = targetEnemy.y - 300;
-
-            // Create the hammer object using the kanji for "hammer": 鎚
-            const hammer = this.add.text(hammerX, hammerY, '鎚', {
-                fontFamily: 'Arial',
-                fontSize: '96px',
-                color: '#FFD700',
-                stroke: '#000000',
-                strokeThickness: 4
-            }).setOrigin(0.5);
-
-            // Add physics body for collision detection
-            this.physics.world.enable(hammer);
-            hammer.body.setSize(hammer.width * 1, hammer.height * 1);
-
-            // Set properties for the hammer
-            hammer.damage = playerDamage * 4;
-            hammer.damageSourceId = 'godHammer';
-
-            // Register entity for cleanup
-            window.registerEffect('entity', hammer);
-
-            // Add overlap with enemies
-            this.physics.add.overlap(hammer, enemies, function (hammer, enemy) {
-                applyContactDamage.call(this, hammer, enemy, hammer.damage);
-            }, null, this);
-
-            // Add falling animation
-            this.tweens.add({
-                targets: hammer,
-                y: targetEnemy.y,
-                duration: 500,
-                ease: 'Bounce.easeOut',
-                onComplete: function () {
-                    // Fade out and remove the hammer after a short delay
-                    this.parent.scene.tweens.add({
-                        targets: hammer,
-                        alpha: 0,
-                        duration: 500,
-                        delay: 500,
-                        onComplete: function () {
-                            hammer.destroy();
-                        }
-                    });
-                }
-            });
-        }
-
         // Function to start shield cooldown
         window.startShieldCooldown = function (baseDuration = 16000) {
             // Get the current active scene
@@ -4075,6 +3924,7 @@
             level = 1;
             // Reset player status components
             resetPlayerStatus();
+            CooldownManager.initialize();
 
             // Reset the current enemy rank
             currentEnemyRank = 1;

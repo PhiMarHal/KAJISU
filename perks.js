@@ -21,11 +21,23 @@ const PERKS = {
         hiragana: "あおくじら",
         romaji: "aokujira",
         english: "Blue Whale",
-        description: "Creates a protective shield that absorbs one hit",
+        description: "Permanent Protection",
         color: "#3498db",
         hoverColor: 0x2980b9,
         onAcquire: function () {
-            window.activateShield();
+
+        }
+    },
+    "FATED_SHIELD": {
+        kanji: "運命盾",
+        hiragana: "うんめいたて",
+        romaji: "unmeitate",
+        english: "Fated Shield",
+        description: "Auto Shield when at 1 HP",
+        color: "#FF5555",
+        hoverColor: 0xDD3333,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
         }
     },
     "TEAL_OCTOPUS": {
@@ -72,12 +84,12 @@ const PERKS = {
         hiragana: "らーめん",
         romaji: "raamen",
         english: "Ramen",
-        description: "+1 END and fully heals",
+        description: "+1 END and temporary shield",
         color: "#FFA07A",
         hoverColor: 0xDD8866,
         onAcquire: function () {
             window.modifyStat('health', 1);
-            window.fullHeal();
+            ShieldSystem.activateShield();
         }
     },
     "ONIGIRI": {

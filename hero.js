@@ -16,6 +16,7 @@ const BASE_STATS = {
 const shieldBaseCd = 80000;
 const godHammerBaseCd = 120000;
 const divineBeaconBaseCd = 120000;
+const fatedShieldBaseCd = 60000;
 
 // Player Status Component System for Word Survivors
 // This system manages special behaviors and status effects for the player
@@ -554,6 +555,80 @@ const ShieldSystem = {
         return this.isShieldActive;
     }
 };
+
+// Register component for the second chance shield ability
+PlayerComponentSystem.registerComponent('secondChanceShieldAbility', {
+    // Store properties
+    cooldownTimer: null,
+    readyForUse: true, // Initially ready to use
+
+    initialize: function (player) {
+        console.log("Initializing Fated Shield ability");
+        this.readyForUse = true;
+    },
+
+    update: function (player) {
+        // Check if we're ready to use and player is at 1 HP
+        if (this.readyForUse && playerHealth === 1) {
+            console.log("Player at 1 HP - activating Fated Shield");
+            this.activateEmergencyShield();
+        }
+    },
+
+    activateEmergencyShield: function () {
+        // Mark as used
+        this.readyForUse = false;
+
+        // Activate shield
+        ShieldSystem.activateShield();
+
+        // Get the scene
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Remove any existing cooldown timer
+        if (this.cooldownTimer) {
+            CooldownManager.removeTimer(this.cooldownTimer);
+        }
+
+        // Create cooldown timer
+        this.cooldownTimer = CooldownManager.createTimer({
+            statName: 'luck',
+            baseCooldown: fatedShieldBaseCd,
+            formula: 'divide',
+            component: this,
+            callback: this.resetAbility,
+            callbackScope: this,
+            loop: false
+        });
+    },
+
+    resetAbility: function () {
+        console.log("Fated Shield ready again");
+        this.readyForUse = true;
+    },
+
+    cleanup: function () {
+        console.log("Cleaning up Fated Shield ability");
+
+        // Remove cooldown timer if it exists
+        if (this.cooldownTimer) {
+            CooldownManager.removeTimer(this.cooldownTimer);
+            this.cooldownTimer = null;
+        }
+
+        this.readyForUse = true;
+    }
+});
+
+// Register the perk with the PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('FATED_SHIELD', {
+    componentName: 'secondChanceShieldAbility',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
 
 // Register component for permanent shield ability (from Blue Whale perk)
 PlayerComponentSystem.registerComponent('permanentShieldAbility', {

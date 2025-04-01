@@ -1,0 +1,14 @@
+- Eternal Rhythm is lost after a pause (including level ups)
+- Enemies Killed is duplicated in UI
+- Arrange timer, P.A.L.E.
+- Need system to pick any kanji for hero
+- Game Over is ugly, make proper menu
+- Move remaining perks outside of index.html (orbiting? landmine?)
+- Remove health factor increase for enemies, we will never use this
+- Improve performance (duh). Optimize update loop (duh). Can wait until much later
+- Add animated backgrounds. JS animations? Change color as time passes and/or with enemy stages?
+- Longterm: allow for arbitrary kanjis to be selected as enemies
+- Track kanjis killed by player
+- Track challenges completed successfully and failures. Possible improvement: roll frequent failures more often!
+- Add seed, make game logic fully deterministic, allow recording and record player input for 1:1 playback
+- Potentially rethink Fated Shield / Blue Whale / any shield interaction (common timer affecting Blue Whale). Might also be ok as is

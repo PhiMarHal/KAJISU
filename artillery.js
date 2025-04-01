@@ -52,8 +52,14 @@ const ProjectileComponentSystem = {
     }
 };
 
+// Configuration variables for Crimson Scatter (distance-based damage)
+const CRIMSON_SCATTER_CONFIG = {
+    maxDamageMultiplier: 1.6,  // Maximum multiplier at close range
+    minDamageMultiplier: 0.4,  // Minimum multiplier at maximum distance
+    maxDistance: 400           // Distance at which minimum damage is reached
+};
+
 // Register component for distance-based damage (Crimson Scatter)
-// Updated distanceDamage component for Crimson Scatter
 ProjectileComponentSystem.registerComponent('distanceDamage', {
     initialize: function (projectile) {
         console.log("Initializing distance damage component");
@@ -64,8 +70,8 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
         this.baseDamage = playerDamage;
 
         // Set initial scale and damage for max effect at close range
-        projectile.setScale(2.0);
-        projectile.damage = this.baseDamage * 2.0;
+        projectile.setScale(CRIMSON_SCATTER_CONFIG.maxDamageMultiplier);
+        projectile.damage = this.baseDamage * CRIMSON_SCATTER_CONFIG.maxDamageMultiplier;
 
         console.log("Distance damage initialized:", {
             startX: this.startX,
@@ -81,11 +87,12 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
         const dy = projectile.y - this.startY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Maximum distance for damage scaling
-        const maxDistance = 400;
+        // Calculate the damage range (difference between max and min multipliers)
+        const damageRange = CRIMSON_SCATTER_CONFIG.maxDamageMultiplier - CRIMSON_SCATTER_CONFIG.minDamageMultiplier;
 
-        // Calculate damage multiplier based on distance (2.0 at distance 0, 0.4 at maxDistance)
-        let damageMultiplier = 2.0 - (1.6 * Math.min(distance, maxDistance) / maxDistance);
+        // Calculate damage multiplier based on distance
+        let damageMultiplier = CRIMSON_SCATTER_CONFIG.maxDamageMultiplier -
+            (damageRange * Math.min(distance, CRIMSON_SCATTER_CONFIG.maxDistance) / CRIMSON_SCATTER_CONFIG.maxDistance);
 
         // Update projectile damage
         projectile.damage = this.baseDamage * damageMultiplier;

@@ -52,6 +52,22 @@ const PERKS = {
             window.activateOrbitingProjectile();
         }
     },
+    "GLASS_CANNON": {
+        kanji: "硝砲",
+        hiragana: "がらすほう",
+        romaji: "garasuhou",
+        english: "Glass Cannon",
+        description: "+5 POW / END reduced to 1",
+        color: "#FF0000",
+        hoverColor: 0xDD0000,
+        onAcquire: function () {
+            // Increase POW by 5
+            window.modifyStat('damage', 5);
+
+            // Simply use a large negative value, the minimum check will handle it
+            window.modifyStat('health', -999);
+        }
+    },
     "AMBER_BEETLE": {
         kanji: "琥珀甲",
         hiragana: "こはくこう",

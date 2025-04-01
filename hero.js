@@ -518,32 +518,6 @@ const ShieldSystem = {
             }
         }
 
-        // Show notification if requested
-        if (options.showNotification !== false) {
-            const scene = game.scene.scenes[0];
-            if (scene && player) {
-                const notification = scene.add.text(
-                    player.x,
-                    player.y - 50,
-                    options.notificationText ?? 'SHIELD READY!',
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '16px',
-                        color: options.notificationColor ?? '#3498db'
-                    }
-                ).setOrigin(0.5);
-
-                // Animate the notification
-                scene.tweens.add({
-                    targets: notification,
-                    y: notification.y - 30,
-                    alpha: 0,
-                    duration: 1500,
-                    onComplete: function () { notification.destroy(); }
-                });
-            }
-        }
-
         // Return true for successful activation
         return true;
     },
@@ -613,25 +587,6 @@ PlayerComponentSystem.registerComponent('permanentShieldAbility', {
             callback: this.reactivateShield,
             callbackScope: this,
             loop: false
-        });
-
-        // Show cooldown notification
-        const cooldownSeconds = (shieldBaseCd / playerLuck).toFixed(1);
-        const cooldownNotification = scene.add.text(player.x, player.y - 40, `SHIELD COOLDOWN: ${cooldownSeconds}s`, {
-            fontFamily: 'Arial',
-            fontSize: '14px',
-            color: '#e74c3c'
-        }).setOrigin(0.5);
-
-        // Animate the notification
-        scene.tweens.add({
-            targets: cooldownNotification,
-            y: cooldownNotification.y - 20,
-            alpha: 0,
-            duration: 1000,
-            onComplete: function () {
-                cooldownNotification.destroy();
-            }
         });
     },
 

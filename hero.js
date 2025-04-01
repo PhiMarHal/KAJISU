@@ -12,6 +12,11 @@ const BASE_STATS = {
     END: 4,
 };
 
+// Perk cooldowns in milliseconds
+const shieldBaseCd = 80000;
+const godHammerBaseCd = 120000;
+const divineBeaconBaseCd = 120000;
+
 // Player Status Component System for Word Survivors
 // This system manages special behaviors and status effects for the player
 
@@ -168,9 +173,6 @@ PlayerComponentSystem.registerComponent('berserkerState', {
         updatePlayerStatsText();
     }
 });
-
-// Add more player components here as needed
-// For example: shield, invulnerability, speed boost, etc.
 
 // Registry for mapping perks to player components
 const PlayerPerkRegistry = {
@@ -487,6 +489,217 @@ PlayerPerkRegistry.registerPerkEffect('ETERNAL_RHYTHM', {
     }
 });
 
+// Shield system - core functionality for all shield types
+const ShieldSystem = {
+    // Track if a shield is currently active
+    isShieldActive: false,
+
+    // Activate a shield effect
+    activateShield: function (options = {}) {
+        console.log("Shield activated", options);
+
+        // Set shield as active
+        this.isShieldActive = true;
+
+        // Make shield visual visible
+        if (shieldVisual) {
+            shieldVisual.setVisible(true);
+
+            // Add a visual effect if we're in a scene
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                scene.tweens.add({
+                    targets: shieldVisual,
+                    scale: { from: options.startScale ?? 0.5, to: options.endScale ?? 1 },
+                    alpha: { from: options.startAlpha ?? 0.8, to: options.endAlpha ?? 0.4 },
+                    duration: options.animDuration ?? 500,
+                    ease: options.easeFunction ?? 'Cubic.out'
+                });
+            }
+        }
+
+        // Show notification if requested
+        if (options.showNotification !== false) {
+            const scene = game.scene.scenes[0];
+            if (scene && player) {
+                const notification = scene.add.text(
+                    player.x,
+                    player.y - 50,
+                    options.notificationText ?? 'SHIELD READY!',
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '16px',
+                        color: options.notificationColor ?? '#3498db'
+                    }
+                ).setOrigin(0.5);
+
+                // Animate the notification
+                scene.tweens.add({
+                    targets: notification,
+                    y: notification.y - 30,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: function () { notification.destroy(); }
+                });
+            }
+        }
+
+        // Return true for successful activation
+        return true;
+    },
+
+    // Deactivate the shield (without starting cooldown)
+    deactivateShield: function () {
+        console.log("Shield deactivated");
+
+        // Set shield as inactive
+        this.isShieldActive = false;
+
+        // Hide shield visual
+        if (shieldVisual) {
+            shieldVisual.setVisible(false);
+        }
+    },
+
+    // Called when a shield absorbs a hit
+    onShieldHit: function () {
+        console.log("Shield hit");
+
+        // Deactivate the shield
+        this.deactivateShield();
+
+        // Notify any permanent shield component to start cooldown
+        if (PlayerComponentSystem.hasComponent('permanentShieldAbility')) {
+            const shieldComponent = PlayerComponentSystem.getComponent('permanentShieldAbility');
+            shieldComponent.startCooldown();
+        }
+    },
+
+    // Check if shield is currently active
+    isActive: function () {
+        return this.isShieldActive;
+    }
+};
+
+// Register component for permanent shield ability (from Blue Whale perk)
+PlayerComponentSystem.registerComponent('permanentShieldAbility', {
+    // Store cooldown timer
+    cooldownTimer: null,
+
+    initialize: function (player) {
+        console.log("Initializing permanent shield ability");
+
+        // Activate shield immediately when component is created
+        ShieldSystem.activateShield();
+    },
+
+    startCooldown: function () {
+        console.log("Starting shield cooldown");
+
+        // Remove any existing cooldown timer
+        if (this.cooldownTimer) {
+            CooldownManager.removeTimer(this.cooldownTimer);
+        }
+
+        // Create cooldown timer
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        this.cooldownTimer = CooldownManager.createTimer({
+            statName: 'luck',
+            baseCooldown: shieldBaseCd,
+            formula: 'divide',
+            component: this,
+            callback: this.reactivateShield,
+            callbackScope: this,
+            loop: false
+        });
+
+        // Show cooldown notification
+        const cooldownSeconds = (shieldBaseCd / playerLuck).toFixed(1);
+        const cooldownNotification = scene.add.text(player.x, player.y - 40, `SHIELD COOLDOWN: ${cooldownSeconds}s`, {
+            fontFamily: 'Arial',
+            fontSize: '14px',
+            color: '#e74c3c'
+        }).setOrigin(0.5);
+
+        // Animate the notification
+        scene.tweens.add({
+            targets: cooldownNotification,
+            y: cooldownNotification.y - 20,
+            alpha: 0,
+            duration: 1000,
+            onComplete: function () {
+                cooldownNotification.destroy();
+            }
+        });
+    },
+
+    reactivateShield: function () {
+        // Shield cooldown is over, reactivate the shield
+        ShieldSystem.activateShield();
+    },
+
+    cleanup: function () {
+        console.log("Cleaning up permanent shield ability");
+
+        // Remove cooldown timer if it exists
+        if (this.cooldownTimer) {
+            CooldownManager.removeTimer(this.cooldownTimer);
+            this.cooldownTimer = null;
+        }
+
+        // Deactivate shield if this was the only shield provider
+        // (in a real system, you might want to check if other shield components exist)
+        ShieldSystem.deactivateShield();
+    }
+});
+
+// Register the permanent shield perk with the PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('BLUE_WHALE', {
+    componentName: 'permanentShieldAbility',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
+// Example of a one-off shield component (for future perks)
+PlayerComponentSystem.registerComponent('temporaryShieldAbility', {
+    // This is just an example - not used yet
+    initialize: function (player) {
+        console.log("Granting temporary shield");
+
+        // Activate shield with special visual effect
+        ShieldSystem.activateShield({
+            startScale: 0.2,
+            endScale: 1.2,
+            startAlpha: 1.0,
+            endAlpha: 0.3,
+            animDuration: 800,
+            notificationText: 'TEMPORARY SHIELD ACTIVE!',
+            notificationColor: '#FF9900'
+        });
+    },
+
+    cleanup: function () {
+        // No need to deactivate shield here, as it's handled by ShieldSystem.onShieldHit
+    }
+});
+
+// Export shield interface for other files to use
+window.isShieldActive = function () {
+    return ShieldSystem.isActive();
+};
+
+window.triggerShieldHit = function () {
+    ShieldSystem.onShieldHit();
+};
+
+window.activateShield = function (options) {
+    return ShieldSystem.activateShield(options);
+};
+
 // God Hammer component
 PlayerComponentSystem.registerComponent('godHammerAbility', {
     // Store timer reference
@@ -502,7 +715,7 @@ PlayerComponentSystem.registerComponent('godHammerAbility', {
         // Create and register timer in one step
         this.hammerTimer = CooldownManager.createTimer({
             statName: 'luck',
-            baseCooldown: 120000,
+            baseCooldown: godHammerBaseCd,
             formula: 'divide',
             component: this,
             callback: dropGodHammer,
@@ -619,7 +832,7 @@ PlayerComponentSystem.registerComponent('divineBeaconAbility', {
         // Create and register timer in one step
         this.beaconTimer = CooldownManager.createTimer({
             statName: 'luck',
-            baseCooldown: 60000,
+            baseCooldown: divineBeaconBaseCd,
             formula: 'divide',
             component: this,
             callback: this.spawnBeacon,
@@ -635,13 +848,13 @@ PlayerComponentSystem.registerComponent('divineBeaconAbility', {
         if (gameOver || gamePaused) return;
 
         // Random position on screen (with padding from edges)
-        const x = Phaser.Math.Between(100, 1100);
-        const y = Phaser.Math.Between(100, 700);
+        const x = Phaser.Math.Between(20, 1180);
+        const y = Phaser.Math.Between(20, 780);
 
         // Create the beacon using the kanji for "heaven/sky": 天
         const beacon = this.add.text(x, y, '天', {
             fontFamily: 'Arial',
-            fontSize: '24px',
+            fontSize: '16px',
             color: '#FFD700', // Gold color
             stroke: '#FFFFFF',
             strokeThickness: 4,

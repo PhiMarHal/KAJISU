@@ -265,8 +265,6 @@
         // Perk system variables
         let playerPerks = {};
         let shieldVisual = null;
-        let shieldCooldownTimer = null;
-        let shieldActive = false;
         let orbitingProjectiles = [];
         let orbitingProjectileTimer = null;
         let landmineTimer = null;
@@ -1305,16 +1303,7 @@
             afterImageEnabled = false;
             afterImages = [];
             playerPositionHistory = [];
-            shieldActive = false;
-            if (shieldVisual) {
-                shieldVisual.setVisible(false);
-            }
 
-            // Clear specific timers
-            if (shieldCooldownTimer) {
-                shieldCooldownTimer.remove();
-                shieldCooldownTimer = null;
-            }
             if (orbitingProjectileTimer) {
                 orbitingProjectileTimer.remove();
                 orbitingProjectileTimer = null;
@@ -2512,10 +2501,10 @@
                 triggerDefensiveBurst.call(this);
             }
 
-            if (shieldActive) {
-                // Shield absorbs the hit
-                shieldActive = false;
-                shieldVisual.setVisible(false);
+            // Check if shield is active
+            if (window.isShieldActive()) {
+                // Shield absorbs the hit - this will handle cooldown for permanent shields
+                window.triggerShieldHit();
 
                 // Flash the shield effect
                 this.tweens.add({
@@ -2526,10 +2515,6 @@
                     yoyo: true,
                     repeat: 1
                 });
-
-                // Start shield cooldown with the base duration (16 seconds)
-                // The function will apply the Luck multiplier internally
-                window.startShieldCooldown(16000);
 
                 return;
             }
@@ -3463,92 +3448,6 @@
             }
             // Update UI
             updatePlayerStatsText();
-        };
-
-        // Add shield cooldown functionality
-        window.activateShield = function () {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-            if (!scene) return;
-
-            // Activate the shield
-            shieldActive = true;
-            if (shieldVisual) {
-                shieldVisual.setVisible(true);
-
-                // Add a visual effect
-                scene.tweens.add({
-                    targets: shieldVisual,
-                    scale: { from: 0.5, to: 1 },
-                    alpha: { from: 0.8, to: 0.4 },
-                    duration: 500,
-                    ease: 'Cubic.out'
-                });
-            }
-        };
-
-        // Function to start shield cooldown
-        window.startShieldCooldown = function (baseDuration = 16000) {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-            if (!scene) return;
-
-            // Calculate actual duration based on Luck (higher luck = lower multiplier)
-            const luckMultiplier = BASE_STATS.LUK / playerLuck;
-            const duration = baseDuration * luckMultiplier;
-
-            // Remove any existing shield cooldown timer
-            if (shieldCooldownTimer) {
-                shieldCooldownTimer.remove();
-            }
-
-            // Set up a new cooldown timer using the timer registration system
-            shieldCooldownTimer = registerTimer(scene.time.delayedCall(
-                duration,
-                function () {
-                    window.activateShield();
-
-                    // Add a text notification
-                    const notification = scene.add.text(player.x, player.y - 50, 'SHIELD READY!', {
-                        fontFamily: 'Arial',
-                        fontSize: '16px',
-                        color: '#3498db'
-                    }).setOrigin(0.5);
-
-                    // Animate the notification
-                    scene.tweens.add({
-                        targets: notification,
-                        y: notification.y - 30,
-                        alpha: 0,
-                        duration: 1500,
-                        onComplete: function () { notification.destroy(); }
-                    });
-
-                    // Clear the cooldown timer reference
-                    shieldCooldownTimer = null;
-                },
-                [],
-                scene
-            ));
-
-            // Show cooldown notification
-            const cooldownSeconds = (duration / 1000).toFixed(1);
-            const cooldownNotification = scene.add.text(player.x, player.y - 40, `SHIELD COOLDOWN: ${cooldownSeconds}s`, {
-                fontFamily: 'Arial',
-                fontSize: '14px',
-                color: '#e74c3c'
-            }).setOrigin(0.5);
-
-            // Animate the notification
-            scene.tweens.add({
-                targets: cooldownNotification,
-                y: cooldownNotification.y - 20,
-                alpha: 0,
-                duration: 1000,
-                onComplete: function () {
-                    cooldownNotification.destroy();
-                }
-            });
         };
 
         window.activateOrbitingProjectile = function () {

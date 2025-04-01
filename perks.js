@@ -948,7 +948,7 @@ const PERKS = {
     "CRIMSON_FURY": {
         kanji: "紅怒",
         hiragana: "くれないいかり",
-        romaji: "kurenai ikari",
+        romaji: "kurenaiikari",
         english: "Crimson Fury",
         description: "Double damage when below 25% health",
         color: "#FF0000",

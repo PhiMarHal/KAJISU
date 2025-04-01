@@ -12,3 +12,12 @@
 - Track challenges completed successfully and failures. Possible improvement: roll frequent failures more often!
 - Add seed, make game logic fully deterministic, allow recording and record player input for 1:1 playback
 - Potentially rethink Fated Shield / Blue Whale / any shield interaction (common timer affecting Blue Whale). Might also be ok as is
+^ not ok, Fated Shield respawns immediately if cd is already done. Too strong!
+- Make perks unlockable (need many more perks). Tied to:
+1) full minutes survived. good, scales well and naturally with difficulty
+2) total deaths. could be 1, 4, 9... squares. might scale ok?
+3) individual kanji kills. could be 10, 100, 1000. if we want to learn 2100 kanjis, that's 6300 perks. probably unrealistic!
+but the system could work for the first xxx kanjis. or, unlocks could be 10 for kanji A, 20 for kanji B, 30 for kanji C... regardless of what A B and C are
+after 100 perks we need 1000 kills of a new kanji for a perk unlock. good for longterm progression, but might be tedious
+ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks and rotating in favor of new one.
+fixed at high value (perhaps 1k) would make more sense with that latter design

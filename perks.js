@@ -4,8 +4,8 @@ const PERKS = {
     // ANIMAL-COLOR PERKS
     // =========================================================================
     "RED_DRAGON": {
-        kanji: "赤龍",
-        hiragana: "あかりゅう",
+        kanji: "赤竜",
+        kana: "あかりゅう",
         romaji: "akaryuu",
         english: "Red Dragon",
         description: "+2 POW / -1 AGI",
@@ -18,7 +18,7 @@ const PERKS = {
     },
     "BLUE_WHALE": {
         kanji: "青鯨",
-        hiragana: "あおくじら",
+        kana: "あおくじら",
         romaji: "aokujira",
         english: "Blue Whale",
         description: "Permanent Protection",
@@ -29,9 +29,9 @@ const PERKS = {
         }
     },
     "FATED_SHIELD": {
-        kanji: "運命盾",
-        hiragana: "うんめいたて",
-        romaji: "unmeitate",
+        kanji: "運命の盾",
+        kana: "うんめいのたて",
+        romaji: "unmeinotate",
         english: "Fated Shield",
         description: "Auto Shield when at 1 HP",
         color: "#FF5555",
@@ -42,8 +42,8 @@ const PERKS = {
     },
     "TEAL_OCTOPUS": {
         kanji: "青緑蛸",
-        hiragana: "せいりょくたこ",
-        romaji: "seiryokutako",
+        kana: "あおみどりたこ",
+        romaji: "aomidoritako",
         english: "Teal Octopus",
         description: "Gain orbiting projectiles",
         color: "#008080",
@@ -53,8 +53,8 @@ const PERKS = {
         }
     },
     "GLASS_CANNON": {
-        kanji: "硝砲",
-        hiragana: "がらすほう",
+        kanji: "硝子砲",
+        kana: "がらすほう",
         romaji: "garasuhou",
         english: "Glass Cannon",
         description: "+5 POW / END reduced to 1",
@@ -69,9 +69,9 @@ const PERKS = {
         }
     },
     "AMBER_BEETLE": {
-        kanji: "琥珀甲",
-        hiragana: "こはくこう",
-        romaji: "kohakukou",
+        kanji: "琥珀甲虫",
+        kana: "こはくこうちゅう",
+        romaji: "kohakukouchuu",
         english: "Amber Beetle",
         description: "Drops explosive mines that damage enemies",
         color: "#ffbf00",
@@ -84,7 +84,7 @@ const PERKS = {
     // Food perks that increase max HP and heal the player
     "SUSHI": {
         kanji: "寿司",
-        hiragana: "すし",
+        kana: "すし",
         romaji: "sushi",
         english: "Sushi",
         description: "+1 END, full heal",
@@ -97,7 +97,7 @@ const PERKS = {
     },
     "RAMEN": {
         kanji: "拉麺",
-        hiragana: "らーめん",
+        kana: "ラーメン",
         romaji: "raamen",
         english: "Ramen",
         description: "+1 END and temporary shield",
@@ -109,8 +109,8 @@ const PERKS = {
         }
     },
     "ONIGIRI": {
-        kanji: "御握",
-        hiragana: "おにぎり",
+        kanji: "御握り",
+        kana: "おにぎり",
         romaji: "onigiri",
         english: "Rice Ball",
         description: "+1 END and fully heals",
@@ -123,7 +123,7 @@ const PERKS = {
     },
     "MOCHI": {
         kanji: "餅",
-        hiragana: "もち",
+        kana: "もち",
         romaji: "mochi",
         english: "Rice Cake",
         description: "+1 END and fully heals",
@@ -136,7 +136,7 @@ const PERKS = {
     },
     "DANGO": {
         kanji: "団子",
-        hiragana: "だんご",
+        kana: "だんご",
         romaji: "dango",
         english: "Dumpling",
         description: "+1 END and fully heals",
@@ -148,8 +148,8 @@ const PERKS = {
         }
     },
     "TEMPURA": {
-        kanji: "天麩羅",
-        hiragana: "てんぷら",
+        kanji: "天ぷら",
+        kana: "てんぷら",
         romaji: "tenpura",
         english: "Tempura",
         description: "+1 END and fully heals",
@@ -162,7 +162,7 @@ const PERKS = {
     },
     "UDON": {
         kanji: "饂飩",
-        hiragana: "うどん",
+        kana: "うどん",
         romaji: "udon",
         english: "Udon Noodles",
         description: "+1 END and fully heals",
@@ -175,7 +175,7 @@ const PERKS = {
     },
     "YAKITORI": {
         kanji: "焼鳥",
-        hiragana: "やきとり",
+        kana: "やきとり",
         romaji: "yakitori",
         english: "Grilled Chicken",
         description: "+1 END and fully heals",
@@ -187,8 +187,8 @@ const PERKS = {
         }
     },
     "TAKOYAKI": {
-        kanji: "蛸焼",
-        hiragana: "たこやき",
+        kanji: "蛸焼き",
+        kana: "たこやき",
         romaji: "takoyaki",
         english: "Octopus Balls",
         description: "+1 END and fully heals",
@@ -201,7 +201,7 @@ const PERKS = {
     },
     "GYOZA": {
         kanji: "餃子",
-        hiragana: "ぎょうざ",
+        kana: "ぎょうざ",
         romaji: "gyouza",
         english: "Dumplings",
         description: "+1 END and fully heals",
@@ -213,8 +213,8 @@ const PERKS = {
         }
     },
     "TAIYAKI": {
-        kanji: "鯛焼",
-        hiragana: "たいやき",
+        kanji: "鯛焼き",
+        kana: "たいやき",
         romaji: "taiyaki",
         english: "Fish-shaped Cake",
         description: "+1 END and fully heals",
@@ -227,7 +227,7 @@ const PERKS = {
     },
     "BENTO": {
         kanji: "弁当",
-        hiragana: "べんとう",
+        kana: "べんとう",
         romaji: "bentou",
         english: "Lunch Box",
         description: "+1 END and fully heals",
@@ -240,7 +240,7 @@ const PERKS = {
     },
     "GREEN_VENOM": {
         kanji: "緑毒",
-        hiragana: "みどりどく",
+        kana: "みどりどく",
         romaji: "midoridoku",
         english: "Green Venom",
         description: "Chance to fire poisonous projectiles that deal damage over time",
@@ -250,9 +250,9 @@ const PERKS = {
         }
     },
     "AZURE_FORK": {
-        kanji: "蒼叉",
-        hiragana: "あおまた",
-        romaji: "aomata",
+        kanji: "蒼の叉",
+        kana: "あおのまた",
+        romaji: "aonomata",
         english: "Azure Fork",
         description: "Projectiles have a chance to split in two when hitting enemies",
         color: "#1E90FF",
@@ -263,7 +263,7 @@ const PERKS = {
     },
     "SCARLET_EMBER": {
         kanji: "緋炎",
-        hiragana: "ひえん",
+        kana: "ひえん",
         romaji: "hien",
         english: "Scarlet Ember",
         description: "Projectiles may leave fire that burns enemies over time",
@@ -277,7 +277,7 @@ const PERKS = {
     // Red animal perks (damage focused)
     "RED_TIGER": {
         kanji: "赤虎",
-        hiragana: "あかとら",
+        kana: "あかとら",
         romaji: "akatora",
         english: "Red Tiger",
         description: "+1 POW",
@@ -289,7 +289,7 @@ const PERKS = {
     },
     "RED_HAWK": {
         kanji: "赤鷹",
-        hiragana: "あかたか",
+        kana: "あかたか",
         romaji: "akataka",
         english: "Red Hawk",
         description: "+1 POW / +1 AGI",
@@ -302,7 +302,7 @@ const PERKS = {
     },
     "RED_BEAR": {
         kanji: "赤熊",
-        hiragana: "あかくま",
+        kana: "あかくま",
         romaji: "akakuma",
         english: "Red Bear",
         description: "+2 POW / -1 AGI",
@@ -315,7 +315,7 @@ const PERKS = {
     },
     "RED_SCORPION": {
         kanji: "赤蠍",
-        hiragana: "あかさそり",
+        kana: "あかさそり",
         romaji: "akasasori",
         english: "Red Scorpion",
         description: "+2 POW / -1 LUK",
@@ -328,7 +328,7 @@ const PERKS = {
     },
     "RED_FOX": {
         kanji: "赤狐",
-        hiragana: "あかきつね",
+        kana: "あかきつね",
         romaji: "akakitsune",
         english: "Red Fox",
         description: "+1 POW / +1 LUK",
@@ -341,7 +341,7 @@ const PERKS = {
     },
     "RED_WOLF": {
         kanji: "赤狼",
-        hiragana: "あかおおかみ",
+        kana: "あかおおかみ",
         romaji: "akaookami",
         english: "Red Wolf",
         description: "+1 POW",
@@ -353,7 +353,7 @@ const PERKS = {
     },
     "RED_SNAKE": {
         kanji: "赤蛇",
-        hiragana: "あかへび",
+        kana: "あかへび",
         romaji: "akahebi",
         english: "Red Snake",
         description: "+1 POW",
@@ -364,9 +364,9 @@ const PERKS = {
         }
     },
     "RED_MANTIS": {
-        kanji: "赤螳螂",
-        hiragana: "あかとうろう",
-        romaji: "akatourou",
+        kanji: "赤蟷螂",
+        kana: "あかかまきり",
+        romaji: "akakamakiri",
         english: "Red Mantis",
         description: "+1 POW",
         color: "#ff3333",
@@ -377,7 +377,7 @@ const PERKS = {
     },
     "RED_LION": {
         kanji: "赤獅子",
-        hiragana: "あかしし",
+        kana: "あかしし",
         romaji: "akashishi",
         english: "Red Lion",
         description: "+1 POW",
@@ -389,7 +389,7 @@ const PERKS = {
     },
     "RED_FALCON": {
         kanji: "赤隼",
-        hiragana: "あかはやぶさ",
+        kana: "あかはやぶさ",
         romaji: "akahayabusa",
         english: "Red Falcon",
         description: "+1 POW",
@@ -403,7 +403,7 @@ const PERKS = {
     // Yellow animal perks (fire rate focused)
     "YELLOW_CHEETAH": {
         kanji: "黄豹",
-        hiragana: "きひょう",
+        kana: "きひょう",
         romaji: "kihyou",
         english: "Yellow Cheetah",
         description: "+1 AGI",
@@ -415,7 +415,7 @@ const PERKS = {
     },
     "YELLOW_HUMMINGBIRD": {
         kanji: "黄蜂鳥",
-        hiragana: "きはちどり",
+        kana: "きはちどり",
         romaji: "kihachidori",
         english: "Yellow Hummingbird",
         description: "+4 AGI / -2 POW",
@@ -428,7 +428,7 @@ const PERKS = {
     },
     "YELLOW_WASP": {
         kanji: "黄蜂",
-        hiragana: "きばち",
+        kana: "きばち",
         romaji: "kibachi",
         english: "Yellow Wasp",
         description: "+2 AGI / -2 END",
@@ -441,7 +441,7 @@ const PERKS = {
     },
     "YELLOW_JACKAL": {
         kanji: "黄豺",
-        hiragana: "きやまいぬ",
+        kana: "きやまいぬ",
         romaji: "kiyamainu",
         english: "Yellow Jackal",
         description: "+3 AGI / -1 POW / -1 END",
@@ -455,7 +455,7 @@ const PERKS = {
     },
     "YELLOW_CANARY": {
         kanji: "黄鳥",
-        hiragana: "きどり",
+        kana: "きどり",
         romaji: "kidori",
         english: "Yellow Canary",
         description: "+1 AGI",
@@ -466,8 +466,8 @@ const PERKS = {
         }
     },
     "YELLOW_HORNET": {
-        kanji: "黄蜂",
-        hiragana: "きすずめばち",
+        kanji: "黄雀蜂",
+        kana: "きすずめばち",
         romaji: "kisuzumebachi",
         english: "Yellow Hornet",
         description: "+1 AGI",
@@ -479,7 +479,7 @@ const PERKS = {
     },
     "YELLOW_BEE": {
         kanji: "黄蜜蜂",
-        hiragana: "きみつばち",
+        kana: "きみつばち",
         romaji: "kimitsubachi",
         english: "Yellow Bee",
         description: "+1 AGI",
@@ -491,7 +491,7 @@ const PERKS = {
     },
     "YELLOW_FINCH": {
         kanji: "黄雀",
-        hiragana: "きひわ",
+        kana: "きひわ",
         romaji: "kihiwa",
         english: "Yellow Finch",
         description: "+1 AGI",
@@ -502,8 +502,8 @@ const PERKS = {
         }
     },
     "YELLOW_MONGOOSE": {
-        kanji: "黄鼬",
-        hiragana: "きまんぐーす",
+        kanji: "黄マングース",
+        kana: "きマングース",
         romaji: "kimanguusu",
         english: "Yellow Mongoose",
         description: "+1 AGI",
@@ -515,7 +515,7 @@ const PERKS = {
     },
     "YELLOW_SQUIRREL": {
         kanji: "黄栗鼠",
-        hiragana: "きりす",
+        kana: "きりす",
         romaji: "kirisu",
         english: "Yellow Squirrel",
         description: "+1 AGI",
@@ -527,7 +527,7 @@ const PERKS = {
     },
     "YELLOW_CICADA": {
         kanji: "黄蝉",
-        hiragana: "きせみ",
+        kana: "きせみ",
         romaji: "kisemi",
         english: "Yellow Cicada",
         description: "+1 AGI",
@@ -539,7 +539,7 @@ const PERKS = {
     },
     "YELLOW_CRICKET": {
         kanji: "黄蟋蟀",
-        hiragana: "きこおろぎ",
+        kana: "きこおろぎ",
         romaji: "kikoorogi",
         english: "Yellow Cricket",
         description: "+1 AGI",
@@ -553,7 +553,7 @@ const PERKS = {
     // Purple animal perks (luck focused)
     "PURPLE_MONKEY": {
         kanji: "紫猿",
-        hiragana: "むらさきざる",
+        kana: "むらさきざる",
         romaji: "murasakizaru",
         english: "Purple Monkey",
         description: "+1 LUK",
@@ -565,7 +565,7 @@ const PERKS = {
     },
     "PURPLE_CAT": {
         kanji: "紫猫",
-        hiragana: "むらさきねこ",
+        kana: "むらさきねこ",
         romaji: "murasakineko",
         english: "Purple Cat",
         description: "+1 LUK",
@@ -577,7 +577,7 @@ const PERKS = {
     },
     "PURPLE_BUTTERFLY": {
         kanji: "紫蝶",
-        hiragana: "むらさきちょう",
+        kana: "むらさきちょう",
         romaji: "murasakichou",
         english: "Purple Butterfly",
         description: "+1 LUK",
@@ -589,7 +589,7 @@ const PERKS = {
     },
     "PURPLE_RABBIT": {
         kanji: "紫兎",
-        hiragana: "むらさきうさぎ",
+        kana: "むらさきうさぎ",
         romaji: "murasakiusagi",
         english: "Purple Rabbit",
         description: "+2 LUK / -1 END",
@@ -602,7 +602,7 @@ const PERKS = {
     },
     "PURPLE_OWL": {
         kanji: "紫梟",
-        hiragana: "むらさきふくろう",
+        kana: "むらさきふくろう",
         romaji: "murasakifukurou",
         english: "Purple Owl",
         description: "+1 LUK",
@@ -614,7 +614,7 @@ const PERKS = {
     },
     "PURPLE_FOX": {
         kanji: "紫狐",
-        hiragana: "むらさききつね",
+        kana: "むらさききつね",
         romaji: "murasakikitsune",
         english: "Purple Fox",
         description: "+3 LUK / -1 POW / -1 AGI",
@@ -628,7 +628,7 @@ const PERKS = {
     },
     "PURPLE_LADYBUG": {
         kanji: "紫瓢虫",
-        hiragana: "むらさきてんとうむし",
+        kana: "むらさきてんとうむし",
         romaji: "murasakitentoumushi",
         english: "Purple Ladybug",
         description: "+1 LUK",
@@ -640,7 +640,7 @@ const PERKS = {
     },
     "PURPLE_BAT": {
         kanji: "紫蝙蝠",
-        hiragana: "むらさきこうもり",
+        kana: "むらさきこうもり",
         romaji: "murasakikoumori",
         english: "Purple Bat",
         description: "+1 LUK",
@@ -651,10 +651,10 @@ const PERKS = {
         }
     },
     "PURPLE_CHAMELEON": {
-        kanji: "変色蜥蜴",
-        hiragana: "へんしょくとかげ",
-        romaji: "henshokutokage",
-        english: "Color-changing Lizard",
+        kanji: "紫カメレオン",
+        kana: "むらさきカメレオン",
+        romaji: "murasakikamereon",
+        english: "Purple Chameleon",
         description: "+2 LUK / -1 AGI",
         color: "#9370db",
         hoverColor: 0x7350bb,
@@ -665,7 +665,7 @@ const PERKS = {
     },
     "PURPLE_HARE": {
         kanji: "紫野兎",
-        hiragana: "むらさきのうさぎ",
+        kana: "むらさきのうさぎ",
         romaji: "murasakinousagi",
         english: "Purple Hare",
         description: "+1 LUK",
@@ -677,7 +677,7 @@ const PERKS = {
     },
     "PURPLE_MOTH": {
         kanji: "紫蛾",
-        hiragana: "むらさきが",
+        kana: "むらさきが",
         romaji: "murasakiga",
         english: "Purple Moth",
         description: "+1 LUK",
@@ -689,7 +689,7 @@ const PERKS = {
     },
     "PURPLE_CHAOS": {
         kanji: "紫混沌",
-        hiragana: "むらさきこんとん",
+        kana: "むらさきこんとん",
         romaji: "murasakikonton",
         english: "Purple Chaos",
         description: "Randomly rearranges all your stats\nThen +2 LUK",
@@ -758,7 +758,7 @@ const PERKS = {
     // Green animal perks (converted to something else)
     "GREEN_DEER": {
         kanji: "緑鹿",
-        hiragana: "みどりしか",
+        kana: "みどりしか",
         romaji: "midorishika",
         english: "Green Deer",
         description: "+2 END",
@@ -770,7 +770,7 @@ const PERKS = {
     },
     "GREEN_FROG": {
         kanji: "緑蛙",
-        hiragana: "みどりかえる",
+        kana: "みどりかえる",
         romaji: "midorikaeru",
         english: "Green Frog",
         description: "+1 POW",
@@ -781,8 +781,8 @@ const PERKS = {
         }
     },
     "GREEN_GAZELLE": {
-        kanji: "緑羚羊",
-        hiragana: "みどりがゼル",
+        kanji: "緑ガゼル",
+        kana: "みどりガゼル",
         romaji: "midorigazeru",
         english: "Green Gazelle",
         description: "+2 AGI / -1 END",
@@ -795,7 +795,7 @@ const PERKS = {
     },
     "GREEN_HORSE": {
         kanji: "緑馬",
-        hiragana: "みどりうま",
+        kana: "みどりうま",
         romaji: "midoriuma",
         english: "Green Horse",
         description: "+3 AGI / -1 POW",
@@ -808,7 +808,7 @@ const PERKS = {
     },
     "GREEN_CRICKET": {
         kanji: "緑蟋蟀",
-        hiragana: "みどりこおろぎ",
+        kana: "みどりこおろぎ",
         romaji: "midorikoorogi",
         english: "Green Cricket",
         description: "+1 LUK",
@@ -820,7 +820,7 @@ const PERKS = {
     },
     "GREEN_RABBIT": {
         kanji: "緑兎",
-        hiragana: "みどりうさぎ",
+        kana: "みどりうさぎ",
         romaji: "midoriusagi",
         english: "Green Rabbit",
         description: "+2 LUK / -1 AGI",
@@ -833,7 +833,7 @@ const PERKS = {
     },
     "GREEN_LIZARD": {
         kanji: "緑蜥蜴",
-        hiragana: "みどりとかげ",
+        kana: "みどりとかげ",
         romaji: "midoritokage",
         english: "Green Lizard",
         description: "+1 AGI",
@@ -845,7 +845,7 @@ const PERKS = {
     },
     "GREEN_HUMMINGBIRD": {
         kanji: "緑蜂鳥",
-        hiragana: "みどりはちどり",
+        kana: "みどりはちどり",
         romaji: "midorihachidori",
         english: "Green Hummingbird",
         description: "+1 AGI / +1 POW",
@@ -856,10 +856,9 @@ const PERKS = {
             window.modifyStat('damage', 1);
         }
     },
-
     "GREEN_DOLPHIN": {
         kanji: "緑海豚",
-        hiragana: "みどりいるか",
+        kana: "みどりいるか",
         romaji: "midoriiruka",
         english: "Green Dolphin",
         description: "+2 AGI / -1 END",
@@ -870,10 +869,9 @@ const PERKS = {
             window.modifyStat('health', -1);
         }
     },
-
     "GREEN_GRASSHOPPER": {
-        kanji: "緑蝗",
-        hiragana: "みどりばった",
+        kanji: "緑飛蝗",
+        kana: "みどりばった",
         romaji: "midoribatta",
         english: "Green Grasshopper",
         description: "+1 AGI / +1 LUK",
@@ -884,10 +882,9 @@ const PERKS = {
             window.modifyStat('luck', 1);
         }
     },
-
     "GREEN_SNAKE": {
         kanji: "緑蛇",
-        hiragana: "みどりへび",
+        kana: "みどりへび",
         romaji: "midorihebi",
         english: "Green Snake",
         description: "+1 AGI",
@@ -897,11 +894,10 @@ const PERKS = {
             window.modifyStat('fireRate', 1);
         }
     },
-
     "GREEN_DREAM": {
-        kanji: "緑夢",
-        hiragana: "みどりゆめ",
-        romaji: "midoriyume",
+        kanji: "緑の夢",
+        kana: "みどりのゆめ",
+        romaji: "midorinoyume",
         english: "Green Dream",
         description: "Creates after-images that damage enemies",
         color: "#00cc66",
@@ -912,7 +908,7 @@ const PERKS = {
     },
     "PURPLE_OWL": {
         kanji: "紫梟",
-        hiragana: "むらさきふくろう",
+        kana: "むらさきふくろう",
         romaji: "murasakifukurou",
         english: "Purple Owl",
         description: "Chance to fire a second projectile",
@@ -924,7 +920,7 @@ const PERKS = {
     },
     "PURPLE_HEDGEHOG": {
         kanji: "紫針鼠",
-        hiragana: "むらさきはりねずみ",
+        kana: "むらさきはりねずみ",
         romaji: "murasakiharinezumi",
         english: "Purple Hedgehog",
         description: "Release projectiles in all directions when hit",
@@ -935,9 +931,9 @@ const PERKS = {
         }
     },
     "CRIMSON_SCATTER": {
-        kanji: "紅散",
-        hiragana: "こうさん",
-        romaji: "kousan",
+        kanji: "紅散弾",
+        kana: "べにさんだん",
+        romaji: "benisandan",
         english: "Crimson Scatter",
         description: "Higher damage at short range",
         color: "#FF3030",
@@ -946,9 +942,9 @@ const PERKS = {
         }
     },
     "CRIMSON_FURY": {
-        kanji: "紅怒",
-        hiragana: "くれないいかり",
-        romaji: "kurenaiikari",
+        kanji: "紅の怒り",
+        kana: "くれないのいかり",
+        romaji: "kurenainoikari",
         english: "Crimson Fury",
         description: "Double damage when below 25% health",
         color: "#FF0000",
@@ -959,9 +955,9 @@ const PERKS = {
         }
     },
     "IMMORTAL_ARM": {
-        kanji: "不死腕",
-        hiragana: "ふしうで",
-        romaji: "fushiude",
+        kanji: "不死の腕",
+        kana: "ふしのうで",
+        romaji: "fushinoude",
         english: "Immortal Arm",
         description: "Summons an arm that orbits you and damages enemies",
         color: "#9932CC", // A deep purple color
@@ -971,9 +967,9 @@ const PERKS = {
         }
     },
     "GOD_HAMMER": {
-        kanji: "神鎚",
-        hiragana: "かみつち",
-        romaji: "kamitsuchi",
+        kanji: "神の鎚",
+        kana: "かみのつち",
+        romaji: "kaminotsuchi",
         english: "God Hammer",
         description: "Periodically drops a divine hammer on enemies",
         color: "#FFD700",
@@ -983,9 +979,9 @@ const PERKS = {
         }
     },
     "ETERNAL_RHYTHM": {
-        kanji: "永律",
-        hiragana: "えいりつ",
-        romaji: "eiritsu",
+        kanji: "永遠の律動",
+        kana: "えいえんのりつどう",
+        romaji: "eiennoritsudou",
         english: "Eternal Rhythm",
         description: "While moving, gradually increases fire rate up to 2x",
         color: "#FFDD00",
@@ -995,9 +991,9 @@ const PERKS = {
         }
     },
     "DIVINE_BEACON": {
-        kanji: "天標",
-        hiragana: "てんしるべ",
-        romaji: "tenshirube",
+        kanji: "天の標",
+        kana: "てんのしるべ",
+        romaji: "tennoshirube",
         english: "Divine Beacon",
         description: "Periodically spawns heavenly markers that summon God Hammers when collected",
         color: "#FFD700",

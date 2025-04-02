@@ -341,7 +341,7 @@
             enemy.expValue = enemyData.expValue || 1;
 
             // Store all language and educational properties
-            enemy.hiragana = enemyData.hiragana;
+            enemy.kana = enemyData.kana;
             enemy.romaji = enemyData.romaji;
             enemy.english = enemyData.english;
         }
@@ -735,7 +735,7 @@
             const defaults = {
                 container: null,
                 showBackground: true,
-                showHiragana: true,
+                showKana: true,
                 showRomaji: true,
                 showEnglish: true,
                 showDescription: true,
@@ -794,7 +794,7 @@
             // Fixed positions relative to card center
             const positions = {
                 kanji: y - 60,      // Kanji position
-                hiragana: y - 15,   // Hiragana position 
+                kana: y - 15,   // Kana position 
                 romaji: y + 10,     // Romaji position
                 english: y + 40,    // English position
                 description: y + 85 // Description position - 145 from kanji
@@ -821,19 +821,19 @@
 
                 elements.push(kanjiText);
 
-                // Show hiragana if requested
-                if (settings.showHiragana) {
-                    const hiraganaText = scene.add.text(
-                        x, positions.hiragana,
-                        perk.hiragana,
+                // Show kana if requested
+                if (settings.showKana) {
+                    const kanaText = scene.add.text(
+                        x, positions.kana,
+                        perk.kana,
                         { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff' }
                     ).setOrigin(0.5);
 
                     if (settings.container) {
-                        settings.container.add(hiraganaText);
+                        settings.container.add(kanaText);
                     }
 
-                    elements.push(hiraganaText);
+                    elements.push(kanaText);
                 }
 
                 // Show romaji if requested
@@ -903,7 +903,7 @@
 
             return createPerkCardElements(scene, perk, x, y, {
                 ...options,
-                showHiragana: true,
+                showKana: true,
                 showRomaji: true,
                 showEnglish: true,
                 showDescription: true
@@ -943,14 +943,14 @@
                     i === this.perkChallenge.currentIndex);
 
                 // Show partial or full details based on attempts
-                const showHiragana = !isCurrentChallenge || this.perkChallenge.attempts >= 1;
+                const showKana = !isCurrentChallenge || this.perkChallenge.attempts >= 1;
                 const showRomaji = !isCurrentChallenge || this.perkChallenge.attempts >= 2;
                 const showEnglish = !isCurrentChallenge || this.perkChallenge.attempts >= 2;
 
                 // Create card elements with appropriate options
                 const cardElements = createPerkCardElements(this, perk, cardX, 330, {
                     container: this.perkCardContainer,
-                    showHiragana: showHiragana,
+                    showKana: showKana,
                     showRomaji: showRomaji,
                     showEnglish: showEnglish,
                     makeInteractive: true,
@@ -1577,7 +1577,7 @@
             }).setOrigin(0.5);
 
             // Store all language and educational properties
-            player.hiragana = HERO_HIRAGANA;
+            player.kana = HERO_HIRAGANA;
             player.romaji = HERO_ROMAJI;
             player.english = HERO_ENGLISH;
 
@@ -2121,7 +2121,7 @@
             return {
                 enemyType: enemyType,
                 kanji: enemyType,
-                hiragana: enemyData.hiragana,
+                kana: enemyData.kana,
                 romaji: enemyData.romaji,
                 english: enemyData.english,
                 killed: 0,
@@ -2257,7 +2257,7 @@
         function updateQuestDisplay() {
             if (!currentQuest || !this.learningFeedback) return;
 
-            const questText = `Hunt: ${currentQuest.kanji} (${currentQuest.hiragana}) [${currentQuest.romaji}] - ${currentQuest.english} (${currentQuest.killed}/${currentQuest.required})`;
+            const questText = `Hunt: ${currentQuest.kanji} (${currentQuest.kana}) [${currentQuest.romaji}] - ${currentQuest.english} (${currentQuest.killed}/${currentQuest.required})`;
             this.learningFeedback.setText(questText);
 
             // Set alpha to full to ensure visibility
@@ -2390,7 +2390,7 @@
 
                 // Update the text
                 this.learningFeedback.setText(
-                    `${enemy.text} (${enemy.hiragana}) [${enemy.romaji}] - ${enemy.english}`
+                    `${enemy.text} (${enemy.kana}) [${enemy.romaji}] - ${enemy.english}`
                 );
 
                 // Reset scale for animation
@@ -3179,10 +3179,10 @@
             console.log("Attempts increased to: " + this.perkChallenge.attempts);
 
             if (this.perkChallenge.attempts === 1) {
-                // First wrong attempt - show hiragana hint
+                // First wrong attempt - show kana hint
                 const hintText = this.add.text(
                     600, 650,
-                    'Hint: Check the hiragana!',
+                    'Hint: Check the kana!',
                     {
                         fontFamily: 'Arial',
                         fontSize: '18px',
@@ -3200,21 +3200,21 @@
                     }
                 });
 
-                // Force show hiragana for the current card
+                // Force show kana for the current card
                 const currentPerk = this.perkChallenge.selectedPerks[this.perkChallenge.currentIndex];
                 const cardX = this.perkChallenge.cardElements[this.perkChallenge.currentIndex].background.x;
 
-                // Add hiragana text directly
-                const hiraganaText = this.add.text(
+                // Add kana text directly
+                const kanaText = this.add.text(
                     cardX, 315,
-                    currentPerk.hiragana,
+                    currentPerk.kana,
                     { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff' }
                 ).setOrigin(0.5);
 
-                this.perkCardContainer.add(hiraganaText);
-                this.perkChallenge.cardElements[this.perkChallenge.currentIndex].elements.push(hiraganaText);
+                this.perkCardContainer.add(kanaText);
+                this.perkChallenge.cardElements[this.perkChallenge.currentIndex].elements.push(kanaText);
 
-                console.log("Added hiragana hint:", currentPerk.hiragana);
+                console.log("Added kana hint:", currentPerk.kana);
             } else {
                 // Second wrong attempt - end input challenge
                 const failText = this.add.text(

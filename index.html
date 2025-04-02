@@ -213,7 +213,6 @@
         let gameOver = false;
         let gameOverText;
         let restartButton;
-        let killCountText;
         let playerInvincible = false;
 
         // Track elapsed time
@@ -236,7 +235,6 @@
         let playerLevel = 1;
         let heroExp = 0;
         let heroExpToLevel = 5;
-        let heroLevelText;
         let levelUpCards = [];
         let gamePaused = false;
 
@@ -1577,7 +1575,7 @@
             }).setOrigin(0.5);
 
             // Store all language and educational properties
-            player.kana = HERO_HIRAGANA;
+            player.kana = HERO_KANA;
             player.romaji = HERO_ROMAJI;
             player.english = HERO_ENGLISH;
 
@@ -1640,20 +1638,6 @@
 
             // Debug function to lvl up
             setupDebugKeys.call(this);
-
-            // Kill count text (on-screen)
-            killCountText = this.add.text(
-                600, 65,
-                'Enemies killed: 0',
-                { fontFamily: 'Arial', fontSize: '14px', color: '#ffffff' }
-            ).setOrigin(0.5);
-
-            // Hero level text
-            heroLevelText = this.add.text(
-                600, 85,
-                'Hero Level: 1',
-                { fontFamily: 'Arial', fontSize: '14px', color: '#00ffff' }
-            ).setOrigin(0.5);
 
             // Create the game over screen (hidden initially)
             gameOverText = this.add.text(
@@ -1782,9 +1766,6 @@
 
             // Update UI
             document.getElementById('kills').textContent = `Enemies killed: ${score}`;
-
-            // Update in-game kill count
-            killCountText.setText(`Enemies killed: ${score}`);
 
             // Calculate difficulty scaling based on elapsed time instead of raw time
             const minutesElapsed = elapsedTime / 60;
@@ -1984,9 +1965,6 @@
 
             // Set XP to excess amount (instead of resetting to 0)
             heroExp = Math.max(0, excessXP);
-
-            // Update the level text
-            heroLevelText.setText(`Hero Level: ${playerLevel}`);
 
             // Update the XP bar with new values
             GameUI.updateExpBar(this);
@@ -3863,11 +3841,9 @@
             player.y = 400;
 
             // Reset UI
-            heroLevelText.setText('Hero Level: 1');
             player.setFontSize(32);
             GameUI.updateHealthBar(this);
             GameUI.updateExpBar(this);
-            killCountText.setText('Enemies killed: 0');
 
             // Reset all perk effects
             clearAllPerkEffects();

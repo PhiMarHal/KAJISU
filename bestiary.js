@@ -37,127 +37,127 @@ const ENEMY_TYPES = {
     // Rank 1 enemies
     '鬼': {
         rank: 1,
-        hiragana: 'おに',
+        kana: 'おに',
         romaji: 'oni',
         english: 'Demon/Ogre'
     },
     '幽': {
         rank: 1,
-        hiragana: 'ゆう',
+        kana: 'ゆう',
         romaji: 'yuu',
         english: 'Ghost'
     },
     '龍': {
         rank: 1,
-        hiragana: 'りゅう',
+        kana: 'りゅう',
         romaji: 'ryuu',
         english: 'Dragon'
     },
     '蛇': {
         rank: 1,
-        hiragana: 'へび',
+        kana: 'へび',
         romaji: 'hebi',
         english: 'Snake'
     },
     '魔': {
         rank: 1,
-        hiragana: 'ま',
+        kana: 'ま',
         romaji: 'ma',
         english: 'Devil'
     },
     '死': {
         rank: 1,
-        hiragana: 'し',
+        kana: 'し',
         romaji: 'shi',
         english: 'Death'
     },
     '獣': {
         rank: 1,
-        hiragana: 'けもの',
+        kana: 'けもの',
         romaji: 'kemono',
         english: 'Beast'
     },
     '骨': {
         rank: 1,
-        hiragana: 'ほね',
+        kana: 'ほね',
         romaji: 'hone',
         english: 'Bone'
     },
     '影': {
         rank: 1,
-        hiragana: 'かげ',
+        kana: 'かげ',
         romaji: 'kage',
         english: 'Shadow'
     },
     '鮫': {
         rank: 1,
-        hiragana: 'さめ',
+        kana: 'さめ',
         romaji: 'same',
         english: 'Shark'
     },
     '妖': {
         rank: 1,
-        hiragana: 'あやかし',
+        kana: 'あやかし',
         romaji: 'ayakashi',
         english: 'Phantom'
     },
     '冥': {
         rank: 1,
-        hiragana: 'めい',
+        kana: 'めい',
         romaji: 'mei',
         english: 'Specter'
     },
     '霊': {
         rank: 1,
-        hiragana: 'れい',
+        kana: 'れい',
         romaji: 'rei',
         english: 'Spirit'
     },
     '怨': {
         rank: 1,
-        hiragana: 'おん',
+        kana: 'おん',
         romaji: 'on',
         english: 'Grudge'
     },
     '邪': {
         rank: 1,
-        hiragana: 'じゃ',
+        kana: 'じゃ',
         romaji: 'ja',
         english: 'Evil'
     },
     '呪': {
         rank: 1,
-        hiragana: 'のろい',
+        kana: 'のろい',
         romaji: 'noroi',
         english: 'Curse'
     },
     '魂': {
         rank: 1,
-        hiragana: 'たましい',
+        kana: 'たましい',
         romaji: 'tamashii',
         english: 'Soul'
     },
     '闇': {
         rank: 1,
-        hiragana: 'やみ',
+        kana: 'やみ',
         romaji: 'yami',
         english: 'Darkness'
     },
     '妄': {
         rank: 1,
-        hiragana: 'もう',
+        kana: 'もう',
         romaji: 'mou',
         english: 'Delusion'
     },
     '憑': {
         rank: 1,
-        hiragana: 'つき',
+        kana: 'つき',
         romaji: 'tsuki',
         english: 'Possession'
     },
     '煉': {
         rank: 1,
-        hiragana: 'れん',
+        kana: 'れん',
         romaji: 'ren',
         english: 'Purgatory'
     },
@@ -165,73 +165,73 @@ const ENEMY_TYPES = {
     // Rank 2 enemies - more powerful variants
     '殺': {
         rank: 2,
-        hiragana: 'さつ',
+        kana: 'さつ',
         romaji: 'satsu',
         english: 'Slayer'
     },
     '魘': {
         rank: 2,
-        hiragana: 'えん',
+        kana: 'えん',
         romaji: 'en',
         english: 'Nightmare'
     },
     '禍': {
         rank: 2,
-        hiragana: 'わざわい',
+        kana: 'わざわい',
         romaji: 'wazawai',
         english: 'Calamity'
     },
     '鬣': {
         rank: 2,
-        hiragana: 'たてがみ',
+        kana: 'たてがみ',
         romaji: 'tategami',
         english: 'Predator'
     },
     '悪': {
         rank: 2,
-        hiragana: 'あく',
+        kana: 'あく',
         romaji: 'aku',
         english: 'Malice'
     },
     '屍': {
         rank: 2,
-        hiragana: 'しかばね',
+        kana: 'しかばね',
         romaji: 'shikabane',
         english: 'Corpse'
     },
     '凶': {
         rank: 2,
-        hiragana: 'きょう',
+        kana: 'きょう',
         romaji: 'kyou',
         english: 'Doom'
     },
     '鵺': {
         rank: 2,
-        hiragana: 'ぬえ',
+        kana: 'ぬえ',
         romaji: 'nue',
         english: 'Chimera'
     },
     '餓': {
         rank: 2,
-        hiragana: 'うえ',
+        kana: 'うえ',
         romaji: 'ue',
         english: 'Hunger'
     },
     '狂': {
         rank: 2,
-        hiragana: 'きょう',
+        kana: 'きょう',
         romaji: 'kyou',
         english: 'Madness'
     },
     '兇': {
         rank: 2,
-        hiragana: 'きょう',
+        kana: 'きょう',
         romaji: 'kyou',
         english: 'Savage'
     },
     '鬧': {
         rank: 2,
-        hiragana: 'かまびすし',
+        kana: 'かまびすし',
         romaji: 'kamabisushi',
         english: 'Chaos'
     }

@@ -1,6 +1,6 @@
 // Hero kanji with readings and translation
 const HERO_CHARACTER = '勇';
-const HERO_HIRAGANA = 'ゆう';
+const HERO_KANA = 'ゆう';
 const HERO_ROMAJI = 'yuu';
 const HERO_ENGLISH = 'Brave';
 

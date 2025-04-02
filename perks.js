@@ -651,10 +651,10 @@ const PERKS = {
         }
     },
     "PURPLE_CHAMELEON": {
-        kanji: "紫蜥蜴",
-        hiragana: "むらさきかめれおん",
-        romaji: "murasakikamereon",
-        english: "Purple Chameleon",
+        kanji: "変色蜥蜴",
+        hiragana: "へんしょくとかげ",
+        romaji: "henshokutokage",
+        english: "Color-changing Lizard",
         description: "+2 LUK / -1 AGI",
         color: "#9370db",
         hoverColor: 0x7350bb,

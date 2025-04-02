@@ -278,17 +278,17 @@
         let enemySpawners = {}; // Object to store spawners for different ranks
         let rankEnemyStartTimes = {
             1: 0, // Rank 1 enemies start immediately
-            2: 15 * 60 // Rank 2 enemies start after 15 minutes
+            2: 12 * 60 // Rank 2 enemies start after 15 minutes
             // Add more ranks and their start times here
         };
         let rankSpawnDelays = {
             1: {
                 base: 4000,
-                min: 200
+                min: 400
             },
             2: {
                 base: 8000,
-                min: 400
+                min: 800
             }
             // Add more ranks and their spawn configurations here
         };
@@ -390,14 +390,16 @@
                         // Calculate time since this rank started
                         const rankMinutesActive = (elapsedTime - startTime) / 60;
 
-                        // Only scale up to 15 minutes of active time for this rank
-                        const scalingMinutes = Math.min(15, rankMinutesActive);
+                        // Only scale up to 12 minutes of active time for this rank
+                        const scalingMinutes = Math.min(12, rankMinutesActive);
 
                         // Calculate new delay with minimum floor
                         const newSpawnDelay = Math.max(
                             rankConfig.min,
                             rankConfig.base / Math.pow(enemyCountScaleFactor, scalingMinutes)
                         );
+
+
 
                         // Update the timer if needed
                         if (Math.abs(enemySpawners[rank].delay - newSpawnDelay) > (enemySpawners[rank].delay * 0.1)) {

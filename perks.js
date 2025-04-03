@@ -966,6 +966,30 @@ const PERKS = {
             window.activateImmortalArm();
         }
     },
+    "IMMORTAL_HEAD": {
+        kanji: "不死の頭",
+        kana: "ふしのあたま",
+        romaji: "fushinoatama",
+        english: "Immortal Head",
+        description: "Summons a head that orbits close to you and damages enemies",
+        color: "#9932CC", // Deep purple color
+        hoverColor: 0x7922BC,
+        onAcquire: function () {
+            window.activateImmortalHead();
+        }
+    },
+    "IMMORTAL_LEG": {
+        kanji: "不死の脚",
+        kana: "ふしのあし",
+        romaji: "fushinoashi",
+        english: "Immortal Leg",
+        description: "Summons a leg that orbits far from you and damages enemies",
+        color: "#9932CC", // Deep purple color
+        hoverColor: 0x7922BC,
+        onAcquire: function () {
+            window.activateImmortalLeg();
+        }
+    },
     "GOD_HAMMER": {
         kanji: "神の鎚",
         kana: "かみのつち",

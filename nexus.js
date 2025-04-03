@@ -128,5 +128,114 @@ window.activateOrbitingProjectile = function () {
     }
 };
 
+// Track the current angle of immortal body parts
+let immortalBodyAngle = Math.random() * Math.PI * 2; // Initial random angle
+
+// Register the Immortal Arm perk (updated)
+OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
+    getConfig: function () {
+        return {
+            symbol: '腕', // Kanji for "arm"
+            color: '#9932CC', // Deep purple color
+            fontSize: 32, // Fixed size
+            radius: 100, // Standard orbit radius
+            angle: immortalBodyAngle, // Use the tracked angle
+            speed: 0.01,
+            pattern: 'standard',
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage,
+            damageInterval: 500, // Half second cooldown between damage applications
+            lifespan: null, // Permanent
+            options: {}
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Register the Immortal Head perk (updated)
+OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_HEAD', {
+    getConfig: function () {
+        return {
+            symbol: '頭', // Kanji for "head"
+            color: '#9932CC', // Deep purple color
+            fontSize: 32, // Fixed size
+            radius: 50, // Close orbit radius
+            angle: immortalBodyAngle, // Use the tracked angle
+            speed: 0.01,
+            pattern: 'standard',
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage,
+            damageInterval: 500, // Half second cooldown between damage applications
+            lifespan: null, // Permanent
+            options: {}
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Register the Immortal Leg perk (updated)
+OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_LEG', {
+    getConfig: function () {
+        return {
+            symbol: '脚', // Kanji for "leg"
+            color: '#9932CC', // Deep purple color
+            fontSize: 32, // Fixed size
+            radius: 150, // Far orbit radius
+            angle: immortalBodyAngle, // Use the tracked angle
+            speed: 0.01,
+            pattern: 'standard',
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage,
+            damageInterval: 500, // Half second cooldown between damage applications
+            lifespan: null, // Permanent
+            options: {}
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Function to track the current immortal body parts
+function updateImmortalBodyAngle() {
+    // Get all active orbital entities
+    const activeOrbitals = OrbitalSystem.getAll();
+
+    // Find any immortal body part
+    const immortalPart = activeOrbitals.find(orbital =>
+        orbital.entity.text === '腕' ||
+        orbital.entity.text === '頭' ||
+        orbital.entity.text === '脚'
+    );
+
+    // If found, update the tracked angle
+    if (immortalPart) {
+        immortalBodyAngle = immortalPart.angle;
+    }
+}
+
+// Modify the activation functions to update the angle first
+window.activateImmortalArm = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+    updateImmortalBodyAngle();
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'IMMORTAL_ARM');
+};
+
+window.activateImmortalHead = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+    updateImmortalBodyAngle();
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'IMMORTAL_HEAD');
+};
+
+window.activateImmortalLeg = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+    updateImmortalBodyAngle();
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'IMMORTAL_LEG');
+};
+
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

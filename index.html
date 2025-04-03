@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word Survivors</title>
+    <title>KAJISU</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
     <script src="cooldown.js"></script>
     <script src="hero.js"></script>
@@ -13,6 +13,8 @@
     <script src="perks.js"></script>
     <script src="ballistics.js"></script>
     <script src="menu.js"></script>
+    <script src="orbitals.js"></script>
+    <script src="nexus.js"></script>
 
     <style>
         body {
@@ -263,8 +265,6 @@
         // Perk system variables
         let playerPerks = {};
         let shieldVisual = null;
-        let orbitingProjectiles = [];
-        let orbitingProjectileTimer = null;
         let landmineTimer = null;
         let afterImages = [];
         let afterImageEnabled = false;
@@ -944,6 +944,7 @@
                 const showKana = !isCurrentChallenge || this.perkChallenge.attempts >= 1;
                 const showRomaji = !isCurrentChallenge || this.perkChallenge.attempts >= 2;
                 const showEnglish = !isCurrentChallenge || this.perkChallenge.attempts >= 2;
+                const showDescription = !isCurrentChallenge || this.perkChallenge.attempts >= 2;
 
                 // Create card elements with appropriate options
                 const cardElements = createPerkCardElements(this, perk, cardX, 330, {
@@ -951,6 +952,7 @@
                     showKana: showKana,
                     showRomaji: showRomaji,
                     showEnglish: showEnglish,
+                    showDescription: showDescription,
                     makeInteractive: true,
                     perkCallback: function (perkId) {
                         selectCard.call(this, perkId);
@@ -1304,10 +1306,6 @@
             afterImages = [];
             playerPositionHistory = [];
 
-            if (orbitingProjectileTimer) {
-                orbitingProjectileTimer.remove();
-                orbitingProjectileTimer = null;
-            }
             if (landmineTimer) {
                 landmineTimer.remove();
                 landmineTimer = null;
@@ -1316,9 +1314,6 @@
                 afterImageTimer.remove();
                 afterImageTimer = null;
             }
-
-            // Any other effect-specific cleanup
-            orbitingProjectiles = [];
         }
 
         function resetAllPerks() {
@@ -1584,6 +1579,7 @@
             player.body.setCollideWorldBounds(true);
 
             GameUI.createUI(this);
+            OrbitalSystem.init();
 
             // Create player stats text
             playerStatsText = this.add.text(
@@ -1733,12 +1729,6 @@
                 shieldVisual.y = player.y;
             }
 
-            // Update orbiting projectiles
-            orbitingProjectiles.forEach(projectile => {
-                if (projectile && projectile.active) {
-                    updateOrbitingProjectile(projectile, player);
-                }
-            });
 
             // Updated projectile processing
             projectiles.getChildren().forEach(projectile => {
@@ -1753,11 +1743,6 @@
                 if (projectile.components && Object.keys(projectile.components).length > 0) {
                     ProjectileComponentSystem.processEvent(projectile, 'update');
                 }
-
-                // Keep any existing special projectile updates
-                if (projectile.hasDistanceDamage) {
-                    updateProjectileDistance.call(this, projectile);
-                }
             });
 
             // Update health bar
@@ -1766,6 +1751,9 @@
 
             // Update UI
             document.getElementById('kills').textContent = `Enemies killed: ${score}`;
+
+            // Update orbitals
+            OrbitalSystem.update(this, time);
 
             // Calculate difficulty scaling based on elapsed time instead of raw time
             const minutesElapsed = elapsedTime / 60;
@@ -1842,115 +1830,6 @@
                     healEffect.destroy();
                 }
             });
-        }
-
-        // Function to create the health bar with proper depth
-        function createHealthBar() {
-            // Remove old health bar elements if they exist
-            if (healthBar) healthBar.destroy();
-            if (healthBarBg) healthBarBg.destroy();
-
-            // Container dimensions
-            const barWidth = 300;
-            const barHeight = 10;
-            const borderWidth = 2;
-            const innerMargin = 2; // Margin between border and health segments
-
-            // Create new container with golden border - set high depth
-            healthBarBg = this.add.rectangle(600, 20, barWidth + (borderWidth * 2), barHeight + (borderWidth * 2), 0xFFD700)
-                .setDepth(100); // Set high depth to ensure it's above game elements
-
-            // Create inner black background with margin
-            const innerBg = this.add.rectangle(600, 20, barWidth, barHeight, 0x000000)
-                .setDepth(100); // Same high depth
-
-            // Create a container for segments
-            healthSegments = this.add.group();
-
-            // Container for separators
-            healthSeparators = this.add.group();
-
-            // Initial health segments
-            GameUI.updateHealthBar(this);
-        }
-
-        // Function to update the health bar with proper depth
-        function updateHealthBar() {
-            // If segments don't exist yet or scene is not available, exit
-            if (!healthSegments || !healthSegments.scene) return;
-
-            // Clear existing segments and separators
-            healthSegments.clear(true, true);
-            if (healthSeparators) healthSeparators.clear(true, true);
-
-            // Container dimensions
-            const barWidth = 300;
-            const barHeight = 10;
-            const segmentGap = 4; // Gap between segments
-            const innerMargin = 2; // Margin from the golden border
-
-            // Actual content width (excluding margins)
-            const contentWidth = barWidth - (innerMargin * 2);
-
-            // Calculate segment width based on max health
-            const totalGapWidth = (maxPlayerHealth - 1) * segmentGap;
-            const segmentWidth = (contentWidth - totalGapWidth) / maxPlayerHealth;
-
-            // Get the current scene
-            const scene = healthSegments.scene;
-
-            // Starting X position (accounting for margin)
-            const startPosX = 450 + innerMargin;
-
-            // Create each segment
-            for (let i = 0; i < maxPlayerHealth; i++) {
-                // Only create filled segments for current health
-                const isFilled = i < playerHealth;
-
-                // Calculate segment position
-                const segmentX = startPosX + (i * (segmentWidth + segmentGap));
-
-                // Create segment with high depth
-                const segment = scene.add.rectangle(
-                    segmentX + (segmentWidth / 2),
-                    20,
-                    segmentWidth,
-                    barHeight - (innerMargin * 2),
-                    isFilled ? 0x00cc00 : 0x333333
-                ).setDepth(100); // Set high depth
-
-                // Add to group for easy management
-                healthSegments.add(segment);
-
-                // Add golden separator after each segment (except the last one)
-                if (i < maxPlayerHealth - 1) {
-                    const separatorX = segmentX + segmentWidth + (segmentGap / 2);
-                    const separator = scene.add.rectangle(
-                        separatorX,
-                        20,
-                        2,
-                        barHeight - (innerMargin * 2),
-                        0xFFD700
-                    ).setDepth(100); // Set high depth
-                    healthSeparators.add(separator);
-                }
-            }
-        }
-
-        // Function to update the experience bar display
-        function updateExpBar() {
-            // Calculate experience percentage (clamped to valid range)
-            const expPercentage = Math.max(0, Math.min(1, heroExp / heroExpToLevel));
-
-            // Set the width based on percentage of maximum width
-            expBar.width = expPercentage * 200;
-
-            // Position the bar correctly from the left edge (500)
-            // Same key fix as health bar - keep origin at left
-            expBar.x = 500;
-
-            // Update the experience text
-            expText.setText(`XP: ${heroExp}/${heroExpToLevel}`);
         }
 
         function levelUp() {
@@ -2064,29 +1943,6 @@
 
             return projectile;
         }
-
-        function updateProjectileDistance(projectile) {
-            if (!projectile || !projectile.active || !projectile.hasDistanceDamage) return;
-
-            // Calculate distance from starting position
-            const dx = projectile.x - projectile.startX;
-            const dy = projectile.y - projectile.startY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            // Maximum distance for damage scaling
-            const maxDistance = 400;
-
-            // Calculate damage multiplier based on distance (2.0 at distance 0, 0.4 at maxDistance)
-            let damageMultiplier = 2.0 - (1.6 * Math.min(distance, maxDistance) / maxDistance);
-
-            // Update projectile damage
-            projectile.damage = projectile.baseDamage * damageMultiplier;
-
-            // Update projectile scale to reflect damage (visual feedback)
-            projectile.setScale(damageMultiplier);
-        }
-
-
 
         // Quest data structure (used when active)
         function createQuest(enemyType) {
@@ -2390,7 +2246,7 @@
             score++;
 
             // Add experience
-            heroExp++;
+            heroExp += enemy.expValue;
 
             // Update exp bar
             GameUI.updateExpBar(this);
@@ -3430,36 +3286,6 @@
             updatePlayerStatsText();
         };
 
-        window.activateOrbitingProjectile = function () {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                // First spawn one immediately
-                spawnOrbitingProjectile.call(scene);
-
-                // Then set up the timer for regular spawning
-                if (orbitingProjectileTimer) {
-                    orbitingProjectileTimer.remove();
-                }
-
-                // Calculate cooldown based on Luck
-                const baseCooldown = 4000; // 4 seconds base cooldown
-                const luckMultiplier = BASE_STATS.AGI / playerLuck;
-                const actualCooldown = baseCooldown * luckMultiplier;
-
-                // Create and properly register the timer
-                orbitingProjectileTimer = registerTimer(scene.time.addEvent({
-                    delay: actualCooldown,
-                    callback: spawnOrbitingProjectile,
-                    callbackScope: scene,
-                    loop: true
-                }));
-
-                // Also register with perk effects system
-                window.registerEffect('timer', orbitingProjectileTimer);
-            }
-        };
-
         window.activateLandmines = function () {
             // Get the current active scene
             const scene = game.scene.scenes[0];
@@ -3540,47 +3366,6 @@
                 });
             }
         };
-
-        function spawnOrbitingProjectile() {
-            // Create an orbiting projectile with orange color
-            const projectile = createProjectileBase(this, player.x, player.y, '#ff9900');
-
-            // Set as orbiting projectile
-            projectile.isOrbiting = true;
-            projectile.orbitAngle = Math.random() * Math.PI * 2; // Random starting angle
-            projectile.orbitRadius = 12 * playerLuck; // Distance from player
-            projectile.orbitSpeed = 0.01; // Speed of orbit
-
-            // Add to orbiting projectiles array
-            orbitingProjectiles.push(projectile);
-
-            // Register entity for cleanup
-            window.registerEffect('entity', projectile);
-
-            // Flash effect when spawning
-            this.tweens.add({
-                targets: projectile,
-                scale: { from: 2, to: 1 },
-                alpha: { from: 0.8, to: 1 },
-                duration: 300,
-                ease: 'Cubic.out'
-            });
-        }
-
-        // Ensure the updateOrbitingProjectile function is called in the update loop
-        function updateOrbitingProjectile(projectile, playerObj) {
-            if (!projectile || !projectile.active) return;
-
-            // Update the orbit angle
-            projectile.orbitAngle += projectile.orbitSpeed;
-
-            // Calculate new position based on player position and orbit angle
-            const x = playerObj.x + Math.cos(projectile.orbitAngle) * projectile.orbitRadius;
-            const y = playerObj.y + Math.sin(projectile.orbitAngle) * projectile.orbitRadius;
-
-            // Update projectile position
-            projectile.setPosition(x, y);
-        }
 
         window.activateAfterImages = function () {
             // Get the current active scene

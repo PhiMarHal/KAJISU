@@ -1,5 +1,4 @@
 - Eternal Rhythm is lost after a pause (including level ups)
-- Enemies Killed is duplicated in UI
 - Arrange timer, P.A.L.E.
 - Need system to pick any kanji for hero
 - Game Over is ugly, make proper menu
@@ -22,5 +21,7 @@ but the system could work for the first xxx kanjis. or, unlocks could be 10 for 
 after 100 perks we need 1000 kills of a new kanji for a perk unlock. good for longterm progression, but might be tedious
 ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks and rotating in favor of new one.
 fixed at high value (perhaps 1k) would make more sense with that latter design
-- Streamline Afterimages = change it to follow same logic as landmines, images stay at a spot for playerLuck secs and deal contact damage while they last
-- add new perk: kill all enemies once
+- add screen coloring on damage taken
+- T3 enemies?
+- verify enemy kanji accuracy
+- allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)

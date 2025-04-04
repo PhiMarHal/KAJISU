@@ -54,9 +54,9 @@ const DropperPerkRegistry = {
 DropperPerkRegistry.registerDropperPerk('AMBER_BEETLE', {
     getConfig: function () {
         return {
-            symbol: '✧',
+            symbol: '★',
             color: '#ffbf00', // Amber color
-            fontSize: projectileSizeFactor * playerDamage * 2,
+            fontSize: projectileSizeFactor * playerDamage * 1.2,
             behaviorType: 'explosive',
             damage: playerDamage * 2,
             lifespan: null,

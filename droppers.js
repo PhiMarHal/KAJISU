@@ -71,7 +71,7 @@ const DropperSystem = {
     create: function (scene, config) {
         // Default configuration with fallbacks
         const defaults = {
-            symbol: '✧',                 // Text symbol to display
+            symbol: '★',                 // Text symbol to display
             color: '#ffff00',            // Color of the drop
             fontSize: 32,                // Size of the font
             x: player.x,                 // X position (default to player position)

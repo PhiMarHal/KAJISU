@@ -687,6 +687,18 @@ const PERKS = {
             window.modifyStat('luck', 1);
         }
     },
+    "FINAL_CATASTROPHE": {
+        kanji: "終焉",
+        kana: "しゅうえん",
+        romaji: "shuuen",
+        english: "Final Catastrophe",
+        description: "Unleashes an apocalyptic blast that devastates all enemies",
+        color: "#FF3300", // Bright red-orange
+        hoverColor: 0xCC2200,
+        onAcquire: function () {
+            window.triggerOneTimeEffect('shuuen');
+        }
+    },
     "PURPLE_CHAOS": {
         kanji: "紫混沌",
         kana: "むらさきこんとん",
@@ -696,62 +708,7 @@ const PERKS = {
         color: "#9932cc",
         hoverColor: 0x8822bc,
         onAcquire: function () {
-            // Store current stat values
-            const stats = {
-                damage: playerDamage,
-                health: maxPlayerHealth,
-                luck: playerLuck,
-                fireRate: playerFireRate
-            };
-
-            // Create an array of stat names
-            const statNames = Object.keys(stats);
-
-            // Shuffle the array
-            for (let i = statNames.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [statNames[i], statNames[j]] = [statNames[j], statNames[i]];
-            }
-
-            // Create a shuffled mapping
-            const newValues = {};
-            const originalOrder = ['damage', 'health', 'luck', 'fireRate'];
-
-            for (let i = 0; i < originalOrder.length; i++) {
-                newValues[originalOrder[i]] = stats[statNames[i]];
-            }
-
-            // Apply the new values (need to reset first)
-            window.modifyStat('damage', newValues.damage - playerDamage);
-            window.modifyStat('health', newValues.health - maxPlayerHealth);
-            window.modifyStat('luck', newValues.luck - playerLuck);
-            window.modifyStat('fireRate', newValues.fireRate - playerFireRate);
-
-            // Now add +2 to luck
-            window.modifyStat('luck', 2);
-
-            // Visual effect for chaos
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                const chaosEffect = scene.add.text(player.x, player.y, '⚡ CHAOS! ⚡', {
-                    fontFamily: 'Arial',
-                    fontSize: '24px',
-                    color: '#9932cc',
-                    stroke: '#ffffff',
-                    strokeThickness: 2
-                }).setOrigin(0.5);
-
-                scene.tweens.add({
-                    targets: chaosEffect,
-                    alpha: { from: 1, to: 0 },
-                    y: chaosEffect.y - 50,
-                    scale: { from: 1, to: 2 },
-                    duration: 1500,
-                    onComplete: function () {
-                        chaosEffect.destroy();
-                    }
-                });
-            }
+            window.triggerOneTimeEffect('purpleChaos');
         }
     },
 

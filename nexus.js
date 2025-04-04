@@ -107,8 +107,8 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
     },
     count: 1,
     cooldown: function () {
-        // Calculate cooldown based on Luck
-        return 4000 / playerLuck;
+        // Calculate cooldown based on Agi
+        return 4000 / playerFireRate;
     },
     activationMethod: 'timer'
 });

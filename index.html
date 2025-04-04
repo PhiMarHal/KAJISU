@@ -10,6 +10,8 @@
     <script src="hero.js"></script>
     <script src="artillery.js"></script>
     <script src="bestiary.js"></script>
+    <script src="droppers.js"></script>
+    <script src="entrapments.js"></script>
     <script src="perks.js"></script>
     <script src="ballistics.js"></script>
     <script src="menu.js"></script>
@@ -175,7 +177,7 @@
 
         let activeEffects = {
             timers: [],         // Store all active timers
-            entities: [],       // Store all entities created by perks (landmines, afterimages, etc.)
+            entities: [],       // Store all entities created by perks 
             activePerks: []     // Store all acquired perks
         };
 
@@ -265,11 +267,6 @@
         // Perk system variables
         let playerPerks = {};
         let shieldVisual = null;
-        let landmineTimer = null;
-        let afterImages = [];
-        let afterImageEnabled = false;
-        let afterImageTimer = null;
-        let playerPositionHistory = [];
         let healthRegenTimer = null;
 
         // Enemies
@@ -1300,20 +1297,6 @@
             activeEffects.timers = [];
             activeEffects.entities = [];
             activeEffects.activePerks = [];
-
-            // Reset other specific effect variables
-            afterImageEnabled = false;
-            afterImages = [];
-            playerPositionHistory = [];
-
-            if (landmineTimer) {
-                landmineTimer.remove();
-                landmineTimer = null;
-            }
-            if (afterImageTimer) {
-                afterImageTimer.remove();
-                afterImageTimer = null;
-            }
         }
 
         function resetAllPerks() {
@@ -3183,57 +3166,6 @@
             updatePlayerStatsText();
         };
 
-        window.activateLandmines = function () {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                // First drop one immediately
-                dropLandmine.call(scene);
-
-                // Then set up the timer for regular drops
-                if (landmineTimer) {
-                    landmineTimer.remove();
-                }
-
-                // Calculate cooldown based on Agility
-                const baseCooldown = 4000; // 4 seconds base cooldown
-                const luckMultiplier = BASE_STATS.AGI / playerFireRate;
-                const actualCooldown = baseCooldown * luckMultiplier;
-
-                // Create and properly register the timer
-                landmineTimer = registerTimer(scene.time.addEvent({
-                    delay: actualCooldown,
-                    callback: dropLandmine,
-                    callbackScope: scene,
-                    loop: true
-                }));
-
-                // Also register with perk effects system
-                window.registerEffect('timer', landmineTimer);
-            }
-        };
-
-        function dropLandmine() {
-            // Create a landmine at the player's current position with gold color
-            const landmine = createProjectileBase(this, player.x, player.y, '#ffbf00');
-
-            // Special landmine properties
-            landmine.body.immovable = true; // Landmine doesn't move when hit
-            landmine.isLandmine = true;
-
-            // Register entity for cleanup
-            window.registerEffect('entity', landmine);
-
-            // Flash effect when spawning
-            this.tweens.add({
-                targets: landmine,
-                scale: { from: 0.5, to: 1 },
-                alpha: { from: 0.2, to: 1 },
-                duration: 300,
-                ease: 'Bounce.out'
-            });
-        }
-
         // Function to fully heal the player
         window.fullHeal = function () {
             playerHealth = maxPlayerHealth;
@@ -3263,165 +3195,6 @@
                 });
             }
         };
-
-        window.activateAfterImages = function () {
-            // Get the current active scene
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                console.log("Activating after-images with transparency fix");
-                afterImageEnabled = true;
-
-                // Clear any existing after images
-                afterImages.forEach(image => {
-                    if (image && image.active) {
-                        image.destroy();
-                    }
-                });
-                afterImages = [];
-
-                // Reset position history with current position
-                playerPositionHistory = [];
-
-                // Fill history with current position
-                for (let i = 0; i < 80; i++) {
-                    playerPositionHistory.push({ x: player.x, y: player.y });
-                }
-
-                // Create after images with proper alpha values
-                for (let i = 0; i < 4; i++) {
-                    const alphaValue = 0.4;
-
-                    // Create the text object with explicit alpha setting
-                    const afterImage = scene.add.text(player.x, player.y, HERO_CHARACTER, {
-                        fontFamily: 'Arial',
-                        fontSize: '32px',
-                        color: '#00cc66'
-                    }).setOrigin(0.5);
-
-                    // Set alpha as a separate property to ensure it's applied
-                    afterImage.alpha = alphaValue;
-
-                    // Ensure these render behind the player
-                    afterImage.setDepth(player.depth - 1);
-
-                    // Add to physics group for collision detection
-                    scene.physics.world.enable(afterImage);
-                    afterImage.body.setSize(afterImage.width, afterImage.height);
-
-                    // Add damage property
-                    afterImage.damage = playerDamage;
-
-                    // Register entity for cleanup
-                    window.registerEffect('entity', afterImage);
-
-                    // Add to array
-                    afterImages.push(afterImage);
-                }
-
-                // Remove any existing timer
-                if (afterImageTimer) {
-                    afterImageTimer.remove();
-                    afterImageTimer = null;
-                }
-
-                // Create a new timer and register it properly
-                afterImageTimer = registerTimer(scene.time.addEvent({
-                    delay: 20,
-                    callback: updateAfterImages,
-                    callbackScope: scene,
-                    loop: true
-                }));
-
-                // Also register with perk effects system
-                window.registerEffect('timer', afterImageTimer);
-
-                // Add overlap detection with enemies
-                scene.physics.add.overlap(afterImages, enemies, afterImageHitEnemy, null, scene);
-
-                // Visual effect for activation
-                const activationEffect = scene.add.text(player.x, player.y - 50, 'AFTER-IMAGES ACTIVATED!', {
-                    fontFamily: 'Arial',
-                    fontSize: '16px',
-                    color: '#00cc66'
-                }).setOrigin(0.5);
-
-                scene.tweens.add({
-                    targets: activationEffect,
-                    y: activationEffect.y - 30,
-                    alpha: 0,
-                    duration: 1500,
-                    onComplete: function () {
-                        activationEffect.destroy();
-                    }
-                });
-            }
-        };
-
-        // Separate update function outside the timer callback
-        function updateAfterImages() {
-            // Verify that the feature is enabled and we have a player
-            if (!afterImageEnabled || !player || !player.active) {
-                return;
-            }
-
-            // Add current position to history
-            playerPositionHistory.unshift({ x: player.x, y: player.y });
-
-            // Limit history size
-            if (playerPositionHistory.length > 80) {
-                playerPositionHistory = playerPositionHistory.slice(0, 80);
-            }
-
-            // Update after-image positions
-            for (let i = 0; i < afterImages.length; i++) {
-                const image = afterImages[i];
-                if (image && image.active) {
-                    // Use fixed spacing for each image
-                    const posIndex = 16 + (i * 16);
-
-                    // Always use a valid index
-                    const safeIndex = Math.min(posIndex, playerPositionHistory.length - 1);
-
-                    // Set position and log first image position occasionally
-                    image.setPosition(
-                        playerPositionHistory[safeIndex].x,
-                        playerPositionHistory[safeIndex].y
-                    );
-                }
-            }
-        }
-
-        function cleanupAfterImages() {
-            console.log("Cleaning up after-images");
-
-            // Stop the timer first
-            if (afterImageTimer) {
-                console.log("Removing after-image timer");
-                afterImageTimer.remove();
-                afterImageTimer = null;
-            }
-
-            // Then destroy all images
-            afterImages.forEach((image, index) => {
-                if (image && image.active) {
-                    console.log(`Destroying after-image ${index}`);
-                    image.destroy();
-                }
-            });
-
-            // Clear arrays
-            afterImages = [];
-            playerPositionHistory = [];
-
-            // Reset flag
-            afterImageEnabled = false;
-
-            console.log("After-image cleanup complete");
-        }
-
-        function afterImageHitEnemy(afterImage, enemy) {
-            applyContactDamage.call(this, afterImage, enemy, afterImage.damage);
-        }
 
         function applyPoisonEffect(enemy, baseDamage) {
             // Store original color to reset after poison

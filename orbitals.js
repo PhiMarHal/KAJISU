@@ -241,7 +241,6 @@ const OrbitalSystem = {
             damage: playerDamage,        // Damage dealt to enemies
             damageInterval: 500,         // Minimum time between damage instances in ms
             colliderSize: 0.8,           // Size multiplier for collision detection
-            effectScale: 1.0,            // Visual effect scaling
             lifespan: null,              // Time in ms before auto-destruction (null for permanent)
             options: {}                  // Additional options for specific movement patterns and collision behavior
         };
@@ -282,7 +281,6 @@ const OrbitalSystem = {
             pattern: orbitalConfig.pattern,
             collisionType: orbitalConfig.collisionType,
             damageInterval: orbitalConfig.damageInterval,
-            effectScale: orbitalConfig.effectScale,
             createdAt: scene.time.now,
             lifespan: orbitalConfig.lifespan,
             options: orbitalConfig.options,
@@ -311,7 +309,7 @@ const OrbitalSystem = {
         // Visual effect when spawning
         scene.tweens.add({
             targets: entity,
-            scale: { from: 0, to: orbital.effectScale },
+            scale: { from: 0, to: 1 },
             duration: 500,
             ease: 'Back.out'
         });

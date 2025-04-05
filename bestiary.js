@@ -185,7 +185,7 @@ const ENEMY_TYPES = {
         rank: 2,
         kana: 'たてがみ',
         romaji: 'tategami',
-        english: 'Predator'
+        english: 'Mane'
     },
     '悪': {
         rank: 2,
@@ -233,7 +233,7 @@ const ENEMY_TYPES = {
         rank: 2,
         kana: 'かまびすし',
         romaji: 'kamabisushi',
-        english: 'Chaos'
+        english: 'Uproar'
     }
 };
 

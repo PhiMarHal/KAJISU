@@ -229,7 +229,6 @@
         let projectileFirer = null;
 
         // Difficulty scaling factors
-        let enemyHealthScaleFactor = 1.0;
         let enemyCountScaleFactor = 1.25;
         let gameStartTime = 0;
         let baseEnemyHealth = 40;
@@ -1641,9 +1640,6 @@
 
             // Call our new enemy spawner manager
             updateEnemySpawners.call(this);
-
-            // Update current enemy health based on elapsed time (optional scaling)
-            currentEnemyHealth = baseEnemyHealth * Math.pow(enemyHealthScaleFactor, minutesElapsed);
 
             // Update player stats text
             updatePlayerStatsText();

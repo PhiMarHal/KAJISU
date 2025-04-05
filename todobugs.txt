@@ -1,4 +1,3 @@
-- Eternal Rhythm is lost after a pause (including level ups)
 - Arrange timer, P.A.L.E.
 - Need system to pick any kanji for hero
 - Game Over is ugly, make proper menu
@@ -23,5 +22,5 @@ ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks a
 fixed at high value (perhaps 1k) would make more sense with that latter design
 - add screen coloring on damage taken
 - T3 enemies?
-- verify enemy kanji accuracy
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
+- hide cursor!

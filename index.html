@@ -273,7 +273,11 @@
         let enemySpawners = {}; // Object to store spawners for different ranks
         let rankEnemyStartTimes = {
             1: 0, // Rank 1 enemies start immediately
-            2: 12 * 60 // Rank 2 enemies start after 15 minutes
+            2: 12 * 60, // Rank 2 enemies start after 12 minutes
+            3: 24 * 60,
+            4: 36 * 60,
+            5: 48 * 60,
+            6: 60 * 60
             // Add more ranks and their start times here
         };
         let rankSpawnDelays = {
@@ -284,6 +288,22 @@
             2: {
                 base: 8000,
                 min: 800
+            },
+            3: {
+                base: 16000,
+                min: 1600
+            },
+            4: {
+                base: 32000,
+                min: 3200
+            },
+            5: {
+                base: 64000,
+                min: 6400
+            },
+            6: {
+                base: 128000,
+                min: 12800
             }
             // Add more ranks and their spawn configurations here
         };
@@ -1447,7 +1467,7 @@
                 fontSize: '32px',
                 color: '#ffffff',
                 fontStyle: 'bold'
-            }).setOrigin(0.5);
+            }).setOrigin(0.5).setDepth(50);
 
             // Store all language and educational properties
             player.kana = HERO_KANA;
@@ -2673,6 +2693,17 @@
                 }
             }, this);
 
+            // Add debug key (K key for skipping to next enemy phase)
+            this.input.keyboard.on('keydown-K', function (event) {
+                // Skip if debug keys are disabled
+                if (this.debugKeysDisabled) return;
+
+                if (!gamePaused && !gameOver) {
+                    // Skip to next phase based on current elapsed time
+                    skipToNextPhase.call(this);
+                }
+            }, this);
+
             // Add debug key (O key for performance monitor toggle)
             this.input.keyboard.on('keydown-O', function (event) {
                 // Skip if debug keys are disabled
@@ -2681,6 +2712,64 @@
                 // Toggle debug mode and stats visibility
                 toggleDebugMode.call(this);
             }, this);
+        }
+
+        function skipToNextPhase() {
+            // Based on your code, enemy phases are determined by rankEnemyStartTimes
+            // which indicates rank 2 enemies start at 12 minutes (720 seconds)
+
+            // Get the current minutes elapsed
+            const currentMinutes = elapsedTime / 60;
+
+            // Find the next phase timing based on rankEnemyStartTimes
+            // Convert the start times from seconds to minutes
+            const phaseTimings = Object.values(rankEnemyStartTimes).map(time => time / 60);
+
+            // Sort the phase timings to ensure they're in ascending order
+            phaseTimings.sort((a, b) => a - b);
+
+            // Find the next phase timing
+            let nextPhaseMinutes = null;
+            for (const phaseTime of phaseTimings) {
+                if (phaseTime > currentMinutes) {
+                    nextPhaseMinutes = phaseTime;
+                    break;
+                }
+            }
+
+            // If no next phase was found, add 12 minutes (common phase interval)
+            if (nextPhaseMinutes === null) {
+                // Find the highest phase timing and add 12 minutes
+                const highestPhase = Math.max(...phaseTimings);
+                nextPhaseMinutes = Math.floor(currentMinutes / 12) * 12 + 12;
+
+                // Ensure we're actually advancing time
+                if (nextPhaseMinutes <= currentMinutes) {
+                    nextPhaseMinutes = currentMinutes + 12;
+                }
+            }
+
+            // Update elapsedTime to the new phase time (in seconds)
+            const oldElapsedTime = elapsedTime;
+            elapsedTime = nextPhaseMinutes * 60;
+
+            // Log the action
+            console.log(`Debug: Time skipped from ${Math.floor(oldElapsedTime / 60)} minutes to ${nextPhaseMinutes} minutes`);
+
+            // Update the level display
+            const levelDisplay = document.getElementById('level');
+            if (levelDisplay) {
+                levelDisplay.innerText = `Time Survived: ${formatTime(elapsedTime)}`;
+            }
+
+            // Potentially trigger any time-based events that should happen
+            // This will depend on how your game handles time-based events
+
+            // Update enemy spawners to reflect the new time
+            const activeScene = game.scene.scenes[0];
+            if (activeScene) {
+                updateEnemySpawners.call(activeScene);
+            }
         }
 
         // Update setupPerformanceMonitor to not add its own key listener
@@ -3259,6 +3348,9 @@
 
             // Reset the current enemy rank
             currentEnemyRank = 1;
+
+            // Initialize enemy tiers with dynamic assignments
+            initializeEnemyTiers();
 
             // Reset quest system variables
             questMode = false;

@@ -2168,27 +2168,30 @@
             // Skip if projectile is already destroyed
             if (!projectile.active || !enemy.active) return;
 
-            // Apply damage to enemy
-            enemy.health -= projectile.damage;
+            // Ensure projectile has a damage source ID
+            if (!projectile.damageSourceId) {
+                projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
+            }
+
+            // Determine cooldown time (default 0 for regular projectiles, customizable for multi-hit)
+            const cooldownMs = projectile.canHitMultiple ? (projectile.hitCooldown ?? 1000) : 0;
+
+            // Apply damage with cooldown
+            applyContactDamage.call(
+                this,
+                projectile,
+                enemy,
+                projectile.damage,
+                cooldownMs
+            );
 
             // Process hit event for all components
             ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
 
-            // Only destroy enemy if health is 0 or below
-            if (enemy.health <= 0) {
-                defeatedEnemy.call(this, enemy);
-            } else {
-                // Flash the enemy when hit but not destroyed
-                this.tweens.add({
-                    targets: enemy,
-                    alpha: 0.3,
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 0
-                });
+            // Only destroy projectile if it's not multi-hit capable
+            if (!projectile.canHitMultiple) {
+                projectile.destroy();
             }
-
-            projectile.destroy();
         }
 
         function updatePlayerStateEffects() {

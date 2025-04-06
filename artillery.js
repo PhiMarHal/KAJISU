@@ -190,6 +190,139 @@ ProjectileComponentSystem.registerComponent('splitEffect', {
     }
 });
 
+// Register component for boomerang effect
+ProjectileComponentSystem.registerComponent('boomerangEffect', {
+    // Configuration variables
+    maxDistance: 400,           // Maximum distance before returning
+    speedMultiplier: 1.2,       // Speed multiplier for returning phase
+    isReturning: false,         // Track current direction (out vs returning)
+    lastDirectionChange: 0,     // Track when direction last changed
+
+    initialize: function (projectile) {
+        console.log("Initializing boomerang component");
+
+        // Visual indicator
+        projectile.setColor('#FFA500'); // Orange color for boomerangs
+
+        // Store original velocity for reference
+        this.originalVelocityX = projectile.body.velocity.x;
+        this.originalVelocityY = projectile.body.velocity.y;
+        this.originalSpeed = Math.sqrt(
+            this.originalVelocityX * this.originalVelocityX +
+            this.originalVelocityY * this.originalVelocityY
+        );
+
+        // Initialize the outward phase
+        this.isReturning = false;
+        this.lastDirectionChange = projectile.scene.time.now;
+
+        // Enable multi-hit capability and set hit cooldown
+        projectile.canHitMultiple = true;
+        projectile.hitCooldown = 1000; // 1 second between hits to the same enemy
+
+        // CRITICAL: Make physics body pass through other objects
+        if (projectile.body) {
+            // Disables collision response while still detecting overlaps
+            projectile.body.setImmovable(true);
+
+            // In Phaser, setting collideWorldBounds to false ensures it won't bounce
+            projectile.body.setCollideWorldBounds(false);
+        }
+
+        console.log("Boomerang initialized with collision-free physics");
+    },
+
+    update: function (projectile) {
+        if (!projectile.active) return;
+
+        const currentTime = projectile.scene.time.now;
+
+        // Skip if player is not available
+        if (!player || !player.active) return;
+
+        // Calculate distance from player
+        const dx = projectile.x - player.x;
+        const dy = projectile.y - player.y;
+        const distanceFromPlayer = Math.sqrt(dx * dx + dy * dy);
+
+        // Handle direction change logic
+        if (this.isReturning) {
+            // RETURNING PHASE
+
+            // Check if we're close to the player to destroy the boomerang
+            if (distanceFromPlayer < 30) {
+                console.log("Boomerang returned to player, completing cycle");
+                projectile.destroy();
+                return;
+            } else {
+                // Homing behavior toward player
+                const dirToPlayerX = -dx / distanceFromPlayer;  // Negative because dx is projectile-player
+                const dirToPlayerY = -dy / distanceFromPlayer;
+
+                // Apply curved velocity (acceleration as it gets closer)
+                let speedFactor = this.speedMultiplier;
+                if (distanceFromPlayer < 100) {
+                    // Accelerate when getting close to player (up to 50% faster)
+                    const closenessFactor = (100 - distanceFromPlayer) / 100;
+                    speedFactor += closenessFactor * 0.5;
+                }
+
+                const speed = this.originalSpeed * speedFactor;
+                projectile.body.setVelocity(
+                    dirToPlayerX * speed,
+                    dirToPlayerY * speed
+                );
+            }
+        } else {
+            // OUTGOING PHASE
+
+            // Check if we've reached max distance from player
+            if (distanceFromPlayer >= this.maxDistance) {
+                this.switchToReturning(projectile, currentTime);
+            } else if (distanceFromPlayer > this.maxDistance * 0.7) {
+                // Apply deceleration curve (slowing down as it reaches max distance)
+                const distanceFactor = (distanceFromPlayer - (this.maxDistance * 0.7)) / (this.maxDistance * 0.3);
+                const speedFactor = 1.0 - (distanceFactor * 0.5);  // Slow down to 50% at max distance
+
+                // Maintain direction but adjust speed
+                const currentVX = projectile.body.velocity.x;
+                const currentVY = projectile.body.velocity.y;
+                const currentSpeed = Math.sqrt(currentVX * currentVX + currentVY * currentVY);
+                const dirX = currentVX / currentSpeed;
+                const dirY = currentVY / currentSpeed;
+
+                const newSpeed = this.originalSpeed * speedFactor;
+                projectile.body.setVelocity(dirX * newSpeed, dirY * newSpeed);
+            }
+        }
+
+        // Check if projectile is stuck off-screen
+        if (projectile.x < -100 || projectile.x > 1300 ||
+            projectile.y < -100 || projectile.y > 900) {
+            console.log("Boomerang went too far off-screen, destroying");
+            projectile.destroy();
+        }
+    },
+
+    switchToReturning: function (projectile, currentTime) {
+        // Visual effect for direction change
+        const scene = projectile.scene;
+        if (scene) {
+            scene.tweens.add({
+                targets: projectile,
+                alpha: 0.5,
+                scale: 1.3,
+                duration: 150,
+                yoyo: true
+            });
+        }
+
+        // Update state
+        this.isReturning = true;
+        this.lastDirectionChange = currentTime;
+    }
+});
+
 // Register component for fire effect
 ProjectileComponentSystem.registerComponent('fireEffect', {
     initialize: function (projectile) {

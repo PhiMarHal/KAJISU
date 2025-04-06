@@ -79,3 +79,10 @@ ProjectilePerkRegistry.registerPerkEffect('SCARLET_EMBER', {
     componentName: 'fireEffect',
     applyChance: true
 });
+
+// Register boomerang effect as YELLOW_BOOMERANG perk
+ProjectilePerkRegistry.registerPerkEffect('YELLOW_BOOMERANG', {
+    componentName: 'boomerangEffect',
+    applyChance: true, // Apply based on chance
+    chanceMultiplier: 5 // 100%?
+});

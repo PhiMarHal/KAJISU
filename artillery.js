@@ -197,79 +197,53 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
     speedMultiplier: 1.2,
     isReturning: false,
     lastDirectionChange: 0,
-    // No isPiercing flag needed in the component definition itself
 
     initialize: function (projectile) {
-        console.log("Initializing boomerang component - SETTING PIERCING");
+        console.log("Initializing boomerang component - Setting flags.");
 
-        // *** SET GENERIC FLAGS ON PROJECTILE INSTANCE ***
-        projectile.isPiercing = true;       // Generic flag for piercing behavior
-        projectile.canHitMultiple = true;   // Flag for multi-hit capability
-        projectile.hitCooldown = 1000;      // Cooldown between hits on the same enemy (ms) - adjust as needed
-        projectile.setData('enemiesHit', []); // Initialize hit tracking list
+        // Set flags on projectile instance
+        projectile.isPiercing = true;
+        projectile.canHitMultiple = true;
+        projectile.hitCooldown = 1000;
 
         // Visual indicator
-        projectile.setColor('#FFA500'); // Orange color for boomerangs
+        projectile.setColor('#FFA500');
 
-        // Store original velocity for reference (ensure body exists)
+        // Store original velocity for reference - Body SHOULD exist now
         if (projectile.body) {
             this.originalVelocityX = projectile.body.velocity.x;
             this.originalVelocityY = projectile.body.velocity.y;
-            this.originalSpeed = Math.sqrt(
-                this.originalVelocityX * this.originalVelocityX +
-                this.originalVelocityY * this.originalVelocityY
-            );
+            this.originalSpeed = Math.sqrt(this.originalVelocityX ** 2 + this.originalVelocityY ** 2);
+            // *** ENSURE NO setImmovable HERE ***
+            // projectile.body.setImmovable(true); // MAKE SURE THIS IS REMOVED/COMMENTED
+            projectile.body.setCollideWorldBounds(false); // Keep this if needed
+            console.log(`Boomerang component initialized. Captured initial speed: ${this.originalSpeed.toFixed(1)}`); // Updated log
         } else {
-            // Fallback or error handling if body doesn't exist at init yet
-            this.originalVelocityX = 0;
-            this.originalVelocityY = 0;
-            this.originalSpeed = 0;
-            console.warn("Boomerang initialized before physics body was ready.");
+            // This path should ideally not be taken with the new create order
+            this.originalVelocityX = 0; this.originalVelocityY = 0; this.originalSpeed = 0;
+            console.error("CRITICAL: Boomerang initialized but physics body still not ready!");
         }
 
-
-        // Initialize the outward phase
         this.isReturning = false;
         this.lastDirectionChange = projectile.scene.time.now;
 
-        // *** NECESSARY CHANGE for Boomerang Behavior with Collider ***
-        // Make the boomerang physics body immovable so enemies don't push IT around.
-        // This ensures it follows its path correctly while piercing.
-        if (projectile.body) {
-            projectile.body.setImmovable(true);
-            projectile.body.setCollideWorldBounds(false); // Allows it to go off-screen if needed
-        }
-        // No pushable = false needed if immovable
-
-        console.log("Boomerang component initialized: projectile.isPiercing set to true");
     },
 
-    // --- update and switchToReturning remain the same as previous correct version ---
-    // Ensure safety checks for projectile.body in update!
+    // --- update and switchToReturning remain the same ---
+    // (Ensure body checks are present in update as before)
     update: function (projectile) {
-        if (!projectile.active || !projectile.body) return; // Added body check
-
+        if (!projectile.active || !projectile.body) return;
         const currentTime = projectile.scene.time.now;
-
-        // Skip if player is not available
         if (!player || !player.active) return;
-
-        // Calculate distance from player
         const dx = projectile.x - player.x;
         const dy = projectile.y - player.y;
         const distanceFromPlayer = Math.sqrt(dx * dx + dy * dy);
-
-        // Handle direction change logic
         if (this.isReturning) {
-            // RETURNING PHASE
             if (distanceFromPlayer < 30) {
-                // Use destroyOrbital logic if applicable, otherwise just destroy
                 if (typeof destroyOrbital === 'function' && window.orbitals && window.orbitals.find(o => o.entity === projectile)) {
                     const orbitalData = window.orbitals.find(o => o.entity === projectile);
                     if (orbitalData) destroyOrbital(orbitalData);
-                } else {
-                    projectile.destroy();
-                }
+                } else { projectile.destroy(); }
                 return;
             } else {
                 const dirToPlayerX = -dx / distanceFromPlayer;
@@ -280,18 +254,14 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
                     speedFactor += closenessFactor * 0.5;
                 }
                 const speed = this.originalSpeed * speedFactor;
-                // No need for extra body check here as we checked at the start
                 projectile.body.setVelocity(dirToPlayerX * speed, dirToPlayerY * speed);
-
             }
         } else {
-            // OUTGOING PHASE
             if (distanceFromPlayer >= this.maxDistance) {
                 this.switchToReturning(projectile, currentTime);
             } else if (distanceFromPlayer > this.maxDistance * 0.7) {
                 const distanceFactor = (distanceFromPlayer - (this.maxDistance * 0.7)) / (this.maxDistance * 0.3);
                 const speedFactor = 1.0 - (distanceFactor * 0.5);
-                // No need for extra body check here
                 const currentVX = projectile.body.velocity.x;
                 const currentVY = projectile.body.velocity.y;
                 const currentSpeed = Math.sqrt(currentVX * currentVX + currentVY * currentVY);
@@ -304,17 +274,10 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
             }
         }
     },
-
     switchToReturning: function (projectile, currentTime) {
         const scene = projectile.scene;
         if (scene) {
-            scene.tweens.add({
-                targets: projectile,
-                alpha: 0.5,
-                scale: 1.3,
-                duration: 150,
-                yoyo: true
-            });
+            scene.tweens.add({ targets: projectile, alpha: 0.5, scale: 1.3, duration: 150, yoyo: true });
         }
         this.isReturning = true;
         this.lastDirectionChange = currentTime;

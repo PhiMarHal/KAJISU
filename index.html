@@ -140,6 +140,7 @@
         let player;
         let enemies;
         let projectiles;
+        let piercingProjectiles;
         let cursors;
         let wasdKeys;
         let keyboardLayout = 'qwerty'; // Default to QWERTY
@@ -1426,37 +1427,24 @@
             }
         }
 
-        // Generic function for handling contact-based damage with cooldown
         function applyContactDamage(source, enemy, damage, cooldownMs = 1000) {
-            // Skip if either object is already destroyed
-            if (!source.active || !enemy.active) return;
-
-            // Ensure the cooldown tracking property exists on the enemy
+            // console.log(`ApplyContactDamage: Called. Source ID: ${source.damageSourceId}, Enemy ID: ${enemy.uniqueId}, Damage: ${damage}, Cooldown: ${cooldownMs}`); // Optional: Keep for debugging
+            if (!source || !source.active || !enemy || !enemy.active) { return; }
             enemy.lastContactDamage = enemy.lastContactDamage ?? {};
-
-            // Create a unique key for this damage source
             const sourceKey = source.damageSourceId ?? (source.damageSourceId = `damage_${Date.now()}_${Math.random()}`);
-
-            // Check if we're still in the cooldown period for this damage source
             const currentTime = this.time.now;
-            if (!enemy.lastContactDamage[sourceKey] || (currentTime - enemy.lastContactDamage[sourceKey] > cooldownMs)) {
-                // Apply damage to enemy
+            if (cooldownMs === 0 || !enemy.lastContactDamage[sourceKey] || (currentTime - enemy.lastContactDamage[sourceKey] > cooldownMs)) {
                 enemy.health -= damage;
                 enemy.lastContactDamage[sourceKey] = currentTime;
-
-                // Visual effect for damage
-                this.tweens.add({
-                    targets: enemy,
-                    alpha: 0.3,
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 1
-                });
-
-                // Check if enemy is defeated
-                if (enemy.health <= 0) {
-                    defeatedEnemy.call(this, enemy);
+                if (this.tweens) {
+                    this.tweens.add({ targets: enemy, alpha: 0.3, duration: 100, yoyo: true, repeat: 1 });
                 }
+                if (enemy.health <= 0) {
+                    if (typeof defeatedEnemy === 'function') { defeatedEnemy.call(this, enemy); }
+                    else { console.error("defeatedEnemy function not found!"); }
+                }
+            } else {
+                // console.log(`ApplyContactDamage: Cooldown active.`); // Optional log
             }
         }
 
@@ -1511,16 +1499,25 @@
             // Create enemy group
             enemies = this.physics.add.group();
 
-            // Create projectile group
             projectiles = this.physics.add.group();
+            piercingProjectiles = this.physics.add.group();
 
-            // Set up collision between projectiles and enemies
+            // --- SETUP COLLIDER for NORMAL Projectiles ---
             this.physics.add.collider(
-                projectiles,
+                projectiles, // Use the 'normal' projectile group
                 enemies,
-                handleProjectileEnemyCollision, // Use the NEW collideCallback
-                checkProjectilePiercing,      // Use the NEW processCallback
-                this                          // Context remains 'this' (the scene)
+                handleProjectileImpact, // Callback for normal hits
+                null,                  // No processCallback needed here
+                this
+            );
+
+            // --- SETUP OVERLAP for PIERCING Projectiles ---
+            this.physics.add.overlap(
+                piercingProjectiles, // Use the 'piercing' projectile group
+                enemies,
+                handleProjectileImpact, // Callback for piercing hits (NO knockback)
+                null,                  // No processCallback needed here
+                this
             );
 
             // Set up collision between player and enemies
@@ -1712,18 +1709,29 @@
             }
 
 
-            // Updated projectile processing
             projectiles.getChildren().forEach(projectile => {
-                // Check if out of bounds
-                if (projectile.y < -50 || projectile.y > 850 ||
-                    projectile.x < -50 || projectile.x > 1250) {
-                    projectile.destroy();
-                    return;
+                if (!projectile.active) return;
+                // Boundary checks
+                if (projectile.y < -50 || projectile.y > 850 || projectile.x < -50 || projectile.x > 1250) {
+                    projectile.destroy(); return;
                 }
-
-                // Process component updates
+                // *** Process component updates (even if few components apply here) ***
                 if (projectile.components && Object.keys(projectile.components).length > 0) {
                     ProjectileComponentSystem.processEvent(projectile, 'update');
+                }
+            });
+
+            // Update PIERCING projectiles
+            piercingProjectiles.getChildren().forEach(projectile => {
+                if (!projectile.active) return;
+                // Boundary checks (can be different for piercing if needed)
+                if (projectile.y < -50 || projectile.y > 850 || projectile.x < -50 || projectile.x > 1250) { // Example slightly larger bounds
+                    console.log("Piercing projectile boundary cleanup");
+                    projectile.destroy(); return; // Or handle differently (e.g., boomerang return)
+                }
+                // *** Process component updates (ESSENTIAL for boomerang return logic) ***
+                if (projectile.components && Object.keys(projectile.components).length > 0) {
+                    ProjectileComponentSystem.processEvent(projectile, 'update', time); // Pass time if needed by components
                 }
             });
 
@@ -1880,71 +1888,80 @@
 
         function createProjectileBase(scene, x, y, color = '#ffff00', symbol = '★') {
             // Get the effective damage including all multipliers
-            const effectiveDamage = getEffectiveDamage();
+            const effectiveDamage = getEffectiveDamage(); // Ensure this function exists and returns a number
 
-            // Create the projectile
+            // Create the text object ONLY
             const projectile = scene.add.text(x, y, symbol, {
                 fontFamily: 'Arial',
-                fontSize: `${projectileSizeFactor * effectiveDamage}px`,
+                fontSize: `${projectileSizeFactor * effectiveDamage}px`, // Ensure projectileSizeFactor & effectiveDamage are valid numbers
                 color: color,
                 fontStyle: 'bold'
             }).setOrigin(0.5);
 
-            // Add to physics group
-            projectiles.add(projectile);
-
-            // Set projectile properties (smaller hitbox for better visual feel)
-            projectile.body.setSize(projectile.width / 2, projectile.height / 2);
+            // --- DO NOT add to physics group or enable physics here ---
 
             // Set damage value using the effective damage
-            projectile.damage = effectiveDamage;
+            projectile.damage = effectiveDamage; // Ensure effectiveDamage is correct
 
             // Initialize empty components object
             projectile.components = {};
 
-            // Return the created projectile
+            // Return the created text object
             return projectile;
         }
 
         function createSingleProjectile(angle) {
-            // --- Keep original base creation ---
+            // 1. Create the base visual object
             const projectile = createProjectileBase(this, player.x, player.y);
+            if (!projectile) return null;
 
-            // *** Set defaults for piercing flags ***
+            // 2. Initialize default flags
             projectile.isPiercing = false;
             projectile.canHitMultiple = false;
-            // No need to initialize 'enemiesHit' data here, piercing components will do it
 
-            if (projectile.body) { // Check if the physics body exists
-                // Calculate mass based on playerFireRate (AGI) relative to base AGI
-                // Ensures mass scales linearly from the base mass at base AGI
-                const calculatedMass = baseProjectileMass * playerFireRate;
+            // 3. Enable Physics on the object directly FIRST
+            this.physics.world.enable(projectile);
+
+            // 4. Configure the physics body (velocity, mass, etc.) BEFORE perks
+            if (projectile.body) {
+                const speed = 400;
+                projectile.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+                const calculatedMass = baseProjectileMass * (playerFireRate / BASE_STATS.AGI);
                 projectile.body.setMass(calculatedMass);
-                // console.log(`Projectile mass set to: ${calculatedMass.toFixed(2)} (AGI: ${playerFireRate})`); // Optional: for debugging
+                projectile.body.setBounce(0);
+                projectile.body.enable = true; // Ensure it's enabled
+                console.log(`Projectile Base Config: Vel (${projectile.body.velocity.x.toFixed(1)}, ${projectile.body.velocity.y.toFixed(1)}), Mass ${projectile.body.mass.toFixed(1)}`);
+            } else {
+                console.error("CRITICAL ERROR: Failed to enable physics body!");
+                projectile.destroy();
+                return null;
             }
 
-            const speed = 400;
-            if (projectile.body) { // Safety check
-                projectile.body.setVelocity(
-                    Math.cos(angle) * speed,
-                    Math.sin(angle) * speed
-                );
-            }
-
-            // --- Keep applying perk effects ---
-            // This is where a component like boomerang will set isPiercing = true etc.
+            // 5. Apply perk components and effects
+            // applyPerkEffects calls addComponent, which calls the component's initialize function.
+            // The body should exist at this point.
             ProjectilePerkRegistry.applyPerkEffects(projectile, this);
+            // --- REMOVED redundant: ProjectileComponentSystem.processEvent(projectile, 'initialize'); ---
 
-            // --- NEW: Safety check AFTER applying perks ---
-            // If a component made it piercing, ensure hit tracking data is initialized
-            // This is a fallback in case the component's initialize missed it.
-            if (projectile.isPiercing === true && !projectile.getData('enemiesHit')) {
-                console.warn("Piercing projectile missing 'enemiesHit' data after perk application. Initializing.");
-                projectile.setData('enemiesHit', []);
+            // 6. Add to the CORRECT physics group based on the flag set by perks
+            let targetGroup = null;
+            if (projectile.isPiercing === true) {
+                targetGroup = piercingProjectiles;
+                if (projectile.hitCooldown === undefined) { projectile.hitCooldown = 1000; }
+                // console.log(`Adding projectile to PIERCING group.`);
+            } else {
+                targetGroup = projectiles;
+                // console.log(`Adding projectile to NORMAL group.`);
             }
+            targetGroup.add(projectile); // Add to the chosen group
+
+            // Final status log
+            const bodyStatus = projectile.body ? `Exists (enabled: ${projectile.body.enable})` : "MISSING";
+            // console.log(`createSingleProjectile: Finished. isPiercing: ${projectile.isPiercing}. Body: ${bodyStatus}`);
 
             return projectile;
         }
+
         // Quest data structure (used when active)
         function createQuest(enemyType) {
             const enemyData = getEnemyData(enemyType);
@@ -2455,63 +2472,65 @@
             ];
         }
 
-        // --- FINAL VERSION of checkProjectilePiercing ---
+        // --- Add Logs to checkProjectilePiercing ---
         function checkProjectilePiercing(projectile, enemy) {
-            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) { return false; }
-            if (projectile.isPiercing === true) { return false; }
-            else { return true; }
-        }
+            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) {
+                // console.log("CheckPiercing: Invalid objects, returning false");
+                return false;
+            }
 
-        // --- FINAL VERSION of handleProjectileEnemyCollision ---
-        function handleProjectileEnemyCollision(projectile, enemy) {
-            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) { return; }
             const isPiercing = projectile.isPiercing === true;
-            if (!projectile.damageSourceId) { projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`; }
+            // *** ADD LOG ***
+            console.log(`CheckPiercing: Projectile ${projectile.damageSourceId || 'N/A'} vs Enemy ${enemy.uniqueId || 'N/A'}. isPiercing = ${isPiercing}. Returning ${!isPiercing}`);
 
             if (isPiercing) {
-                if (projectile.canHitMultiple === true) {
-                    let enemiesHit = projectile.getData('enemiesHit');
-                    if (!enemiesHit) { enemiesHit = []; projectile.setData('enemiesHit', enemiesHit); }
-                    if (enemy.uniqueId && !enemiesHit.includes(enemy.uniqueId)) {
-                        enemiesHit.push(enemy.uniqueId);
-                        applyContactDamage.call(this, projectile, enemy, projectile.damage, 0);
-                        ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
-                    } else if (!enemy.uniqueId) {
-                        console.warn("Enemy missing uniqueId for piercing hit tracking.");
-                        applyContactDamage.call(this, projectile, enemy, projectile.damage, projectile.hitCooldown || 500);
-                        ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
-                    }
-                } else {
-                    console.warn("Piercing projectile without canHitMultiple flag.");
-                    applyContactDamage.call(this, projectile, enemy, projectile.damage, 0);
-                    ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
-                }
+                return false; // Skip default separation
             } else {
-                applyContactDamage.call(this, projectile, enemy, projectile.damage, 0);
-                ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
-                // --- DELAYED DESTRUCTION ---
+                return true;  // Allow default separation
+            }
+        }
+
+        function handleProjectileImpact(projectile, enemy) {
+            // This function is called by BOTH collider (for normal) and overlap (for piercing)
+
+            // Basic safety checks
+            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) {
+                return;
+            }
+
+            const isPiercing = projectile.isPiercing === true;
+            // console.log(`HandleImpact: Entered. isPiercing = ${isPiercing}`); // Optional log
+
+            if (!projectile.damageSourceId) { projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`; }
+
+            // --- Apply Damage ---
+            // Use cooldown 0 for normal, use projectile.hitCooldown for piercing
+            const cooldownToUse = isPiercing ? (projectile.hitCooldown || 1000) : 0;
+            // console.log(`HandleImpact: Applying damage with cooldown ${cooldownToUse}ms`); // Optional log
+            applyContactDamage.call(this, projectile, enemy, projectile.damage, cooldownToUse);
+
+            // --- Process Component Effects ---
+            ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
+
+            // --- Handle Destruction (Only for non-piercing) ---
+            if (!isPiercing) {
+                // Use delayed destruction for normal projectiles to allow knockback visibility
+                // console.log("HandleImpact: Scheduling destruction for non-piercing projectile."); // Optional log
                 projectile.setActive(false);
                 projectile.setVisible(false);
                 if (projectile.body) { projectile.body.enable = false; }
                 this.time.delayedCall(1, () => {
-                    if (projectile) { // Basic check if it still exists
-                        // Check active state as set before delay
+                    if (projectile) {
                         if (projectile.active === false) {
-                            if (typeof projectile.killAndHide === 'function') {
-                                // projectile.killAndHide(); // Pooling logic if you implement it
-                            } else if (projectile.destroy) { // Check destroy exists
-                                // Check if scene still exists before destroying
-                                if (projectile.scene) {
-                                    projectile.destroy();
-                                } else {
-                                    // console.warn("Projectile scene missing before destroy"); // Optional warning
-                                }
-                            }
+                            if (typeof projectile.killAndHide === 'function') { /* Pool */ }
+                            else if (projectile.destroy && projectile.scene) { projectile.destroy(); }
                         }
                     }
                 });
             }
+            // --- Piercing projectiles are NOT destroyed ---
         }
+
         // Helper function to disable debug keys
         function disableDebugKeys() {
             // We'll use a simple approach: add a flag that the debug key handlers can check

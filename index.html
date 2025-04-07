@@ -192,6 +192,7 @@
         let basePlayerDamage = BASE_STATS.POW;
         let basePlayerLuck = BASE_STATS.LUK;
         let basePlayerFireRate = BASE_STATS.AGI;
+        let baseProjectileMass = 10;
         let baseProcChance = 0.2;
         let baseShootingDelay = 2000;
         let baseHeroExpToLevel = 5;
@@ -346,7 +347,9 @@
                 enemy.body.setCollideWorldBounds(false);
                 enemy.body.setImmovable(false); // Restore your original settings
                 enemy.body.pushable = true;     // Restore your original settings
-                // NO mass or drag added unless it was in your original code
+                enemy.body.setMass(10); // Or your original mass
+                enemy.body.setDrag(50); // Your original value, or adjust (e.g., 50-200 is common range)
+                enemy.body.setBounce(0);
             }
 
             // Keep original health calculation (no changes here)
@@ -1633,9 +1636,73 @@
                 }
             }
 
-            // Update enemies to follow player
+            // --- REVISED Enemy Movement Logic using Manual Acceleration Vector ---
             enemies.getChildren().forEach(enemy => {
-                this.physics.moveToObject(enemy, player, enemy.speed);
+                // Ensure enemy and its body are valid and active
+                if (enemy && enemy.active && enemy.body) {
+                    // Target position (player)
+                    const targetX = player.x;
+                    const targetY = player.y;
+
+                    // Vector from enemy to player
+                    const dx = targetX - enemy.x;
+                    const dy = targetY - enemy.y;
+
+                    // Distance to player
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    // Define the maximum speed the enemy should reach.
+                    // Use the 'speed' property we assigned during spawn.
+                    const maxSpeed = enemy.speed;
+
+                    // Define the acceleration rate (pixels/sec^2). Tune this!
+                    // It needs to be strong enough to overcome drag and feel responsive.
+                    // Let's start with a multiple of maxSpeed, e.g., 5x to 10x.
+                    const accelerationRate = maxSpeed * 8; // Example starting point
+
+                    // Avoid division by zero and applying acceleration if already very close
+                    if (distance > 1) { // Small threshold (1 pixel)
+                        // Normalize the direction vector (dx/distance, dy/distance)
+                        const dirX = dx / distance;
+                        const dirY = dy / distance;
+
+                        // Calculate acceleration components based on direction and rate
+                        const accelX = dirX * accelerationRate;
+                        const accelY = dirY * accelerationRate;
+
+                        // Apply the calculated acceleration
+                        enemy.body.setAcceleration(accelX, accelY);
+
+                    } else {
+                        // Optional: If very close, stop accelerating. Drag will slow it down.
+                        enemy.body.setAcceleration(0, 0);
+                        // Optionally, set velocity to 0 too if jittering occurs when very close
+                        // enemy.body.setVelocity(0, 0);
+                    }
+
+                    // --- Manually Cap Speed ---
+                    // We need to prevent acceleration from making the enemy exceed its maxSpeed.
+                    const velocity = enemy.body.velocity;
+                    const currentSpeedSq = velocity.lengthSq(); // Use squared length for efficiency
+
+                    if (currentSpeedSq > maxSpeed * maxSpeed) {
+                        // If current speed squared exceeds max speed squared, scale velocity back.
+                        // Calculate the ratio of maxSpeed to currentSpeed
+                        const currentSpeed = Math.sqrt(currentSpeedSq);
+                        const scale = maxSpeed / currentSpeed;
+
+                        // Apply the scale factor to the velocity components
+                        enemy.body.setVelocity(velocity.x * scale, velocity.y * scale);
+
+                        // Alternatively, using normalization (slightly more calculation but conceptually clear):
+                        // const normVelX = velocity.x / currentSpeed;
+                        // const normVelY = velocity.y / currentSpeed;
+                        // enemy.body.setVelocity(normVelX * maxSpeed, normVelY * maxSpeed);
+                    }
+                    // Drag (set via setDrag()) will naturally oppose the velocity,
+                    // helping to stabilize the speed around maxSpeed when accelerating,
+                    // and slowing the enemy down after knockback or when acceleration stops.
+                }
             });
 
             // Keep shield visual positioned on player
@@ -1848,7 +1915,14 @@
             projectile.canHitMultiple = false;
             // No need to initialize 'enemiesHit' data here, piercing components will do it
 
-            // --- Keep original velocity setting ---
+            if (projectile.body) { // Check if the physics body exists
+                // Calculate mass based on playerFireRate (AGI) relative to base AGI
+                // Ensures mass scales linearly from the base mass at base AGI
+                const calculatedMass = baseProjectileMass * playerFireRate;
+                projectile.body.setMass(calculatedMass);
+                // console.log(`Projectile mass set to: ${calculatedMass.toFixed(2)} (AGI: ${playerFireRate})`); // Optional: for debugging
+            }
+
             const speed = 400;
             if (projectile.body) { // Safety check
                 projectile.body.setVelocity(
@@ -2381,106 +2455,63 @@
             ];
         }
 
-        // processCallback: Decide if physics separation should apply
+        // --- FINAL VERSION of checkProjectilePiercing ---
         function checkProjectilePiercing(projectile, enemy) {
-            // Basic safety checks
-            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) {
-                return false; // Prevent processing if objects are invalid
-            }
-
-            // Check the generic 'isPiercing' flag directly on the projectile instance
-            // It defaults to false unless a component (like boomerang) sets it to true
-            if (projectile.isPiercing === true) {
-                // If piercing, return FALSE to SKIP default separation/pushback
-                return false;
-            } else {
-                // Otherwise (normal projectile), return TRUE to ALLOW default separation/pushback
-                return true;
-            }
+            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) { return false; }
+            if (projectile.isPiercing === true) { return false; }
+            else { return true; }
         }
 
-        // collideCallback: Apply gameplay effects after potential collision/overlap
+        // --- FINAL VERSION of handleProjectileEnemyCollision ---
         function handleProjectileEnemyCollision(projectile, enemy) {
-            // Basic safety checks
-            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) {
-                return; // Do nothing if objects are invalid
-            }
-
-            // Check the generic 'isPiercing' flag
+            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) { return; }
             const isPiercing = projectile.isPiercing === true;
-
-            // Ensure projectile has a damage source ID
-            if (!projectile.damageSourceId) {
-                projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
-            }
+            if (!projectile.damageSourceId) { projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`; }
 
             if (isPiercing) {
-                // --- Handle Piercing Hit ---
-
-                // Check if multi-hit is enabled and track hits
                 if (projectile.canHitMultiple === true) {
                     let enemiesHit = projectile.getData('enemiesHit');
-                    if (!enemiesHit) { // Safety initialization if component didn't set it
-                        enemiesHit = [];
-                        projectile.setData('enemiesHit', enemiesHit);
-                    }
-
-                    // Requires enemy.uniqueId set during spawn
+                    if (!enemiesHit) { enemiesHit = []; projectile.setData('enemiesHit', enemiesHit); }
                     if (enemy.uniqueId && !enemiesHit.includes(enemy.uniqueId)) {
                         enemiesHit.push(enemy.uniqueId);
-
-                        console.log(`Piercing projectile hit enemy ${enemy.uniqueId}`);
-
-                        // Apply damage using generic function (handles enemy death)
-                        applyContactDamage.call(
-                            this, // Scene context
-                            projectile,
-                            enemy,
-                            projectile.damage,
-                            0 // Cooldown handled by enemiesHit check
-                        );
-
-                        // Process component 'onHit' logic (e.g., boomerang might have visual effect)
+                        applyContactDamage.call(this, projectile, enemy, projectile.damage, 0);
                         ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
-
                     } else if (!enemy.uniqueId) {
-                        console.warn("Enemy missing uniqueId, cannot perform piercing hit tracking.");
-                        // Fallback: Apply damage once per frame maybe? Or use applyContactDamage cooldown?
-                        // Using applyContactDamage's internal cooldown is safer here.
+                        console.warn("Enemy missing uniqueId for piercing hit tracking.");
                         applyContactDamage.call(this, projectile, enemy, projectile.damage, projectile.hitCooldown || 500);
                         ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
                     }
-                    // If already hit this frame/cooldown, do nothing more
-
                 } else {
-                    // Piercing but not multi-hit: Apply damage once, then maybe destroy?
-                    // This case depends on desired design. Let's apply damage once via applyContactDamage.
-                    console.warn("Piercing projectile without canHitMultiple flag encountered.");
-                    applyContactDamage.call(this, projectile, enemy, projectile.damage, 0); // Apply once
+                    console.warn("Piercing projectile without canHitMultiple flag.");
+                    applyContactDamage.call(this, projectile, enemy, projectile.damage, 0);
                     ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
-                    // Decide if it should be destroyed. Let's assume not for piercing.
                 }
-
-                // --- Piercing projectiles are generally NOT destroyed here ---
-
             } else {
-                // --- Handle Normal (Non-Piercing) Hit ---
-
-                // Apply damage using generic function
                 applyContactDamage.call(this, projectile, enemy, projectile.damage, 0);
-
-                // Process component 'onHit' logic (poison, fire, split, etc.)
                 ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
-
-                // --- Destroy the normal projectile ---
-                if (typeof projectile.killAndHide === 'function') { // Example pooling check
-                    projectile.killAndHide();
-                } else {
-                    projectile.destroy();
-                }
+                // --- DELAYED DESTRUCTION ---
+                projectile.setActive(false);
+                projectile.setVisible(false);
+                if (projectile.body) { projectile.body.enable = false; }
+                this.time.delayedCall(1, () => {
+                    if (projectile) { // Basic check if it still exists
+                        // Check active state as set before delay
+                        if (projectile.active === false) {
+                            if (typeof projectile.killAndHide === 'function') {
+                                // projectile.killAndHide(); // Pooling logic if you implement it
+                            } else if (projectile.destroy) { // Check destroy exists
+                                // Check if scene still exists before destroying
+                                if (projectile.scene) {
+                                    projectile.destroy();
+                                } else {
+                                    // console.warn("Projectile scene missing before destroy"); // Optional warning
+                                }
+                            }
+                        }
+                    }
+                });
             }
         }
-
         // Helper function to disable debug keys
         function disableDebugKeys() {
             // We'll use a simple approach: add a flag that the debug key handlers can check

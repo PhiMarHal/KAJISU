@@ -309,56 +309,65 @@
         };
 
         function spawnEnemyOfRank(rank) {
-            if (gameOver) return;
+            // Keep original game state checks
+            if (gameOver || gamePaused) return;
 
-            // Get a random enemy type of this rank
+            // Keep original enemy type selection and data retrieval
             const enemyType = getRandomEnemyTypeByRank(rank);
-
-            // Get the enemy data with rank defaults applied
             const enemyData = getEnemyData(enemyType);
 
-            // Choose a random spawn position outside the screen
+            // Keep original spawn position calculation
             let x, y;
             if (Math.random() < 0.5) {
-                // Spawn on left or right side
-                x = Math.random() < 0.5 ? -50 : 1250;
-                y = Phaser.Math.Between(50, 750);
+                x = Math.random() < 0.5 ? Phaser.Math.Between(-100, -50) : Phaser.Math.Between(1250, 1300);
+                y = Phaser.Math.Between(-50, 850);
             } else {
-                // Spawn on top or bottom
-                x = Phaser.Math.Between(50, 1150);
-                y = Math.random() < 0.5 ? -50 : 850;
+                x = Phaser.Math.Between(-50, 1250);
+                y = Math.random() < 0.5 ? Phaser.Math.Between(-100, -50) : Phaser.Math.Between(850, 900);
             }
 
-            // Create the enemy with data-driven properties
+            // *** THIS IS THE CORRECTED LINE ***
+            // Apply font size and color from enemyData correctly
             const enemy = this.add.text(x, y, enemyType, {
-                fontFamily: 'Arial',
-                fontSize: `${enemyData.size}px`,
-                color: enemyData.color,
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
+                fontFamily: 'Arial', // Assuming Arial was your default or intended font
+                fontSize: `${enemyData.size}px`, // Use size from enemyData
+                color: enemyData.color,          // Use color from enemyData
+                fontStyle: 'bold'                // Keep bold style if intended
+            });
+            // *** END OF CORRECTED LINE ***
 
-            // Add to physics group
+            // Keep original origin setting and group adding
+            enemy.setOrigin(0.5);
             enemies.add(enemy);
 
-            // Set enemy properties
-            enemy.body.setSize(enemy.width, enemy.height);
-            enemy.body.setCollideWorldBounds(false);
+            // Keep original physics setup (if body exists)
+            if (enemy.body) {
+                enemy.body.setSize(enemy.width, enemy.height);
+                enemy.body.setCollideWorldBounds(false);
+                enemy.body.setImmovable(false); // Restore your original settings
+                enemy.body.pushable = true;     // Restore your original settings
+                // NO mass or drag added unless it was in your original code
+            }
 
-            // Set enemy health based on data and current scaling
+            // Keep original health calculation (no changes here)
+            const minutesElapsed = elapsedTime / 60;
+            const healthScalingFactor = Math.pow(1.1, minutesElapsed / 2);
+            currentEnemyHealth = baseEnemyHealth * healthScalingFactor;
             enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
 
-            // Set enemy speed based on data
+            // Keep original property assignments
             enemy.speed = Phaser.Math.Between(enemyData.speedMin, enemyData.speedMax);
-
-            // Store additional properties from data
             enemy.damage = enemyData.damage;
             enemy.rank = enemyData.rank;
             enemy.expValue = enemyData.expValue || 1;
-
-            // Store all language and educational properties
             enemy.kana = enemyData.kana;
             enemy.romaji = enemyData.romaji;
             enemy.english = enemyData.english;
+
+            // Add uniqueId for piercing hit tracking (Necessary Change 1/2)
+            enemy.uniqueId = Phaser.Utils.String.UUID();
+            // Initialize structure for contact damage cooldowns (used by applyContactDamage)
+            enemy.lastContactDamage = {};
         }
 
         // Function to call the rank-specific spawn function
@@ -1503,7 +1512,13 @@
             projectiles = this.physics.add.group();
 
             // Set up collision between projectiles and enemies
-            this.physics.add.collider(projectiles, enemies, projectileHitEnemy, null, this);
+            this.physics.add.collider(
+                projectiles,
+                enemies,
+                handleProjectileEnemyCollision, // Use the NEW collideCallback
+                checkProjectilePiercing,      // Use the NEW processCallback
+                this                          // Context remains 'this' (the scene)
+            );
 
             // Set up collision between player and enemies
             this.physics.add.overlap(player, enemies, playerHitEnemy, null, this);
@@ -1825,22 +1840,37 @@
         }
 
         function createSingleProjectile(angle) {
-            // Create base projectile
+            // --- Keep original base creation ---
             const projectile = createProjectileBase(this, player.x, player.y);
 
-            // Set projectile velocity based on angle
-            const speed = 400;
-            projectile.body.setVelocity(
-                Math.cos(angle) * speed,
-                Math.sin(angle) * speed
-            );
+            // *** Set defaults for piercing flags ***
+            projectile.isPiercing = false;
+            projectile.canHitMultiple = false;
+            // No need to initialize 'enemiesHit' data here, piercing components will do it
 
-            // Apply all registered perk effects automatically
+            // --- Keep original velocity setting ---
+            const speed = 400;
+            if (projectile.body) { // Safety check
+                projectile.body.setVelocity(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed
+                );
+            }
+
+            // --- Keep applying perk effects ---
+            // This is where a component like boomerang will set isPiercing = true etc.
             ProjectilePerkRegistry.applyPerkEffects(projectile, this);
+
+            // --- NEW: Safety check AFTER applying perks ---
+            // If a component made it piercing, ensure hit tracking data is initialized
+            // This is a fallback in case the component's initialize missed it.
+            if (projectile.isPiercing === true && !projectile.getData('enemiesHit')) {
+                console.warn("Piercing projectile missing 'enemiesHit' data after perk application. Initializing.");
+                projectile.setData('enemiesHit', []);
+            }
 
             return projectile;
         }
-
         // Quest data structure (used when active)
         function createQuest(enemyType) {
             const enemyData = getEnemyData(enemyType);
@@ -2164,35 +2194,6 @@
             return DEFEAT_SYNONYMS[Math.floor(Math.random() * DEFEAT_SYNONYMS.length)];
         }
 
-        function projectileHitEnemy(projectile, enemy) {
-            // Skip if projectile is already destroyed
-            if (!projectile.active || !enemy.active) return;
-
-            // Ensure projectile has a damage source ID
-            if (!projectile.damageSourceId) {
-                projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
-            }
-
-            // Determine cooldown time (default 0 for regular projectiles, customizable for multi-hit)
-            const cooldownMs = projectile.canHitMultiple ? (projectile.hitCooldown ?? 1000) : 0;
-
-            // Apply damage with cooldown
-            applyContactDamage.call(
-                this,
-                projectile,
-                enemy,
-                projectile.damage,
-                cooldownMs
-            );
-
-            // Process hit event for all components
-            ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
-
-            // Only destroy projectile if it's not multi-hit capable
-            if (!projectile.canHitMultiple) {
-                projectile.destroy();
-            }
-        }
 
         function updatePlayerStateEffects() {
             // This now just calls the centralized player status system
@@ -2379,6 +2380,107 @@
                 this.inputPrompt
             ];
         }
+
+        // processCallback: Decide if physics separation should apply
+        function checkProjectilePiercing(projectile, enemy) {
+            // Basic safety checks
+            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) {
+                return false; // Prevent processing if objects are invalid
+            }
+
+            // Check the generic 'isPiercing' flag directly on the projectile instance
+            // It defaults to false unless a component (like boomerang) sets it to true
+            if (projectile.isPiercing === true) {
+                // If piercing, return FALSE to SKIP default separation/pushback
+                return false;
+            } else {
+                // Otherwise (normal projectile), return TRUE to ALLOW default separation/pushback
+                return true;
+            }
+        }
+
+        // collideCallback: Apply gameplay effects after potential collision/overlap
+        function handleProjectileEnemyCollision(projectile, enemy) {
+            // Basic safety checks
+            if (!projectile || !projectile.active || !projectile.body || !enemy || !enemy.active || !enemy.body) {
+                return; // Do nothing if objects are invalid
+            }
+
+            // Check the generic 'isPiercing' flag
+            const isPiercing = projectile.isPiercing === true;
+
+            // Ensure projectile has a damage source ID
+            if (!projectile.damageSourceId) {
+                projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
+            }
+
+            if (isPiercing) {
+                // --- Handle Piercing Hit ---
+
+                // Check if multi-hit is enabled and track hits
+                if (projectile.canHitMultiple === true) {
+                    let enemiesHit = projectile.getData('enemiesHit');
+                    if (!enemiesHit) { // Safety initialization if component didn't set it
+                        enemiesHit = [];
+                        projectile.setData('enemiesHit', enemiesHit);
+                    }
+
+                    // Requires enemy.uniqueId set during spawn
+                    if (enemy.uniqueId && !enemiesHit.includes(enemy.uniqueId)) {
+                        enemiesHit.push(enemy.uniqueId);
+
+                        console.log(`Piercing projectile hit enemy ${enemy.uniqueId}`);
+
+                        // Apply damage using generic function (handles enemy death)
+                        applyContactDamage.call(
+                            this, // Scene context
+                            projectile,
+                            enemy,
+                            projectile.damage,
+                            0 // Cooldown handled by enemiesHit check
+                        );
+
+                        // Process component 'onHit' logic (e.g., boomerang might have visual effect)
+                        ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
+
+                    } else if (!enemy.uniqueId) {
+                        console.warn("Enemy missing uniqueId, cannot perform piercing hit tracking.");
+                        // Fallback: Apply damage once per frame maybe? Or use applyContactDamage cooldown?
+                        // Using applyContactDamage's internal cooldown is safer here.
+                        applyContactDamage.call(this, projectile, enemy, projectile.damage, projectile.hitCooldown || 500);
+                        ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
+                    }
+                    // If already hit this frame/cooldown, do nothing more
+
+                } else {
+                    // Piercing but not multi-hit: Apply damage once, then maybe destroy?
+                    // This case depends on desired design. Let's apply damage once via applyContactDamage.
+                    console.warn("Piercing projectile without canHitMultiple flag encountered.");
+                    applyContactDamage.call(this, projectile, enemy, projectile.damage, 0); // Apply once
+                    ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
+                    // Decide if it should be destroyed. Let's assume not for piercing.
+                }
+
+                // --- Piercing projectiles are generally NOT destroyed here ---
+
+            } else {
+                // --- Handle Normal (Non-Piercing) Hit ---
+
+                // Apply damage using generic function
+                applyContactDamage.call(this, projectile, enemy, projectile.damage, 0);
+
+                // Process component 'onHit' logic (poison, fire, split, etc.)
+                ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
+
+                // --- Destroy the normal projectile ---
+                if (typeof projectile.killAndHide === 'function') { // Example pooling check
+                    projectile.killAndHide();
+                } else {
+                    projectile.destroy();
+                }
+            }
+        }
+
         // Helper function to disable debug keys
         function disableDebugKeys() {
             // We'll use a simple approach: add a flag that the debug key handlers can check

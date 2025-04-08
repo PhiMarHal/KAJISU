@@ -343,6 +343,11 @@
             // Set enemy properties
             enemy.body.setSize(enemy.width, enemy.height);
             enemy.body.setCollideWorldBounds(false);
+            enemy.body.setImmovable(false);
+            enemy.body.pushable = true;
+            enemy.body.setMass(10);
+            enemy.body.setDrag(50);
+            enemy.body.setBounce(0);
 
             // Set enemy health based on data and current scaling
             enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
@@ -1620,7 +1625,63 @@
 
             // Update enemies to follow player
             enemies.getChildren().forEach(enemy => {
-                this.physics.moveToObject(enemy, player, enemy.speed);
+                // Ensure enemy and its body are valid and active
+                if (enemy && enemy.active && enemy.body) {
+                    // Target position (player)
+                    const targetX = player.x;
+                    const targetY = player.y;
+
+                    // Vector from enemy to player
+                    const dx = targetX - enemy.x;
+                    const dy = targetY - enemy.y;
+
+                    // Distance to player
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    // Define the maximum speed the enemy should reach.
+                    // Use the 'speed' property we assigned during spawn.
+                    const maxSpeed = enemy.speed;
+
+                    // Define the acceleration rate (pixels/sec^2). Tune this!
+                    // It needs to be strong enough to overcome drag and feel responsive.
+                    // Let's start with a multiple of maxSpeed, e.g., 5x to 10x.
+                    const accelerationRate = maxSpeed * 8; // Example starting point
+
+                    // Avoid division by zero and applying acceleration if already very close
+                    if (distance > 1) { // Small threshold (1 pixel)
+                        // Normalize the direction vector (dx/distance, dy/distance)
+                        const dirX = dx / distance;
+                        const dirY = dy / distance;
+
+                        // Calculate acceleration components based on direction and rate
+                        const accelX = dirX * accelerationRate;
+                        const accelY = dirY * accelerationRate;
+
+                        // Apply the calculated acceleration
+                        enemy.body.setAcceleration(accelX, accelY);
+
+                    } else {
+                        // Optional: If very close, stop accelerating. Drag will slow it down.
+                        enemy.body.setAcceleration(0, 0);
+                        // Optionally, set velocity to 0 too if jittering occurs when very close
+                        // enemy.body.setVelocity(0, 0);
+                    }
+
+                    // --- Manually Cap Speed ---
+                    // We need to prevent acceleration from making the enemy exceed its maxSpeed.
+                    const velocity = enemy.body.velocity;
+                    const currentSpeedSq = velocity.lengthSq(); // Use squared length for efficiency
+
+                    if (currentSpeedSq > maxSpeed * maxSpeed) {
+                        // If current speed squared exceeds max speed squared, scale velocity back.
+                        // Calculate the ratio of maxSpeed to currentSpeed
+                        const currentSpeed = Math.sqrt(currentSpeedSq);
+                        const scale = maxSpeed / currentSpeed;
+
+                        // Apply the scale factor to the velocity components
+                        enemy.body.setVelocity(velocity.x * scale, velocity.y * scale);
+                    }
+                }
             });
 
             // Keep shield visual positioned on player

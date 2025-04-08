@@ -345,9 +345,9 @@
             enemy.body.setCollideWorldBounds(false);
             enemy.body.setImmovable(false);
             enemy.body.pushable = true;
-            enemy.body.setMass(10);
-            enemy.body.setDrag(50);
-            enemy.body.setBounce(0);
+            enemy.body.setMass(1);
+            enemy.body.setDrag(1);
+            enemy.body.setBounce(0.5);
 
             // Set enemy health based on data and current scaling
             enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);

@@ -1,5 +1,7 @@
 // weapons.js - Minimal Weapon System for Word Survivors
 
+const BASE_PROJECTILE_MASS = 10000; // Adjust this value to tune knockback strength
+
 // Main Weapon System object
 const WeaponSystem = {
     // Currently active weapon type
@@ -183,10 +185,18 @@ const WeaponSystem = {
             projectiles.add(projectile);
         }
 
+        const projectileMass = BASE_PROJECTILE_MASS * playerFireRate;
+
         // Set projectile properties
         projectile.body.setSize(projectile.width / 2, projectile.height / 2);
+        projectile.body.setMass(projectileMass);
         projectile.damage = projConfig.damage;
         projectile.piercing = projConfig.piercing;
+
+        // Make projectile movable so it can transfer momentum, but give it high drag/low bounce
+        projectile.body.setImmovable(false);
+        projectile.body.setDrag(0); // No air resistance unless desired
+        projectile.body.setBounce(0); // No bouncing off enemies/world
 
         // Set velocity based on angle
         projectile.body.setVelocity(

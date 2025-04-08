@@ -97,18 +97,6 @@ const WeaponSystem = {
             // Fire projectile based on active weapon type
             if (this.activeWeaponType === 'BASIC_PROJECTILE') {
                 this.fireBasicProjectile(scene, angle);
-
-                // Check for double shot if we have that perk
-                if (hasPerk('PURPLE_OWL')) {
-                    // Base chance calculation
-                    const doubleChance = calculateProcChance(playerLuck, baseProcChance);
-
-                    if (Math.random() < doubleChance) {
-                        // Fire a second projectile with slight angle variation
-                        const angleVariation = (Math.random() - 0.5) * 0.2;
-                        this.fireBasicProjectile(scene, angle + angleVariation);
-                    }
-                }
             }
         }
     },
@@ -156,7 +144,8 @@ const WeaponSystem = {
             piercing: false,
             angle: 0,
             speed: 400,
-            damage: getEffectiveDamage()
+            damage: getEffectiveDamage(),
+            skipComponents: false  // New flag to prevent component processing
         };
 
         // Merge config with defaults
@@ -185,18 +174,10 @@ const WeaponSystem = {
             projectiles.add(projectile);
         }
 
-        const projectileMass = BASE_PROJECTILE_MASS * playerFireRate;
-
         // Set projectile properties
         projectile.body.setSize(projectile.width / 2, projectile.height / 2);
-        projectile.body.setMass(projectileMass);
         projectile.damage = projConfig.damage;
         projectile.piercing = projConfig.piercing;
-
-        // Make projectile movable so it can transfer momentum, but give it high drag/low bounce
-        projectile.body.setImmovable(false);
-        projectile.body.setDrag(0); // No air resistance unless desired
-        projectile.body.setBounce(0); // No bouncing off enemies/world
 
         // Set velocity based on angle
         projectile.body.setVelocity(
@@ -207,8 +188,20 @@ const WeaponSystem = {
         // Initialize empty components object
         projectile.components = {};
 
-        // Apply perk effects through component system
-        ProjectilePerkRegistry.applyPerkEffects(projectile, scene);
+        // Apply perk effects only if not skipped
+        if (!projConfig.skipComponents) {
+            // Apply all registered perk effects
+            ProjectilePerkRegistry.applyPerkEffects(projectile, scene);
+        }
+
+        // Process onFire event if needed
+        if (projectile.needsOnFireEvent && projectile.components) {
+            Object.values(projectile.components).forEach(component => {
+                if (component.onFire) {
+                    component.onFire(projectile, scene, projConfig.angle);
+                }
+            });
+        }
 
         return projectile;
     },

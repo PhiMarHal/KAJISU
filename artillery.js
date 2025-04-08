@@ -282,3 +282,48 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
         // --- Fire Object Logic END ---
     }
 });
+
+// Register component for multi-shot effect (Purple Owl)
+// Register component for multi-shot effect (Purple Owl)
+ProjectileComponentSystem.registerComponent('multiShot', {
+    // Configuration properties (will be set when component is added)
+    maxExtraShots: 1,      // Default to just one extra shot
+
+    initialize: function (projectile) {
+        // No special initialization needed - we'll create shots when the projectile is fired
+        // Store reference to the initial projectile to avoid loops
+        this.initialProjectile = projectile;
+
+        // Add this component to the onFire event queue
+        projectile.needsOnFireEvent = true;
+    },
+
+    // This will be called once when the projectile is fired
+    onFire: function (projectile, scene, angle) {
+        // Skip if not the initial projectile (prevents cascading shots)
+        if (projectile !== this.initialProjectile) return;
+
+        // Create shot(s) based on config (usually 1)
+        for (let i = 0; i < this.maxExtraShots; i++) {
+            // Create angle variation for more natural spread
+            const angleVariation = (Math.random() - 0.5) * 0.6;
+
+            // Create the duplicate projectile
+            const extraProjectile = WeaponSystem.createProjectile(scene, {
+                x: player.x,
+                y: player.y,
+                angle: angle + angleVariation,
+                piercing: projectile.piercing, // Inherit piercing status
+                // This is crucial to prevent infinite recursion - no component processing
+                skipComponents: true
+            });
+
+            // Visual effect to indicate it's an extra shot
+            scene.tweens.add({
+                targets: extraProjectile,
+                alpha: { from: 0.6, to: 1 },
+                duration: 150
+            });
+        }
+    }
+});

@@ -79,3 +79,14 @@ ProjectilePerkRegistry.registerPerkEffect('SCARLET_EMBER', {
     componentName: 'fireEffect',
     applyChance: true
 });
+
+// Register Purple Owl perk effect
+ProjectilePerkRegistry.registerPerkEffect('PURPLE_OWL', {
+    componentName: 'multiShot',
+    applyChance: true, // Use standard chance calculation
+    configGenerator: function (scene) {
+        return {
+            maxExtraShots: 1 // Just one extra shot
+        };
+    }
+});

@@ -18,6 +18,7 @@
     <script src="orbitals.js"></script>
     <script src="nexus.js"></script>
     <script src="onetime.js"></script>
+    <script src="weapons.js"></script>
 
     <style>
         body {
@@ -226,7 +227,6 @@
 
         // Game timers
         let enemySpawner = null;
-        let projectileFirer = null;
 
         // Difficulty scaling factors
         let enemyCountScaleFactor = 1.25;
@@ -1466,6 +1466,8 @@
             setupPauseSystem.call(this);
             setupPerformanceMonitor.call(this);
 
+            WeaponSystem.initialize(this);
+
             // Create player text - using kanji character
             player = this.add.text(600, 400, HERO_CHARACTER, {
                 fontFamily: 'Arial',
@@ -1588,6 +1590,9 @@
 
             // Check if we should start quest mode
             checkQuestModeStart.call(this);
+
+            // Update weapon firing rate if needed
+            WeaponSystem.updateFiringRate(this);
 
             // Update the level display to show time survived
             const levelDisplay = document.getElementById('level');
@@ -1822,39 +1827,9 @@
         function fireProjectile() {
             if (gameOver) return;
 
-            // Find the closest enemy within 400px
-            let closestEnemy = null;
-            let closestDistance = 400;
-
-            enemies.getChildren().forEach(enemy => {
-                if (!enemy) return; // Skip if enemy is null or undefined
-
-                const distance = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closestEnemy = enemy;
-                }
-            });
-
-            if (closestEnemy) {
-                // Calculate direction to the enemy
-                const angle = Phaser.Math.Angle.Between(player.x, player.y, closestEnemy.x, closestEnemy.y);
-
-                // Create the main projectile
-                createSingleProjectile.call(this, angle);
-
-                // Check for double shot if we have that perk
-                if (hasPerk('PURPLE_OWL')) {
-                    // Base chance: 20% at Luck 4
-                    const doubleChance = calculateProcChance(playerLuck, baseProcChance);
-
-                    if (Math.random() < doubleChance) {
-                        // Fire a second projectile with slight angle variation
-                        const angleVariation = (Math.random() - 0.5) * 0.2; // Small random angle variation
-                        createSingleProjectile.call(this, angle + angleVariation);
-                    }
-                }
-            }
+            // Just delegate to the weapon system
+            WeaponSystem.
+                fireWeapon(this);
         }
 
         function createProjectileBase(scene, x, y, color = '#ffff00', symbol = '★') {
@@ -3293,20 +3268,6 @@
 
                     // Ensure fire rate doesn't go below 1
                     playerFireRate = Math.max(1, playerFireRate);
-
-                    // Update the projectile timer if it exists
-                    if (projectileFirer) {
-                        const newDelay = shootingDelay / getEffectiveFireRate();
-                        projectileFirer.delay = newDelay;
-
-                        // Reset with proper callback scope
-                        projectileFirer.reset({
-                            delay: newDelay,
-                            callback: fireProjectile,
-                            callbackScope: game.scene.scenes[0],
-                            loop: true
-                        });
-                    }
                     break;
             }
             // Update UI
@@ -3413,6 +3374,10 @@
             // Initialize enemy tiers with dynamic assignments
             initializeEnemyTiers();
 
+            // Reset and initialize weapon system
+            WeaponSystem.reset(this);
+            WeaponSystem.initialize(this);
+
             // Reset quest system variables
             questMode = false;
             questTransitionShown = false;
@@ -3483,21 +3448,8 @@
                 enemySpawner = null;
             }
 
-            if (projectileFirer) {
-                projectileFirer.remove();
-                projectileFirer = null;
-            }
-
             // Initialize the enemy spawning system
             initializeEnemySpawners();
-
-            // Update projectile firer creation with timer registration
-            projectileFirer = registerTimer(this.time.addEvent({
-                delay: shootingDelay / getEffectiveFireRate(),
-                callback: fireProjectile,
-                callbackScope: this,
-                loop: true
-            }));
 
             // Reset perks system
             resetAllPerks();

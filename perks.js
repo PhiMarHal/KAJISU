@@ -692,11 +692,10 @@ const PERKS = {
         kana: "かんつう",
         romaji: "kantsuu",
         english: "Piercing Shot",
-        description: "30% chance for projectiles to pierce through enemies",
+        description: "Pierce through enemies",
         color: "#00ff88",
         hoverColor: 0x00cc66,
         onAcquire: function () {
-            // Logic handled in shouldFirePiercingProjectile
         }
     },
     "FINAL_CATASTROPHE": {

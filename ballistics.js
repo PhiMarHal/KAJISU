@@ -80,7 +80,6 @@ ProjectilePerkRegistry.registerPerkEffect('SCARLET_EMBER', {
     applyChance: true
 });
 
-// Register Purple Owl perk effect
 ProjectilePerkRegistry.registerPerkEffect('PURPLE_OWL', {
     componentName: 'multiShot',
     applyChance: true, // Use standard chance calculation
@@ -94,5 +93,4 @@ ProjectilePerkRegistry.registerPerkEffect('PURPLE_OWL', {
 ProjectilePerkRegistry.registerPerkEffect('PIERCING_SHOTS', {
     componentName: 'piercingEffect',
     applyChance: true,  // Use standard chance calculation based on luck
-    chanceMultiplier: 5  //
 });

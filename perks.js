@@ -687,6 +687,18 @@ const PERKS = {
             window.modifyStat('luck', 1);
         }
     },
+    "PIERCING_SHOTS": {
+        kanji: "貫通",
+        kana: "かんつう",
+        romaji: "kantsuu",
+        english: "Piercing Shot",
+        description: "30% chance for projectiles to pierce through enemies",
+        color: "#00ff88",
+        hoverColor: 0x00cc66,
+        onAcquire: function () {
+            // Logic handled in shouldFirePiercingProjectile
+        }
+    },
     "FINAL_CATASTROPHE": {
         kanji: "終焉",
         kana: "しゅうえん",

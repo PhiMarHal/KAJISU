@@ -1,8 +1,4 @@
-// weapons.js - Minimal Weapon System for Word Survivors
-
-const BASE_PROJECTILE_MASS = 10000; // Adjust this value to tune knockback strength
-
-// Main Weapon System object
+// Fixed weapons.js - addressing the physics body issue
 const WeaponSystem = {
     // Currently active weapon type
     activeWeaponType: 'BASIC_PROJECTILE',
@@ -10,14 +6,36 @@ const WeaponSystem = {
     // Firing timer reference
     weaponTimer: null,
 
+    // Physics groups
+    projectilesGroup: null,
+    piercingProjectilesGroup: null,
+
     // Initialize the system
     initialize: function (scene) {
         console.log("Initializing weapon system");
+
+        // Create physics groups
+        this.initPhysicsGroups(scene);
 
         // Create the firing timer
         this.createWeaponTimer(scene);
 
         return this;
+    },
+
+    // Initialize physics groups
+    initPhysicsGroups: function (scene) {
+        // Use existing projectiles group if available
+        this.projectilesGroup = projectiles;
+
+        // Create piercing projectiles group
+        this.piercingProjectilesGroup = scene.physics.add.group();
+
+        // Make global reference
+        window.piercingProjectiles = this.piercingProjectilesGroup;
+
+        // Set up overlap for piercing projectiles
+        scene.physics.add.overlap(this.piercingProjectilesGroup, enemies, projectileHitEnemy, null, scene);
     },
 
     // Create the weapon firing timer
@@ -85,7 +103,7 @@ const WeaponSystem = {
     // Fire the current weapon
     fireWeapon: function (scene) {
         // Find the closest enemy
-        const closestEnemy = this.findClosestEnemy(scene, 400);
+        const closestEnemy = this.findClosestEnemy(scene, 600);
 
         if (closestEnemy) {
             // Calculate direction to the enemy
@@ -103,34 +121,14 @@ const WeaponSystem = {
 
     // Fire a basic projectile
     fireBasicProjectile: function (scene, angle) {
-        // Determine if should be piercing (based on perks)
-        const piercing = this.shouldFirePiercingProjectile();
-
-        // Create with the correct physics group
+        // Create the projectile
         const projectile = this.createProjectile(scene, {
             x: player.x,
             y: player.y,
-            angle: angle,
-            piercing: piercing
+            angle: angle
         });
 
         return projectile;
-    },
-
-    // Helper to determine if a projectile should be piercing
-    shouldFirePiercingProjectile: function () {
-        // Base piercing chance from perks
-        let piercingChance = 0;
-
-        // Add chance from perks
-        if (hasPerk('PIERCING_SHOTS')) {
-            piercingChance += 0.3; // 30% chance from perk
-        }
-
-        // Add from other perks here...
-
-        // Random roll
-        return Math.random() < piercingChance;
     },
 
     // Create a projectile with the appropriate properties
@@ -140,19 +138,14 @@ const WeaponSystem = {
             y: player.y,
             symbol: '★',
             color: '#ffff00',
-            piercingColor: '#00ff88',
-            piercing: false,
             angle: 0,
             speed: 400,
             damage: getEffectiveDamage(),
-            skipComponents: false  // New flag to prevent component processing
+            skipComponents: false
         };
 
         // Merge config with defaults
         const projConfig = { ...defaults, ...config };
-
-        // Set color based on piercing status
-        const color = projConfig.piercing ? projConfig.piercingColor : projConfig.color;
 
         // Create the projectile text object
         const projectile = scene.add.text(
@@ -162,37 +155,39 @@ const WeaponSystem = {
             {
                 fontFamily: 'Arial',
                 fontSize: `${projectileSizeFactor * projConfig.damage}px`,
-                color: color,
+                color: projConfig.color,
                 fontStyle: 'bold'
             }
         ).setOrigin(0.5);
 
-        // Add to the appropriate physics group
-        if (projConfig.piercing) {
-            piercingProjectiles.add(projectile);
-        } else {
-            projectiles.add(projectile);
+        // Default to non-piercing
+        projectile.piercing = false;
+
+        // Initialize empty components object
+        projectile.components = {};
+
+        // Apply perk effects before adding to physics group
+        if (!projConfig.skipComponents) {
+            // Apply all registered perk effects
+            ProjectilePerkRegistry.applyPerkEffects(projectile, scene);
         }
 
-        // Set projectile properties
+        // Add to the appropriate physics group based on piercing status
+        if (projectile.piercing) {
+            this.piercingProjectilesGroup.add(projectile);
+        } else {
+            this.projectilesGroup.add(projectile);
+        }
+
+        // NOW we can safely set physics body properties
         projectile.body.setSize(projectile.width / 2, projectile.height / 2);
         projectile.damage = projConfig.damage;
-        projectile.piercing = projConfig.piercing;
 
         // Set velocity based on angle
         projectile.body.setVelocity(
             Math.cos(projConfig.angle) * projConfig.speed,
             Math.sin(projConfig.angle) * projConfig.speed
         );
-
-        // Initialize empty components object
-        projectile.components = {};
-
-        // Apply perk effects only if not skipped
-        if (!projConfig.skipComponents) {
-            // Apply all registered perk effects
-            ProjectilePerkRegistry.applyPerkEffects(projectile, scene);
-        }
 
         // Process onFire event if needed
         if (projectile.needsOnFireEvent && projectile.components) {

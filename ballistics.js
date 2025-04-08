@@ -90,3 +90,9 @@ ProjectilePerkRegistry.registerPerkEffect('PURPLE_OWL', {
         };
     }
 });
+
+ProjectilePerkRegistry.registerPerkEffect('PIERCING_SHOTS', {
+    componentName: 'piercingEffect',
+    applyChance: true,  // Use standard chance calculation based on luck
+    chanceMultiplier: 5  //
+});

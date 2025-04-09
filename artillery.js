@@ -149,6 +149,10 @@ ProjectileComponentSystem.registerComponent('splitEffect', {
 
     onHit: function (projectile, enemy, scene) {
         if (enemy.health > 0 && !projectile.hasSplit) {
+
+            // Set projectile to split, avoids multiple trigger if projectile is piercing
+            projectile.hasSplit = true;
+
             // Calculate the original trajectory angle
             let angle = 0;
 
@@ -204,6 +208,10 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
     onHit: function (projectile, enemy, scene) {
         // Don't create fire if enemy is already dead
         if (!enemy || !enemy.active || enemy.health <= 0) return;
+
+        // Also make sure to do this check, in case origin proj is piercing
+        if (projectile.effectTriggered) return;
+        projectile.effectTriggered = true;
 
         // Create fire at the enemy's last known position (or projectile impact)
         const fireX = projectile.x;

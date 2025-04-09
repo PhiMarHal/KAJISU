@@ -934,7 +934,7 @@
         function updatePerkCardDisplay() {
             console.log("Updating perk card display, cards: " + this.perkChallenge.currentCards);
 
-            // First, completely clear the container and element tracking
+            // First, completely clear the container
             this.perkCardContainer.removeAll(true); // true means destroy children
             this.perkChallenge.cardElements = [];
 
@@ -992,7 +992,8 @@
             updateInputVisibility.call(this);
 
             console.log("Card display updated, now showing " + this.perkChallenge.cardElements.length + " cards");
-        }// Improved pause screen perks display with better visuals
+        }
+        // Improved pause screen perks display with better visuals
         function updatePauseScreenPerks() {
             const scene = game.scene.scenes[0];
 
@@ -2354,6 +2355,10 @@
             // Pause the game
             pauseGame();
 
+            // Create a container with high depth for all level-up elements
+            this.levelUpContainer = this.add.container(0, 0);
+            this.levelUpContainer.setDepth(1000); // Same depth as pause screen for consistency
+
             // Create semi-transparent background
             const levelUpBackground = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
 
@@ -2371,13 +2376,12 @@
                 }
             ).setOrigin(0.5);
 
-            // Removed the subtitle text that was getting covered by cards
+            // Add background and title to container
+            this.levelUpContainer.add(levelUpBackground);
+            this.levelUpContainer.add(levelUpTitle);
 
             // Get random perks (excluding already acquired ones)
             const selectedPerks = PerkSystem.getRandomPerks(4, acquiredPerks);
-
-            // Store all level up UI elements
-            const cardElements = [];
 
             // Create tracking variables for the challenge
             this.perkChallenge = {
@@ -2390,26 +2394,23 @@
                 cardElements: []        // Store card elements for updating
             };
 
-            // Create a container for cards
+            // Create a container for cards (nested inside the main container)
             this.perkCardContainer = this.add.container(0, 0);
+            this.levelUpContainer.add(this.perkCardContainer);
 
             // Create input field for romaji typing
-            createRomajiInput.call(this, 600, 580); // Moved lower vertically
+            createRomajiInput.call(this, 600, 580);
 
             // Create initial card(s)
             updatePerkCardDisplay.call(this);
 
-            // Store all level up UI elements in the global array
+            // Store all level up UI elements in the global array for cleanup
             levelUpCards = [
-                levelUpBackground,
-                levelUpTitle,
-                this.perkCardContainer,
-                this.inputBox,
-                this.inputText,
-                this.submitButton,
-                this.inputPrompt
+                this.levelUpContainer,
+                // No need to add individual elements as they'll be destroyed with the container
             ];
         }
+
         // Helper function to disable debug keys
         function disableDebugKeys() {
             // We'll use a simple approach: add a flag that the debug key handlers can check
@@ -2548,6 +2549,12 @@
                 }
             ).setOrigin(0.5);
 
+            // Add all elements to the level-up container
+            this.levelUpContainer.add(this.inputPrompt);
+            this.levelUpContainer.add(this.inputBox);
+            this.levelUpContainer.add(this.inputText);
+            this.levelUpContainer.add(this.submitButton);
+
             this.submitButton.setInteractive({ useHandCursor: true });
 
             // Add button hover effects
@@ -2599,6 +2606,7 @@
             disableDebugKeys.call(this);
         }
 
+
         // Helper function to disable debug keys
         function disableDebugKeys() {
             // We'll use a simple approach: add a flag that the debug key handlers can check
@@ -2634,55 +2642,20 @@
                 return;
             }
 
-            // First, make all elements invisible for cleaner transition
-            if (Array.isArray(levelUpCards)) {
-                levelUpCards.forEach(element => {
-                    if (element && element.setVisible) {
-                        element.setVisible(false);
-                    }
-                });
+            // Destroy the main container which will destroy all child elements
+            if (this.levelUpContainer) {
+                this.levelUpContainer.destroy();
+                this.levelUpContainer = null;
             }
 
-            // Then destroy all tracked UI elements
-            if (Array.isArray(levelUpCards)) {
-                levelUpCards.forEach(element => {
-                    if (element && typeof element !== 'undefined') {
-                        if (element.destroy) {
-                            element.destroy();
-                        } else if (element.removeAll) {
-                            element.removeAll(true);
-                            element.destroy();
-                        }
-                    }
-                });
-            }
+            // Reset the perk card container reference
+            this.perkCardContainer = null;
 
-            // Extra safety to clean up specific elements that might be missed
-            if (this.perkCardContainer) {
-                this.perkCardContainer.removeAll(true);
-                this.perkCardContainer.destroy();
-                this.perkCardContainer = null;
-            }
-
-            if (this.inputBox) {
-                this.inputBox.destroy();
-                this.inputBox = null;
-            }
-
-            if (this.inputText) {
-                this.inputText.destroy();
-                this.inputText = null;
-            }
-
-            if (this.submitButton) {
-                this.submitButton.destroy();
-                this.submitButton = null;
-            }
-
-            if (this.inputPrompt) {
-                this.inputPrompt.destroy();
-                this.inputPrompt = null;
-            }
+            // Reset references to individual UI elements
+            this.inputBox = null;
+            this.inputText = null;
+            this.submitButton = null;
+            this.inputPrompt = null;
 
             // Reset challenge state
             this.perkChallenge = null;
@@ -2915,6 +2888,9 @@
                 }
             ).setOrigin(0.5);
 
+            // Add success text to container
+            this.levelUpContainer.add(successText);
+
             this.tweens.add({
                 targets: successText,
                 y: successText.y - 30,
@@ -3024,6 +3000,9 @@
                     }
                 ).setOrigin(0.5);
 
+                // Add to container
+                this.levelUpContainer.add(hintText);
+
                 this.tweens.add({
                     targets: hintText,
                     y: hintText.y - 20,
@@ -3045,6 +3024,7 @@
                     { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff' }
                 ).setOrigin(0.5);
 
+
                 this.perkCardContainer.add(kanaText);
                 this.perkChallenge.cardElements[this.perkChallenge.currentIndex].elements.push(kanaText);
 
@@ -3060,6 +3040,9 @@
                         color: '#ff6666'
                     }
                 ).setOrigin(0.5);
+
+                // Add to container
+                this.levelUpContainer.add(failText);
 
                 this.tweens.add({
                     targets: failText,

@@ -100,6 +100,37 @@ const WeaponSystem = {
         }
     },
 
+    updateProjectiles: function (scene) {
+        // Process both regular and piercing projectiles
+        this.updateProjectileGroup(this.projectilesGroup);
+        this.updateProjectileGroup(this.piercingProjectilesGroup);
+    },
+
+    // Helper method to update a projectile group
+    updateProjectileGroup: function (group) {
+        if (!group) return;
+
+        group.getChildren().forEach(projectile => {
+            // Skip if destroyed during processing
+            if (!projectile || !projectile.active) return;
+
+            // Check if out of bounds
+            if (projectile.y < -50 || projectile.y > 850 ||
+                projectile.x < -50 || projectile.x > 1250) {
+                projectile.destroy();
+                return;
+            }
+
+            // Process component updates
+            if (projectile.components && Object.keys(projectile.components).length > 0) {
+                if (projectile.components.boomerangEffect) {
+                    console.log("Processing boomerang update"); // Debug log
+                }
+                ProjectileComponentSystem.processEvent(projectile, 'update');
+            }
+        });
+    },
+
     // Fire the current weapon
     fireWeapon: function (scene) {
         // Find the closest enemy

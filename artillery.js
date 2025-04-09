@@ -46,7 +46,8 @@ const ProjectileComponentSystem = {
         // Call the event handler on each component that has it
         Object.values(projectile.components).forEach(component => {
             if (component[eventName]) {
-                component[eventName](projectile, ...args);
+                // Pass the scene as a context if needed
+                component[eventName](projectile, ...[...args, projectile.scene]);
             }
         });
     }
@@ -291,5 +292,172 @@ ProjectileComponentSystem.registerComponent('piercingEffect', {
 
         // Visual indicator for piercing projectiles
         projectile.setColor('#00ff88');
+    }
+});
+
+// Register component for boomerang effect
+ProjectileComponentSystem.registerComponent('boomerangEffect', {
+    initialize: function (projectile) {
+        // Visual indicator
+        projectile.setColor('#FFA500');
+
+        // Mark as piercing
+        projectile.piercing = true;
+
+        // Store initial position and set up state
+        this.startX = projectile.x;
+        this.startY = projectile.y;
+        this.maxDistance = 400; // Maximum distance before turning back
+        this.returning = false; // Track if the boomerang is returning
+        this.initialized = false; // Flag to track full initialization
+
+        // Debug flag
+        this.debug = true;
+
+        // Use a slightly different symbol for boomerang
+        projectile.setText('↺');
+
+        // Add rotation animation
+        projectile.scene.tweens.add({
+            targets: projectile,
+            angle: 360,
+            duration: 1000,
+            repeat: -1,
+            ease: 'Linear'
+        });
+
+        // Set flag for a deferred velocity capture
+        projectile.needsOnFireEvent = true;
+    },
+
+    // Capture velocity when the projectile is fully created
+    onFire: function (projectile, scene, angle) {
+        // Now we can safely access the velocity
+        if (projectile.body && projectile.body.velocity) {
+            const velocity = projectile.body.velocity;
+
+            // Store original velocity for direction
+            this.originalVelocity = {
+                x: velocity.x,
+                y: velocity.y
+            };
+
+            // Store original speed
+            this.originalSpeed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+            // Calculate original direction (normalized)
+            this.direction = {
+                x: velocity.x / this.originalSpeed,
+                y: velocity.y / this.originalSpeed
+            };
+
+            this.initialized = true;
+
+            if (this.debug) {
+                console.log("Boomerang initialized with velocity:", this.originalVelocity);
+                console.log("Original speed:", this.originalSpeed);
+                console.log("Direction:", this.direction);
+            }
+        }
+    },
+
+    update: function (projectile) {
+        console.log("hello?");
+        if (!projectile.active || !projectile.body) return;
+        console.log("are we ok?");
+
+        // Skip until fully initialized
+        if (!this.initialized) {
+            // Try to initialize if possible
+            if (projectile.body && projectile.body.velocity) {
+                const velocity = projectile.body.velocity;
+
+                this.originalVelocity = {
+                    x: velocity.x,
+                    y: velocity.y
+                };
+
+                // Store original speed
+                this.originalSpeed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+                // Calculate original direction (normalized)
+                this.direction = {
+                    x: velocity.x / this.originalSpeed,
+                    y: velocity.y / this.originalSpeed
+                };
+
+                this.initialized = true;
+
+                if (this.debug) {
+                    console.log("Boomerang late-initialized with velocity:", this.originalVelocity);
+                }
+            } else {
+                return; // Skip until initialized
+            }
+        }
+
+        // Check if player is destroyed (game over)
+        if (!player || !player.active) {
+            projectile.destroy();
+            return;
+        }
+
+        if (!this.returning) {
+            // Calculate distance from starting position
+            const dx = projectile.x - this.startX;
+            const dy = projectile.y - this.startY;
+            const distanceTraveled = Math.sqrt(dx * dx + dy * dy);
+
+            if (this.debug && distanceTraveled > 390) {
+                console.log("Current distance:", distanceTraveled);
+            }
+
+            // If we've reached the maximum distance, start returning
+            if (distanceTraveled >= this.maxDistance) {
+                this.returning = true;
+
+                if (this.debug) {
+                    console.log("Boomerang turning at distance:", distanceTraveled);
+                }
+
+                // Flash effect when turning
+                projectile.scene.tweens.add({
+                    targets: projectile,
+                    alpha: 0.3,
+                    scale: 1.5,
+                    duration: 100,
+                    yoyo: true,
+                    repeat: 1
+                });
+            }
+        }
+
+        if (this.returning) {
+            // Calculate direction to player
+            const dx = player.x - projectile.x;
+            const dy = player.y - projectile.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (this.debug && Math.random() < 0.01) {  // Only log occasionally
+                console.log("Returning to player, distance:", distance);
+            }
+
+            // If we're close enough to the player, destroy the projectile
+            if (distance < 30) {
+                if (this.debug) {
+                    console.log("Boomerang reached player, destroying");
+                }
+                projectile.destroy();
+                return;
+            }
+
+            // Calculate new velocity toward player
+            const returnSpeed = this.originalSpeed * 1.25; // 25% faster on return
+            const newVelocityX = (dx / distance) * returnSpeed;
+            const newVelocityY = (dy / distance) * returnSpeed;
+
+            // Update velocity
+            projectile.body.setVelocity(newVelocityX, newVelocityY);
+        }
     }
 });

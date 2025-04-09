@@ -698,6 +698,17 @@ const PERKS = {
         onAcquire: function () {
         }
     },
+    "YELLOW_BOOMERANG": {
+        kanji: "黄回",
+        kana: "きかい",
+        romaji: "kikai",
+        english: "Yellow Boomerang",
+        description: "Projectiles return to you after traveling, hitting multiple enemies",
+        color: "#FFA500", // Orange color
+        hoverColor: 0xDD8800,
+        onAcquire: function () {
+        }
+    },
     "FINAL_CATASTROPHE": {
         kanji: "終焉",
         kana: "しゅうえん",

@@ -429,35 +429,19 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
 
     // Helper function to update projectile firing rate
     updateProjectileFiringRate: function (scene) {
-        if (!scene || !projectileFirer) return;
+        // Previously referenced projectileFirer directly
+        // Now we'll use the WeaponSystem
+
+        if (!scene || !WeaponSystem) return;
 
         // Calculate new delay based on current multiplier
         const effectiveFireRate = playerFireRate * archerMultiplier;
-        const newDelay = shootingDelay / effectiveFireRate;
 
-        // Debug the values to understand what's happening
-        console.log(`Fire Rate Debug: baseRate=${playerFireRate}, multiplier=${archerMultiplier.toFixed(2)}, effectiveRate=${effectiveFireRate.toFixed(2)}, delay=${newDelay.toFixed(2)}`);
+        // Log the values to understand what's happening
+        //console.log(`Eternal Rhythm: baseRate=${playerFireRate}, multiplier=${archerMultiplier.toFixed(2)}, effectiveRate=${effectiveFireRate.toFixed(2)}`);
 
-        // Only update if there's a meaningful change
-        if (Math.abs(projectileFirer.delay - newDelay) > 5) {
-            console.log(`Updating fire timer: ${projectileFirer.delay.toFixed(2)} -> ${newDelay.toFixed(2)}`);
-
-            // CRITICAL FIX: Remember the elapsed time before resetting
-            const elapsedTime = projectileFirer.elapsed;
-            const progress = elapsedTime / projectileFirer.delay; // Get current progress through cycle
-
-            // Update the timer delay
-            projectileFirer.delay = newDelay;
-
-            // Preserve firing progress when changing the rate
-            // This ensures we don't keep resetting and never firing
-            if (progress > 0) {
-                // Set the elapsed time proportionally to preserve the firing position
-                projectileFirer.elapsed = progress * newDelay;
-
-                console.log(`Preserving progress: ${(progress * 100).toFixed(0)}%, elapsed: ${projectileFirer.elapsed.toFixed(2)}/${newDelay.toFixed(2)}`);
-            }
-        }
+        // Instead of manipulating the timer directly, we'll use WeaponSystem's updateFiringRate
+        WeaponSystem.updateFiringRate(scene);
     },
 
     cleanup: function (player) {

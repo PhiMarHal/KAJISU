@@ -88,6 +88,40 @@ const OrbitalPerkRegistry = {
     }
 };
 
+// Register the Wild Fairy perk
+OrbitalPerkRegistry.registerPerkOrbital('WILD_FAIRY', {
+    getConfig: function () {
+        return {
+            symbol: '妖', // Kanji for "fairy/spirit"
+            color: '#FF66CC', // Bright pink color
+            fontSize: 20, // Smaller size as requested
+            radius: 240, // Medium orbit radius
+            speed: 0.006, //
+            direction: 'counterclockwise',
+            pattern: 'oscillating', // Erratic wobbling pattern
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage * 0.5, // Half player damage as requested
+            damageInterval: 200, // 200ms between damage ticks as requested
+            lifespan: null, // Permanent
+            options: {
+                wobbleFrequency: 6,  // Higher frequency for more erratic movement
+                wobbleAmplitude: 180  // Larger amplitude for more dramatic wobbles
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Function to activate the Wild Fairy perk
+window.activateWildFairy = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'WILD_FAIRY');
+};
+
 // Register the Teal Octopus perk (orbiting projectiles)
 OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
     getConfig: function () {

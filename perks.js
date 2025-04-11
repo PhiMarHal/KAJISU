@@ -80,6 +80,19 @@ const PERKS = {
             window.activateLandmines();
         }
     },
+    "WILD_FAIRY": {
+        kanji: "野妖精",
+        kana: "のようせい",
+        romaji: "noyousei",
+        english: "Wild Fairy",
+        description: "Summons an erratic fairy that orbits you at high speed and damages enemies",
+        color: "#FF66CC", // Bright pink color
+        hoverColor: 0xDD44AA,
+        onAcquire: function () {
+            window.activateWildFairy();
+            window.modifyStat('luck', 1);
+        }
+    },
 
     // Food perks that increase max HP and heal the player
     "SUSHI": {

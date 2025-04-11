@@ -274,10 +274,10 @@
         let rankEnemyStartTimes = {
             1: 0, // Rank 1 enemies start immediately
             2: 12 * 60, // Rank 2 enemies start after 12 minutes
-            3: 24 * 60,
-            4: 36 * 60,
-            5: 48 * 60,
-            6: 60 * 60
+            3: 20 * 60,
+            4: 26 * 60,
+            5: 30 * 60,
+            6: 32 * 60
             // Add more ranks and their start times here
         };
         let rankSpawnDelays = {
@@ -290,19 +290,19 @@
                 min: 800
             },
             3: {
-                base: 16000,
+                base: 12000,
                 min: 1600
             },
             4: {
-                base: 32000,
+                base: 16000,
                 min: 3200
             },
             5: {
-                base: 64000,
+                base: 20000,
                 min: 6400
             },
             6: {
-                base: 128000,
+                base: 24000,
                 min: 12800
             }
             // Add more ranks and their spawn configurations here
@@ -364,15 +364,6 @@
             enemy.kana = enemyData.kana;
             enemy.romaji = enemyData.romaji;
             enemy.english = enemyData.english;
-        }
-
-        // Function to call the rank-specific spawn function
-        function spawnEnemyRank1() {
-            spawnEnemyOfRank.call(this, 1);
-        }
-
-        function spawnEnemyRank2() {
-            spawnEnemyOfRank.call(this, 2);
         }
 
         // Updated function to manage enemy spawners for all ranks
@@ -1818,17 +1809,13 @@
         }
 
         function updatePlayerStatsText() {
-            const effectiveDamage = getEffectiveDamage();
-
-            let statsText = `POW: ${effectiveDamage}\nAGI: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
-
+            let statsText = `POW: ${playerDamage}\nAGI: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
             // Update the text
             playerStatsText.setText(statsText);
         }
 
         function fireProjectile() {
             if (gameOver) return;
-
             // Just delegate to the weapon system
             WeaponSystem.
                 fireWeapon(this);
@@ -2722,9 +2709,6 @@
         }
 
         function skipToNextPhase() {
-            // Based on your code, enemy phases are determined by rankEnemyStartTimes
-            // which indicates rank 2 enemies start at 12 minutes (720 seconds)
-
             // Get the current minutes elapsed
             const currentMinutes = elapsedTime / 60;
 

@@ -114,7 +114,6 @@ PlayerComponentSystem.registerComponent('berserkerState', {
     colorTween: null,
 
     initialize: function (player) {
-        console.log("Activating berserker state");
 
         // Store original color
         this.originalColor = player.style.color || '#ffffff';
@@ -156,7 +155,6 @@ PlayerComponentSystem.registerComponent('berserkerState', {
     },
 
     cleanup: function (player) {
-        console.log("Deactivating berserker state");
 
         // Reset multiplier
         berserkMultiplier = 1.0;
@@ -247,7 +245,6 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
     particleTimer: null,
 
     initialize: function (player) {
-        console.log("Initializing Eternal Rhythm state");
 
         // Reset accumulator and multiplier
         this.accumulator = 0;
@@ -342,10 +339,6 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
 
         // Only log changes in movement state to reduce spam
         const wasMoving = this.accumulator > 0 && this.currentMultiplier > 1.01;
-        if (isPlayerMoving !== wasMoving) {
-            console.log(`Eternal Rhythm: Player ${isPlayerMoving ? 'started' : 'stopped'} moving (velocity: ${speed.toFixed(1)})`);
-        }
-
         if (isPlayerMoving) {
             // Player is moving - increase multiplier
             const maxTimeSeconds = 60 / playerLuck;
@@ -387,17 +380,11 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
                         this.particleTimer.paused = false;
                     }
                 }
-
-                // Debug output (less frequent)
-                if (Math.floor(this.currentMultiplier * 10) !== Math.floor((this.currentMultiplier - 0.01) * 10)) {
-                    console.log(`Eternal Rhythm: ${archerMultiplier.toFixed(1)}x fire rate`);
-                }
             }
 
             // Visual effect when reaching full speed
             if (!this.isActive && this.accumulator >= 0.99) {
                 this.isActive = true;
-                console.log("Eternal Rhythm: Maximum speed reached!");
 
                 // Create burst effect when reaching max speed
                 for (let i = 0; i < 15; i++) {
@@ -420,9 +407,6 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
 
                 // Update projectile firer
                 this.updateProjectileFiringRate(scene);
-
-                // Debug output
-                console.log("Eternal Rhythm: Reset to 1.0x (stopped moving)");
             }
         }
     },
@@ -438,14 +422,12 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
         const effectiveFireRate = playerFireRate * archerMultiplier;
 
         // Log the values to understand what's happening
-        //console.log(`Eternal Rhythm: baseRate=${playerFireRate}, multiplier=${archerMultiplier.toFixed(2)}, effectiveRate=${effectiveFireRate.toFixed(2)}`);
 
         // Instead of manipulating the timer directly, we'll use WeaponSystem's updateFiringRate
         WeaponSystem.updateFiringRate(scene);
     },
 
     cleanup: function (player) {
-        console.log("Deactivating Eternal Rhythm state");
 
         // Reset multiplier
         archerMultiplier = 1.0;
@@ -481,7 +463,6 @@ const ShieldSystem = {
 
     // Activate a shield effect
     activateShield: function (options = {}) {
-        console.log("Shield activated", options);
 
         // Set shield as active
         this.isShieldActive = true;
@@ -509,7 +490,6 @@ const ShieldSystem = {
 
     // Deactivate the shield (without starting cooldown)
     deactivateShield: function () {
-        console.log("Shield deactivated");
 
         // Set shield as inactive
         this.isShieldActive = false;
@@ -522,7 +502,6 @@ const ShieldSystem = {
 
     // Called when a shield absorbs a hit
     onShieldHit: function () {
-        console.log("Shield hit");
 
         // Deactivate the shield
         this.deactivateShield();
@@ -547,14 +526,12 @@ PlayerComponentSystem.registerComponent('secondChanceShieldAbility', {
     readyForUse: true, // Initially ready to use
 
     initialize: function (player) {
-        console.log("Initializing Fated Shield ability");
         this.readyForUse = true;
     },
 
     update: function (player) {
         // Check if we're ready to use and player is at 1 HP
         if (this.readyForUse && playerHealth === 1) {
-            console.log("Player at 1 HP - activating Fated Shield");
             this.activateEmergencyShield();
         }
     },
@@ -588,12 +565,10 @@ PlayerComponentSystem.registerComponent('secondChanceShieldAbility', {
     },
 
     resetAbility: function () {
-        console.log("Fated Shield ready again");
         this.readyForUse = true;
     },
 
     cleanup: function () {
-        console.log("Cleaning up Fated Shield ability");
 
         // Remove cooldown timer if it exists
         if (this.cooldownTimer) {
@@ -620,14 +595,12 @@ PlayerComponentSystem.registerComponent('permanentShieldAbility', {
     cooldownTimer: null,
 
     initialize: function (player) {
-        console.log("Initializing permanent shield ability");
 
         // Activate shield immediately when component is created
         ShieldSystem.activateShield();
     },
 
     startCooldown: function () {
-        console.log("Starting shield cooldown");
 
         // Remove any existing cooldown timer
         if (this.cooldownTimer) {
@@ -655,7 +628,6 @@ PlayerComponentSystem.registerComponent('permanentShieldAbility', {
     },
 
     cleanup: function () {
-        console.log("Cleaning up permanent shield ability");
 
         // Remove cooldown timer if it exists
         if (this.cooldownTimer) {
@@ -682,7 +654,6 @@ PlayerPerkRegistry.registerPerkEffect('BLUE_WHALE', {
 PlayerComponentSystem.registerComponent('temporaryShieldAbility', {
     // This is just an example - not used yet
     initialize: function (player) {
-        console.log("Granting temporary shield");
 
         // Activate shield with special visual effect
         ShieldSystem.activateShield({
@@ -720,7 +691,6 @@ PlayerComponentSystem.registerComponent('godHammerAbility', {
     hammerTimer: null,
 
     initialize: function (player) {
-        console.log("Initializing God Hammer ability");
 
         // Get the scene
         const scene = game.scene.scenes[0];
@@ -741,7 +711,6 @@ PlayerComponentSystem.registerComponent('godHammerAbility', {
     },
 
     cleanup: function (player) {
-        console.log("Deactivating God Hammer ability");
 
         // Single call to remove timer
         CooldownManager.removeTimer(this.hammerTimer);
@@ -837,7 +806,6 @@ PlayerComponentSystem.registerComponent('divineBeaconAbility', {
     beaconTimer: null,
 
     initialize: function (player) {
-        console.log("Initializing Divine Beacon ability");
 
         // Get the scene
         const scene = game.scene.scenes[0];
@@ -942,7 +910,6 @@ PlayerComponentSystem.registerComponent('divineBeaconAbility', {
     },
 
     cleanup: function (player) {
-        console.log("Deactivating Divine Beacon ability");
 
         // Single call to remove timer
         CooldownManager.removeTimer(this.beaconTimer);

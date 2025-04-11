@@ -63,8 +63,6 @@ const CRIMSON_SCATTER_CONFIG = {
 // Register component for distance-based damage (Crimson Scatter)
 ProjectileComponentSystem.registerComponent('distanceDamage', {
     initialize: function (projectile) {
-        console.log("Initializing distance damage component");
-
         // Store our start position and base damage in the component
         this.startX = projectile.x;
         this.startY = projectile.y;
@@ -73,13 +71,6 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
         // Set initial scale and damage for max effect at close range
         projectile.setScale(CRIMSON_SCATTER_CONFIG.maxDamageMultiplier);
         projectile.damage = this.baseDamage * CRIMSON_SCATTER_CONFIG.maxDamageMultiplier;
-
-        console.log("Distance damage initialized:", {
-            startX: this.startX,
-            startY: this.startY,
-            baseDamage: this.baseDamage,
-            currentDamage: projectile.damage
-        });
     },
 
     update: function (projectile) {
@@ -306,9 +297,6 @@ ProjectileComponentSystem.registerComponent('piercingEffect', {
 // Register component for boomerang effect
 ProjectileComponentSystem.registerComponent('boomerangEffect', {
     initialize: function (projectile) {
-        // Visual indicator
-        projectile.setColor('#FFA500');
-
         // Mark as piercing
         projectile.piercing = true;
 
@@ -318,12 +306,6 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
         this.maxDistance = 400; // Maximum distance before turning back
         this.returning = false; // Track if the boomerang is returning
         this.initialized = false; // Flag to track full initialization
-
-        // Debug flag
-        this.debug = true;
-
-        // Use a slightly different symbol for boomerang
-        projectile.setText('↺');
 
         // Add rotation animation
         projectile.scene.tweens.add({
@@ -360,19 +342,11 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
             };
 
             this.initialized = true;
-
-            if (this.debug) {
-                console.log("Boomerang initialized with velocity:", this.originalVelocity);
-                console.log("Original speed:", this.originalSpeed);
-                console.log("Direction:", this.direction);
-            }
         }
     },
 
     update: function (projectile) {
-        console.log("hello?");
         if (!projectile.active || !projectile.body) return;
-        console.log("are we ok?");
 
         // Skip until fully initialized
         if (!this.initialized) {
@@ -395,10 +369,6 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
                 };
 
                 this.initialized = true;
-
-                if (this.debug) {
-                    console.log("Boomerang late-initialized with velocity:", this.originalVelocity);
-                }
             } else {
                 return; // Skip until initialized
             }
@@ -416,17 +386,9 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
             const dy = projectile.y - this.startY;
             const distanceTraveled = Math.sqrt(dx * dx + dy * dy);
 
-            if (this.debug && distanceTraveled > 390) {
-                console.log("Current distance:", distanceTraveled);
-            }
-
             // If we've reached the maximum distance, start returning
             if (distanceTraveled >= this.maxDistance) {
                 this.returning = true;
-
-                if (this.debug) {
-                    console.log("Boomerang turning at distance:", distanceTraveled);
-                }
 
                 // Flash effect when turning
                 projectile.scene.tweens.add({
@@ -446,15 +408,8 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
             const dy = player.y - projectile.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (this.debug && Math.random() < 0.01) {  // Only log occasionally
-                console.log("Returning to player, distance:", distance);
-            }
-
             // If we're close enough to the player, destroy the projectile
             if (distance < 30) {
-                if (this.debug) {
-                    console.log("Boomerang reached player, destroying");
-                }
                 projectile.destroy();
                 return;
             }

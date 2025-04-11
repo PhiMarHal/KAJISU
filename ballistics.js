@@ -100,5 +100,4 @@ ProjectilePerkRegistry.registerPerkEffect('PIERCING_SHOTS', {
 ProjectilePerkRegistry.registerPerkEffect('YELLOW_BOOMERANG', {
     componentName: 'boomerangEffect',
     applyChance: true, // Apply based on chance
-    chanceMultiplier: 5.0 // Standard chance multiplier
 });

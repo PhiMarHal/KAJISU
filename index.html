@@ -19,6 +19,7 @@
     <script src="nexus.js"></script>
     <script src="onetime.js"></script>
     <script src="weapons.js"></script>
+    <script src="redkey.js"></script>
 
     <style>
         body {
@@ -1569,6 +1570,22 @@
             startGame.call(this);
         }
 
+        // Add this to your game's initialization (either in the create function or startGame)
+        function initializeRedKeySystem() {
+            // Initialize the Red Key system
+            if (window.RedKeySystem) {
+                window.RedKeySystem.init(this);
+            }
+        }
+
+        // Add this to your update function
+        function updateRedKeySystem() {
+            // Check for breakout attempts
+            if (window.RedKeySystem && window.RedKeySystem.hasRedKey()) {
+                window.RedKeySystem.checkForBreakout(this);
+            }
+        }
+
         // Add this to your update function
         function update(time, delta) {
             if (gameOver) return;
@@ -1576,6 +1593,7 @@
 
             updatePerformanceStats.call(this, time, delta);
             updatePlayerStateEffects();
+            updateRedKeySystem();
 
             // Increment elapsed time
             elapsedTime += delta / 1000; // delta is in milliseconds
@@ -3338,6 +3356,8 @@
 
             // Initialize enemy tiers with dynamic assignments
             initializeEnemyTiers();
+
+            initializeRedKeySystem()
 
             // Reset and initialize weapon system
             WeaponSystem.reset(this);

@@ -28,6 +28,18 @@ const PERKS = {
 
         }
     },
+    "RED_KEY": {
+        kanji: "赤鍵",
+        kana: "あかぎ",
+        romaji: "akagi",
+        english: "Red Key",
+        description: "Allows you to break free from the confines of the game window",
+        color: "#FF3333",
+        hoverColor: 0xDD2222,
+        onAcquire: function () {
+            window.activateRedKey();
+        }
+    },
     "FATED_SHIELD": {
         kanji: "運命の盾",
         kana: "うんめいのたて",

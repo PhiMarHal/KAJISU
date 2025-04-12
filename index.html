@@ -19,6 +19,7 @@
     <script src="nexus.js"></script>
     <script src="onetime.js"></script>
     <script src="weapons.js"></script>
+    <script src="cards.js"></script>
 
     <style>
         body {
@@ -741,186 +742,6 @@
             console.log("Game paused with overlay");
         }
 
-        // Generalized function to create perk card elements with consistent positioning
-        function createPerkCardElements(scene, perk, x, y, options = {}) {
-            const defaults = {
-                container: null,
-                showBackground: true,
-                showKana: true,
-                showRomaji: true,
-                showEnglish: true,
-                showDescription: true,
-                backgroundColor: 0x444444,
-                width: 200,
-                height: 300,
-                strokeWidth: 2,
-                strokeColor: 0xeeeeee,
-                makeInteractive: false,
-                perkCallback: null
-            };
-
-            // Merge options with defaults
-            const settings = { ...defaults, ...options };
-
-            // Elements array to return
-            const elements = [];
-
-            // Create card background if requested
-            if (settings.showBackground) {
-                const cardBg = scene.add.rectangle(x, y, settings.width, settings.height, settings.backgroundColor, 1)
-                    .setStrokeStyle(settings.strokeWidth, settings.strokeColor);
-
-                // Add to container if provided
-                if (settings.container) {
-                    settings.container.add(cardBg);
-                }
-
-                // Make interactive if requested
-                if (settings.makeInteractive && perk) {
-                    cardBg.setInteractive({ useHandCursor: true });
-                    cardBg.perkId = perk.id;
-
-                    // Add hover effects
-                    cardBg.on('pointerover', function () {
-                        this.fillColor = perk.hoverColor ?? 0x666666;
-                        this.setStrokeStyle(4, 0xffffff);
-                    });
-
-                    cardBg.on('pointerout', function () {
-                        this.fillColor = settings.backgroundColor;
-                        this.setStrokeStyle(settings.strokeWidth, settings.strokeColor);
-                    });
-
-                    // Add click handler if provided
-                    if (settings.perkCallback) {
-                        cardBg.on('pointerdown', function () {
-                            settings.perkCallback(perk.id);
-                        });
-                    }
-                }
-
-                elements.push(cardBg);
-            }
-
-            // Fixed positions relative to card center
-            const positions = {
-                kanji: y - 60,      // Kanji position
-                kana: y - 15,   // Kana position 
-                romaji: y + 10,     // Romaji position
-                english: y + 40,    // English position
-                description: y + 85 // Description position - 145 from kanji
-            };
-
-            // Always show kanji
-            if (perk) {
-                const kanjiText = scene.add.text(
-                    x, positions.kanji,
-                    perk.kanji,
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '36px',
-                        color: perk.color,
-                        fontStyle: 'bold',
-                        stroke: '#000000',
-                        strokeThickness: 4
-                    }
-                ).setOrigin(0.5);
-
-                if (settings.container) {
-                    settings.container.add(kanjiText);
-                }
-
-                elements.push(kanjiText);
-
-                // Show kana if requested
-                if (settings.showKana) {
-                    const kanaText = scene.add.text(
-                        x, positions.kana,
-                        perk.kana,
-                        { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff' }
-                    ).setOrigin(0.5);
-
-                    if (settings.container) {
-                        settings.container.add(kanaText);
-                    }
-
-                    elements.push(kanaText);
-                }
-
-                // Show romaji if requested
-                if (settings.showRomaji) {
-                    const romajiText = scene.add.text(
-                        x, positions.romaji,
-                        perk.romaji,
-                        { fontFamily: 'Arial', fontSize: '16px', color: '#dddddd', fontStyle: 'italic' }
-                    ).setOrigin(0.5);
-
-                    if (settings.container) {
-                        settings.container.add(romajiText);
-                    }
-
-                    elements.push(romajiText);
-                }
-
-                // Show english if requested
-                if (settings.showEnglish) {
-                    const englishText = scene.add.text(
-                        x, positions.english,
-                        perk.english,
-                        {
-                            fontFamily: 'Arial',
-                            fontSize: '20px',
-                            color: perk.color,
-                            fontStyle: 'bold'
-                        }
-                    ).setOrigin(0.5);
-
-                    if (settings.container) {
-                        settings.container.add(englishText);
-                    }
-
-                    elements.push(englishText);
-                }
-
-                // Show description if requested - always in the same position
-                if (settings.showDescription) {
-                    const descText = scene.add.text(
-                        x, positions.description,
-                        perk.description,
-                        {
-                            fontFamily: 'Arial',
-                            fontSize: '16px',
-                            color: '#ffffff',
-                            align: 'center',
-                            wordWrap: { width: settings.width - 20 }
-                        }
-                    ).setOrigin(0.5);
-
-                    if (settings.container) {
-                        settings.container.add(descText);
-                    }
-
-                    elements.push(descText);
-                }
-            }
-
-            return elements;
-        }
-
-        // Update the createPerkCard function to use our generalized function
-        function createPerkCard(scene, perkId, x, y, options = {}) {
-            const perk = PERKS[perkId];
-            if (!perk) return [];
-
-            return createPerkCardElements(scene, perk, x, y, {
-                ...options,
-                showKana: true,
-                showRomaji: true,
-                showEnglish: true,
-                showDescription: true
-            });
-        }
-
         // Update the updatePerkCardDisplay function to use our generalized function
         function updatePerkCardDisplay() {
             console.log("Updating perk card display, cards: " + this.perkChallenge.currentCards);
@@ -960,7 +781,7 @@
                 const showDescription = !isCurrentChallenge || this.perkChallenge.attempts >= 2;
 
                 // Create card elements with appropriate options
-                const cardElements = createPerkCardElements(this, perk, cardX, 330, {
+                const cardElements = window.CardSystem.createPerkCardElements(perk, cardX, 330, {
                     container: this.perkCardContainer,
                     showKana: showKana,
                     showRomaji: showRomaji,
@@ -984,6 +805,7 @@
 
             console.log("Card display updated, now showing " + this.perkChallenge.cardElements.length + " cards");
         }
+
         // Improved pause screen perks display with better visuals
         function updatePauseScreenPerks() {
             const scene = game.scene.scenes[0];
@@ -1243,7 +1065,7 @@
             hidePerkCard.call(scene);
 
             // Create card elements using the shared function with better styling
-            scene.activePerkCard = createPerkCard(scene, perkId, x, y, {
+            scene.activePerkCard = window.CardSystem.createPerkCard(perkId, x, y, {
                 container: scene.pausePerksContainer,
                 backgroundColor: 0x333333,
                 strokeWidth: 3,

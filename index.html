@@ -2232,7 +2232,7 @@
                 scale: 1.2,
                 duration: 160,
                 yoyo: true,
-                repeat: 4, // repeats could be = to HP, and max duration 160 * hp?
+                repeat: 6, //
                 onComplete: function () {
                     // Ensure alpha is reset properly
                     player.alpha = 1;
@@ -2241,7 +2241,7 @@
             });
 
             // Remove invincibility after a while
-            this.time.delayedCall(640, function () {
+            this.time.delayedCall(960, function () {
                 playerInvincible = false;
 
                 // Double-check alpha is reset even if tween was interrupted

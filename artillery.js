@@ -191,9 +191,9 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
     initialize: function (projectile) {
         // Visual indicator for the projectile itself
         projectile.setColor('#FF4500');
-        this.fireDamage = playerDamage; // Store damage based on player state when projectile was created
+        this.fireDamage = playerDamage / 10; // Store damage based on player state when projectile was created
         this.fireDuration = 8000; // 4s
-        this.fireTickInterval = 2000; // 2 seconds
+        this.fireTickInterval = 200; // 0.2 seconds
     },
 
     onHit: function (projectile, enemy, scene) {

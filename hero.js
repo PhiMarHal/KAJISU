@@ -753,7 +753,7 @@ function dropGodHammer() {
     hammer.body.setSize(hammer.width * 1, hammer.height * 1);
 
     // Set properties for the hammer
-    hammer.damage = playerDamage * 4;
+    hammer.damage = playerDamage * 10;
     hammer.damageSourceId = 'godHammer';
 
     // Register entity for cleanup

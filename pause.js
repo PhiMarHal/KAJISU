@@ -136,14 +136,23 @@ const PauseSystem = {
      * @param {Phaser.Scene} scene - The main game scene.
      */
     _internalPause: function (scene) {
+        console.log("[PauseSystem] Internal Pause Triggered"); // Add log
         if (scene && scene.physics) {
             scene.physics.pause();
+            console.log("[PauseSystem] Physics Paused"); // Add log
         }
         if (scene && scene.tweens) {
             scene.tweens.pauseAll();
+            console.log("[PauseSystem] Tweens Paused"); // Add log
         }
+        // === ADD THIS LINE ===
+        if (scene && scene.time) {
+            scene.time.paused = true;
+            console.log("[PauseSystem] Scene Time Paused"); // Add log
+        }
+        // =====================
 
-        // Pause all registered global game timers (from index.html)
+        // Keep these loops as backup/belt-and-suspenders, though scene.time.paused should handle it
         if (window.gameTimers && Array.isArray(window.gameTimers)) {
             window.gameTimers.forEach(timer => {
                 if (timer && timer.paused !== undefined && !timer.removed) {
@@ -151,18 +160,10 @@ const PauseSystem = {
                 }
             });
         }
-
-        // Pause all registered effect timers (global from window.registerEffect)
         if (window.activeEffects && window.activeEffects.timers && Array.isArray(window.activeEffects.timers)) {
-            console.log(`[PauseSystem] Attempting to pause ${window.activeEffects.timers.length} timers from activeEffects.timers`); // ADDED
             window.activeEffects.timers.forEach(timer => {
                 if (timer && timer.paused !== undefined && !timer.removed) {
-                    // ADD THIS LOG:
-                    console.log(`[PauseSystem] Pausing effect timer (ID: ${timer.__proto__.constructor.name}-${timer.delay}ms), removed: ${timer.removed}`);
-                    timer.paused = true; // Pauses activeEffects.timers
-                } else {
-                    // ADD THIS LOG (Optional, might be noisy):
-                    // console.log(`[PauseSystem] Skipping effect timer (invalid, removed, or no pause property):`, timer);
+                    timer.paused = true;
                 }
             });
         }
@@ -173,14 +174,23 @@ const PauseSystem = {
      * @param {Phaser.Scene} scene - The main game scene.
      */
     _internalResume: function (scene) {
+        console.log("[PauseSystem] Internal Resume Triggered"); // Add log
         if (scene && scene.physics) {
             scene.physics.resume();
+            console.log("[PauseSystem] Physics Resumed"); // Add log
         }
         if (scene && scene.tweens) {
             scene.tweens.resumeAll();
+            console.log("[PauseSystem] Tweens Resumed"); // Add log
         }
+        // === ADD THIS LINE ===
+        if (scene && scene.time) {
+            scene.time.paused = false;
+            console.log("[PauseSystem] Scene Time Resumed"); // Add log
+        }
+        // =====================
 
-        // Resume all registered global game timers
+        // Resume timers in arrays (might be redundant if scene.time handles it, but safe)
         if (window.gameTimers && Array.isArray(window.gameTimers)) {
             window.gameTimers.forEach(timer => {
                 if (timer && timer.paused !== undefined && !timer.removed) {
@@ -188,8 +198,6 @@ const PauseSystem = {
                 }
             });
         }
-
-        // Resume all registered effect timers
         if (window.activeEffects && window.activeEffects.timers && Array.isArray(window.activeEffects.timers)) {
             window.activeEffects.timers.forEach(timer => {
                 if (timer && timer.paused !== undefined && !timer.removed) {

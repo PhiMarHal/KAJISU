@@ -154,9 +154,15 @@ const PauseSystem = {
 
         // Pause all registered effect timers (global from window.registerEffect)
         if (window.activeEffects && window.activeEffects.timers && Array.isArray(window.activeEffects.timers)) {
+            console.log(`[PauseSystem] Attempting to pause ${window.activeEffects.timers.length} timers from activeEffects.timers`); // ADDED
             window.activeEffects.timers.forEach(timer => {
                 if (timer && timer.paused !== undefined && !timer.removed) {
-                    timer.paused = true;
+                    // ADD THIS LOG:
+                    console.log(`[PauseSystem] Pausing effect timer (ID: ${timer.__proto__.constructor.name}-${timer.delay}ms), removed: ${timer.removed}`);
+                    timer.paused = true; // Pauses activeEffects.timers
+                } else {
+                    // ADD THIS LOG (Optional, might be noisy):
+                    // console.log(`[PauseSystem] Skipping effect timer (invalid, removed, or no pause property):`, timer);
                 }
             });
         }

@@ -85,6 +85,9 @@ const OrbitalPerkRegistry = {
 
         // Register timer for cleanup
         window.registerEffect('timer', timer);
+
+        // ADD THIS LOG:
+        console.log(`[Nexus] Registered TEAL_OCTOPUS timer (ID: ${timer.__proto__.constructor.name}-${timer.delay}ms) into activeEffects.timers. Current length: ${window.activeEffects?.timers?.length}`);
     }
 };
 

@@ -119,6 +119,12 @@
     </div>
 
     <script>
+        let activeEffects = {
+            timers: [],         // Store all active timers
+            entities: [],       // Store all entities created by perks 
+            activePerks: []     // Store all acquired perks
+        };
+
         // Game configuration
         const config = {
             type: Phaser.AUTO,
@@ -173,11 +179,7 @@
                 timer && !timer.hasOwnProperty('removed') && !timer.removed);
         }
 
-        let activeEffects = {
-            timers: [],         // Store all active timers
-            entities: [],       // Store all entities created by perks 
-            activePerks: []     // Store all acquired perks
-        };
+
 
         const HEALTH_SCALE_FACTOR = 100; // Multiply all health values by 100 internally
         let playerHealthDisplay = 0; // For displaying to player
@@ -639,9 +641,25 @@
 
         // Add this helper function to register effects
         window.registerEffect = function (type, item) {
+            // Ensure activeEffects and its properties exist and are arrays
+            if (!window.activeEffects) {
+                console.warn("[registerEffect] window.activeEffects not found! Initializing.");
+                window.activeEffects = { timers: [], entities: [] };
+            }
+            if (!Array.isArray(window.activeEffects.timers)) {
+                console.warn("[registerEffect] window.activeEffects.timers is not an array! Initializing.");
+                window.activeEffects.timers = [];
+            }
+            if (!Array.isArray(window.activeEffects.entities)) {
+                console.warn("[registerEffect] window.activeEffects.entities is not an array! Initializing.");
+                window.activeEffects.entities = [];
+            }
+
+            // Now proceed with registration
             if (type === 'timer' && item) {
                 activeEffects.timers.push(item);
                 // If game is paused, also pause the new timer
+                // Use PauseSystem.isPaused directly
                 if (PauseSystem.isPaused && item.paused !== undefined) {
                     item.paused = true;
                 }
@@ -666,10 +684,10 @@
                 }
             });
 
-            // Reset active effects
+            // Reset active effects arrays
             activeEffects.timers = [];
             activeEffects.entities = [];
-            activeEffects.activePerks = [];
+            // activeEffects.activePerks = []; // REMOVE THIS LINE
         }
 
         function resetAllPerks() {

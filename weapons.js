@@ -52,7 +52,7 @@ const WeaponSystem = {
         this.weaponTimer = registerTimer(scene.time.addEvent({
             delay: firingDelay,
             callback: function () {
-                if (gameOver || gamePaused) return;
+                if (gameOver || PauseSystem.isPaused) return;
                 WeaponSystem.fireWeapon(this);
             },
             callbackScope: scene,
@@ -86,7 +86,7 @@ const WeaponSystem = {
             this.weaponTimer.reset({
                 delay: newDelay,
                 callback: function () {
-                    if (gameOver || gamePaused) return;
+                    if (gameOver || PauseSystem.isPaused) return;
                     WeaponSystem.fireWeapon(this);
                 },
                 callbackScope: scene,

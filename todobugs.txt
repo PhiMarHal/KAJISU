@@ -21,6 +21,7 @@ after 100 perks we need 1000 kills of a new kanji for a perk unlock. good for lo
 ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks and rotating in favor of new one.
 fixed at high value (perhaps 1k) would make more sense with that latter design
 - add screen coloring on damage taken
-- T3 enemies?
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
 - hide cursor!
+- make new perk: "loss". remove ALL perks, give +2 random stat per perk removed
+- hero.js components remain on restart

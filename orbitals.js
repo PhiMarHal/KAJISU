@@ -339,7 +339,7 @@ const OrbitalSystem = {
     // Update all orbitals
     update: function (scene, time) {
         // Skip if no orbitals or game state prevents updates
-        if (gameOver || gamePaused || orbitals.length === 0) return;
+        if (gameOver || PauseSystem.isPaused || orbitals.length === 0) return;
 
         // Update each orbital
         orbitals.forEach(orbital => {

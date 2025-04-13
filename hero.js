@@ -827,7 +827,7 @@ PlayerComponentSystem.registerComponent('divineBeaconAbility', {
 
     spawnBeacon: function () {
         // Skip if game is over or paused
-        if (gameOver || gamePaused) return;
+        if (gameOver || PauseSystem.isPaused) return;
 
         // Random position on screen (with padding from edges)
         const x = Phaser.Math.Between(20, 1180);
@@ -929,7 +929,7 @@ PlayerPerkRegistry.registerPerkEffect('DIVINE_BEACON', {
 // Function to update player status in game loop
 function updatePlayerStatus() {
     // Skip if game is over or paused
-    if (gameOver || gamePaused) return;
+    if (gameOver || PauseSystem.isPaused) return;
 
     // Check perk conditions and apply/remove components
     PlayerPerkRegistry.checkAndApplyEffects();

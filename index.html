@@ -419,6 +419,7 @@
                 }
             });
         }
+
         // Function to show a dramatic kanji-based introduction when a new rank appears
         function showRankIntroduction(rank) {
             // Update the current enemy rank when a new rank is introduced
@@ -1679,32 +1680,6 @@
             return projectile;
         }
 
-        // Modify the defeatedEnemy function to handle quests
-        // Helper function to get a legible random color
-        function getRandomLegibleColor() {
-            const legibleColors = [
-                '#ffffff', // white
-                '#ffff00', // yellow
-                '#00ffff', // cyan
-                '#ff00ff', // magenta
-                '#00ff88', // mint green
-                '#ff8800', // orange
-                '#88ff00', // lime
-                '#00bbff', // sky blue
-                '#ff88ff', // pink
-                '#ffbb00', // gold
-                '#00ffbb', // turquoise
-                '#bbff00'  // chartreuse
-            ];
-
-            return legibleColors[Math.floor(Math.random() * legibleColors.length)];
-        }
-
-        // Helper function to get a random defeat synonym
-        function getRandomDefeatSynonym() {
-            return DEFEAT_SYNONYMS[Math.floor(Math.random() * DEFEAT_SYNONYMS.length)];
-        }
-
         function defeatedEnemy(enemy) {
             // Only show learning feedback for enemies of the current (highest) rank
             if (this.learningFeedback && enemy.rank === currentEnemyRank) {
@@ -1962,91 +1937,6 @@
             this.debugKeysDisabled = false;
         }
 
-        // Enhanced cleanup function
-        function closeLevelUpCards() {
-            console.log("Closing level up cards and cleaning up UI elements");
-
-            // Clean up the window key handler
-            if (this.romajiKeyHandler) {
-                window.removeEventListener('keydown', this.romajiKeyHandler);
-                this.romajiKeyHandler = null;
-            }
-
-            // Disable our custom handler
-            this.isRomajiInputActive = false;
-
-            // Re-enable debug keys
-            restoreDebugKeys.call(this);
-
-            // Extra safety: check if we're in a valid scene
-            if (!this.add) {
-                console.log("Not in a valid scene, forcing cleanup");
-                levelUpCards = [];
-                return;
-            }
-
-            // First, make all elements invisible for cleaner transition
-            if (Array.isArray(levelUpCards)) {
-                levelUpCards.forEach(element => {
-                    if (element && element.setVisible) {
-                        element.setVisible(false);
-                    }
-                });
-            }
-
-            // Then destroy all tracked UI elements
-            if (Array.isArray(levelUpCards)) {
-                levelUpCards.forEach(element => {
-                    if (element && typeof element !== 'undefined') {
-                        if (element.destroy) {
-                            element.destroy();
-                        } else if (element.removeAll) {
-                            element.removeAll(true);
-                            element.destroy();
-                        }
-                    }
-                });
-            }
-
-            // Extra safety to clean up specific elements that might be missed
-            if (this.perkCardContainer) {
-                this.perkCardContainer.removeAll(true);
-                this.perkCardContainer.destroy();
-                this.perkCardContainer = null;
-            }
-
-            if (this.inputBox) {
-                this.inputBox.destroy();
-                this.inputBox = null;
-            }
-
-            if (this.inputText) {
-                this.inputText.destroy();
-                this.inputText = null;
-            }
-
-            if (this.submitButton) {
-                this.submitButton.destroy();
-                this.submitButton = null;
-            }
-
-            if (this.inputPrompt) {
-                this.inputPrompt.destroy();
-                this.inputPrompt = null;
-            }
-
-            // Reset challenge state
-            this.perkChallenge = null;
-
-            // Reset global array
-            levelUpCards = [];
-
-            // Resume game
-            resumeGame();
-
-            console.log("Level up cards cleanup complete");
-        }
-
         // Function to create the input field for romaji typing
         function createRomajiInput(x, y) {
             // Create input prompt
@@ -2146,18 +2036,6 @@
         }
 
 
-        // Helper function to disable debug keys
-        function disableDebugKeys() {
-            // We'll use a simple approach: add a flag that the debug key handlers can check
-            this.debugKeysDisabled = true;
-        }
-
-        // Helper function to restore debug keys
-        function restoreDebugKeys() {
-            // Clear the flag to allow debug keys to work again
-            this.debugKeysDisabled = false;
-        }
-
         // Enhanced cleanup function
         function closeLevelUpCards() {
             console.log("Closing level up cards and cleaning up UI elements");
@@ -2208,6 +2086,17 @@
             console.log("Level up cards cleanup complete");
         }
 
+        // Helper function to disable debug keys
+        function disableDebugKeys() {
+            // We'll use a simple approach: add a flag that the debug key handlers can check
+            this.debugKeysDisabled = true;
+        }
+
+        // Helper function to restore debug keys
+        function restoreDebugKeys() {
+            // Clear the flag to allow debug keys to work again
+            this.debugKeysDisabled = false;
+        }
         // Updated setupDebugKeys function that handles all debug keys including performance monitor (O key)
         function setupDebugKeys() {
             // Add debug key (R key for instant level up)
@@ -2371,7 +2260,6 @@
         function randomKeyboardId() {
             return 'romaji-input-' + Math.floor(Math.random() * 1000000);
         }
-
 
         // Function to validate romaji input
         function validateRomajiInput() {
@@ -2600,6 +2488,7 @@
                 console.log("Challenge ended after second failure");
             }
         }
+
         // Function to update input visibility
         function updateInputVisibility() {
             const isInputVisible = this.perkChallenge.inputActive;
@@ -2703,9 +2592,6 @@
             } catch (error) {
                 console.log('Error in keyboard layout detection:', error);
             }
-
-            // Update the controls text
-            updateControlsText.call(this);
         }
 
         function updateWASDKeys() {
@@ -2729,22 +2615,6 @@
             }
         }
 
-        function updateControlsText() {
-            // Update the controls text based on the detected keyboard layout
-            let controlsInfo = 'Controls: Arrow Keys';
-
-            if (keyboardLayout === 'azerty') {
-                controlsInfo += ' or ZQSD';
-            } else {
-                controlsInfo += ' or WASD';
-            }
-
-            controlsInfo += ' or Touch/Click to move';
-
-            if (this.controlsText) {
-                this.controlsText.setText(controlsInfo);
-            }
-        }
 
         // Updated modifyStat function that handles negative values
         window.modifyStat = function (statName, amount) {

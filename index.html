@@ -244,15 +244,6 @@
         let levelUpCards = [];
         let gamePaused = false;
 
-        // Quest variables
-        let questMode = false;
-        let questStartTime = 600 * 60; // Time in seconds before quests start
-        let currentQuest = null;
-        let previousQuestType = null;
-        let questTransitionShown = false;
-        let questCount = 0; // Counter for completed quests
-        const BASE_QUEST_DIFFICULTY = 4; // Base requirement of 4 kills
-
         // Helper function to calculate XP needed for next level
         function xpForNextLevel(heroLevel) {
             return Math.ceil(baseHeroExpToLevel * Math.pow(1.2, heroLevel - 1));
@@ -1405,9 +1396,6 @@
             // Increment elapsed time
             elapsedTime += delta / 1000; // delta is in milliseconds
 
-            // Check if we should start quest mode
-            checkQuestModeStart.call(this);
-
             // Update weapon firing rate if needed
             WeaponSystem.updateFiringRate(this);
             WeaponSystem.updateProjectiles(this);
@@ -1691,252 +1679,6 @@
             return projectile;
         }
 
-        // Quest data structure (used when active)
-        function createQuest(enemyType) {
-            const enemyData = getEnemyData(enemyType);
-
-            // Calculate required kills based on quest count
-            // First quest: 4, Second quest: 8, Third quest: 12, etc.
-            const required = BASE_QUEST_DIFFICULTY * (questCount + 1);
-
-            return {
-                enemyType: enemyType,
-                kanji: enemyType,
-                kana: enemyData.kana,
-                romaji: enemyData.romaji,
-                english: enemyData.english,
-                killed: 0,
-                required: required,
-                completed: false
-            };
-        }
-
-        // Check if we should start quest mode (call this in update)
-        function checkQuestModeStart() {
-            // If we've reached the quest start time and haven't shown transition yet
-            if (!questMode && elapsedTime >= questStartTime && !questTransitionShown) {
-                startQuestMode.call(this);;
-            }
-        }
-
-        // Start quest mode with dramatic effect
-        function startQuestMode() {
-            questMode = true;
-            questTransitionShown = true;
-
-            // Create dramatic kanji transition effect
-            const questKanji = this.add.text(600, 400, '任務', {
-                fontFamily: 'Arial',
-                fontSize: '250px',
-                color: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 8
-            }).setOrigin(0.5);
-            questKanji.setAlpha(0);
-
-            // Subtitle
-            const questSubtitle = this.add.text(600, 550, 'QUESTS BEGIN', {
-                fontFamily: 'Arial',
-                fontSize: '40px',
-                color: '#ffff00',
-                stroke: '#000000',
-                strokeThickness: 4
-            }).setOrigin(0.5);
-            questSubtitle.setAlpha(0);
-
-            // Dramatic animation sequence
-            this.tweens.add({
-                targets: questKanji,
-                scale: { from: 0.2, to: 1 },
-                alpha: { from: 0, to: 0.7 },
-                duration: 1000,
-                ease: 'Power2',
-                onComplete: () => {
-                    this.tweens.add({
-                        targets: questKanji,
-                        scale: { from: 1, to: 1.5 },
-                        alpha: { from: 0.7, to: 0 },
-                        duration: 1500,
-                        ease: 'Power2',
-                        onComplete: () => {
-                            questKanji.destroy();
-                        }
-                    });
-                }
-            });
-
-            this.tweens.add({
-                targets: questSubtitle,
-                alpha: { from: 0, to: 1 },
-                duration: 1000,
-                delay: 500,
-                ease: 'Power2',
-                onComplete: () => {
-                    this.tweens.add({
-                        targets: questSubtitle,
-                        alpha: { from: 1, to: 0 },
-                        duration: 1000,
-                        delay: 1000,
-                        ease: 'Power2',
-                        onComplete: () => {
-                            questSubtitle.destroy();
-                            // Start the first quest
-                            startNewQuest.call(this);
-                        }
-                    });
-                }
-            });
-        }
-
-
-
-        // Start a new quest
-        function startNewQuest() {
-            // Get all available enemy types
-            const enemyTypes = getAllEnemyTypes();
-
-            // Remove previous quest type from options to avoid repeats
-            let availableTypes = enemyTypes;
-            if (previousQuestType) {
-                availableTypes = enemyTypes.filter(type => type !== previousQuestType);
-            }
-
-            // Select a random enemy type
-            const randomIndex = Math.floor(Math.random() * availableTypes.length);
-            const selectedType = availableTypes[randomIndex];
-
-            // Create the new quest
-            currentQuest = createQuest(selectedType);
-            previousQuestType = selectedType;
-
-            // Update the learning text to show quest
-            updateQuestDisplay.call(this);
-
-            // Create a brief highlight effect
-            const questNotification = this.add.text(600, 400, 'NEW QUEST', {
-                fontFamily: 'Arial',
-                fontSize: '60px',
-                color: '#ffff00',
-                stroke: '#000000',
-                strokeThickness: 6
-            }).setOrigin(0.5);
-
-            // Animate the notification
-            this.tweens.add({
-                targets: questNotification,
-                y: questNotification.y - 100,
-                alpha: { from: 1, to: 0 },
-                duration: 1500,
-                ease: 'Power2',
-                onComplete: () => {
-                    questNotification.destroy();
-                }
-            });
-        }
-
-        // Update quest display in learning feedback area
-        function updateQuestDisplay() {
-            if (!currentQuest || !this.learningFeedback) return;
-
-            const questText = `Hunt: ${currentQuest.kanji} (${currentQuest.kana}) [${currentQuest.romaji}] - ${currentQuest.english} (${currentQuest.killed}/${currentQuest.required})`;
-            this.learningFeedback.setText(questText);
-
-            // Set alpha to full to ensure visibility
-            this.learningFeedback.setAlpha(1);
-        }
-
-        // Call this when an enemy is defeated to check quest progress
-        function checkQuestProgress(enemy) {
-            if (!questMode || !currentQuest) return;
-
-            // Check if the defeated enemy matches the quest target
-            if (enemy.text === currentQuest.enemyType) {
-                // Increment kill counter
-                currentQuest.killed++;
-
-                // Update the display
-                updateQuestDisplay.call(this);
-
-                // Create a popup effect to indicate progress
-                const progressText = this.add.text(
-                    enemy.x, enemy.y - 30,
-                    `QUEST`,
-                    { fontFamily: 'Arial', fontSize: '16px', color: '#ffff00', stroke: '#000000', strokeThickness: 3 }
-                ).setOrigin(0.5);
-
-                this.tweens.add({
-                    targets: progressText,
-                    y: progressText.y - 30,
-                    alpha: { from: 1, to: 0 },
-                    duration: 1000,
-                    ease: 'Power2',
-                    onComplete: () => {
-                        progressText.destroy();
-                    }
-                });
-
-                // Check if quest is completed
-                if (currentQuest.killed >= currentQuest.required) {
-                    completeQuest.call(this);
-                }
-            }
-        }
-
-        // Handle quest completion
-        function completeQuest() {
-            // Mark as completed
-            currentQuest.completed = true;
-
-            // Calculate reward (half of XP needed for next level)
-            const rewardXP = Math.floor(heroExpToLevel / 2);
-
-            // Add XP
-            heroExp += rewardXP;
-
-            // Update the XP bar
-            GameUI.updateExpBar(this);
-
-            // Increment quest counter for next quest
-            questCount++;
-
-            // Show completion effect
-            const completionText = this.add.text(600, 400, 'QUEST COMPLETE', {
-                fontFamily: 'Arial',
-                fontSize: '60px',
-                color: '#00ff00',
-                stroke: '#000000',
-                strokeThickness: 6
-            }).setOrigin(0.5);
-
-            // Show reward
-            const rewardText = this.add.text(600, 470, `+${rewardXP} XP`, {
-                fontFamily: 'Arial',
-                fontSize: '36px',
-                color: '#ffff00',
-                stroke: '#000000',
-                strokeThickness: 4
-            }).setOrigin(0.5);
-
-            // Animate completion notification
-            this.tweens.add({
-                targets: [completionText, rewardText],
-                alpha: { from: 1, to: 0 },
-                y: '-=50',
-                duration: 2000,
-                ease: 'Power2',
-                onComplete: () => {
-                    completionText.destroy();
-                    rewardText.destroy();
-
-                    // Start a new quest after a short delay
-                    this.time.delayedCall(1000, () => {
-                        startNewQuest.call(this);
-                    });
-                }
-            });
-        }
-
-
         // Modify the defeatedEnemy function to handle quests
         // Helper function to get a legible random color
         function getRandomLegibleColor() {
@@ -1997,21 +1739,6 @@
 
             // Update exp bar
             GameUI.updateExpBar(this);
-
-            // Check quest progress (this needs to work for all enemy ranks)
-            if (questMode && currentQuest) {
-                checkQuestProgress.call(this, enemy);
-            }
-        }
-
-
-        function getRandomLegibleColor() {
-            return LEGIBLE_COLORS[Math.floor(Math.random() * LEGIBLE_COLORS.length)];
-        }
-
-        // Helper function to get a random defeat synonym
-        function getRandomDefeatSynonym() {
-            return DEFEAT_SYNONYMS[Math.floor(Math.random() * DEFEAT_SYNONYMS.length)];
         }
 
         function projectileHitEnemy(projectile, enemy) {
@@ -3146,7 +2873,6 @@
             window.registerEffect('timer', poisonTimer);
         }
 
-
         function startGame() {
             // Reset game state variables
             gameOver = false;
@@ -3167,13 +2893,6 @@
             // Reset and initialize weapon system
             WeaponSystem.reset(this);
             WeaponSystem.initialize(this);
-
-            // Reset quest system variables
-            questMode = false;
-            questTransitionShown = false;
-            questCount = 0;
-            currentQuest = null;
-            previousQuestType = null;
 
             // Clean up old timers
             cleanupTimers();

@@ -20,6 +20,7 @@
     <script src="onetime.js"></script>
     <script src="weapons.js"></script>
     <script src="cards.js"></script>
+    <script src="input.js"></script>
 
     <style>
         body {
@@ -1281,6 +1282,8 @@
             setupPerformanceMonitor.call(this);
 
             WeaponSystem.initialize(this);
+
+            InputSystem.setupCursorHiding(this);
 
             // Create player text - using kanji character
             player = this.add.text(600, 400, HERO_CHARACTER, {

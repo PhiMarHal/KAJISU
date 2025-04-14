@@ -569,14 +569,21 @@ PlayerComponentSystem.registerComponent('secondChanceShieldAbility', {
     },
 
     cleanup: function () {
-
         // Remove cooldown timer if it exists
         if (this.cooldownTimer) {
+            // First remove from CooldownManager's registry
             CooldownManager.removeTimer(this.cooldownTimer);
+
+            // Also directly remove the timer to ensure it's destroyed
+            if (this.cooldownTimer.remove) {
+                this.cooldownTimer.remove();
+            }
+
             this.cooldownTimer = null;
         }
 
-        this.readyForUse = true;
+        // Deactivate shield if this was the only shield provider
+        ShieldSystem.deactivateShield();
     }
 });
 
@@ -628,15 +635,20 @@ PlayerComponentSystem.registerComponent('permanentShieldAbility', {
     },
 
     cleanup: function () {
-
         // Remove cooldown timer if it exists
         if (this.cooldownTimer) {
+            // First remove from CooldownManager's registry
             CooldownManager.removeTimer(this.cooldownTimer);
+
+            // Also directly remove the timer to ensure it's destroyed
+            if (this.cooldownTimer.remove) {
+                this.cooldownTimer.remove();
+            }
+
             this.cooldownTimer = null;
         }
 
         // Deactivate shield if this was the only shield provider
-        // (in a real system, you might want to check if other shield components exist)
         ShieldSystem.deactivateShield();
     }
 });
@@ -689,12 +701,14 @@ window.activateShield = function (options) {
 PlayerComponentSystem.registerComponent('godHammerAbility', {
     // Store timer reference
     hammerTimer: null,
+    sceneReference: null, // Add explicit scene reference storage
 
     initialize: function (player) {
-
-        // Get the scene
+        // Get the scene and store reference
         const scene = game.scene.scenes[0];
         if (!scene) return;
+
+        this.sceneReference = scene;
 
         // Create and register timer in one step
         this.hammerTimer = CooldownManager.createTimer({
@@ -702,19 +716,44 @@ PlayerComponentSystem.registerComponent('godHammerAbility', {
             baseCooldown: godHammerBaseCd,
             formula: 'divide',
             component: this,
-            callback: dropGodHammer,
-            callbackScope: scene
+            callback: this.dropHammer, // Use component method instead of global function
+            callbackScope: this, // Use this component as the scope
+            loop: true // Ensure it's marked as looping
         });
 
-        // Immediately drop first hammer
+        // Immediately drop first hammer using our own method
+        this.dropHammer();
+    },
+
+    // Internal method to drop the hammer
+    dropHammer: function () {
+        const scene = this.sceneReference ?? game.scene.scenes[0];
+        if (!scene || gameOver || gamePaused) return;
+
+        // Call the original function but with proper context
         dropGodHammer.call(scene);
     },
 
     cleanup: function (player) {
+        // Remove timer from CooldownManager's registry
+        if (this.hammerTimer) {
+            CooldownManager.removeTimer(this.hammerTimer);
 
-        // Single call to remove timer
-        CooldownManager.removeTimer(this.hammerTimer);
-        this.hammerTimer = null;
+            // Direct cleanup with additional safeguards
+            if (this.hammerTimer.remove) {
+                this.hammerTimer.remove();
+            }
+
+            // If the timer has a countdown event, also remove that
+            if (this.hammerTimer.countdown) {
+                this.hammerTimer.countdown.remove(false);
+            }
+
+            this.hammerTimer = null;
+        }
+
+        // Clear scene reference
+        this.sceneReference = null;
     }
 });
 
@@ -910,9 +949,14 @@ PlayerComponentSystem.registerComponent('divineBeaconAbility', {
     },
 
     cleanup: function (player) {
-
-        // Single call to remove timer
+        // Remove timer from CooldownManager's registry
         CooldownManager.removeTimer(this.beaconTimer);
+
+        // Also directly remove the timer to ensure it's destroyed
+        if (this.beaconTimer && this.beaconTimer.remove) {
+            this.beaconTimer.remove();
+        }
+
         this.beaconTimer = null;
     }
 });

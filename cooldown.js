@@ -13,6 +13,9 @@ const CooldownManager = {
 
     // Initialize the system
     initialize: function () {
+        // Reset registered timers array
+        this.registeredTimers = [];
+
         // Store initial stats
         this.lastStats.luck = playerLuck;
         this.lastStats.fireRate = playerFireRate;

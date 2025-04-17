@@ -21,6 +21,7 @@
     <script src="weapons.js"></script>
     <script src="cards.js"></script>
     <script src="input.js"></script>
+    <script src="onhit.js"></script>
 
     <style>
         body {
@@ -1392,6 +1393,7 @@
 
             updatePerformanceStats.call(this, time, delta);
             updatePlayerStateEffects();
+            updateOnHitEffects();
 
             // Increment elapsed time
             elapsedTime += delta / 1000; // delta is in milliseconds
@@ -1758,7 +1760,7 @@
                 scale: 1.2,
                 duration: 160,
                 yoyo: true,
-                repeat: 6, //
+                repeat: 6,
                 onComplete: function () {
                     // Ensure alpha is reset properly
                     player.alpha = 1;
@@ -1777,26 +1779,9 @@
                 }
             });
 
-            // Check for Purple Hedgehog perk and trigger defensive burst
-            if (hasPerk('PURPLE_HEDGEHOG')) {
-                triggerDefensiveBurst.call(this);
-            }
-
-            // Check if shield is active
-            if (window.isShieldActive()) {
-                // Shield absorbs the hit - this will handle cooldown for permanent shields
-                window.triggerShieldHit();
-
-                // Flash the shield effect
-                this.tweens.add({
-                    targets: player,
-                    alpha: 0.5,
-                    scale: 1.2,
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 1
-                });
-
+            // Handle hit effects including shield check
+            // If hit was absorbed by shield, skip damage application
+            if (handlePlayerHit(this, enemy)) {
                 return;
             }
 
@@ -2710,6 +2695,8 @@
             // Reset and initialize weapon system
             WeaponSystem.reset(this);
             WeaponSystem.initialize(this);
+
+            resetOnHitEffects();
 
             // Clean up old timers
             cleanupTimers();

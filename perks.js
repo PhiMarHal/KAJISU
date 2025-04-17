@@ -919,7 +919,7 @@ const PERKS = {
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
-            // logic in index.html
+            window.modifyStat('health', 1);
         }
     },
     "CRIMSON_SCATTER": {

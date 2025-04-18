@@ -1726,14 +1726,14 @@
                 projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
             }
 
-            // Apply damage using the contact damage system with a very short cooldown
-            // (Regular projectiles are destroyed on hit, so cooldown is mostly irrelevant)
-            applyContactDamage.call(this, projectile, enemy, projectile.damage, 1000);
-
             // Process hit event for all components
             if (projectile.components) {
                 ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
             }
+
+            // Apply damage using the contact damage system with a very short cooldown
+            // (Regular projectiles are destroyed on hit, so cooldown is mostly irrelevant)
+            applyContactDamage.call(this, projectile, enemy, projectile.damage, 1000);
 
             // Destroy non-piercing projectiles after hit
             if (!projectile.piercing) {

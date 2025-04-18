@@ -60,7 +60,7 @@ ProjectilePerkRegistry.registerPerkEffect('CRIMSON_SCATTER', {
     })
 });
 
-ProjectilePerkRegistry.registerPerkEffect('SLOW_SHOT', {
+ProjectilePerkRegistry.registerPerkEffect('AZURE_FROST', {
     componentName: 'slowEffect',
     applyChance: true // Apply based on chance
 });

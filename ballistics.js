@@ -90,6 +90,17 @@ ProjectilePerkRegistry.registerPerkEffect('PURPLE_OWL', {
     }
 });
 
+// Register the explosion area effect perk
+ProjectilePerkRegistry.registerPerkEffect('AMBER_NOVA', {
+    componentName: 'explosionEffect',
+    applyChance: true, // Apply based on chance
+    configGenerator: function (scene) {
+        return {
+            // We could add custom config here if needed
+        };
+    }
+});
+
 ProjectilePerkRegistry.registerPerkEffect('PIERCING_SHOTS', {
     componentName: 'piercingEffect',
     applyChance: true,  // Use standard chance calculation based on luck

@@ -1006,6 +1006,31 @@ const PERKS = {
             // The component is added by the PlayerPerkRegistry system
         }
     },
+    "AMBER_NOVA": {
+        kanji: "琥珀爆",
+        kana: "こはくばく",
+        romaji: "kohakubaku",
+        english: "Amber Nova",
+        description: "Projectiles explode on impact, damaging nearby enemies",
+        color: "#FF9500", // Amber/orange color
+        hoverColor: 0xDD7000,
+        onAcquire: function () {
+            // Logic is handled by the component system
+        }
+    },
+    "AZURE_FROST": {
+        kanji: "蒼霜",
+        kana: "あおしも",
+        romaji: "aoshimo",
+        english: "Azure Frost",
+        description: "Projectiles may slow enemies upon impact",
+        color: "#00ffff", // Cyan color
+        hoverColor: 0x00dddd,
+        onAcquire: function () {
+            // The SLOW_SHOT effect is already registered in ballistics.js
+            // No additional implementation needed here
+        }
+    },
     "DIVINE_BEACON": {
         kanji: "天の標",
         kana: "てんのしるべ",

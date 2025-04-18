@@ -107,11 +107,92 @@ ProjectileComponentSystem.registerComponent('slowEffect', {
 
         // Visual indication of slowed enemy
         enemy.setColor('#00ffff');
+    }
+});
 
-        // Reset color after a while
-        scene.time.delayedCall(2000, function () {
-            if (enemy && enemy.active) {
-                enemy.setColor('#ff5555');
+// Register component for explosion area damage effect
+ProjectileComponentSystem.registerComponent('explosionEffect', {
+    initialize: function (projectile) {
+        // Visual indicator for the projectile
+        projectile.setColor('#FF9500'); // Orange color for explosive feel
+
+        // Set default properties
+        this.damageMultiplier = 1; // 100% of player damage in AOE
+        this.radiusMultiplier = 8; // 8 * playerLuck
+        this.falloffMultiplier = 0; // No falloff by default
+
+        // Calculate radius based on player luck at creation time
+        this.radius = this.radiusMultiplier * playerLuck;
+
+        // Create unique damage source ID for this explosion
+        projectile.explosionSourceId = `explosion_${Date.now()}_${Math.random()}`;
+    },
+
+    onHit: function (projectile, enemy, scene) {
+        // Store the hit position (enemy's location)
+        const hitX = enemy.x;
+        const hitY = enemy.y;
+
+        // Create explosion visual effect
+        this.createExplosionEffect(hitX, hitY, scene);
+
+        // Calculate damage amount
+        const explosionDamage = playerDamage * this.damageMultiplier;
+
+        // Get all active enemies
+        const allEnemies = enemies.getChildren();
+
+        // Track primary target to avoid double-counting
+        const primaryTarget = enemy;
+
+        // Apply damage to all enemies in explosion radius
+        allEnemies.forEach(targetEnemy => {
+            // Skip the primary target as it already received damage from the projectile
+            if (targetEnemy === primaryTarget || !targetEnemy.active) return;
+
+            // Calculate distance from explosion center to enemy
+            const dx = targetEnemy.x - hitX;
+            const dy = targetEnemy.y - hitY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // If enemy is within radius, apply damage
+            if (distance <= this.radius) {
+                // Calculate damage with optional falloff
+                let damageAmount = explosionDamage;
+
+                // Apply falloff if enabled
+                if (this.falloffMultiplier > 0) {
+                    const falloff = 1 - (distance / this.radius) * this.falloffMultiplier;
+                    damageAmount = explosionDamage * falloff;
+                }
+
+                // Use the existing contact damage system
+                applyContactDamage.call(
+                    scene,
+                    {
+                        damageSourceId: projectile.explosionSourceId,
+                        damage: damageAmount
+                    },
+                    targetEnemy,
+                    damageAmount,
+                    0 // No cooldown needed for one-time explosion
+                );
+            }
+        });
+    },
+
+    createExplosionEffect: function (x, y, scene) {
+        // Create explosion circle
+        const explosion = scene.add.circle(x, y, this.radius * 0.8, 0xFF9500, 0.7);
+
+        // Animate explosion
+        scene.tweens.add({
+            targets: explosion,
+            alpha: 0,
+            scale: 1.5,
+            duration: 500,
+            onComplete: function () {
+                explosion.destroy();
             }
         });
     }

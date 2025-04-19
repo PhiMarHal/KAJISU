@@ -93,6 +93,18 @@ const PERKS = {
             window.modifyStat('luck', 1);
         }
     },
+    "ANGEL_HONEY": {
+        kanji: "天蜜",
+        kana: "てんみつ",
+        romaji: "tenmitsu",
+        english: "Angel Honey",
+        description: "Periodically spawns healing honey that restores your health",
+        color: "#00CC00", // Green color
+        hoverColor: 0x00AA00,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
 
     // Food perks that increase max HP and heal the player
     "SUSHI": {

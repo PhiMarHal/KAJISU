@@ -17,6 +17,7 @@ const shieldBaseCd = 80000;
 const godHammerBaseCd = 120000;
 const divineBeaconBaseCd = 120000;
 const fatedShieldBaseCd = 60000;
+const angelHoneyBaseCd = 180000;
 
 // Player Status Component System for Word Survivors
 // This system manages special behaviors and status effects for the player
@@ -964,6 +965,136 @@ PlayerComponentSystem.registerComponent('divineBeaconAbility', {
 // Register the perk with the PlayerPerkRegistry
 PlayerPerkRegistry.registerPerkEffect('DIVINE_BEACON', {
     componentName: 'divineBeaconAbility',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
+// Register component for Angel Honey ability
+PlayerComponentSystem.registerComponent('angelHoneyAbility', {
+    // Store timer reference
+    honeyTimer: null,
+
+    initialize: function (player) {
+        // Get the scene
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Create and register timer in one step
+        this.honeyTimer = CooldownManager.createTimer({
+            statName: 'luck',
+            baseCooldown: angelHoneyBaseCd,
+            formula: 'divide',
+            component: this,
+            callback: this.spawnHoney,
+            callbackScope: scene
+        });
+
+        // Immediately spawn first honey
+        this.spawnHoney.call(scene);
+    },
+
+    spawnHoney: function () {
+        // Skip if game is over or paused
+        if (gameOver || gamePaused) return;
+
+        // Random position on screen (with padding from edges)
+        const x = Phaser.Math.Between(20, 1180);
+        const y = Phaser.Math.Between(20, 780);
+
+        // Create the honey using the kanji for "honey": 蜜
+        const honey = this.add.text(x, y, '蜜', {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: '#00CC00', // Green color
+            stroke: '#FFFFFF',
+            strokeThickness: 4,
+            shadow: {
+                offsetX: 0,
+                offsetY: 0,
+                color: '#FFFFFF',
+                blur: 10,
+                stroke: true,
+                fill: true
+            }
+        }).setOrigin(0.5);
+
+        // Add physics body for collision detection
+        this.physics.world.enable(honey);
+        honey.body.setSize(honey.width * 0.8, honey.height * 0.8);
+
+        // Set as immovable
+        honey.body.immovable = true;
+
+        // Add a unique ID to prevent duplicate collection
+        honey.honeyId = 'honey_' + Date.now() + '_' + Math.random();
+
+        // Register entity for cleanup
+        window.registerEffect('entity', honey);
+
+        // Add overlap with player
+        this.physics.add.overlap(honey, player, function (honey, player) {
+            // Only collect if not already collected
+            if (honey.collected) return;
+
+            // Mark as collected to prevent multiple triggers
+            honey.collected = true;
+
+            // Use the global fullHeal function
+            window.fullHeal();
+
+            // Visual effect for collection
+            this.tweens.add({
+                targets: honey,
+                alpha: 0,
+                scale: 2,
+                duration: 500,
+                onComplete: function () {
+                    honey.destroy();
+                }
+            });
+
+            // Create radial flash effect
+            const flash = this.add.circle(honey.x, honey.y, 5, 0x00FF00, 1);
+            this.tweens.add({
+                targets: flash,
+                radius: 100,
+                alpha: 0,
+                duration: 500,
+                onComplete: function () {
+                    flash.destroy();
+                }
+            });
+
+        }, null, this);
+
+        // Add pulsing animation
+        this.tweens.add({
+            targets: honey,
+            scale: { from: 0.9, to: 1.1 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1
+        });
+    },
+
+    cleanup: function (player) {
+        // Remove timer from CooldownManager's registry
+        CooldownManager.removeTimer(this.honeyTimer);
+
+        // Also directly remove the timer to ensure it's destroyed
+        if (this.honeyTimer && this.honeyTimer.remove) {
+            this.honeyTimer.remove();
+        }
+
+        this.honeyTimer = null;
+    }
+});
+
+// Register the perk with the PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('ANGEL_HONEY', {
+    componentName: 'angelHoneyAbility',
     condition: function () {
         // Always active when perk is acquired
         return true;

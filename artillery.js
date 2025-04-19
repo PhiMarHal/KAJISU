@@ -118,11 +118,11 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
 
         // Set default properties
         this.damageMultiplier = 1; // 100% of player damage in AOE
-        this.radiusMultiplier = 8; // 8 * playerLuck
+        this.radiusMultiplier = 64; // 64 * sqrt luck
         this.falloffMultiplier = 0; // No falloff by default
 
         // Calculate radius based on player luck at creation time
-        this.radius = this.radiusMultiplier * playerLuck;
+        this.radius = this.radiusMultiplier * (Math.sqrt(playerLuck / BASE_STATS.LUK));
 
         // Create unique damage source ID for this explosion
         projectile.explosionSourceId = `explosion_${Date.now()}_${Math.random()}`;
@@ -171,7 +171,8 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
                     scene,
                     {
                         damageSourceId: projectile.explosionSourceId,
-                        damage: damageAmount
+                        damage: damageAmount,
+                        active: true
                     },
                     targetEnemy,
                     damageAmount,
@@ -183,14 +184,14 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
 
     createExplosionEffect: function (x, y, scene) {
         // Create explosion circle
-        const explosion = scene.add.circle(x, y, this.radius * 0.8, 0xFF9500, 0.7);
+        const explosion = scene.add.circle(x, y, this.radius * 0.8, 0xFF9500, 0.2);
 
         // Animate explosion
         scene.tweens.add({
             targets: explosion,
             alpha: 0,
-            scale: 1.5,
-            duration: 500,
+            scale: 1.2,
+            duration: 400,
             onComplete: function () {
                 explosion.destroy();
             }
@@ -329,23 +330,23 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
 
     createStompEffect: function (projectile, scene) {
         // Calculate radius based on player luck
-        const radius = 40 * playerLuck;
+        const radius = 80 * Math.sqrt(playerLuck / BASE_STATS.LUK)
 
         // Get player position
         const x = player.x;
         const y = player.y;
 
-        // Create unique damage source ID
-        projectile.stompSourceId = `stomp_${Date.now()}_${Math.random()}`;
+        // Create a unique damage source ID that's available in this scope
+        const damageId = `stomp_${Date.now()}_${Math.random()}`;
 
-        // Create explosion circle
-        const explosion = scene.add.circle(x, y, radius * 0.8, 0xFF9500, 0.5);
+        // Create explosion circle - using brown color for stomp effect
+        const explosion = scene.add.circle(x, y, radius * 0.8, 0x8B4513, 0.2);
 
         // Animate explosion
         scene.tweens.add({
             targets: explosion,
             alpha: 0,
-            scale: 1.25,
+            scale: 1.2,
             duration: 400,
             onComplete: function () {
                 explosion.destroy();
@@ -366,12 +367,12 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
 
             // If enemy is within radius, apply damage
             if (distance <= radius) {
-                console.log("enemy was hit by STOMP");
                 applyContactDamage.call(
                     scene,
                     {
-                        damageSourceId: projectile.stompSourceId,
-                        damage: playerDamage
+                        damageSourceId: damageId, // Using local variable
+                        damage: playerDamage,
+                        active: true // Adding active: true property
                     },
                     enemy,
                     playerDamage,
@@ -407,7 +408,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
         // --- Fire Object Logic START ---
         const fire = scene.add.text(fireX, fireY, '火', {
             fontFamily: 'Arial',
-            fontSize: `${projectileSizeFactor * this.fireDamage}px`, // Use stored damage
+            fontSize: `${projectileSizeFactor * playerDamage}px`, // Use stored damage
             color: '#FF4500',
             fontStyle: 'bold'
         }).setOrigin(0.5);

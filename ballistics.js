@@ -90,6 +90,17 @@ ProjectilePerkRegistry.registerPerkEffect('PURPLE_OWL', {
     }
 });
 
+// Register the Titan Stomp perk effect
+ProjectilePerkRegistry.registerPerkEffect('TITAN_STOMP', {
+    componentName: 'stompEffect',
+    applyChance: true, // Apply based on chance calculation
+    configGenerator: function (scene) {
+        return {
+            // We could add custom config here if needed
+        };
+    }
+});
+
 // Register the explosion area effect perk
 ProjectilePerkRegistry.registerPerkEffect('AMBER_NOVA', {
     componentName: 'explosionEffect',

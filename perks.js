@@ -1018,6 +1018,18 @@ const PERKS = {
             // Logic is handled by the component system
         }
     },
+    "TITAN_STOMP": {
+        kanji: "巨踏",
+        kana: "きょとう",
+        romaji: "kyotou",
+        english: "Titan Stomp",
+        description: "Chance to create shockwaves around you when firing",
+        color: "#8B4513", // Brown color
+        hoverColor: 0x6B3503,
+        onAcquire: function () {
+            // The logic is handled by ProjectilePerkRegistry
+        }
+    },
     "AZURE_FROST": {
         kanji: "蒼霜",
         kana: "あおしも",

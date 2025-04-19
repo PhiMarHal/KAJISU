@@ -317,6 +317,71 @@ ProjectileComponentSystem.registerComponent('splitEffect', {
     }
 });
 
+// Register component for Titan Stomp effect
+ProjectileComponentSystem.registerComponent('stompEffect', {
+    initialize: function (projectile) {
+        // Create immediate explosion at player position
+        this.createStompEffect(projectile, projectile.scene);
+
+        // Mark this projectile as having triggered its effect
+        projectile.stompTriggered = true;
+    },
+
+    createStompEffect: function (projectile, scene) {
+        // Calculate radius based on player luck
+        const radius = 40 * playerLuck;
+
+        // Get player position
+        const x = player.x;
+        const y = player.y;
+
+        // Create unique damage source ID
+        projectile.stompSourceId = `stomp_${Date.now()}_${Math.random()}`;
+
+        // Create explosion circle
+        const explosion = scene.add.circle(x, y, radius * 0.8, 0xFF9500, 0.5);
+
+        // Animate explosion
+        scene.tweens.add({
+            targets: explosion,
+            alpha: 0,
+            scale: 1.25,
+            duration: 400,
+            onComplete: function () {
+                explosion.destroy();
+            }
+        });
+
+        // Get all active enemies
+        const allEnemies = enemies.getChildren();
+
+        // Apply damage to enemies in range
+        allEnemies.forEach(enemy => {
+            if (!enemy.active) return;
+
+            // Calculate distance from stomp to enemy
+            const dx = enemy.x - x;
+            const dy = enemy.y - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // If enemy is within radius, apply damage
+            if (distance <= radius) {
+                console.log("enemy was hit by STOMP");
+                applyContactDamage.call(
+                    scene,
+                    {
+                        damageSourceId: projectile.stompSourceId,
+                        damage: playerDamage
+                    },
+                    enemy,
+                    playerDamage,
+                    0 // No cooldown needed
+                );
+            }
+        });
+    }
+});
+
 // Register component for fire effect
 ProjectileComponentSystem.registerComponent('fireEffect', {
     initialize: function (projectile) {

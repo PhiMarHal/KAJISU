@@ -1,7 +1,6 @@
 - Arrange timer, P.A.L.E.
 - Need system to pick any kanji for hero
 - Game Over is ugly, make proper menu
-- Move remaining perks outside of index.html (orbiting? landmine?) orbiting done. landmine+afterimage next
 - Improve performance (duh). Optimize update loop (duh). Can wait until much later
 - Add animated backgrounds. JS animations? Change color as time passes and/or with enemy stages?
 - Longterm: allow for arbitrary kanjis to be selected as enemies
@@ -18,10 +17,13 @@ ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks a
 fixed at high value (perhaps 1k) would make more sense with that latter design
 - add screen coloring on damage taken
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
-- add sqrt calc in cooldown.js
-- TEST EXTENSIVELY onhit/applydamage reorganisation!
+- add sqrt calc in cooldown.js <- verify but should be ok
+- TEST EXTENSIVELY onhit/applydamage reorganisation! <- seems ok so far
+- Test boomerang, crimson scatter
+- Oblivion Blossom might need rebalancing. Give +1/+2 rather than +2?
 
 DONE
+- Move remaining perks outside of index.html (orbiting? landmine?) orbiting done. landmine+afterimage next
 - hide cursor! = after 1s delay
 - T3 enemies? = up to T6
 - Remove health factor increase for enemies, we will never use this

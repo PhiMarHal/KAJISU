@@ -134,7 +134,8 @@ const WeaponSystem = {
     // Fire the current weapon
     fireWeapon: function (scene) {
         // Find the closest enemy
-        const closestEnemy = this.findClosestEnemy(scene, 600);
+        distance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * 400;
+        const closestEnemy = this.findClosestEnemy(scene, distance);
 
         if (closestEnemy) {
             // Calculate direction to the enemy

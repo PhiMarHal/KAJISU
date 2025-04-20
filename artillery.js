@@ -57,7 +57,7 @@ const ProjectileComponentSystem = {
 const CRIMSON_SCATTER_CONFIG = {
     maxDamageMultiplier: 1.6,  // Maximum multiplier at close range
     minDamageMultiplier: 0.4,  // Minimum multiplier at maximum distance
-    maxDistance: 400           // Distance at which minimum damage is reached
+    maxDistance: (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * 400 // Distance at which minimum damage is reached
 };
 
 // Register component for distance-based damage (Crimson Scatter)
@@ -612,7 +612,7 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
             }
 
             // Calculate new velocity toward player
-            const returnSpeed = this.originalSpeed * 1.25; // 25% faster on return
+            const returnSpeed = this.originalSpeed * 1;
             const newVelocityX = (dx / distance) * returnSpeed;
             const newVelocityY = (dy / distance) * returnSpeed;
 

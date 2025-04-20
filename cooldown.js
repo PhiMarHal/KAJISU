@@ -40,6 +40,13 @@ const CooldownManager = {
         let initialCooldown;
         if (options.formula === 'multiply') {
             initialCooldown = options.baseCooldown * currentStatValue;
+        } else if (options.formula === 'sqrt') {
+            // Use BASE_STATS reference for better code maintenance
+            const baseStatValue = options.statName === 'luck' ? BASE_STATS.LUK :
+                options.statName === 'fireRate' ? BASE_STATS.AGI :
+                    options.statName === 'damage' ? BASE_STATS.POW :
+                        options.statName === 'health' ? BASE_STATS.END : 4;
+            initialCooldown = options.baseCooldown / (Math.sqrt(currentStatValue / baseStatValue));
         } else {
             // Default to divide
             initialCooldown = options.baseCooldown / currentStatValue;
@@ -137,11 +144,18 @@ const CooldownManager = {
 
         // Calculate new cooldown based on formula
         let newCooldown;
-        if (config.formula === 'divide') {
-            newCooldown = config.baseCooldown / newStatValue;
+        if (config.formula === 'multiply') {
+            initialCooldown = config.baseCooldown * newStatValue;
+        } else if (config.formula === 'sqrt') {
+            // Use BASE_STATS reference for better code maintenance
+            const baseStatValue = config.statName === 'luck' ? BASE_STATS.LUK :
+                config.statName === 'fireRate' ? BASE_STATS.AGI :
+                    config.statName === 'damage' ? BASE_STATS.POW :
+                        config.statName === 'health' ? BASE_STATS.END : 4;
+            initialCooldown = config.baseCooldown / (Math.sqrt(newStatValue / baseStatValue));
         } else {
-            // Multiply formula
-            newCooldown = config.baseCooldown * newStatValue;
+            // Default to divide
+            initialCooldown = config.baseCooldown / newStatValue;
         }
 
         // Store elapsed time and progress

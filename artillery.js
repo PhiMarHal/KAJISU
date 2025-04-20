@@ -57,7 +57,7 @@ const ProjectileComponentSystem = {
 const CRIMSON_SCATTER_CONFIG = {
     maxDamageMultiplier: 1.6,  // Maximum multiplier at close range
     minDamageMultiplier: 0.4,  // Minimum multiplier at maximum distance
-    maxDistance: (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * 400 // Distance at which minimum damage is reached
+    distanceMultiplier: 400
 };
 
 // Register component for distance-based damage (Crimson Scatter)
@@ -67,6 +67,9 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
         this.startX = projectile.x;
         this.startY = projectile.y;
         this.baseDamage = playerDamage;
+
+        // Calculate maxDistance dynamically based on current playerFireRate
+        this.maxDistance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * distanceMultiplier;
 
         // Set initial scale and damage for max effect at close range
         projectile.setScale(CRIMSON_SCATTER_CONFIG.maxDamageMultiplier);
@@ -84,7 +87,7 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
 
         // Calculate damage multiplier based on distance
         let damageMultiplier = CRIMSON_SCATTER_CONFIG.maxDamageMultiplier -
-            (damageRange * Math.min(distance, CRIMSON_SCATTER_CONFIG.maxDistance) / CRIMSON_SCATTER_CONFIG.maxDistance);
+            (damageRange * Math.min(distance, this.maxDistance) / this.maxDistance);
 
         // Update projectile damage
         projectile.damage = this.baseDamage * damageMultiplier;
@@ -500,7 +503,7 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
         // Store initial position and set up state
         this.startX = projectile.x;
         this.startY = projectile.y;
-        this.maxDistance = 400; // Maximum distance before turning back
+        this.maxDistance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * 400; // Maximum distance before turning back
         this.returning = false; // Track if the boomerang is returning
         this.initialized = false; // Flag to track full initialization
 

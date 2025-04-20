@@ -179,6 +179,111 @@ const OneTimeEffects = {
                 }
             });
         }
+    },
+
+    oblivionBlossom: function (scene) {
+        if (!scene) return;
+
+        // Count current perks before removing them
+        const perkCount = acquiredPerks.length;
+
+        // Reset stats to base values
+        playerDamage = basePlayerDamage;
+        maxPlayerHealth = baseMaxHealth;
+        playerLuck = basePlayerLuck;
+        playerFireRate = basePlayerFireRate;
+
+        // Also reset current health to match new max
+        playerHealth = maxPlayerHealth;
+
+        // Update UI to reflect new values
+        GameUI.updateHealthBar(scene);
+        setupHealthRegeneration.call(scene);
+
+        // Calculate total stat points (1.5 per perk, rounded up)
+        const totalStatPoints = Math.ceil(perkCount * 1.5);
+
+        // Distribute points randomly among all stats
+        for (let i = 0; i < totalStatPoints; i++) {
+            const statChoice = Math.floor(Math.random() * 4);
+            switch (statChoice) {
+                case 0:
+                    window.modifyStat('damage', 1);
+                    break;
+                case 1:
+                    window.modifyStat('health', 1);
+                    break;
+                case 2:
+                    window.modifyStat('luck', 1);
+                    break;
+                case 3:
+                    window.modifyStat('fireRate', 1);
+                    break;
+            }
+        }
+
+        // Create a visual effect for the transformation
+        // Create a memory fade effect
+        const forgottenText = scene.add.text(player.x, player.y, '忘', {
+            fontFamily: 'Arial',
+            fontSize: '64px',
+            color: '#BBBBFF',
+            stroke: '#000000',
+            strokeThickness: 6
+        }).setOrigin(0.5);
+
+        // Animate the kanji for "forget"
+        scene.tweens.add({
+            targets: forgottenText,
+            alpha: { from: 1, to: 0 },
+            y: forgottenText.y - 100,
+            scale: { from: 1, to: 3 },
+            duration: 2000,
+            onComplete: function () {
+                forgottenText.destroy();
+            }
+        });
+
+        // Create particle effects for each memory lost
+        for (let i = 0; i < perkCount; i++) {
+            const angle = (i / perkCount) * Math.PI * 2;
+            const distance = 100;
+
+            const memory = scene.add.text(
+                player.x + Math.cos(angle) * distance,
+                player.y + Math.sin(angle) * distance,
+                '記憶', // Memory in kanji
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '24px',
+                    color: '#DDDDFF'
+                }
+            ).setOrigin(0.5);
+
+            // Animate memory particles fading away
+            scene.tweens.add({
+                targets: memory,
+                scale: 0,
+                alpha: 0,
+                duration: 1500,
+                delay: i * 100,
+                onComplete: function () {
+                    memory.destroy();
+                }
+            });
+        }
+
+        // Clear all perk effects
+        window.clearAllPerkEffects();
+
+        // Reset component systems
+        PlayerComponentSystem.resetAll();
+        OnHitEffectSystem.resetAll();
+        OrbitalSystem.clearAll();
+        DropperSystem.clearAll();
+
+        // Set perk array to just this perk
+        acquiredPerks = ['OBLIVION_BLOSSOM'];
     }
 
     // Add more one-time effects here as needed

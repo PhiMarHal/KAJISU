@@ -758,6 +758,18 @@ const PERKS = {
             window.triggerOneTimeEffect('purpleChaos');
         }
     },
+    "OBLIVION_BLOSSOM": {
+        kanji: "忘却の花",
+        kana: "ぼうきゃくのはな",
+        romaji: "boukyakunohana",
+        english: "Oblivion Blossom",
+        description: "Sacrifice all your perks, gaining permanent strength from each memory lost",
+        color: "#BBBBFF", // Light purple/blue color
+        hoverColor: 0x9999DD,
+        onAcquire: function () {
+            window.triggerOneTimeEffect('oblivionBlossom');
+        }
+    },
 
     // Green animal perks (converted to something else)
     "GREEN_DEER": {

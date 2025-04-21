@@ -69,7 +69,7 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
         this.baseDamage = playerDamage;
 
         // Calculate maxDistance dynamically based on current playerFireRate
-        this.maxDistance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * distanceMultiplier;
+        this.maxDistance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * CRIMSON_SCATTER_CONFIG.distanceMultiplier;
 
         // Set initial scale and damage for max effect at close range
         projectile.setScale(CRIMSON_SCATTER_CONFIG.maxDamageMultiplier);
@@ -186,20 +186,28 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
     },
 
     createExplosionEffect: function (x, y, scene) {
-        // Create explosion circle
-        const explosion = scene.add.circle(x, y, this.radius * 0.8, 0xFF9500, 0.2);
+        // Create an outlined circle
+        const explosion = scene.add.circle(x, y, this.radius * 0.8, 0xFF9500, 0);
 
-        // Animate explosion
+        // Set a stroke (outline) instead of a fill
+        explosion.setStrokeStyle(4, 0xFF9500, 1); // 3px width, amber color, 70% opacity
+
+        // Start with a very small scale
+        explosion.setScale(0.2);
+
+        // Animate from small to full size with fade-out
         scene.tweens.add({
             targets: explosion,
-            alpha: 0,
-            scale: 1.2,
-            duration: 400,
+            scale: 1, // Expand to exactly the intended radius
+            alpha: 0, // Fade out as it reaches full size
+            duration: 1000,
+            ease: 'Power2', // Gives a bit of physics feel to the expansion
             onComplete: function () {
                 explosion.destroy();
             }
         });
     }
+
 });
 
 // Register component for poison effect
@@ -342,15 +350,22 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
         // Create a unique damage source ID that's available in this scope
         const damageId = `stomp_${Date.now()}_${Math.random()}`;
 
-        // Create explosion circle - using brown color for stomp effect
-        const explosion = scene.add.circle(x, y, radius * 0.8, 0x8B4513, 0.2);
+        // Create an outlined circle for stomp effect
+        const explosion = scene.add.circle(x, y, radius * 0.8, 0x8B4513, 0);
 
-        // Animate explosion
+        // Set a stroke (outline) instead of a fill - using brown color for stomp
+        explosion.setStrokeStyle(4, 0x8B4513, 1);
+
+        // Start with a very small scale
+        explosion.setScale(0.2);
+
+        // Animate from small to full size with fade-out
         scene.tweens.add({
             targets: explosion,
-            alpha: 0,
-            scale: 1.2,
-            duration: 400,
+            scale: 1, // Expand to exactly the intended radius
+            alpha: 0, // Fade out as it reaches full size
+            duration: 1000, // Match the duration of the explosion effect
+            ease: 'Power2', // Same easing for consistency
             onComplete: function () {
                 explosion.destroy();
             }
@@ -392,7 +407,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
         // Visual indicator for the projectile itself
         projectile.setColor('#FF4500');
         this.fireDamage = playerDamage / 10; // Store damage based on player state when projectile was created
-        this.fireDuration = 8000; // 4s
+        this.fireDuration = 4000; // 4s
         this.fireTickInterval = 200; // 0.2 seconds
     },
 
@@ -411,7 +426,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
         // --- Fire Object Logic START ---
         const fire = scene.add.text(fireX, fireY, '火', {
             fontFamily: 'Arial',
-            fontSize: `${projectileSizeFactor * playerDamage}px`, // Use stored damage
+            fontSize: `${projectileSizeFactor * playerDamage * 2 / 3}px`, // Use stored damage, but scale it to 66%
             color: '#FF4500',
             fontStyle: 'bold'
         }).setOrigin(0.5);
@@ -503,7 +518,7 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
         // Store initial position and set up state
         this.startX = projectile.x;
         this.startY = projectile.y;
-        this.maxDistance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * 400; // Maximum distance before turning back
+        this.maxDistance = 400; // Maximum distance before turning back
         this.returning = false; // Track if the boomerang is returning
         this.initialized = false; // Flag to track full initialization
 

@@ -426,7 +426,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
         // --- Fire Object Logic START ---
         const fire = scene.add.text(fireX, fireY, '火', {
             fontFamily: 'Arial',
-            fontSize: `${projectileSizeFactor * playerDamage * 2 / 3}px`, // Use stored damage, but scale it to 66%
+            fontSize: '24px', // `${projectileSizeFactor * playerDamage * 4 / 5}px`, // Use stored damage, but scale it to 80%
             color: '#FF4500',
             fontStyle: 'bold'
         }).setOrigin(0.5);
@@ -630,7 +630,7 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
             }
 
             // Calculate new velocity toward player
-            const returnSpeed = this.originalSpeed * 1;
+            const returnSpeed = this.originalSpeed * 1.2; // faster, else we can outrun forever and get infinite shots!!
             const newVelocityX = (dx / distance) * returnSpeed;
             const newVelocityY = (dy / distance) * returnSpeed;
 

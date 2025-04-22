@@ -934,6 +934,18 @@ const PERKS = {
             // logic in index.html
         }
     },
+    "ALIEN_WORLD": {
+        kanji: "異世界",
+        kana: "いせかい",
+        romaji: "isekai",
+        english: "Alien World",
+        description: "When hit, slows down time while maintaining your speed",
+        color: "#00ffff", // Cyan color
+        hoverColor: 0x00dddd,
+        onAcquire: function () {
+            // The effect is handled by the OnHitEffectSystem
+        }
+    },
     "PURPLE_HEDGEHOG": {
         kanji: "紫針鼠",
         kana: "むらさきはりねずみ",

@@ -232,6 +232,7 @@
 
         // Difficulty scaling factors
         let enemyCountScaleFactor = 1.25;
+        let enemySpeedFactor = 1.0; // Default to normal speed
         let gameStartTime = 0;
         let baseEnemyHealth = 40;
         let currentEnemyHealth = 40;
@@ -1453,7 +1454,7 @@
 
                     // Define the maximum speed the enemy should reach.
                     // Use the 'speed' property we assigned during spawn.
-                    const maxSpeed = enemy.speed;
+                    const maxSpeed = enemy.speed * enemySpeedFactor;
 
                     // Define the acceleration rate (pixels/sec^2). Tune this!
                     // It needs to be strong enough to overcome drag and feel responsive.

@@ -180,6 +180,180 @@ OnHitPerkRegistry.registerPerkEffect('PURPLE_HEDGEHOG', {
     }
 });
 
+// In onhit.js - Simplified time dilation component
+OnHitEffectSystem.registerComponent('timeDilationEffect', {
+    // Track active state
+    isActive: false,
+    currentTimeScale: 1.0,
+    playerSpeedFactor: 1.0,
+
+    // Function to enter slow motion gradually
+    enterSlowMotion: function (scene) {
+        // Cancel any existing tween to avoid conflicts
+        if (scene.slowMoTween) {
+            scene.slowMoTween.stop();
+        }
+
+        // Store original player speed
+        this.originalPlayerSpeed = playerSpeed;
+
+        // Create tween to gradually slow down time
+        scene.slowMoTween = scene.tweens.add({
+            targets: this,
+            currentTimeScale: 0.25, // Slow to 25% speed
+            playerSpeedFactor: 0.5, // Player at 50% speed
+            duration: 500,
+            ease: 'Sine.easeOut',
+            onUpdate: () => {
+                // Apply time scale to scene for timers and tweens
+                scene.time.timeScale = this.currentTimeScale;
+
+                // Update the global enemy speed factor
+                enemySpeedFactor = this.currentTimeScale;
+
+                // Update player speed
+                playerSpeed = this.originalPlayerSpeed * this.playerSpeedFactor;
+            },
+            onComplete: () => {
+                this.isActive = true;
+            }
+        });
+    },
+
+    // Function to exit slow motion gradually
+    exitSlowMotion: function (scene) {
+        // Cancel any existing tween
+        if (scene.slowMoTween) {
+            scene.slowMoTween.stop();
+        }
+
+        // Create tween to restore normal time
+        scene.slowMoTween = scene.tweens.add({
+            targets: this,
+            currentTimeScale: 1.0, // Return to normal speed
+            playerSpeedFactor: 1.0, // Return player speed to normal
+            duration: 500,
+            ease: 'Sine.easeIn',
+            onUpdate: () => {
+                // Apply time scale to scene
+                scene.time.timeScale = this.currentTimeScale;
+
+                // Update the global enemy speed factor
+                enemySpeedFactor = this.currentTimeScale;
+
+                // Update player speed
+                playerSpeed = this.originalPlayerSpeed * this.playerSpeedFactor;
+            },
+            onComplete: () => {
+                this.isActive = false;
+
+                // Reset global enemy speed factor
+                enemySpeedFactor = 1.0;
+
+                // Ensure player speed is fully restored
+                playerSpeed = this.originalPlayerSpeed;
+            }
+        });
+    },
+
+    // Initialize component
+    initialize: function () {
+        this.isActive = false;
+        this.currentTimeScale = 1.0;
+        this.playerSpeedFactor = 1.0;
+        this.originalPlayerSpeed = playerSpeed;
+    },
+
+    // Handle player being hit
+    onHit: function (scene, enemy) {
+        // Calculate slow motion duration - adjusted to account for time scale
+        const baseSlowdownDuration = Math.sqrt(playerLuck / BASE_STATS.LUK) * 1000;
+
+        // If already active, reset the timer instead of starting a new transition
+        if (this.isActive) {
+            // Clear existing exit timer if any
+            if (this.exitTimer) {
+                this.exitTimer.remove();
+                this.exitTimer = null;
+            }
+        } else {
+            // Not active yet, enter slow motion
+            this.enterSlowMotion(scene);
+        }
+
+        // Show kanji
+        const kanji = scene.add.text(player.x, player.y - 40, '異世界', {
+            fontFamily: 'Arial',
+            fontSize: '24px',
+            color: '#00ffff',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+
+        scene.tweens.add({
+            targets: kanji,
+            y: kanji.y - 30,
+            alpha: 0,
+            scale: 1.5,
+            duration: 1000,
+            onComplete: function () {
+                kanji.destroy();
+            }
+        });
+
+        // Set timer to exit slow motion after duration - create a real-time timer
+        const realTimeDuration = baseSlowdownDuration / this.currentTimeScale;
+        this.exitTimer = scene.time.addEvent({
+            delay: realTimeDuration,
+            callback: () => { this.exitSlowMotion(scene); },
+            callbackScope: this
+        });
+
+        // Register for cleanup
+        registerTimer(this.exitTimer);
+    },
+
+    // Clean up component
+    cleanup: function () {
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Reset time scale
+        scene.time.timeScale = 1.0;
+
+        // Reset enemy speed factor
+        enemySpeedFactor = 1.0;
+
+        // Clear any tween
+        if (scene.slowMoTween) {
+            scene.slowMoTween.stop();
+            scene.slowMoTween = null;
+        }
+
+        // Clear exit timer
+        if (this.exitTimer) {
+            this.exitTimer.remove();
+            this.exitTimer = null;
+        }
+
+        // Restore player speed
+        playerSpeed = this.originalPlayerSpeed;
+
+        this.isActive = false;
+        this.currentTimeScale = 1.0;
+        this.playerSpeedFactor = 1.0;
+    }
+});
+
+// Register the perk with the OnHitPerkRegistry
+OnHitPerkRegistry.registerPerkEffect('ALIEN_WORLD', {
+    componentName: 'timeDilationEffect',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
 // Main handler for player hit events - coordinates the entire hit response
 function handlePlayerHit(scene, enemy) {
     // First trigger any on-hit effects that should happen regardless of shields

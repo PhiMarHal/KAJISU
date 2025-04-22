@@ -22,6 +22,7 @@
     <script src="cards.js"></script>
     <script src="input.js"></script>
     <script src="onhit.js"></script>
+    <script src="playerhit.js"></script>
 
     <style>
         body {
@@ -221,7 +222,6 @@
         let gameOver = false;
         let gameOverText;
         let restartButton;
-        let playerInvincible = false;
 
         // Track elapsed time
         let elapsedTime = 0; // in seconds
@@ -1274,7 +1274,7 @@
             setupPerformanceMonitor.call(this);
 
             WeaponSystem.initialize(this);
-
+            PlayerHitSystem.init(this);
             InputSystem.setupCursorHiding(this);
 
             // Create player text - using kanji character
@@ -1322,7 +1322,7 @@
             this.physics.add.collider(projectiles, enemies, projectileHitEnemy, null, this);
 
             // Set up collision between player and enemies
-            this.physics.add.overlap(player, enemies, playerHitEnemy, null, this);
+            this.physics.add.overlap(player, enemies, PlayerHitSystem.playerIsHit, null, this);
 
             // Set up cursor keys for movement
             cursors = this.input.keyboard.createCursorKeys();
@@ -1746,107 +1746,6 @@
             updatePlayerStatus();
         }
 
-        function playerHitEnemy(player, enemy) {
-            // Check if player was already hit
-            if (playerInvincible) return;
-
-            // Make the player invincible to damage while flashing
-            playerInvincible = true;
-
-            // Flash the player when hit
-            this.tweens.add({
-                targets: player,
-                alpha: 0.5,
-                scale: 1.2,
-                duration: 160,
-                yoyo: true,
-                repeat: 6,
-                onComplete: function () {
-                    // Ensure alpha is reset properly
-                    player.alpha = 1;
-                    player.scale = 1;
-                }
-            });
-
-            // Remove invincibility after a while
-            this.time.delayedCall(960, function () {
-                playerInvincible = false;
-
-                // Double-check alpha is reset even if tween was interrupted
-                if (player.active) {
-                    player.alpha = 1;
-                    player.scale = 1;
-                }
-            });
-
-            // Handle hit effects including shield check
-            // If hit was absorbed by shield, skip damage application
-            if (handlePlayerHit(this, enemy)) {
-                return;
-            }
-
-            // Apply damage to player
-            const damageAmount = enemy.damage ?? 1;
-            playerHealth -= damageAmount;
-
-            // Update health text and bar
-            GameUI.updateHealthBar(this);
-
-            // Check if player is dead
-            if (playerHealth < 1) {
-                playerDeath.call(this);
-            }
-        }
-
-        // Function to create the defensive burst effect (simplified)
-        function triggerDefensiveBurst() {
-            // Calculate number of projectiles based on luck (2 * LUCK)
-            const projectileCount = playerLuck * 2;
-
-            // Visual effect at player position
-            const burstEffect = this.add.circle(player.x, player.y, 40, 0x9370db, 0.5);
-            this.tweens.add({
-                targets: burstEffect,
-                alpha: 0,
-                scale: 2,
-                duration: 300,
-                onComplete: function () {
-                    burstEffect.destroy();
-                }
-            });
-
-            // Create each projectile in the burst
-            for (let i = 0; i < projectileCount; i++) {
-                // Calculate angle for even distribution (in radians)
-                const angle = (i / projectileCount) * Math.PI * 2;
-
-                // Create projectile using shared base
-                const projectile = createProjectileBase(this, player.x, player.y, '#9370db');
-
-                // Set velocity based on angle
-                const speed = 400;
-                projectile.body.setVelocity(
-                    Math.cos(angle) * speed,
-                    Math.sin(angle) * speed
-                );
-
-                // Add special property
-                projectile.isDefensiveBurst = true;
-            }
-        }
-
-        function playerDeath() {
-            // Set game over state
-            gameOver = true;
-
-            // Pause the game physics to stop all movement
-            pauseGame();
-
-            // Show game over text and restart button
-            gameOverText.setText(`GAME OVER\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`);
-            gameOverText.setVisible(true);
-            restartButton.setVisible(true);
-        }
 
         // Enhanced level up cards with romaji typing challenge
         function showLevelUpCards() {
@@ -2685,6 +2584,7 @@
             // Reset player status components
             resetPlayerStatus();
             CooldownManager.initialize();
+            PlayerHitSystem.reset();
 
             // Reset the current enemy rank
             currentEnemyRank = 1;

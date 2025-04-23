@@ -374,6 +374,13 @@ const OrbitalSystem = {
     clearAll: function () {
         // Destroy all orbital entities
         orbitals.forEach(orbital => {
+            // Clean up firing timer if it exists
+            if (orbital.firingTimer) {
+                CooldownManager.removeTimer(orbital.firingTimer);
+                orbital.firingTimer = null;
+            }
+
+            // Destroy the entity
             if (orbital.entity && orbital.entity.active) {
                 orbital.entity.destroy();
             }

@@ -186,6 +186,7 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
     isActive: false,
     currentTimeScale: 1.0,
     playerSpeedFactor: 1.0,
+    enemySlowdown: 1.0,  // New property to track enemy slowdown
 
     // Function to enter slow motion gradually
     enterSlowMotion: function (scene) {
@@ -200,8 +201,9 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
         // Create tween to gradually slow down time
         scene.slowMoTween = scene.tweens.add({
             targets: this,
-            currentTimeScale: 0.25, // Slow to 25% speed
-            playerSpeedFactor: 0.5, // Player at 50% speed
+            currentTimeScale: 0.5,    // Slow game to 50% speed
+            playerSpeedFactor: 0.5,   // Player at 50% speed
+            enemySlowdown: 0.25,      // Enemies at 25% speed
             duration: 500,
             ease: 'Sine.easeOut',
             onUpdate: () => {
@@ -209,7 +211,7 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
                 scene.time.timeScale = this.currentTimeScale;
 
                 // Update the global enemy speed factor
-                enemySpeedFactor = this.currentTimeScale;
+                enemySpeedFactor = this.enemySlowdown;
 
                 // Update player speed
                 playerSpeed = this.originalPlayerSpeed * this.playerSpeedFactor;
@@ -230,8 +232,9 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
         // Create tween to restore normal time
         scene.slowMoTween = scene.tweens.add({
             targets: this,
-            currentTimeScale: 1.0, // Return to normal speed
-            playerSpeedFactor: 1.0, // Return player speed to normal
+            currentTimeScale: 1.0,    // Return to normal speed
+            playerSpeedFactor: 1.0,   // Return player speed to normal
+            enemySlowdown: 1.0,       // Return enemy speed to normal
             duration: 500,
             ease: 'Sine.easeIn',
             onUpdate: () => {
@@ -239,7 +242,7 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
                 scene.time.timeScale = this.currentTimeScale;
 
                 // Update the global enemy speed factor
-                enemySpeedFactor = this.currentTimeScale;
+                enemySpeedFactor = this.enemySlowdown;
 
                 // Update player speed
                 playerSpeed = this.originalPlayerSpeed * this.playerSpeedFactor;
@@ -247,7 +250,7 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
             onComplete: () => {
                 this.isActive = false;
 
-                // Reset global enemy speed factor
+                // Reset global enemy speed factor (redundant but safe)
                 enemySpeedFactor = 1.0;
 
                 // Ensure player speed is fully restored
@@ -261,6 +264,7 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
         this.isActive = false;
         this.currentTimeScale = 1.0;
         this.playerSpeedFactor = 1.0;
+        this.enemySlowdown = 1.0;
         this.originalPlayerSpeed = playerSpeed;
     },
 

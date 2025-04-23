@@ -80,6 +80,18 @@ const PERKS = {
             window.activateLandmines();
         }
     },
+    "SNIPER_FAIRY": {
+        kanji: "狙",
+        kana: "ねらう",
+        romaji: "nerau",
+        english: "Sniper Fairy",
+        description: "Summons a fairy that fires powerful shots at random enemies",
+        color: "#FF55AA",
+        hoverColor: 0xDD3388,
+        onAcquire: function () {
+            window.activateSniperFairy();
+        }
+    },
     "WILD_FAIRY": {
         kanji: "野妖精",
         kana: "のようせい",

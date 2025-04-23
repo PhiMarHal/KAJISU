@@ -271,5 +271,67 @@ window.activateImmortalLeg = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'IMMORTAL_LEG');
 };
 
+// Register the Sniper Fairy perk
+OrbitalPerkRegistry.registerPerkOrbital('SNIPER_FAIRY', {
+    getConfig: function () {
+        return {
+            symbol: '狙', // Kanji for "aim/target"
+            color: '#FF55AA', // Pinkish color
+            fontSize: 20, // Medium size
+            radius: 80, // Medium orbit radius
+            speed: 0.01, // Moderate speed
+            pattern: 'standard', // Standard circular orbit
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage * 0.1, // Very low contact damage
+            damageInterval: 500, // Half second between damage ticks
+            lifespan: null, // Permanent
+            options: {
+                isFamiliar: true,
+                familiarType: 'sniper'
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Function to activate the Sniper Fairy perk
+window.activateSniperFairy = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['SNIPER_FAIRY'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Create firing timer for the orbital using standard createTimer
+    if (orbital && orbital.options && orbital.options.isFamiliar) {
+        orbital.firingTimer = CooldownManager.createTimer({
+            statName: 'luck',
+            baseCooldown: 4000, // 4 seconds base cooldown
+            formula: 'sqrt',
+            component: orbital,  // Store reference to the orbital
+            callback: function () {
+                // Skip if game is over/paused or orbital is destroyed
+                if (gameOver || gamePaused ||
+                    !orbital || orbital.destroyed ||
+                    !orbital.entity || !orbital.entity.active) {
+                    return;
+                }
+
+                // Get the behavior function
+                const behaviorFn = FamiliarSystem.behaviors[orbital.options.familiarType];
+                if (!behaviorFn) return;
+
+                // Execute the behavior
+                behaviorFn(scene, orbital, scene.time.now);
+            },
+            callbackScope: scene,
+            loop: true
+        });
+    }
+};
+
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

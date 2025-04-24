@@ -1,4 +1,4 @@
-// Familiar System for Word Survivors
+// Enhanced Familiar System for Word Survivors
 // Manages orbital entities that have firing behavior
 
 // Registry for different familiar behaviors
@@ -25,11 +25,49 @@ const FamiliarBehaviors = {
         }
 
         return false; // No shot fired
-    }
+    },
 
-    // Add more behaviors here as needed, e.g.:
-    // shotgun: function(scene, orbital, time) { ... },
-    // healer: function(scene, orbital, time) { ... }
+    // Copy behavior - fires weaker shots at the closest enemy
+    copy: function (scene, orbital, time) {
+        // Calculate shot properties
+        const damage = playerDamage * 0.5; // Half player damage
+
+
+        // Find the closest enemy to the player
+        const target = findClosestVisibleEnemy(scene);
+
+        // If a target was found, fire at it
+        if (target) {
+            fireFamiliarProjectile(scene, orbital, target, {
+                damage: damage
+            });
+
+            return true; // Shot fired successfully
+        }
+
+        return false; // No shot fired
+    },
+
+    // Berserk behavior - fires at random enemies at higher rate
+    berserk: function (scene, orbital, time) {
+        // Calculate shot properties
+        const damage = playerDamage * 0.5; // Half player damage
+        const speed = 400; // Faster than normal
+
+        // Find a random enemy to target
+        const target = findRandomVisibleEnemy(scene);
+
+        // If a target was found, fire at it
+        if (target) {
+            fireFamiliarProjectile(scene, orbital, target, {
+                damage: damage
+            });
+
+            return true; // Shot fired successfully
+        }
+
+        return false; // No shot fired
+    }
 };
 
 // Helper function to find a random visible enemy
@@ -47,6 +85,37 @@ function findRandomVisibleEnemy(scene) {
     if (activeEnemies.length === 0) return null;
 
     return Phaser.Utils.Array.GetRandom(activeEnemies);
+}
+
+// Helper function to find the closest visible enemy to the player
+function findClosestVisibleEnemy(scene) {
+    // Get all active enemies on screen
+    const activeEnemies = enemies.getChildren().filter(enemy => {
+        if (!enemy || !enemy.active) return false;
+
+        // Check if enemy is on screen (with some margin)
+        return (enemy.x >= -50 && enemy.x <= 1250 &&
+            enemy.y >= -50 && enemy.y <= 850);
+    });
+
+    if (activeEnemies.length === 0) return null;
+
+    let closestEnemy = null;
+    let closestDistance = Infinity;
+
+    // Find the closest enemy to the player
+    activeEnemies.forEach(enemy => {
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestEnemy = enemy;
+        }
+    });
+
+    return closestEnemy;
 }
 
 // Helper function to fire a projectile from a familiar
@@ -72,6 +141,9 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
     // Set damage
     projectile.damage = config.damage;
 
+    // Adjust size to match the actual damage (right after setting damage)
+    projectile.setFontSize(projectileSizeFactor * config.damage);
+
     // Set velocity
     projectile.body.setVelocity(
         Math.cos(angle) * config.speed,
@@ -86,48 +158,50 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
         duration: 200
     });
 
-    // Optional visual effects
-    if (config.showFiringEffect !== false) {
-        // Flash at the familiar position
-        const flash = scene.add.circle(orbital.entity.x, orbital.entity.y, 15, config.color, 0.8);
-        scene.tweens.add({
-            targets: flash,
-            alpha: 0,
-            scale: 2,
-            duration: 300,
-            onComplete: function () {
-                flash.destroy();
-            }
-        });
-    }
-
-    if (config.showTracer !== false) {
-        // Tracer line from familiar to target
-        const line = scene.add.line(
-            0, 0,
-            orbital.entity.x, orbital.entity.y,
-            target.x, target.y,
-            config.color, 0.6
-        );
-        line.setOrigin(0, 0);
-        line.setLineWidth(2);
-
-        scene.tweens.add({
-            targets: line,
-            alpha: 0,
-            duration: 200,
-            onComplete: function () {
-                line.destroy();
-            }
-        });
-    }
-
     return projectile;
+}
+
+// Generic function to setup a familiar firing timer
+function setupFamiliarFiringTimer(scene, orbital, behaviorType, baseCooldown = 4000) {
+    // Skip if familiar is invalid
+    if (!orbital || !orbital.entity || !orbital.entity.active) return null;
+
+    // Get the behavior function
+    const behaviorFn = FamiliarBehaviors[behaviorType];
+    if (!behaviorFn) {
+        console.warn(`Unknown familiar behavior type: ${behaviorType}`);
+        return null;
+    }
+
+    // Create firing timer using CooldownManager
+    const firingTimer = CooldownManager.createTimer({
+        statName: 'luck',
+        baseCooldown: baseCooldown,
+        formula: 'sqrt',
+        component: orbital,  // Store reference to the orbital
+        callback: function () {
+            // Skip if game is over/paused or orbital is destroyed
+            if (gameOver || gamePaused ||
+                !orbital || orbital.destroyed ||
+                !orbital.entity || !orbital.entity.active) {
+                return;
+            }
+
+            // Execute the behavior
+            behaviorFn(scene, orbital, scene.time.now);
+        },
+        callbackScope: scene,
+        loop: true
+    });
+
+    return firingTimer;
 }
 
 // Export the familiar system
 window.FamiliarSystem = {
     behaviors: FamiliarBehaviors,
     findRandomVisibleEnemy: findRandomVisibleEnemy,
-    fireFamiliarProjectile: fireFamiliarProjectile
+    findClosestVisibleEnemy: findClosestVisibleEnemy,
+    fireFamiliarProjectile: fireFamiliarProjectile,
+    setupFamiliarFiringTimer: setupFamiliarFiringTimer
 };

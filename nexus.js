@@ -295,7 +295,7 @@ OrbitalPerkRegistry.registerPerkOrbital('SNIPER_FAIRY', {
     activationMethod: 'immediate' // Create instantly when perk is acquired
 });
 
-// Function to activate the Sniper Fairy perk
+// Function to activate the Sniper Fairy perk (updated to use generic function)
 window.activateSniperFairy = function () {
     // Get the current active scene
     const scene = game.scene.scenes[0];
@@ -305,31 +305,104 @@ window.activateSniperFairy = function () {
     const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['SNIPER_FAIRY'].getConfig();
     const orbital = OrbitalSystem.create(scene, orbitalConfig);
 
-    // Create firing timer for the orbital using standard createTimer
+    // Create firing timer for the orbital using the generic function
     if (orbital && orbital.options && orbital.options.isFamiliar) {
-        orbital.firingTimer = CooldownManager.createTimer({
-            statName: 'luck',
-            baseCooldown: 4000, // 4 seconds base cooldown
-            formula: 'sqrt',
-            component: orbital,  // Store reference to the orbital
-            callback: function () {
-                // Skip if game is over/paused or orbital is destroyed
-                if (gameOver || gamePaused ||
-                    !orbital || orbital.destroyed ||
-                    !orbital.entity || !orbital.entity.active) {
-                    return;
-                }
+        orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
+            scene,
+            orbital,
+            orbital.options.familiarType,
+            4000 // 4 seconds base cooldown
+        );
+    }
+};
 
-                // Get the behavior function
-                const behaviorFn = FamiliarSystem.behaviors[orbital.options.familiarType];
-                if (!behaviorFn) return;
+// Register the Copy Fairy perk
+OrbitalPerkRegistry.registerPerkOrbital('COPY_FAIRY', {
+    getConfig: function () {
+        return {
+            symbol: '写', // Kanji for "copy"
+            color: '#55FFAA', // Greenish color
+            fontSize: 20, // Small size
+            radius: 40, // Close orbit radius
+            speed: 0.01, // Standard speed
+            pattern: 'standard', // Standard circular orbit
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage * 0.1, // Very low contact damage
+            damageInterval: 500, // Half second between damage ticks
+            lifespan: null, // Permanent
+            options: {
+                isFamiliar: true,
+                familiarType: 'copy'
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
 
-                // Execute the behavior
-                behaviorFn(scene, orbital, scene.time.now);
-            },
-            callbackScope: scene,
-            loop: true
-        });
+// Register the Berserk Fairy perk
+OrbitalPerkRegistry.registerPerkOrbital('BERSERK_FAIRY', {
+    getConfig: function () {
+        return {
+            symbol: '狂', // Kanji for "mad/crazy"
+            color: '#FF5500', // Orange-red color
+            fontSize: 20, // Small size
+            radius: 200, // Far orbit radius
+            speed: 0.02, // Faster speed
+            pattern: 'standard', // Standard circular orbit
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage * 0.1, // Very low contact damage
+            damageInterval: 500, // Half second between damage ticks
+            lifespan: null, // Permanent
+            options: {
+                isFamiliar: true,
+                familiarType: 'berserk'
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Function to activate the Copy Fairy perk
+window.activateCopyFairy = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['COPY_FAIRY'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Create firing timer for the orbital using the generic function
+    if (orbital && orbital.options && orbital.options.isFamiliar) {
+        orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
+            scene,
+            orbital,
+            orbital.options.familiarType,
+            800 // 800ms base cooldown (half rate compared to player)
+        );
+    }
+};
+
+// Function to activate the Berserk Fairy perk
+window.activateBerserkFairy = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['BERSERK_FAIRY'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Create firing timer for the orbital using the generic function
+    if (orbital && orbital.options && orbital.options.isFamiliar) {
+        orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
+            scene,
+            orbital,
+            orbital.options.familiarType,
+            400 // 400ms base cooldown (same rate as player)
+        );
     }
 };
 

@@ -782,6 +782,30 @@ const PERKS = {
             window.triggerOneTimeEffect('oblivionBlossom');
         }
     },
+    "COPY_FAIRY": {
+        kanji: "写精",
+        kana: "うつしせい",
+        romaji: "utsushisei",
+        english: "Copy Fairy",
+        description: "Summons a fairy that orbits close to you and fires at the closest enemy",
+        color: "#55FFAA", // Greenish color
+        hoverColor: 0x33DD88,
+        onAcquire: function () {
+            window.activateCopyFairy();
+        }
+    },
+    "BERSERK_FAIRY": {
+        kanji: "狂精",
+        kana: "きょうせい",
+        romaji: "kyousei",
+        english: "Berserk Fairy",
+        description: "Summons a wild fairy that orbits far from you and rapidly fires at random enemies",
+        color: "#FF5500", // Orange-red color
+        hoverColor: 0xDD3300,
+        onAcquire: function () {
+            window.activateBerserkFairy();
+        }
+    },
 
     // Green animal perks (converted to something else)
     "GREEN_DEER": {

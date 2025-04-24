@@ -121,5 +121,6 @@ ProjectilePerkRegistry.registerPerkEffect('PIERCING_SHOTS', {
 // Register the Yellow Boomerang perk effect
 ProjectilePerkRegistry.registerPerkEffect('YELLOW_BOOMERANG', {
     componentName: 'boomerangEffect',
+    chanceMultiplier: 0.5,
     applyChance: true, // Apply based on chance
 });

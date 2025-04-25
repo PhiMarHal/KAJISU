@@ -19,8 +19,8 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
 - add sqrt calc in cooldown.js <- verify but should be ok
 - TEST EXTENSIVELY onhit/applydamage reorganisation! <- seems ok so far
-- Test boomerang, crimson scatter
-- Oblivion Blossom might need rebalancing. Give +1/+2 rather than +2?
+- Crimson Scatter damage change is problematic. would overright any future perk also changing projectile damage
+Probably should rework projectile damage entirely so we can add a damageModifier
 
 DONE
 - Move remaining perks outside of index.html (orbiting? landmine?) orbiting done. landmine+afterimage next

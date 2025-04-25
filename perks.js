@@ -794,6 +794,30 @@ const PERKS = {
             window.activateCopyFairy();
         }
     },
+    "FUN_FAIRY": {
+        kanji: "遊精",
+        kana: "ゆうせい",
+        romaji: "yuusei",
+        english: "Fun Fairy",
+        description: "Summons a playful fairy that fires random effect projectiles at enemies",
+        color: "#FF55FF", // Pink color
+        hoverColor: 0xDD33DD,
+        onAcquire: function () {
+            window.activateFunFairy();
+        }
+    },
+    "COLD_FAIRY": {
+        kanji: "冷精",
+        kana: "れいせい",
+        romaji: "reisei",
+        english: "Cold Fairy",
+        description: "Summons a fairy that fires slowing ice projectiles at enemies",
+        color: "#00FFFF", // Cyan color
+        hoverColor: 0x00DDDD,
+        onAcquire: function () {
+            window.activateColdFairy();
+        }
+    },
     "BERSERK_FAIRY": {
         kanji: "狂精",
         kana: "きょうせい",

@@ -578,6 +578,21 @@
             return playerFireRate * archerMultiplier;
         }
 
+        // Calculate effective projectile size based on damage
+        function getEffectiveSize(baseFontSize, damageValue) {
+            // If no base size provided, use the global projectileSizeFactor
+            const baseSize = baseFontSize ?? projectileSizeFactor;
+
+            // Use provided damage or default to playerDamage
+            const damage = damageValue ?? playerDamage;
+
+            // Get the scaling factor using square root approach
+            const scalingFactor = Math.sqrt(damage / BASE_STATS.POW);
+
+            // Apply scaling to base size with the multiplier of 4
+            return baseSize * scalingFactor * 4;
+        }
+
         // Resume the game and hide overlay
         function resumeGame() {
             if (gameOver) return;
@@ -1642,10 +1657,13 @@
             // Get the effective damage including all multipliers
             const effectiveDamage = getEffectiveDamage();
 
+            // Calculate the effective size for this projectile
+            const effectiveSize = getEffectiveSize();
+
             // Create the projectile
             const projectile = scene.add.text(x, y, symbol, {
                 fontFamily: 'Arial',
-                fontSize: `${projectileSizeFactor * effectiveDamage}px`,
+                fontSize: `${effectiveSize}px`,
                 color: color,
                 fontStyle: 'bold'
             }).setOrigin(0.5);

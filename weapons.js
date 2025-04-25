@@ -164,6 +164,7 @@ const WeaponSystem = {
     },
 
     // Create a projectile with the appropriate properties
+    // Create a projectile with the appropriate properties
     createProjectile: function (scene, config) {
         const defaults = {
             x: player.x,
@@ -173,6 +174,7 @@ const WeaponSystem = {
             angle: 0,
             speed: 400,
             damage: getEffectiveDamage(),
+            fontSize: getEffectiveSize(), // Add fontSize with getEffectiveSize
             skipComponents: false
         };
 
@@ -186,7 +188,7 @@ const WeaponSystem = {
             projConfig.symbol,
             {
                 fontFamily: 'Arial',
-                fontSize: `${projectileSizeFactor * projConfig.damage}px`,
+                fontSize: `${projConfig.fontSize}px`, // Use the calculated or provided fontSize
                 color: projConfig.color,
                 fontStyle: 'bold'
             }

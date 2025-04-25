@@ -406,5 +406,100 @@ window.activateBerserkFairy = function () {
     }
 };
 
+// Register the Cold Fairy perk
+OrbitalPerkRegistry.registerPerkOrbital('COLD_FAIRY', {
+    getConfig: function () {
+        return {
+            symbol: '冷', // Kanji for "cold"
+            color: '#00FFFF', // Cyan color
+            fontSize: 20, // Small size like other fairies
+            radius: 60, // Medium-close orbit radius
+            speed: 0.01, // Standard speed
+            direction: 'counterclockwise', // Counter-clockwise as requested
+            pattern: 'standard', // Standard circular orbit
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage * 0.1, // Very low contact damage
+            damageInterval: 500, // Half second between damage ticks
+            lifespan: null, // Permanent
+            options: {
+                isFamiliar: true,
+                familiarType: 'cold' // Use our new cold behavior
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Function to activate the Cold Fairy perk
+window.activateColdFairy = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['COLD_FAIRY'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Create firing timer for the orbital using the generic function
+    if (orbital && orbital.options && orbital.options.isFamiliar) {
+        orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
+            scene,
+            orbital,
+            orbital.options.familiarType,
+            2000 // 2000ms base cooldown
+        );
+    }
+};
+
+// Register the Fun Fairy perk
+OrbitalPerkRegistry.registerPerkOrbital('FUN_FAIRY', {
+    getConfig: function () {
+        return {
+            symbol: '遊', // Kanji for "play/fun"
+            color: '#FF55FF', // Pink color initially
+            fontSize: 22, // Slightly larger than other fairies
+            radius: 100, // Medium-far orbit radius as requested
+            speed: 0.015, // Faster rotation as requested
+            direction: 'clockwise',
+            pattern: 'standard', // Standard circular orbit
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage * 0.1, // Very low contact damage
+            damageInterval: 500, // Half second between damage ticks
+            lifespan: null, // Permanent
+            options: {
+                isFamiliar: true,
+                familiarType: 'fun' // Use our new fun behavior
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Function to activate the Fun Fairy perk
+window.activateFunFairy = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['FUN_FAIRY'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Create firing timer for the orbital using the generic function
+    if (orbital && orbital.options && orbital.options.isFamiliar) {
+        orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
+            scene,
+            orbital,
+            orbital.options.familiarType,
+            1200 // 1200ms base cooldown as requested
+        );
+
+        // Add color-changing effect to the fairy kanji using the exported function
+        orbital.colorTimer = setupFairyColorChanger(scene, orbital);
+    }
+};
+
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

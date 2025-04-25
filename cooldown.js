@@ -145,17 +145,17 @@ const CooldownManager = {
         // Calculate new cooldown based on formula
         let newCooldown;
         if (config.formula === 'multiply') {
-            initialCooldown = config.baseCooldown * newStatValue;
+            newCooldown = config.baseCooldown * newStatValue;
         } else if (config.formula === 'sqrt') {
             // Use BASE_STATS reference for better code maintenance
             const baseStatValue = config.statName === 'luck' ? BASE_STATS.LUK :
                 config.statName === 'fireRate' ? BASE_STATS.AGI :
                     config.statName === 'damage' ? BASE_STATS.POW :
                         config.statName === 'health' ? BASE_STATS.END : 4;
-            initialCooldown = config.baseCooldown / (Math.sqrt(newStatValue / baseStatValue));
+            newCooldown = config.baseCooldown / (Math.sqrt(newStatValue / baseStatValue));
         } else {
             // Default to divide
-            initialCooldown = config.baseCooldown / newStatValue;
+            newCooldown = config.baseCooldown / newStatValue;
         }
 
         // Store elapsed time and progress
@@ -190,11 +190,17 @@ const CooldownManager = {
 
         // If component exists, update its reference too
         if (config.component && typeof config.component === 'object') {
-            // Find timer property in component
-            for (const key in config.component) {
-                if (config.component[key] === config.timer) {
-                    config.component[key] = newTimer;
-                    break;
+            // For familiar timers, store reference directly
+            if (config.component.firingTimer === config.timer) {
+                config.component.firingTimer = newTimer;
+            }
+            // Find timer property in component for other types
+            else {
+                for (const key in config.component) {
+                    if (config.component[key] === config.timer) {
+                        config.component[key] = newTimer;
+                        break;
+                    }
                 }
             }
         }

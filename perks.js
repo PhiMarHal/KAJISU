@@ -1006,6 +1006,19 @@ const PERKS = {
             // The effect is handled by the OnHitEffectSystem
         }
     },
+    "ALIEN_CLOCK": {
+        kanji: "時の砂",
+        kana: "ときのすな",
+        romaji: "tokinosuna",
+        english: "Alien Clock",
+        description: "Periodically spawns time beacons that slow time when collected",
+        color: "#00ffff", // Cyan color like ALIEN_WORLD
+        hoverColor: 0x00dddd,
+        onAcquire: function () {
+            // The effect is handled by the PlayerComponentSystem
+            window.activateAlienClock();
+        }
+    },
     "PURPLE_HEDGEHOG": {
         kanji: "紫針鼠",
         kana: "むらさきはりねずみ",

@@ -1101,6 +1101,151 @@ PlayerPerkRegistry.registerPerkEffect('ANGEL_HONEY', {
     }
 });
 
+// Register component for Alien Clock ability
+PlayerComponentSystem.registerComponent('alienClockAbility', {
+    // Store timer reference
+    clockTimer: null,
+    beaconCooldown: 120000, // 2 minutes base cooldown
+
+    initialize: function (player) {
+        // Get the scene
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Create and register timer in one step
+        this.clockTimer = CooldownManager.createTimer({
+            statName: 'luck',
+            baseCooldown: this.beaconCooldown,
+            formula: 'divide',
+            component: this,
+            callback: this.spawnClockBeacon,
+            callbackScope: scene
+        });
+
+        // Immediately spawn first clock beacon
+        this.spawnClockBeacon.call(scene);
+    },
+
+    spawnClockBeacon: function () {
+        // Skip if game is over or paused
+        if (gameOver || gamePaused) return;
+
+        // Random position on screen (with padding from edges)
+        const x = Phaser.Math.Between(100, 1100);
+        const y = Phaser.Math.Between(100, 700);
+
+        // Create the beacon using the kanji for "time": 時
+        const beacon = this.add.text(x, y, '時', {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: '#00FFFF', // Cyan color
+            stroke: '#000000',
+            strokeThickness: 3,
+            shadow: {
+                offsetX: 0,
+                offsetY: 0,
+                color: '#00FFFF',
+                blur: 8,
+                stroke: true,
+                fill: true
+            }
+        }).setOrigin(0.5);
+
+        // Add physics body for collision detection
+        this.physics.world.enable(beacon);
+        beacon.body.setSize(beacon.width * 0.8, beacon.height * 0.8);
+
+        // Set as immovable
+        beacon.body.immovable = true;
+
+        // Add a unique ID to prevent duplicate collection
+        beacon.beaconId = 'timeBeacon_' + Date.now() + '_' + Math.random();
+
+        // Register entity for cleanup
+        window.registerEffect('entity', beacon);
+
+        // Add overlap with player
+        this.physics.add.overlap(beacon, player, function (beacon, player) {
+            // Only collect if not already collected
+            if (beacon.collected) return;
+
+            // Mark as collected to prevent multiple triggers
+            beacon.collected = true;
+
+            // Calculate slow motion duration based on luck
+            const slowdownDuration = Math.sqrt(playerLuck / BASE_STATS.LUK) * 1000;
+
+            // Activate time dilation
+            window.activateTimeDilation(slowdownDuration);
+
+            // Visual effect for collection
+            this.tweens.add({
+                targets: beacon,
+                alpha: 0,
+                scale: 2,
+                duration: 500,
+                onComplete: function () {
+                    beacon.destroy();
+                }
+            });
+
+            // Create radial flash effect
+            const flash = this.add.circle(beacon.x, beacon.y, 5, 0x00FFFF, 1);
+            this.tweens.add({
+                targets: flash,
+                radius: 100,
+                alpha: 0,
+                duration: 800,
+                onComplete: function () {
+                    flash.destroy();
+                }
+            });
+
+        }, null, this);
+
+        // Add pulsing animation
+        this.tweens.add({
+            targets: beacon,
+            scale: { from: 0.9, to: 1.1 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1
+        });
+    },
+
+    cleanup: function (player) {
+        // Remove timer from CooldownManager's registry
+        CooldownManager.removeTimer(this.clockTimer);
+
+        // Also directly remove the timer to ensure it's destroyed
+        if (this.clockTimer && this.clockTimer.remove) {
+            this.clockTimer.remove();
+        }
+
+        this.clockTimer = null;
+    }
+});
+
+// Register the perk with the PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('ALIEN_CLOCK', {
+    componentName: 'alienClockAbility',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
+// Function to activate the Alien Clock ability
+window.activateAlienClock = function () {
+    // Ensure the ALIEN_WORLD effect is registered first, since our time dilation system relies on it
+    if (!OnHitEffectSystem.hasComponent('timeDilationEffect')) {
+        OnHitEffectSystem.addComponent('timeDilationEffect');
+    }
+
+    // Now add our component
+    PlayerComponentSystem.addComponent('alienClockAbility');
+};
+
 // Function to update player status in game loop
 function updatePlayerStatus() {
     // Skip if game is over or paused

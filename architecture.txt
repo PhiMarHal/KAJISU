@@ -2,34 +2,93 @@
 
 ## Files Overview
 
-This document outlines the purpose of each major file in the Word Survivors project.
+This document outlines the purpose and organization of each major file in the Word Survivors project.
 
-**index.html** - Main game file containing the Phaser game initialization, core gameplay loop, player movement, enemy interactions, and UI rendering. This file ties together all other modules and handles the game's main state, including pausing, level-up UI, and game over conditions.
+### Core Game Files
 
-**artillery.js** - Implements the component-based system (`ProjectileComponentSystem`) for projectiles. It defines the framework for creating and managing reusable components (like `distanceDamage`, `slowEffect`, `poisonEffect`, `splitEffect`, `fireEffect`) that can be attached to projectiles, allowing for modular behavior.
+**index.html** - Main game file containing the Phaser game initialization, core gameplay loop, player movement, enemy interactions, and UI rendering. This file ties together all other modules and handles the game's main state, including pausing, level-up UI, and game over conditions. While large, it serves as the central hub that coordinates all systems.
 
-**ballistics.js** - Provides a registry system (`ProjectilePerkRegistry`) that connects perks to projectile components defined in `artillery.js`. This file automates the application of effects (components) to projectiles based on which perks the player has acquired, often involving chance calculations based on player luck.
+**weapons.js** - Implements the `WeaponSystem` which centralizes the player's primary weapon firing logic. Manages the firing timer (scaling with fire rate), target selection (closest enemy), and basic projectile creation, integrating with perk systems for effects like double shot or piercing.
 
-**bestiary.js** - Defines all enemy types using Japanese kanji characters, including their base properties like translations and readings. It also defines rank-based defaults (health, speed, size, etc.) and provides utility functions to retrieve enemy data and generate random enemies during gameplay. Also handles dynamic assignment of enemies to difficulty tiers.
+**hero.js** - Manages the player character's state, attributes, and status effects through a component-based system (`PlayerComponentSystem`). Contains the hero's basic properties (kanji, translations, base stats) and implements a framework for applying, updating, and removing status effects (components like `berserkerState`, `eternalRhythmState`, `permanentShieldAbility`) triggered by perks or game conditions. Includes a registry (`PlayerPerkRegistry`) to link perks to player status components and manages the `ShieldSystem`.
 
-**cooldown.js** - Defines `CooldownManager` which manages timers whose cooldowns dynamically scale based on player stats (like luck or fire rate). It updates these timers automatically when the relevant stats change significantly, ensuring abilities scale correctly with upgrades.
+**bestiary.js** - Defines all enemy types using Japanese kanji characters, including their base properties like translations and readings. Implements rank-based defaults (health, speed, size, etc.) and provides utility functions to retrieve enemy data and generate random enemies during gameplay. Also handles dynamic assignment of enemies to difficulty tiers.
+
+### Component Systems
+
+**artillery.js** - Implements the component-based system (`ProjectileComponentSystem`) for projectiles. Defines the framework for creating and managing reusable components (like `distanceDamage`, `slowEffect`, `poisonEffect`, `splitEffect`, `fireEffect`) that can be attached to projectiles, allowing for modular behavior.
+
+**ballistics.js** - Provides a registry system (`ProjectilePerkRegistry`) that connects perks to projectile components defined in `artillery.js`. Automates the application of effects (components) to projectiles based on which perks the player has acquired, often involving chance calculations based on player luck.
 
 **droppers.js** - Implements the system (`DropperSystem`) for player-generated persistent world objects ("drops") like landmines or afterimages. Defines behaviors (`DropBehaviors`: explosive, persistent, areaEffect) and manages their lifecycle, enemy interactions, and periodic spawning.
 
-**entrapments.js** - Defines `DropperPerkRegistry` which connects specific perks (from `perks.js`) to the dropper system (`droppers.js`). It automates the creation and configuration of drops (like landmines from 'Amber Beetle' or afterimages from 'Green Dream') based on acquired perks.
-
-**hero.js** - Manages the player character's state, attributes, and status effects through a component-based system (`PlayerComponentSystem`). It contains the hero's basic properties (kanji, translations, base stats) and implements a framework for applying, updating, and removing status effects (components like `berserkerState`, `eternalRhythmState`, `permanentShieldAbility`) triggered by perks or game conditions. Includes a registry (`PlayerPerkRegistry`) to link perks to player status components and manages the `ShieldSystem`.
-
-**menu.js** - Manages specific UI elements like the player's Health Bar and Experience Bar, including their creation and dynamic updates based on player stats.
-
-**nexus.js** - Defines `OrbitalPerkRegistry` which connects specific perks (from `perks.js`) to the orbital system (`orbitals.js`). It automates the creation and configuration of orbitals (like 'Teal Octopus' projectiles or 'Immortal' body parts) based on acquired perks, managing counts and cooldowns.
-
-**onetime.js** - Defines `OneTimeEffects` which manages effects that trigger only once upon acquiring certain perks (e.g., screen clearing blasts like `shuuen`, stat scrambles like `purpleChaos`). Provides a registry and a function (`triggerOneTimeEffect`) to execute these single-use effects.
+**entrapments.js** - Defines `DropperPerkRegistry` which connects specific perks (from `perks.js`) to the dropper system (`droppers.js`). Automates the creation and configuration of drops (like landmines from 'Amber Beetle' or afterimages from 'Green Dream') based on acquired perks.
 
 **orbitals.js** - Implements the system (`OrbitalSystem`) for entities that orbit the player. Defines various movement patterns (`MovementPatterns`: standard, elliptical, figureEight, etc.) and collision behaviors (`CollisionBehaviors`: persistent, projectile, explosive) and manages their lifecycle and enemy interactions.
 
+**nexus.js** - Defines `OrbitalPerkRegistry` which connects specific perks (from `perks.js`) to the orbital system (`orbitals.js`). Automates the creation and configuration of orbitals (like 'Teal Octopus' projectiles or 'Immortal' body parts) based on acquired perks, managing counts and cooldowns. Also contains familiar-related functions for entities that orbit the player and fire projectiles.
+
+**onhit.js** - Implements the `OnHitEffectSystem` that manages effects triggered when the player is hit by enemies. Uses a component-based architecture similar to other systems, with an `OnHitPerkRegistry` to connect perks to on-hit effects.
+
+**playerhit.js** - Manages player damage handling, invincibility frames, and visual effects when the player is hit. Creates blood vignette effects and handles player death conditions.
+
+**familiars.js** - Provides the `FamiliarSystem` which manages orbital entities with firing behavior. Defines different familiar behaviors, firing patterns, and helper functions for familiar creation and management.
+
+### UI and Input
+
+**menu.js** - Manages specific UI elements like the player's Health Bar and Experience Bar, including their creation and dynamic updates based on player stats. Contains the `GameUI` interface for other files to interact with.
+
+**input.js** - Provides custom input handling enhancements through the `InputSystem`. Manages cursor visibility, automatic hiding after inactivity, and ensures proper state restoration when the game window focus changes.
+
+**cards.js** - Contains reusable functions for creating and managing perk card UI elements. Provides the `CardSystem` which standardizes card creation, styling, and interaction handling.
+
+### Perk and Effect Systems
+
 **perks.js** - Contains definitions for all player upgrades ("perks") including their kanji representations, translations, descriptions, visual styles, and effects. Each perk has an `onAcquire` function that triggers its immediate effect (like stat changes or activating a system) when the player selects it during level-up.
 
-**weapons.js** - Defines `WeaponSystem` which centralizes the player's primary weapon firing logic. Manages the firing timer (scaling with fire rate), target selection (closest enemy), and basic projectile creation, integrating with perk systems (`ballistics.js`) for effects like double shot or piercing.
+**cooldown.js** - Defines `CooldownManager` which manages timers whose cooldowns dynamically scale based on player stats (like luck or fire rate). Updates these timers automatically when the relevant stats change significantly, ensuring abilities scale correctly with upgrades.
 
-**todobugs.txt** - A plain text file tracking known bugs, planned features, and potential improvements for the game.
+**onetime.js** - Defines `OneTimeEffects` which manages effects that trigger only once upon acquiring certain perks (e.g., screen clearing blasts like `shuuen`, stat scrambles like `purpleChaos`). Provides a registry and a function (`triggerOneTimeEffect`) to execute these single-use effects.
+
+### Utility Files
+
+**todobugs.txt** - A plain text file tracking known bugs, planned features, and potential improvements for the game. Primarily for human developer reference.
+
+## Perk System Organization
+
+The perk system is distributed across multiple files following a component-based architecture:
+
+1. **perks.js** - Defines all perks and their basic properties, including the `onAcquire` function that runs when a perk is selected.
+
+2. **Registry Files** - Several registry files connect perks to specific game systems:
+   - `ballistics.js` (ProjectilePerkRegistry) - Maps perks to projectile components
+   - `entrapments.js` (DropperPerkRegistry) - Maps perks to dropper effects
+   - `nexus.js` (OrbitalPerkRegistry) - Maps perks to orbital and familiar effects
+   - `hero.js` (PlayerPerkRegistry) - Maps perks to player status effects
+   - `onhit.js` (OnHitPerkRegistry) - Maps perks to on-hit effects
+
+3. **Component Files** - Define the actual effect implementations:
+   - `artillery.js` (ProjectileComponentSystem) - Projectile components
+   - `droppers.js` (DropperSystem) - Dropper components
+   - `orbitals.js` (OrbitalSystem) - Orbital components
+   - `hero.js` (PlayerComponentSystem) - Player status components
+   - `onhit.js` (OnHitEffectSystem) - On-hit effect components
+
+This architecture allows new perks to be added by:
+1. Adding the perk definition to `perks.js`
+2. Registering it with the appropriate registry
+3. Creating component implementations if needed
+
+## Component-Based Architecture
+
+The game uses a component-based architecture across multiple systems:
+
+1. **Components**: Self-contained units of behavior that can be attached to game entities
+2. **Component Systems**: Manage creation, updates, and cleanup of components
+3. **Registries**: Connect perks to components, allowing automated application of effects
+
+This architecture enables:
+- Modular and reusable code
+- Easy addition of new effects
+- Separation of concerns between systems
+- Clear organization of game mechanics

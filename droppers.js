@@ -8,22 +8,14 @@ const drops = [];
 const DropBehaviors = {
     // Explosive behavior - detonates on enemy contact
     explosive: function (scene, drop, enemy) {
-        // Apply damage to the enemy
-        enemy.health -= drop.entity.damage;
-
-        // Visual effect for the enemy taking damage
-        scene.tweens.add({
-            targets: enemy,
-            alpha: 0.3,
-            duration: 100,
-            yoyo: true,
-            repeat: 1
-        });
-
-        // Check if enemy is defeated
-        if (enemy.health <= 0) {
-            defeatedEnemy.call(scene, enemy);
-        }
+        // Apply damage to the enemy using the contact damage system
+        applyContactDamage.call(
+            scene,
+            drop.entity,
+            enemy,
+            drop.entity.damage,
+            0 // No cooldown for explosives as they destroy themselves after contact
+        );
 
         // Destroy the drop
         destroyDrop(drop);
@@ -236,13 +228,23 @@ const DropperSystem = {
                 const falloff = 1 - (distance / drop.areaEffectRadius) * 0.5; // 50% falloff at max range
                 const damageAmount = drop.entity.damage * falloff;
 
-                enemy.health -= damageAmount;
-                hitCount++;
+                // Create a unique source ID for each enemy in each pulse
+                const areaSourceId = `${drop.entity.damageSourceId}_area_${enemy.id ?? Math.random()}`;
 
-                // Check if enemy is defeated
-                if (enemy.health <= 0) {
-                    defeatedEnemy.call(scene, enemy);
-                }
+                // Apply damage using the contact damage system
+                applyContactDamage.call(
+                    scene,
+                    {
+                        damageSourceId: areaSourceId,
+                        damage: damageAmount,
+                        active: true
+                    },
+                    enemy,
+                    damageAmount,
+                    0 // No cooldown since the area effect has its own interval timing
+                );
+
+                hitCount++;
             }
         });
 

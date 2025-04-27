@@ -4,6 +4,7 @@
 // Registry of one-time effects
 const OneTimeEffects = {
     // Renamed to 終焉 (The End/Final Catastrophe)
+    // Renamed to 終焉 (The End/Final Catastrophe)
     shuuen: function (scene) {
         if (!scene) return;
 
@@ -34,15 +35,18 @@ const OneTimeEffects = {
             const originX = player.x;
             const originY = player.y;
 
+            // Create a unique damage source ID for this catastrophic event
+            const catastropheId = `shuuen_${Date.now()}_${Math.random()}`;
+
             // Create shockwave visual
             const shockwave = scene.add.circle(originX, originY, 10, 0xFF3300, 0.7);
 
             // Expand shockwave
             scene.tweens.add({
                 targets: shockwave,
-                radius: 800, // Expand to cover the screen
+                radius: 1600, // Expand to cover the screen
                 alpha: 0,
-                duration: 800,
+                duration: 1600,
                 onComplete: function () {
                     shockwave.destroy();
                 }
@@ -64,22 +68,29 @@ const OneTimeEffects = {
                 scene.time.delayedCall(delay, function () {
                     if (!enemy.active) return;
 
-                    // Apply damage
-                    enemy.health -= megaDamage;
+                    // Create a unique sub-ID for each enemy to ensure they all take damage
+                    const enemySpecificId = `${catastropheId}_${enemy.x}_${enemy.y}`;
 
-                    // Visual effect on enemy
+                    // Apply damage using the contact damage system
+                    applyContactDamage.call(
+                        scene,
+                        {
+                            damageSourceId: enemySpecificId,
+                            damage: megaDamage,
+                            active: true
+                        },
+                        enemy,
+                        megaDamage,
+                        0 // No cooldown needed for one-time catastrophic event
+                    );
+
+                    // The visual effects will still run regardless of whether the enemy dies
                     scene.tweens.add({
                         targets: enemy,
                         alpha: 0.2,
                         scale: 1.5,
                         duration: 200,
-                        yoyo: true,
-                        onComplete: function () {
-                            // Check if enemy is defeated
-                            if (enemy.active && enemy.health <= 0) {
-                                defeatedEnemy.call(scene, enemy);
-                            }
-                        }
+                        yoyo: true
                     });
                 });
 

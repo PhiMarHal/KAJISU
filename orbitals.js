@@ -110,22 +110,14 @@ const CollisionBehaviors = {
 
     // Projectile-like orbital that deals damage once and is destroyed on impact
     projectile: function (scene, orbital, enemy) {
-        // Apply damage directly to the enemy
-        enemy.health -= orbital.entity.damage;
-
-        // Visual effect for impact
-        scene.tweens.add({
-            targets: enemy,
-            alpha: 0.3,
-            duration: 100,
-            yoyo: true,
-            repeat: 1
-        });
-
-        // Check if enemy is defeated
-        if (enemy.health <= 0) {
-            defeatedEnemy.call(scene, enemy);
-        }
+        // Apply damage using the contact damage system
+        applyContactDamage.call(
+            scene,
+            orbital.entity,
+            enemy,
+            orbital.entity.damage,
+            0 // No cooldown for single-hit projectiles
+        );
 
         // Destroy the orbital
         destroyOrbital(orbital);
@@ -137,6 +129,9 @@ const CollisionBehaviors = {
         const blastRadius = orbital.options.blastRadius ?? 100;
         const centerX = orbital.entity.x;
         const centerY = orbital.entity.y;
+
+        // Create a unique explosion ID for this blast
+        const explosionId = `orbital_explosion_${Date.now()}_${Math.random()}`;
 
         // Get all active enemies
         const allEnemies = enemies.getChildren();
@@ -156,10 +151,23 @@ const CollisionBehaviors = {
                 const falloff = 1 - (distance / blastRadius) * 0.5;
                 const damageAmount = orbital.entity.damage * falloff;
 
-                // Apply damage
-                nearbyEnemy.health -= damageAmount;
+                // Create a unique ID for each affected enemy
+                const enemySpecificExplosionId = `${explosionId}_${nearbyEnemy.x}_${nearbyEnemy.y}`;
 
-                // Visual effect
+                // Apply damage using the contact damage system
+                applyContactDamage.call(
+                    scene,
+                    {
+                        damageSourceId: enemySpecificExplosionId,
+                        damage: damageAmount,
+                        active: true
+                    },
+                    nearbyEnemy,
+                    damageAmount,
+                    0 // No cooldown for explosion effects
+                );
+
+                // Visual effect (keeps the original visual feedback)
                 scene.tweens.add({
                     targets: nearbyEnemy,
                     alpha: 0.3,
@@ -167,11 +175,6 @@ const CollisionBehaviors = {
                     yoyo: true,
                     repeat: 1
                 });
-
-                // Check if enemy is defeated
-                if (nearbyEnemy.health <= 0) {
-                    defeatedEnemy.call(scene, nearbyEnemy);
-                }
             }
         });
 

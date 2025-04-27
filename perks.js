@@ -40,6 +40,18 @@ const PERKS = {
             // The component is added through PlayerPerkRegistry
         }
     },
+    "BLOOMING_FLOWER": {
+        kanji: "花咲く",
+        kana: "はなさく",
+        romaji: "hanasaku",
+        english: "Blooming Flower",
+        description: "Periodically spawns flowers that attack nearby enemies",
+        color: "#FF66AA", // Pink color
+        hoverColor: 0xDD4488,
+        onAcquire: function () {
+            window.activateBloomingFlower();
+        }
+    },
     "TEAL_OCTOPUS": {
         kanji: "青緑蛸",
         kana: "あおみどりたこ",

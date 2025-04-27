@@ -411,3 +411,130 @@ const DropperSystem = {
 
 // Export the system for use in other files
 window.DropperSystem = DropperSystem;
+
+// Setup system for drops with periodic effects
+let periodicEffectsInitialized = false;
+
+function setupPeriodicEffectsSystem(scene) {
+    // Only initialize once
+    if (periodicEffectsInitialized) return;
+    periodicEffectsInitialized = true;
+
+    // Create a timer to periodically check all drops with effects
+    const checkTimer = CooldownManager.createTimer({
+        statName: 'luck',
+        baseCooldown: 1000, // Check every second
+        formula: 'divide',
+        callback: function () {
+            if (gameOver || gamePaused) return;
+
+            // Get all active drops
+            const allDrops = DropperSystem.getAll();
+
+            // Filter for drops with periodic effects
+            const dropsWithEffects = allDrops.filter(drop =>
+                drop.options && drop.options.hasPeriodicEffect);
+
+            // Process each drop
+            dropsWithEffects.forEach(drop => {
+                // Skip if already destroyed
+                if (drop.destroyed) return;
+
+                // Initialize effect timer if it doesn't exist
+                if (!drop.effectTimer) {
+                    createDropEffectTimer(scene, drop);
+                }
+            });
+        },
+        callbackScope: scene,
+        loop: true
+    });
+
+    // Register for cleanup
+    window.registerEffect('timer', checkTimer);
+}
+
+// Process effect based on drop type
+function processDropEffect(scene, drop) {
+    // Check symbol to determine effect type
+    if (drop.entity.text === '花') { // Flower
+        // Fire defensive burst for flowers
+        window.createDefensiveBurst(scene, drop.entity.x, drop.entity.y, {
+            projectileCount: playerLuck * 2, // Fixed: properly use playerLuck * 2
+            visualEffect: true
+        });
+    }
+    // Can add more effect types here as needed
+}
+
+// Modify the createDropEffectTimer function to handle immediate firing
+function createDropEffectTimer(scene, drop) {
+    // Get cooldown from options or use default
+    const baseCooldown = drop.options.periodicEffectCooldown ?? 10000;
+
+    // If drop should fire immediately, process effect now
+    if (drop.options.fireImmediately && !drop.hasInitiallyFired) {
+        // Mark as having fired to prevent duplicates
+        drop.hasInitiallyFired = true;
+
+        // Process effect immediately
+        processDropEffect(scene, drop);
+    }
+
+    // Create timer using CooldownManager
+    drop.effectTimer = CooldownManager.createTimer({
+        statName: 'luck',
+        baseCooldown: baseCooldown,
+        formula: 'sqrt',
+        component: drop, // Store reference for easier cleanup
+        callback: function () {
+            if (gameOver || gamePaused) return;
+
+            // Check if drop still exists
+            if (!drop.entity || !drop.entity.active || drop.destroyed) {
+                // Timer will be cleaned up automatically by destroyDrop
+                return;
+            }
+
+            // Process the effect
+            processDropEffect(scene, drop);
+        },
+        callbackScope: scene,
+        loop: true
+    });
+}
+
+// Update the DropperSystem.create method to initialize periodic effects immediately
+// We'll add a single line to the end of the create function
+const originalCreate = DropperSystem.create;
+DropperSystem.create = function (scene, config) {
+    // Call the original create method
+    const drop = originalCreate.call(this, scene, config);
+
+    // If this drop has periodic effects, set up the timer immediately
+    if (drop && drop.options && drop.options.hasPeriodicEffect) {
+        createDropEffectTimer(scene, drop);
+    }
+
+    return drop;
+};
+
+
+// Enhance destroyDrop to clean up timers
+const originalDestroyDrop = DropperSystem.destroyDrop;
+DropperSystem.destroyDrop = function (drop) {
+    // Clean up effect timer if it exists
+    if (drop.effectTimer) {
+        CooldownManager.removeTimer(drop.effectTimer);
+        drop.effectTimer = null;
+    }
+
+    // Call original function
+    originalDestroyDrop(drop);
+};
+
+// Add setupPeriodicEffectsSystem to the DropperSystem object
+DropperSystem.setupPeriodicEffectsSystem = setupPeriodicEffectsSystem;
+
+// Export for use in other files
+window.setupPeriodicEffectsSystem = setupPeriodicEffectsSystem;

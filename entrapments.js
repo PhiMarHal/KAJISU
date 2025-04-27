@@ -115,5 +115,57 @@ window.activateAfterImages = function () {
     DropperPerkRegistry.applyDropperPerk(scene, 'GREEN_DREAM');
 };
 
+// entrapments.js - Add after existing perk registrations
+
+// Register the Blooming Flower perk
+DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
+    getConfig: function () {
+        return {
+            symbol: '花', // Kanji for "flower"
+            color: '#FF66AA', // Pink color for flower
+            fontSize: 24, // Smaller size as requested
+            behaviorType: 'explosive', // Dies on enemy contact
+            damage: playerDamage, // Full player damage on contact
+            lifespan: null, // Indefinite lifespan until touched by enemy
+            options: {
+                hasPeriodicEffect: true, // Generic flag for drops with periodic effects
+                periodicEffectCooldown: 16000, // Base cooldown for the effect
+                fireImmediately: true // Flag to indicate it should fire immediately on spawn
+            }
+        };
+    },
+    cooldown: function () {
+        // Base 32 second cooldown, scaled by luck
+        return 32000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
+    },
+    positionMode: 'random', // Random position on screen
+    activationMethod: 'periodic' // Periodically spawn flowers
+});
+
+// Function to activate the Blooming Flower perk
+window.activateBloomingFlower = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Setup periodic effects for drops (only needs to be done once)
+    setupPeriodicEffectsSystem(scene);
+
+    // Create a flower configuration
+    const flowerConfig = DropperPerkRegistry.perkDropperConfigs['BLOOMING_FLOWER'].getConfig();
+
+    // Explicitly set random position for the first flower
+    flowerConfig.x = Phaser.Math.Between(0, 1200);
+    flowerConfig.y = Phaser.Math.Between(0, 800);
+
+    // Create the first flower immediately
+    DropperSystem.create(scene, flowerConfig);
+
+    // Apply the dropper perk for future flowers
+    const controller = DropperPerkRegistry.applyDropperPerk(scene, 'BLOOMING_FLOWER');
+
+    return controller;
+};
+
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

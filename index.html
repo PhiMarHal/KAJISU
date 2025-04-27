@@ -540,6 +540,36 @@
             // Other ranks will be created when their time comes
         }
 
+        // Effective Damage
+        function getEffectiveDamage() {
+            return playerDamage * berserkMultiplier;
+        }
+
+        // Function to calculate the effective fire rate
+        function getEffectiveFireRate() {
+            return playerFireRate * archerMultiplier;
+        }
+
+        // Calculate effective projectile size based on damage
+        function getEffectiveSize(baseFontSize, damageValue) {
+            // If no base size provided, use the global projectileSizeFactor
+            const baseSize = baseFontSize ?? projectileSizeFactor;
+
+            // Use provided damage or default to playerDamage
+            const damage = damageValue ?? playerDamage;
+
+            // Get the scaling factor using square root approach
+            const scalingFactor = Math.sqrt(damage / BASE_STATS.POW);
+
+            // Apply scaling to base size with the multiplier of 4
+            return baseSize * scalingFactor * 4;
+        }
+
+        // Proc chance
+        function calculateProcChance(luck, baseChance) {
+            return baseChance * Math.sqrt(luck / BASE_STATS.LUK);
+        }
+
         // Enhanced pauseGame function
         function pauseGame(isLevelUpPause = false) {
             // Set the flag
@@ -567,30 +597,6 @@
                     timer.paused = true;
                 }
             });
-        }
-
-        function getEffectiveDamage() {
-            return playerDamage * berserkMultiplier;
-        }
-
-        // Function to calculate the effective fire rate
-        function getEffectiveFireRate() {
-            return playerFireRate * archerMultiplier;
-        }
-
-        // Calculate effective projectile size based on damage
-        function getEffectiveSize(baseFontSize, damageValue) {
-            // If no base size provided, use the global projectileSizeFactor
-            const baseSize = baseFontSize ?? projectileSizeFactor;
-
-            // Use provided damage or default to playerDamage
-            const damage = damageValue ?? playerDamage;
-
-            // Get the scaling factor using square root approach
-            const scalingFactor = Math.sqrt(damage / BASE_STATS.POW);
-
-            // Apply scaling to base size with the multiplier of 4
-            return baseSize * scalingFactor * 4;
         }
 
         // Resume the game and hide overlay
@@ -728,10 +734,6 @@
 
             // Add to container
             this.pausePerksContainer.add(perksTitle);
-        }
-
-        function calculateProcChance(luck, baseChance) {
-            return baseChance * Math.sqrt(luck / BASE_STATS.LUK);
         }
 
         // Pause the game and show overlay
@@ -1093,6 +1095,369 @@
                 });
                 scene.activePerkCard = null;
             }
+        }
+
+        // Enhanced level up cards with romaji typing challenge
+        function showLevelUpCards() {
+            // Pause the game
+            pauseGame();
+
+            // Create a container with high depth for all level-up elements
+            this.levelUpContainer = this.add.container(0, 0);
+            this.levelUpContainer.setDepth(1000); // Same depth as pause screen for consistency
+
+            // Create semi-transparent background
+            const levelUpBackground = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
+
+            // Create level up title with improved styling
+            const levelUpTitle = this.add.text(
+                600, 150,
+                'LEVEL UP!',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '32px',
+                    color: '#ffffff',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5);
+
+            // Add background and title to container
+            this.levelUpContainer.add(levelUpBackground);
+            this.levelUpContainer.add(levelUpTitle);
+
+            // Get random perks (excluding already acquired ones)
+            const selectedPerks = PerkSystem.getRandomPerks(4, acquiredPerks);
+
+            // Create tracking variables for the challenge
+            this.perkChallenge = {
+                currentCards: 1,        // Start with 1 card
+                maxCards: 4,            // Maximum of 4 cards
+                selectedPerks: selectedPerks,
+                inputActive: true,      // Whether input is active
+                attempts: 0,            // Number of failed attempts on current card
+                currentIndex: 0,        // Current perk being challenged
+                cardElements: []        // Store card elements for updating
+            };
+
+            // Create a container for cards (nested inside the main container)
+            this.perkCardContainer = this.add.container(0, 0);
+            this.levelUpContainer.add(this.perkCardContainer);
+
+            // Create input field for romaji typing
+            createRomajiInput.call(this, 600, 580);
+
+            // Create initial card(s)
+            updatePerkCardDisplay.call(this);
+
+            // Store all level up UI elements in the global array for cleanup
+            levelUpCards = [
+                this.levelUpContainer,
+                // No need to add individual elements as they'll be destroyed with the container
+            ];
+        }
+
+
+        // Function to validate romaji input
+        function validateRomajiInput() {
+            if (!this.perkChallenge || !this.perkChallenge.inputActive) return;
+
+            const userInput = this.inputText.text.trim().toLowerCase();
+            const currentPerk = this.perkChallenge.selectedPerks[this.perkChallenge.currentIndex];
+
+            if (!currentPerk) return;
+
+            const correctRomaji = currentPerk.romaji.toLowerCase();
+
+            if (userInput === correctRomaji) {
+                // Correct answer
+                handleCorrectRomaji.call(this);
+            } else {
+                // Wrong answer
+                handleWrongRomaji.call(this);
+            }
+
+            // Clear input field
+            this.inputText.setText('');
+        }
+
+        // Function to handle correct romaji input
+        function handleCorrectRomaji() {
+            // Play success sound/effect
+            this.tweens.add({
+                targets: this.inputBox,
+                strokeStyle: { value: 0x00ff00 },
+                alpha: { value: 0.8 },
+                yoyo: true,
+                duration: 200,
+                repeat: 1,
+                onComplete: () => {
+                    this.inputBox.setStrokeStyle(2, 0xaaaaaa);
+                    this.inputBox.alpha = 1;
+                }
+            });
+
+            // Show success message
+            const successText = this.add.text(
+                600, 650,
+                'Correct!',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '24px',
+                    color: '#00ff00',
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5);
+
+            // Add success text to container
+            this.levelUpContainer.add(successText);
+
+            this.tweens.add({
+                targets: successText,
+                y: successText.y - 30,
+                alpha: 0,
+                duration: 1000,
+                onComplete: function () {
+                    successText.destroy();
+                }
+            });
+
+            // Unlock the current card (show full details)
+            this.perkChallenge.attempts = 2; // Force full details
+
+            // If this is the final card (4th), give XP reward
+            if (this.perkChallenge.currentCards >= this.perkChallenge.maxCards) {
+                // Award 25% of XP needed for next level
+                const currentLevel = playerLevel;
+                const currentExpToLevel = heroExpToLevel;
+                const currentExp = heroExp;
+
+                const xpReward = Math.ceil(heroExpToLevel * 0.25);
+                console.log(`Level ${currentLevel}: Calculating reward as 25% of ${currentExpToLevel} = ${xpReward}`);
+
+                heroExp += xpReward;
+                console.log(`XP before: ${currentExp}, after: ${heroExp}, needed: ${heroExpToLevel}`);
+
+                // After updating the XP bar, check if something unexpected happened
+                setTimeout(() => {
+                    console.log(`Post-update check: Level ${playerLevel}, XP ${heroExp}/${heroExpToLevel}`);
+                    if (playerLevel > currentLevel) {
+                        console.log(`WARNING: Level changed from ${currentLevel} to ${playerLevel} after challenge reward!`);
+                    }
+                }, 100);
+                GameUI.updateExpBar(this);
+
+                // Show XP reward
+                const rewardText = this.add.text(
+                    600, 680,
+                    `+${xpReward} XP Bonus!`,
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '20px',
+                        color: '#00ffff',
+                        fontStyle: 'bold'
+                    }
+                ).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: rewardText,
+                    y: rewardText.y - 30,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: function () {
+                        rewardText.destroy();
+                    }
+                });
+
+                // End the input challenge
+                this.perkChallenge.inputActive = false;
+            } else {
+                // Increment current card count
+                this.perkChallenge.currentCards = Math.min(
+                    this.perkChallenge.currentCards + 1,
+                    this.perkChallenge.maxCards
+                );
+
+                // Update current challenge index
+                this.perkChallenge.currentIndex = this.perkChallenge.currentCards - 1;
+                this.perkChallenge.attempts = 0;
+            }
+
+            // Update card display
+            updatePerkCardDisplay.call(this);
+        }
+
+        // Function to handle incorrect romaji input
+        function handleWrongRomaji() {
+            console.log("Wrong romaji input, attempts: " + this.perkChallenge.attempts);
+
+            // Play failure sound/effect
+            this.tweens.add({
+                targets: this.inputBox,
+                strokeStyle: { value: 0xff0000 },
+                alpha: { value: 0.8 },
+                yoyo: true,
+                duration: 200,
+                repeat: 1,
+                onComplete: () => {
+                    this.inputBox.setStrokeStyle(2, 0xaaaaaa);
+                    this.inputBox.alpha = 1;
+                }
+            });
+
+            // Increment attempts
+            this.perkChallenge.attempts++;
+            console.log("Attempts increased to: " + this.perkChallenge.attempts);
+
+            if (this.perkChallenge.attempts === 1) {
+                // First wrong attempt - show kana hint
+                const hintText = this.add.text(
+                    600, 650,
+                    'Hint: Check the kana!',
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '18px',
+                        color: '#ffff00'
+                    }
+                ).setOrigin(0.5);
+
+                // Add to container
+                this.levelUpContainer.add(hintText);
+
+                this.tweens.add({
+                    targets: hintText,
+                    y: hintText.y - 20,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: function () {
+                        hintText.destroy();
+                    }
+                });
+
+                // Force show kana for the current card
+                const currentPerk = this.perkChallenge.selectedPerks[this.perkChallenge.currentIndex];
+                const cardX = this.perkChallenge.cardElements[this.perkChallenge.currentIndex].background.x;
+
+                // Add kana text directly
+                const kanaText = this.add.text(
+                    cardX, 315,
+                    currentPerk.kana,
+                    { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff' }
+                ).setOrigin(0.5);
+
+
+                this.perkCardContainer.add(kanaText);
+                this.perkChallenge.cardElements[this.perkChallenge.currentIndex].elements.push(kanaText);
+
+                console.log("Added kana hint:", currentPerk.kana);
+            } else {
+                // Second wrong attempt - end input challenge
+                const failText = this.add.text(
+                    600, 650,
+                    'Challenge ended - pick a perk',
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '18px',
+                        color: '#ff6666'
+                    }
+                ).setOrigin(0.5);
+
+                // Add to container
+                this.levelUpContainer.add(failText);
+
+                this.tweens.add({
+                    targets: failText,
+                    y: failText.y - 20,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: function () {
+                        failText.destroy();
+                    }
+                });
+
+                // End input challenge and rebuild all cards with full details
+                this.perkChallenge.inputActive = false;
+
+                // Clear and rebuild all cards
+                this.perkCardContainer.removeAll(true);
+                updatePerkCardDisplay.call(this);
+
+                console.log("Challenge ended after second failure");
+            }
+        }
+
+        // Function to update input visibility
+        function updateInputVisibility() {
+            const isInputVisible = this.perkChallenge.inputActive;
+
+            // Show/hide input elements
+            this.inputBox.setVisible(isInputVisible);
+            this.inputText.setVisible(isInputVisible);
+            this.submitButton.setVisible(isInputVisible);
+            this.inputPrompt.setVisible(isInputVisible);
+
+            // If no longer active, show encouraging message
+            if (!isInputVisible) {
+                // Change subtitle text
+                levelUpCards.forEach(element => {
+                    if (element.text === 'Type romaji to unlock more choices') {
+                        element.setText('Choose a perk to continue');
+                    }
+                });
+            }
+        }
+
+        // Modified select card function
+        function selectCard(perkType) {
+            console.log("Card selected with perk: " + perkType);
+
+            // Acquire the selected perk
+            acquirePerk(this, perkType);
+
+            // Update player stats text
+            updatePlayerStatsText();
+
+            // Update health bar
+            GameUI.updateHealthBar(this);
+
+            // First make all the elements invisible for cleaner transition
+            levelUpCards.forEach(element => {
+                if (element && element.setVisible) {
+                    element.setVisible(false);
+                }
+            });
+
+            if (this.perkCardContainer) {
+                this.perkCardContainer.setVisible(false);
+            }
+
+            // Close the cards and resume the game
+            closeLevelUpCards.call(this);
+
+            // Flash the hero when completing level up
+            this.tweens.add({
+                targets: player,
+                alpha: 0.2,
+                scale: 1.5,
+                duration: 200,
+                yoyo: true,
+                repeat: 1,
+                onComplete: function () {
+                    player.setScale(1);
+                    player.alpha = 1;
+                }
+            });
+
+            console.log("Level up complete, game resumed");
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
         }
 
         // Perk system helper functions
@@ -1805,67 +2170,6 @@
         }
 
 
-        // Enhanced level up cards with romaji typing challenge
-        function showLevelUpCards() {
-            // Pause the game
-            pauseGame();
-
-            // Create a container with high depth for all level-up elements
-            this.levelUpContainer = this.add.container(0, 0);
-            this.levelUpContainer.setDepth(1000); // Same depth as pause screen for consistency
-
-            // Create semi-transparent background
-            const levelUpBackground = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
-
-            // Create level up title with improved styling
-            const levelUpTitle = this.add.text(
-                600, 150,
-                'LEVEL UP!',
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '32px',
-                    color: '#ffffff',
-                    fontStyle: 'bold',
-                    stroke: '#000000',
-                    strokeThickness: 4
-                }
-            ).setOrigin(0.5);
-
-            // Add background and title to container
-            this.levelUpContainer.add(levelUpBackground);
-            this.levelUpContainer.add(levelUpTitle);
-
-            // Get random perks (excluding already acquired ones)
-            const selectedPerks = PerkSystem.getRandomPerks(4, acquiredPerks);
-
-            // Create tracking variables for the challenge
-            this.perkChallenge = {
-                currentCards: 1,        // Start with 1 card
-                maxCards: 4,            // Maximum of 4 cards
-                selectedPerks: selectedPerks,
-                inputActive: true,      // Whether input is active
-                attempts: 0,            // Number of failed attempts on current card
-                currentIndex: 0,        // Current perk being challenged
-                cardElements: []        // Store card elements for updating
-            };
-
-            // Create a container for cards (nested inside the main container)
-            this.perkCardContainer = this.add.container(0, 0);
-            this.levelUpContainer.add(this.perkCardContainer);
-
-            // Create input field for romaji typing
-            createRomajiInput.call(this, 600, 580);
-
-            // Create initial card(s)
-            updatePerkCardDisplay.call(this);
-
-            // Store all level up UI elements in the global array for cleanup
-            levelUpCards = [
-                this.levelUpContainer,
-                // No need to add individual elements as they'll be destroyed with the container
-            ];
-        }
-
         // Helper function to disable debug keys
         function disableDebugKeys() {
             // We'll use a simple approach: add a flag that the debug key handlers can check
@@ -2038,6 +2342,7 @@
             // Clear the flag to allow debug keys to work again
             this.debugKeysDisabled = false;
         }
+
         // Updated setupDebugKeys function that handles all debug keys including performance monitor (O key)
         function setupDebugKeys() {
             // Add debug key (R key for instant level up)
@@ -2200,307 +2505,6 @@
         // Helper function to generate random ID for keyboard event namespace
         function randomKeyboardId() {
             return 'romaji-input-' + Math.floor(Math.random() * 1000000);
-        }
-
-        // Function to validate romaji input
-        function validateRomajiInput() {
-            if (!this.perkChallenge || !this.perkChallenge.inputActive) return;
-
-            const userInput = this.inputText.text.trim().toLowerCase();
-            const currentPerk = this.perkChallenge.selectedPerks[this.perkChallenge.currentIndex];
-
-            if (!currentPerk) return;
-
-            const correctRomaji = currentPerk.romaji.toLowerCase();
-
-            if (userInput === correctRomaji) {
-                // Correct answer
-                handleCorrectRomaji.call(this);
-            } else {
-                // Wrong answer
-                handleWrongRomaji.call(this);
-            }
-
-            // Clear input field
-            this.inputText.setText('');
-        }
-
-        // Function to handle correct romaji input
-        function handleCorrectRomaji() {
-            // Play success sound/effect
-            this.tweens.add({
-                targets: this.inputBox,
-                strokeStyle: { value: 0x00ff00 },
-                alpha: { value: 0.8 },
-                yoyo: true,
-                duration: 200,
-                repeat: 1,
-                onComplete: () => {
-                    this.inputBox.setStrokeStyle(2, 0xaaaaaa);
-                    this.inputBox.alpha = 1;
-                }
-            });
-
-            // Show success message
-            const successText = this.add.text(
-                600, 650,
-                'Correct!',
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '24px',
-                    color: '#00ff00',
-                    fontStyle: 'bold'
-                }
-            ).setOrigin(0.5);
-
-            // Add success text to container
-            this.levelUpContainer.add(successText);
-
-            this.tweens.add({
-                targets: successText,
-                y: successText.y - 30,
-                alpha: 0,
-                duration: 1000,
-                onComplete: function () {
-                    successText.destroy();
-                }
-            });
-
-            // Unlock the current card (show full details)
-            this.perkChallenge.attempts = 2; // Force full details
-
-            // If this is the final card (4th), give XP reward
-            if (this.perkChallenge.currentCards >= this.perkChallenge.maxCards) {
-                // Award 25% of XP needed for next level
-                const currentLevel = playerLevel;
-                const currentExpToLevel = heroExpToLevel;
-                const currentExp = heroExp;
-
-                const xpReward = Math.ceil(heroExpToLevel * 0.25);
-                console.log(`Level ${currentLevel}: Calculating reward as 25% of ${currentExpToLevel} = ${xpReward}`);
-
-                heroExp += xpReward;
-                console.log(`XP before: ${currentExp}, after: ${heroExp}, needed: ${heroExpToLevel}`);
-
-                // After updating the XP bar, check if something unexpected happened
-                setTimeout(() => {
-                    console.log(`Post-update check: Level ${playerLevel}, XP ${heroExp}/${heroExpToLevel}`);
-                    if (playerLevel > currentLevel) {
-                        console.log(`WARNING: Level changed from ${currentLevel} to ${playerLevel} after challenge reward!`);
-                    }
-                }, 100);
-                GameUI.updateExpBar(this);
-
-                // Show XP reward
-                const rewardText = this.add.text(
-                    600, 680,
-                    `+${xpReward} XP Bonus!`,
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '20px',
-                        color: '#00ffff',
-                        fontStyle: 'bold'
-                    }
-                ).setOrigin(0.5);
-
-                this.tweens.add({
-                    targets: rewardText,
-                    y: rewardText.y - 30,
-                    alpha: 0,
-                    duration: 1500,
-                    onComplete: function () {
-                        rewardText.destroy();
-                    }
-                });
-
-                // End the input challenge
-                this.perkChallenge.inputActive = false;
-            } else {
-                // Increment current card count
-                this.perkChallenge.currentCards = Math.min(
-                    this.perkChallenge.currentCards + 1,
-                    this.perkChallenge.maxCards
-                );
-
-                // Update current challenge index
-                this.perkChallenge.currentIndex = this.perkChallenge.currentCards - 1;
-                this.perkChallenge.attempts = 0;
-            }
-
-            // Update card display
-            updatePerkCardDisplay.call(this);
-        }
-
-        // Function to handle incorrect romaji input
-        function handleWrongRomaji() {
-            console.log("Wrong romaji input, attempts: " + this.perkChallenge.attempts);
-
-            // Play failure sound/effect
-            this.tweens.add({
-                targets: this.inputBox,
-                strokeStyle: { value: 0xff0000 },
-                alpha: { value: 0.8 },
-                yoyo: true,
-                duration: 200,
-                repeat: 1,
-                onComplete: () => {
-                    this.inputBox.setStrokeStyle(2, 0xaaaaaa);
-                    this.inputBox.alpha = 1;
-                }
-            });
-
-            // Increment attempts
-            this.perkChallenge.attempts++;
-            console.log("Attempts increased to: " + this.perkChallenge.attempts);
-
-            if (this.perkChallenge.attempts === 1) {
-                // First wrong attempt - show kana hint
-                const hintText = this.add.text(
-                    600, 650,
-                    'Hint: Check the kana!',
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '18px',
-                        color: '#ffff00'
-                    }
-                ).setOrigin(0.5);
-
-                // Add to container
-                this.levelUpContainer.add(hintText);
-
-                this.tweens.add({
-                    targets: hintText,
-                    y: hintText.y - 20,
-                    alpha: 0,
-                    duration: 1500,
-                    onComplete: function () {
-                        hintText.destroy();
-                    }
-                });
-
-                // Force show kana for the current card
-                const currentPerk = this.perkChallenge.selectedPerks[this.perkChallenge.currentIndex];
-                const cardX = this.perkChallenge.cardElements[this.perkChallenge.currentIndex].background.x;
-
-                // Add kana text directly
-                const kanaText = this.add.text(
-                    cardX, 315,
-                    currentPerk.kana,
-                    { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff' }
-                ).setOrigin(0.5);
-
-
-                this.perkCardContainer.add(kanaText);
-                this.perkChallenge.cardElements[this.perkChallenge.currentIndex].elements.push(kanaText);
-
-                console.log("Added kana hint:", currentPerk.kana);
-            } else {
-                // Second wrong attempt - end input challenge
-                const failText = this.add.text(
-                    600, 650,
-                    'Challenge ended - pick a perk',
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '18px',
-                        color: '#ff6666'
-                    }
-                ).setOrigin(0.5);
-
-                // Add to container
-                this.levelUpContainer.add(failText);
-
-                this.tweens.add({
-                    targets: failText,
-                    y: failText.y - 20,
-                    alpha: 0,
-                    duration: 1500,
-                    onComplete: function () {
-                        failText.destroy();
-                    }
-                });
-
-                // End input challenge and rebuild all cards with full details
-                this.perkChallenge.inputActive = false;
-
-                // Clear and rebuild all cards
-                this.perkCardContainer.removeAll(true);
-                updatePerkCardDisplay.call(this);
-
-                console.log("Challenge ended after second failure");
-            }
-        }
-
-        // Function to update input visibility
-        function updateInputVisibility() {
-            const isInputVisible = this.perkChallenge.inputActive;
-
-            // Show/hide input elements
-            this.inputBox.setVisible(isInputVisible);
-            this.inputText.setVisible(isInputVisible);
-            this.submitButton.setVisible(isInputVisible);
-            this.inputPrompt.setVisible(isInputVisible);
-
-            // If no longer active, show encouraging message
-            if (!isInputVisible) {
-                // Change subtitle text
-                levelUpCards.forEach(element => {
-                    if (element.text === 'Type romaji to unlock more choices') {
-                        element.setText('Choose a perk to continue');
-                    }
-                });
-            }
-        }
-
-        // Modified select card function
-        function selectCard(perkType) {
-            console.log("Card selected with perk: " + perkType);
-
-            // Acquire the selected perk
-            acquirePerk(this, perkType);
-
-            // Update player stats text
-            updatePlayerStatsText();
-
-            // Update health bar
-            GameUI.updateHealthBar(this);
-
-            // First make all the elements invisible for cleaner transition
-            levelUpCards.forEach(element => {
-                if (element && element.setVisible) {
-                    element.setVisible(false);
-                }
-            });
-
-            if (this.perkCardContainer) {
-                this.perkCardContainer.setVisible(false);
-            }
-
-            // Close the cards and resume the game
-            closeLevelUpCards.call(this);
-
-            // Flash the hero when completing level up
-            this.tweens.add({
-                targets: player,
-                alpha: 0.2,
-                scale: 1.5,
-                duration: 200,
-                yoyo: true,
-                repeat: 1,
-                onComplete: function () {
-                    player.setScale(1);
-                    player.alpha = 1;
-                }
-            });
-
-            console.log("Level up complete, game resumed");
-        }
-
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
         }
 
         function detectKeyboardLayout() {

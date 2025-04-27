@@ -232,6 +232,9 @@ ProjectileComponentSystem.registerComponent('poisonEffect', {
             let completedTicks = 0;
             const totalTicks = 4;
 
+            // Create unique damage source ID for this poison instance
+            const poisonSourceId = `poison_${Date.now()}_${Math.random()}`;
+
             // Create and register the poison timer
             const poisonTimer = registerTimer(scene.time.addEvent({
                 delay: 1000, // 1 second between ticks
@@ -241,26 +244,23 @@ ProjectileComponentSystem.registerComponent('poisonEffect', {
                         return;
                     }
 
-                    // Apply poison damage
-                    enemy.health -= tickDamage;
-
-                    // Flash enemy to show damage
-                    scene.tweens.add({
-                        targets: enemy,
-                        alpha: 0.6,
-                        duration: 100,
-                        yoyo: true
-                    });
+                    // Apply poison damage using the contact damage system
+                    applyContactDamage.call(scene,
+                        {
+                            damageSourceId: poisonSourceId,
+                            damage: tickDamage,
+                            active: true
+                        },
+                        enemy,
+                        tickDamage,
+                        0 // No cooldown needed as timer already provides spacing
+                    );
 
                     // Count this tick
                     completedTicks++;
 
-                    // Check if enemy is defeated by poison
-                    if (enemy.health <= 0) {
-                        defeatedEnemy.call(scene, enemy);
-                    }
                     // Reset color if this is the last tick and enemy still alive
-                    else if (completedTicks === totalTicks && enemy.active) {
+                    if (completedTicks === totalTicks && enemy.active) {
                         enemy.setColor(enemy.originalColor);
                     }
                 },

@@ -1287,7 +1287,7 @@
         // Export for use in other files if needed
         window.showEnemyDamageEffect = showEnemyDamageEffect;
 
-        // Generic function for handling contact-based damage with cooldown
+        // Generic function for handling damage with cooldown
         function applyContactDamage(source, enemy, damage, cooldownMs = 1000) {
             // Skip if either object is already destroyed
             if (!source.active || !enemy.active) return;

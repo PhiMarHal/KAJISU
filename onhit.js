@@ -86,15 +86,24 @@ const OnHitEffectSystem = {
     }
 };
 
-// Register component for Purple Hedgehog effect
-OnHitEffectSystem.registerComponent('defensiveBurst', {
-    // No need to store state for this simple component
-    onHit: function (scene, enemy) {
-        // Calculate number of projectiles based on luck (2 * LUCK)
-        const projectileCount = playerLuck * 2;
+// Generalized defensive burst function that can be called from anywhere
+window.createDefensiveBurst = function (scene, x, y, options = {}) {
+    // Default options
+    const defaults = {
+        projectileCount: playerLuck * 2, // Default to 2 * LUCK projectiles
+        color: '#9370db',                // Default purple color
+        symbol: '★',                     // Default star symbol
+        speed: 400,                      // Default speed
+        damage: playerDamage,            // Default to player damage
+        visualEffect: true               // Whether to show burst visual effect
+    };
 
-        // Visual effect at player position
-        const burstEffect = scene.add.circle(player.x, player.y, 40, 0x9370db, 0.5);
+    // Merge provided options with defaults
+    const config = { ...defaults, ...options };
+
+    // Visual effect at the position
+    if (config.visualEffect) {
+        const burstEffect = scene.add.circle(x, y, 40, 0x9370db, 0.5);
         scene.tweens.add({
             targets: burstEffect,
             alpha: 0,
@@ -104,25 +113,43 @@ OnHitEffectSystem.registerComponent('defensiveBurst', {
                 burstEffect.destroy();
             }
         });
+    }
 
-        // Create each projectile in the burst
-        for (let i = 0; i < projectileCount; i++) {
-            // Calculate angle for even distribution (in radians)
-            const angle = (i / projectileCount) * Math.PI * 2;
+    // Create each projectile in the burst
+    const projectiles = [];
+    for (let i = 0; i < config.projectileCount; i++) {
+        // Calculate angle for even distribution (in radians)
+        const angle = (i / config.projectileCount) * Math.PI * 2;
 
-            // Create projectile using shared base
-            const projectile = createProjectileBase(scene, player.x, player.y, '#9370db');
+        // Create projectile using shared base
+        const projectile = createProjectileBase(scene, x, y, config.color, config.symbol);
 
-            // Set velocity based on angle
-            const speed = 400;
-            projectile.body.setVelocity(
-                Math.cos(angle) * speed,
-                Math.sin(angle) * speed
-            );
+        // Set velocity based on angle
+        projectile.body.setVelocity(
+            Math.cos(angle) * config.speed,
+            Math.sin(angle) * config.speed
+        );
 
-            // Add special property
-            projectile.isDefensiveBurst = true;
-        }
+        // Set damage
+        projectile.damage = config.damage;
+
+        // Add special property
+        projectile.isDefensiveBurst = true;
+
+        // Add to return array
+        projectiles.push(projectile);
+    }
+
+    // Return created projectiles for any additional processing
+    return projectiles;
+};
+
+// Update the existing defensiveBurst component to use the new function
+OnHitEffectSystem.registerComponent('defensiveBurst', {
+    // No need to store state for this simple component
+    onHit: function (scene, enemy) {
+        // Simply call the generalized function at player position
+        window.createDefensiveBurst(scene, player.x, player.y);
     }
 });
 

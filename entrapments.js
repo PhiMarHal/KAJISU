@@ -53,19 +53,21 @@ const DropperPerkRegistry = {
 // Register the Amber Beetle perk (landmines)
 DropperPerkRegistry.registerDropperPerk('AMBER_BEETLE', {
     getConfig: function () {
+        const amberDamage = playerDamage * 2;
+
         return {
             symbol: '★',
             color: '#ffbf00', // Amber color
-            fontSize: projectileSizeFactor * playerDamage * 1.2,
+            fontSize: getEffectiveSize(projectileSizeFactor, amberDamage),
             behaviorType: 'explosive',
-            damage: playerDamage * 2,
+            damage: amberDamage,
             lifespan: null,
             options: {}
         };
     },
     cooldown: function () {
         // Calculate cooldown based on Agility
-        return 16000 / playerFireRate;
+        return 4000 / (Math.sqrt(playerFireRate / BASE_STATS.AGI));
     },
     positionMode: 'player',
     activationMethod: 'periodic'

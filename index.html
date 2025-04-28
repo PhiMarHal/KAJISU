@@ -1948,6 +1948,7 @@
 
             // Update orbitals
             OrbitalSystem.update(this, time);
+            DropperSystem.update(this, time);
 
             // Calculate difficulty scaling based on elapsed time instead of raw time
             const minutesElapsed = elapsedTime / 60;

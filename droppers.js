@@ -104,7 +104,6 @@ const DropperSystem = {
             damageInterval: dropConfig.damageInterval,
             createdAt: scene.time.now,
             lifespan: dropConfig.lifespan,
-            lastAreaEffect: 0,           // Timestamp of last area effect (for areaEffect behavior)
             areaEffectInterval: dropConfig.options.areaEffectInterval ?? 1000,
             areaEffectRadius: dropConfig.options.areaEffectRadius ?? 100,
             options: dropConfig.options,
@@ -116,6 +115,25 @@ const DropperSystem = {
 
         // Register for cleanup
         window.registerEffect('entity', entity);
+
+        // If this is an area effect, set up its timer using CooldownManager
+        if (drop.behaviorType === 'areaEffect') {
+            drop.areaEffectTimer = CooldownManager.createTimer({
+                statName: 'luck',
+                baseCooldown: drop.areaEffectInterval,
+                formula: 'divide',
+                component: drop, // Reference for cleanup
+                callback: function () {
+                    if (gameOver || gamePaused || drop.destroyed ||
+                        !drop.entity || !drop.entity.active) return;
+
+                    // Process the area effect
+                    DropperSystem.processAreaEffect(scene, drop, scene.time.now);
+                },
+                callbackScope: scene,
+                loop: true
+            });
+        }
 
         // Get the appropriate behavior function
         const behavior = DropBehaviors[dropConfig.behaviorType] ?? DropBehaviors.explosive;
@@ -165,26 +183,12 @@ const DropperSystem = {
         // Skip if no drops or game state prevents updates
         if (gameOver || gamePaused || drops.length === 0) return;
 
-        // Process area effects for relevant drops
-        drops.forEach(drop => {
-            // Skip if not an area effect or already destroyed
-            if (drop.behaviorType !== 'areaEffect' || drop.destroyed ||
-                !drop.entity || !drop.entity.active) return;
-
-            // Check if it's time for another area effect
-            const timeSinceLastEffect = time - drop.lastAreaEffect;
-            if (timeSinceLastEffect < drop.areaEffectInterval) return;
-
-            // Apply area effect
-            this.processAreaEffect(scene, drop, time);
-            drop.lastAreaEffect = time;
-        });
-
         // Clean up destroyed drops
         this.cleanupInactive();
     },
 
     // Process area effect for a drop
+    // Updated processAreaEffect function in DropperSystem
     processAreaEffect: function (scene, drop, time) {
         // Get all active enemies
         const allEnemies = enemies.getChildren();
@@ -192,6 +196,15 @@ const DropperSystem = {
         // Get center position of the drop
         const centerX = drop.entity.x;
         const centerY = drop.entity.y;
+
+        // Get the radius for this effect
+        const radius = drop.areaEffectRadius;
+
+        // Get the color from drop options or use default yellow
+        const effectColor = drop.options.pulseColor ?? 0xffff00;
+
+        // Always create visual effect regardless of enemy hits
+        this.createPulseEffect(scene, centerX, centerY, radius, effectColor);
 
         // Apply damage to all enemies in range
         let hitCount = 0;
@@ -205,18 +218,9 @@ const DropperSystem = {
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             // If within effect radius, apply damage
-            if (distance <= drop.areaEffectRadius) {
-                // Visual effect for enemy being affected
-                scene.tweens.add({
-                    targets: enemy,
-                    alpha: 0.7,
-                    duration: 100,
-                    yoyo: true
-                });
-
-                // Apply damage (with falloff based on distance)
-                const falloff = 1 - (distance / drop.areaEffectRadius) * 0.5; // 50% falloff at max range
-                const damageAmount = drop.entity.damage * falloff;
+            if (distance <= radius) {
+                // Apply full damage without falloff
+                const damageAmount = drop.entity.damage;
 
                 // Create a unique source ID for each enemy in each pulse
                 const areaSourceId = `${drop.entity.damageSourceId}_area_${enemy.id ?? Math.random()}`;
@@ -237,28 +241,32 @@ const DropperSystem = {
                 hitCount++;
             }
         });
+    },
 
-        // If any enemies were hit, show area effect animation
-        if (hitCount > 0) {
-            // Create pulse animation
-            const pulse = scene.add.circle(
-                centerX,
-                centerY,
-                drop.areaEffectRadius,
-                0xffaa00,
-                0.2
-            );
+    // New helper method to create the pulse visual effect
+    createPulseEffect: function (scene, x, y, radius, color) {
+        // Create an outlined circle for pulse effect
+        const pulse = scene.add.circle(x, y, radius * 0.8, color, 0);
 
-            scene.tweens.add({
-                targets: pulse,
-                alpha: 0,
-                scale: 1.2,
-                duration: 500,
-                onComplete: function () {
-                    pulse.destroy();
-                }
-            });
-        }
+        // Set a stroke (outline) instead of a fill
+        pulse.setStrokeStyle(4, color, 1);
+
+        // Start with a very small scale
+        pulse.setScale(0.2);
+
+        // Animate from small to full size with fade-out
+        scene.tweens.add({
+            targets: pulse,
+            scale: 1, // Expand to exactly the intended radius
+            alpha: 0, // Fade out as it reaches full size
+            duration: 1000,
+            ease: 'Power2', // Physics feel to the expansion
+            onComplete: function () {
+                pulse.destroy();
+            }
+        });
+
+        return pulse;
     },
 
     // Clean up inactive drops
@@ -490,6 +498,12 @@ const DropperSystem = {
         if (drop.effectTimer) {
             CooldownManager.removeTimer(drop.effectTimer);
             drop.effectTimer = null;
+        }
+
+        // Also clean up area effect timer if it exists
+        if (drop.areaEffectTimer) {
+            CooldownManager.removeTimer(drop.areaEffectTimer);
+            drop.areaEffectTimer = null;
         }
 
         // Destroy the entity if it exists

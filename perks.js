@@ -310,6 +310,18 @@ const PERKS = {
             // The logic for this is handled in the projectileHitEnemy function
         }
     },
+    "AREA_PULSE": {
+        kanji: "波動",
+        kana: "はどう",
+        romaji: "hadou",
+        english: "Area Pulse",
+        description: "Periodically creates pulsing fields that damage nearby enemies",
+        color: "#ff00ff", // Magenta color
+        hoverColor: 0xdd00dd,
+        onAcquire: function () {
+            window.activateAreaPulse();
+        }
+    },
     "SCARLET_EMBER": {
         kanji: "緋炎",
         kana: "ひえん",

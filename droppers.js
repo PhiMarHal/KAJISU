@@ -37,6 +37,7 @@ const DropBehaviors = {
     areaEffect: function (scene, drop, enemy) {
         // We don't need to do anything here since area effects 
         // are processed by the update loop, not by collision
+        destroyDrop(drop);
     }
 };
 

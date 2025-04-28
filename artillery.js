@@ -210,7 +210,66 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
 
 });
 
-// Register component for poison effect
+function applyPoisonEffect(scene, enemy, baseDamage) {
+    if (enemy.health <= 0) return;
+
+    // Store original color to reset after poison
+    enemy.originalColor = enemy.style.color || '#ff5555';
+
+    // Set enemy color to indicate poison
+    enemy.setColor('#2aad27');
+
+    // Calculate poison tick damage
+    const tickDamage = baseDamage * 0.5;
+
+    // Track completed ticks (for timer completion detection)
+    let completedTicks = 0;
+    const totalTicks = 4;
+
+    // Create unique damage source ID for this poison instance
+    const poisonSourceId = `poison_${Date.now()}_${Math.random()}`;
+
+    // Create and register the poison timer
+    const poisonTimer = registerTimer(scene.time.addEvent({
+        delay: 1000, // 1 second between ticks
+        callback: function () {
+            // Skip if enemy is destroyed
+            if (!enemy || !enemy.active) {
+                return;
+            }
+
+            // Apply poison damage using the contact damage system
+            applyContactDamage.call(scene,
+                {
+                    damageSourceId: poisonSourceId,
+                    damage: tickDamage,
+                    active: true
+                },
+                enemy,
+                tickDamage,
+                0 // No cooldown needed as timer already provides spacing
+            );
+
+            // Count this tick
+            completedTicks++;
+
+            // Reset color if this is the last tick and enemy still alive
+            if (completedTicks === totalTicks && enemy.active) {
+                enemy.setColor(enemy.originalColor);
+            }
+        },
+        callbackScope: scene,
+        repeat: totalTicks - 1 // 4 ticks total (first run + 3 repeats)
+    }));
+
+    // Register the timer for proper cleanup
+    window.registerEffect('timer', poisonTimer);
+}
+
+// Make the function globally accessible
+window.applyPoisonEffect = applyPoisonEffect;
+
+// Now modify the poisonEffect component to use this function
 ProjectileComponentSystem.registerComponent('poisonEffect', {
     initialize: function (projectile) {
         // Visual indicator
@@ -219,57 +278,8 @@ ProjectileComponentSystem.registerComponent('poisonEffect', {
 
     onHit: function (projectile, enemy, scene) {
         if (enemy.health > 0) {
-            // Store original color to reset after poison
-            enemy.originalColor = enemy.style.color || '#ff5555';
-
-            // Set enemy color to indicate poison
-            enemy.setColor('#2aad27');
-
-            // Calculate poison tick damage
-            const tickDamage = playerDamage * 0.5;
-
-            // Track completed ticks (for timer completion detection)
-            let completedTicks = 0;
-            const totalTicks = 4;
-
-            // Create unique damage source ID for this poison instance
-            const poisonSourceId = `poison_${Date.now()}_${Math.random()}`;
-
-            // Create and register the poison timer
-            const poisonTimer = registerTimer(scene.time.addEvent({
-                delay: 1000, // 1 second between ticks
-                callback: function () {
-                    // Skip if enemy is destroyed
-                    if (!enemy || !enemy.active) {
-                        return;
-                    }
-
-                    // Apply poison damage using the contact damage system
-                    applyContactDamage.call(scene,
-                        {
-                            damageSourceId: poisonSourceId,
-                            damage: tickDamage,
-                            active: true
-                        },
-                        enemy,
-                        tickDamage,
-                        0 // No cooldown needed as timer already provides spacing
-                    );
-
-                    // Count this tick
-                    completedTicks++;
-
-                    // Reset color if this is the last tick and enemy still alive
-                    if (completedTicks === totalTicks && enemy.active) {
-                        enemy.setColor(enemy.originalColor);
-                    }
-                },
-                callbackScope: scene,
-                repeat: totalTicks - 1 // 4 ticks total (first run + 3 repeats)
-            }));
-
-            // Register the timer for proper cleanup
-            window.registerEffect('timer', poisonTimer);
+            // Use the extracted function
+            applyPoisonEffect(scene, enemy, projectile.damage);
         }
     }
 });

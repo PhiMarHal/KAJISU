@@ -252,7 +252,7 @@ const DropperSystem = {
         pulse.setStrokeStyle(4, color, 1);
 
         // Start with a very small scale
-        pulse.setScale(0.2);
+        pulse.setScale(0.01);
 
         // Animate from small to full size with fade-out
         scene.tweens.add({

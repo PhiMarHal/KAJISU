@@ -117,8 +117,6 @@ window.activateAfterImages = function () {
     DropperPerkRegistry.applyDropperPerk(scene, 'GREEN_DREAM');
 };
 
-// entrapments.js - Add after existing perk registrations
-
 // Register the Blooming Flower perk
 DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
     getConfig: function () {
@@ -131,7 +129,7 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             lifespan: null, // Indefinite lifespan until touched by enemy
             options: {
                 hasPeriodicEffect: true, // Generic flag for drops with periodic effects
-                periodicEffectCooldown: 16000, // Base cooldown for the effect
+                periodicEffectCooldown: 15000, // Base cooldown for the effect
                 fireImmediately: true // Flag to indicate it should fire immediately on spawn
             }
         };

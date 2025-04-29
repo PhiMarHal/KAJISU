@@ -245,28 +245,7 @@ const DropperSystem = {
 
     // New helper method to create the pulse visual effect
     createPulseEffect: function (scene, x, y, radius, color) {
-        // Create an outlined circle for pulse effect
-        const pulse = scene.add.circle(x, y, radius * 0.8, color, 0);
-
-        // Set a stroke (outline) instead of a fill
-        pulse.setStrokeStyle(4, color, 1);
-
-        // Start with a very small scale
-        pulse.setScale(0.01);
-
-        // Animate from small to full size with fade-out
-        scene.tweens.add({
-            targets: pulse,
-            scale: 1, // Expand to exactly the intended radius
-            alpha: 0, // Fade out as it reaches full size
-            duration: 1000,
-            ease: 'Power2', // Physics feel to the expansion
-            onComplete: function () {
-                pulse.destroy();
-            }
-        });
-
-        return pulse;
+        return VisualEffects.createExplosion(scene, x, y, radius, color);
     },
 
     // Clean up inactive drops

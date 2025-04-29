@@ -178,7 +178,7 @@ DropperPerkRegistry.registerDropperPerk('AREA_PULSE', {
             behaviorType: 'areaEffect', // Use the area effect behavior
             damage: playerDamage * 5, // 5x player damage per pulse
             damageInterval: 0, // Not used for area effects
-            lifespan: 1000000, // 10 seconds lifespan
+            lifespan: null, // 
             options: {
                 areaEffectInterval: 6000, // Pulse every 2 seconds
                 areaEffectRadius: 400, // 400px radius

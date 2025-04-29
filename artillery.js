@@ -186,25 +186,8 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
     },
 
     createExplosionEffect: function (x, y, scene) {
-        // Create an outlined circle
-        const explosion = scene.add.circle(x, y, this.radius * 0.8, 0xFF9500, 0);
-
-        // Set a stroke (outline) instead of a fill
-        explosion.setStrokeStyle(4, 0xFF9500, 1); // 3px width, amber color, 70% opacity
-
-        // Start with a very small scale
-        explosion.setScale(0.2);
-
-        // Animate from small to full size with fade-out
-        scene.tweens.add({
-            targets: explosion,
-            scale: 1, // Expand to exactly the intended radius
-            alpha: 0, // Fade out as it reaches full size
-            duration: 1000,
-            ease: 'Power2', // Gives a bit of physics feel to the expansion
-            onComplete: function () {
-                explosion.destroy();
-            }
+        return VisualEffects.createExplosion(scene, x, y, this.radius, 0xFF9500, {
+            startScale: 0.2
         });
     }
 
@@ -351,7 +334,7 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
 
     createStompEffect: function (projectile, scene) {
         // Calculate radius based on player luck
-        const radius = 80 * Math.sqrt(playerLuck / BASE_STATS.LUK)
+        const radius = 80 * Math.sqrt(playerLuck / BASE_STATS.LUK);
 
         // Get player position
         const x = player.x;
@@ -360,27 +343,12 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
         // Create a unique damage source ID that's available in this scope
         const damageId = `stomp_${Date.now()}_${Math.random()}`;
 
-        // Create an outlined circle for stomp effect
-        const explosion = scene.add.circle(x, y, radius * 0.8, 0x8B4513, 0);
-
-        // Set a stroke (outline) instead of a fill - using brown color for stomp
-        explosion.setStrokeStyle(4, 0x8B4513, 1);
-
-        // Start with a very small scale
-        explosion.setScale(0.2);
-
-        // Animate from small to full size with fade-out
-        scene.tweens.add({
-            targets: explosion,
-            scale: 1, // Expand to exactly the intended radius
-            alpha: 0, // Fade out as it reaches full size
-            duration: 1000, // Match the duration of the explosion effect
-            ease: 'Power2', // Same easing for consistency
-            onComplete: function () {
-                explosion.destroy();
-            }
+        // Use our generic explosion effect with brown color (0x8B4513) for stomp
+        VisualEffects.createExplosion(scene, x, y, radius, 0x8B4513, {
+            startScale: 0.2
         });
 
+        // The rest of the damage logic remains unchanged
         // Get all active enemies
         const allEnemies = enemies.getChildren();
 

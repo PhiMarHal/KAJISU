@@ -230,7 +230,6 @@ window.TimeDilationSystem = {
         this.currentTimeScale = 1.0;
         this.playerSpeedFactor = 1.0;
         this.enemySlowdown = 1.0;
-        this.originalPlayerSpeed = playerSpeed;
     },
 
     // Function to enter slow motion gradually
@@ -238,11 +237,6 @@ window.TimeDilationSystem = {
         // Cancel any existing tween to avoid conflicts
         if (this.slowMoTween) {
             this.slowMoTween.stop();
-        }
-
-        // Store original player speed if not already stored
-        if (!this.originalPlayerSpeed) {
-            this.originalPlayerSpeed = playerSpeed;
         }
 
         // Create tween to gradually slow down time
@@ -261,7 +255,7 @@ window.TimeDilationSystem = {
                 enemySpeedFactor = this.enemySlowdown;
 
                 // Update player speed
-                playerSpeed = this.originalPlayerSpeed * this.playerSpeedFactor;
+                playerSpeed = basePlayerSpeed * this.playerSpeedFactor;
             },
             onComplete: () => {
                 this.isActive = true;
@@ -297,7 +291,7 @@ window.TimeDilationSystem = {
                 enemySpeedFactor = this.enemySlowdown;
 
                 // Update player speed
-                playerSpeed = this.originalPlayerSpeed * this.playerSpeedFactor;
+                playerSpeed = basePlayerSpeed * this.playerSpeedFactor;
             },
             onComplete: () => {
                 this.isActive = false;
@@ -306,7 +300,7 @@ window.TimeDilationSystem = {
                 enemySpeedFactor = 1.0;
 
                 // Ensure player speed is fully restored
-                playerSpeed = this.originalPlayerSpeed;
+                playerSpeed = basePlayerSpeed;
             }
         });
     },
@@ -374,11 +368,6 @@ window.TimeDilationSystem = {
         if (this.exitTimer) {
             this.exitTimer.remove();
             this.exitTimer = null;
-        }
-
-        // Restore player speed
-        if (this.originalPlayerSpeed) {
-            playerSpeed = this.originalPlayerSpeed;
         }
 
         this.isActive = false;

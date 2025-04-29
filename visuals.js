@@ -34,12 +34,35 @@ const VisualEffects = {
 
         // Return the pulse object for further customization if needed
         return pulse;
+    },
+
+    // Create a pulsing animation effect (for beacons, items, etc.)
+    createPulsing: function (scene, target, options = {}) {
+        // Default options
+        const scaleFrom = options.scaleFrom ?? 0.9;
+        const scaleTo = options.scaleTo ?? 1.1;
+        const duration = options.duration ?? 1000;
+        const yoyo = options.yoyo ?? true;
+        const repeat = options.repeat ?? -1; // -1 means infinite loop
+        const ease = options.ease ?? 'Sine.InOut';
+        const delay = options.delay ?? 0;
+
+        // Create the tween
+        const tween = scene.tweens.add({
+            targets: target,
+            scale: { from: scaleFrom, to: scaleTo },
+            duration: duration,
+            yoyo: yoyo,
+            repeat: repeat,
+            ease: ease,
+            delay: delay
+        });
+
+        // Return the tween in case the caller wants to modify it
+        return tween;
     }
 
-    // Future visual effects will be added here
-    // createDamageNumber: function(...) { ... },
-    // createShockwave: function(...) { ... },
-    // etc.
+    // Additional visual effects can be added here
 };
 
 // Export the entire namespace to window

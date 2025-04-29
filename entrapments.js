@@ -59,7 +59,7 @@ DropperPerkRegistry.registerDropperPerk('AMBER_BEETLE', {
             symbol: '★',
             color: '#ffbf00', // Amber color
             fontSize: getEffectiveSize(projectileSizeFactor, amberDamage),
-            behaviorType: 'explosive',
+            behaviorType: 'projectile',
             damage: amberDamage,
             lifespan: null,
             options: {}
@@ -124,7 +124,7 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             symbol: '花', // Kanji for "flower"
             color: '#FF66AA', // Pink color for flower
             fontSize: 24, // Smaller size as requested
-            behaviorType: 'explosive', // Dies on enemy contact
+            behaviorType: 'projectile', // Dies on enemy contact
             damage: playerDamage, // Full player damage on contact
             lifespan: null, // Indefinite lifespan until touched by enemy
             options: {

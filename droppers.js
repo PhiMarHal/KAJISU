@@ -6,15 +6,15 @@ const drops = [];
 
 // Behavior definitions for different types of drops
 const DropBehaviors = {
-    // Explosive behavior - detonates on enemy contact
-    explosive: function (scene, drop, enemy) {
+    // projectile behavior - detonates on enemy contact
+    projectile: function (scene, drop, enemy) {
         // Apply damage to the enemy using the contact damage system
         applyContactDamage.call(
             scene,
             drop.entity,
             enemy,
             drop.entity.damage,
-            0 // No cooldown for explosives as they destroy themselves after contact
+            0 // No cooldown for projectiles as they destroy themselves after contact
         );
 
         // Destroy the drop
@@ -58,7 +58,7 @@ const DropperSystem = {
             fontSize: 32,                // Size of the font
             x: player.x,                 // X position (default to player position)
             y: player.y,                 // Y position (default to player position)
-            behaviorType: 'explosive',   // Behavior type ('explosive', 'persistent', 'areaEffect')
+            behaviorType: 'projectile',   // Behavior type ('projectile', 'persistent', 'areaEffect')
             damage: playerDamage,        // Damage dealt to enemies
             damageInterval: 500,         // Minimum time between damage instances in ms
             colliderSize: 0.8,           // Size multiplier for collision detection
@@ -136,7 +136,7 @@ const DropperSystem = {
         }
 
         // Get the appropriate behavior function
-        const behavior = DropBehaviors[dropConfig.behaviorType] ?? DropBehaviors.explosive;
+        const behavior = DropBehaviors[dropConfig.behaviorType] ?? DropBehaviors.projectile;
 
         // Add overlap with enemies based on behavior
         scene.physics.add.overlap(entity, enemies, function (dropEntity, enemy) {

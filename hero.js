@@ -940,13 +940,7 @@ PlayerComponentSystem.registerComponent('divineBeaconAbility', {
         }, null, this);
 
         // Add pulsing animation
-        this.tweens.add({
-            targets: beacon,
-            scale: { from: 0.9, to: 1.1 },
-            duration: 1000,
-            yoyo: true,
-            repeat: -1
-        });
+        VisualEffects.createPulsing(this, beacon);
     },
 
     cleanup: function (player) {
@@ -1070,13 +1064,7 @@ PlayerComponentSystem.registerComponent('angelHoneyAbility', {
         }, null, this);
 
         // Add pulsing animation
-        this.tweens.add({
-            targets: honey,
-            scale: { from: 0.9, to: 1.1 },
-            duration: 1000,
-            yoyo: true,
-            repeat: -1
-        });
+        VisualEffects.createPulsing(this, honey);
     },
 
     cleanup: function (player) {
@@ -1204,13 +1192,7 @@ PlayerComponentSystem.registerComponent('alienClockAbility', {
         }, null, this);
 
         // Add pulsing animation
-        this.tweens.add({
-            targets: beacon,
-            scale: { from: 0.9, to: 1.1 },
-            duration: 1000,
-            yoyo: true,
-            repeat: -1
-        });
+        VisualEffects.createPulsing(this, beacon);
     },
 
     cleanup: function (player) {

@@ -19,7 +19,7 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
 - time slowdown fails to affect orbits and tweens
 - picking up clock during slowdown period fails to activate effect
-- speed sometimes doesn't reset 
+- speed sometimes doesn't reset <= probably fixed with basePlayerSpeed, but that's a bit of a hack
 
 DONE
 - Move remaining perks outside of index.html (orbiting? landmine?) orbiting done. landmine+afterimage next

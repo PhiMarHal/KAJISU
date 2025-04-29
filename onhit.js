@@ -223,6 +223,7 @@ window.TimeDilationSystem = {
     originalPlayerSpeed: null,
     exitTimer: null,
     slowMoTween: null,
+    isExiting: false,
 
     // Initialize the system
     initialize: function () {
@@ -238,6 +239,9 @@ window.TimeDilationSystem = {
         if (this.slowMoTween) {
             this.slowMoTween.stop();
         }
+
+        // Reset the exiting flag
+        this.isExiting = false;
 
         // Create tween to gradually slow down time
         this.slowMoTween = scene.tweens.add({
@@ -270,6 +274,9 @@ window.TimeDilationSystem = {
 
     // Function to exit slow motion gradually
     exitSlowMotion: function (scene) {
+        // Set the exiting flag
+        this.isExiting = true;
+
         // Cancel any existing tween
         if (this.slowMoTween) {
             this.slowMoTween.stop();
@@ -295,6 +302,7 @@ window.TimeDilationSystem = {
             },
             onComplete: () => {
                 this.isActive = false;
+                this.isExiting = false; // Reset the exiting flag
 
                 // Reset global enemy speed factor (redundant but safe)
                 enemySpeedFactor = 1.0;
@@ -382,16 +390,21 @@ window.activateTimeDilation = function (duration = null, showVisualEffect = true
     const scene = game.scene.scenes[0];
     if (!scene) return false;
 
-    // Initialize the system if needed
-    if (!window.TimeDilationSystem.isActive) {
-        window.TimeDilationSystem.initialize();
-    }
-
     // Calculate duration based on luck if none provided
     const actualDuration = duration ?? Math.sqrt(playerLuck / BASE_STATS.LUK) * 1000;
 
-    // If already active, just reset/extend the timer
-    if (window.TimeDilationSystem.isActive) {
+    // Initialize the system if needed
+    if (!window.TimeDilationSystem.isActive && !window.TimeDilationSystem.isExiting) {
+        window.TimeDilationSystem.initialize();
+    }
+
+    // If we're in the process of exiting, we want to restart the slow motion effect
+    if (window.TimeDilationSystem.isExiting) {
+        // Cancel any exit tweens and start a fresh slow motion effect
+        window.TimeDilationSystem.enterSlowMotion(scene, actualDuration);
+    }
+    // If already active (but not exiting), just extend the timer
+    else if (window.TimeDilationSystem.isActive) {
         // Clear existing exit timer
         if (window.TimeDilationSystem.exitTimer) {
             window.TimeDilationSystem.exitTimer.remove();
@@ -400,8 +413,9 @@ window.activateTimeDilation = function (duration = null, showVisualEffect = true
 
         // Set a new exit timer with the full duration
         window.TimeDilationSystem.setExitTimer(scene, actualDuration);
-    } else {
-        // Not active yet, enter slow motion with duration
+    }
+    // Not active at all, start a fresh effect
+    else {
         window.TimeDilationSystem.enterSlowMotion(scene, actualDuration);
     }
 

@@ -1217,14 +1217,8 @@ PlayerPerkRegistry.registerPerkEffect('ALIEN_CLOCK', {
     }
 });
 
-// Function to activate the Alien Clock ability
 window.activateAlienClock = function () {
-    // Ensure the ALIEN_WORLD effect is registered first, since our time dilation system relies on it
-    if (!OnHitEffectSystem.hasComponent('timeDilationEffect')) {
-        OnHitEffectSystem.addComponent('timeDilationEffect');
-    }
-
-    // Now add our component
+    // Now just add the component - no need to add timeDilationEffect
     PlayerComponentSystem.addComponent('alienClockAbility');
 };
 

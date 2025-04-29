@@ -310,7 +310,7 @@ const PERKS = {
             // The logic for this is handled in the projectileHitEnemy function
         }
     },
-    "AREA_PULSE": {
+    /*"AREA_PULSE": {
         kanji: "波動",
         kana: "はどう",
         romaji: "hadou",
@@ -321,7 +321,7 @@ const PERKS = {
         onAcquire: function () {
             window.activateAreaPulse();
         }
-    },
+    },*/
     "SCARLET_EMBER": {
         kanji: "緋炎",
         kana: "ひえん",

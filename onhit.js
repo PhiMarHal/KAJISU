@@ -212,26 +212,41 @@ OnHitPerkRegistry.registerPerkEffect('PURPLE_HEDGEHOG', {
     }
 });
 
-// Modified timeDilationEffect component for reusability
-OnHitEffectSystem.registerComponent('timeDilationEffect', {
-    // Track active state
+
+// Centralized time dilation functionality
+window.TimeDilationSystem = {
+    // Current state tracking
     isActive: false,
     currentTimeScale: 1.0,
     playerSpeedFactor: 1.0,
-    enemySlowdown: 1.0,  // For enemy slowdown
+    enemySlowdown: 1.0,
+    originalPlayerSpeed: null,
+    exitTimer: null,
+    slowMoTween: null,
+
+    // Initialize the system
+    initialize: function () {
+        this.isActive = false;
+        this.currentTimeScale = 1.0;
+        this.playerSpeedFactor = 1.0;
+        this.enemySlowdown = 1.0;
+        this.originalPlayerSpeed = playerSpeed;
+    },
 
     // Function to enter slow motion gradually
     enterSlowMotion: function (scene, duration = null) {
         // Cancel any existing tween to avoid conflicts
-        if (scene.slowMoTween) {
-            scene.slowMoTween.stop();
+        if (this.slowMoTween) {
+            this.slowMoTween.stop();
         }
 
-        // Store original player speed
-        this.originalPlayerSpeed = playerSpeed;
+        // Store original player speed if not already stored
+        if (!this.originalPlayerSpeed) {
+            this.originalPlayerSpeed = playerSpeed;
+        }
 
         // Create tween to gradually slow down time
-        scene.slowMoTween = scene.tweens.add({
+        this.slowMoTween = scene.tweens.add({
             targets: this,
             currentTimeScale: 0.5,    // Slow game to 50% speed
             playerSpeedFactor: 0.5,   // Player at 50% speed
@@ -262,12 +277,12 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
     // Function to exit slow motion gradually
     exitSlowMotion: function (scene) {
         // Cancel any existing tween
-        if (scene.slowMoTween) {
-            scene.slowMoTween.stop();
+        if (this.slowMoTween) {
+            this.slowMoTween.stop();
         }
 
         // Create tween to restore normal time
-        scene.slowMoTween = scene.tweens.add({
+        this.slowMoTween = scene.tweens.add({
             targets: this,
             currentTimeScale: 1.0,    // Return to normal speed
             playerSpeedFactor: 1.0,   // Return player speed to normal
@@ -316,24 +331,8 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
         registerTimer(this.exitTimer);
     },
 
-    // Set or extend the current time dilation effect
-    activateTimeDilation: function (scene, duration) {
-        // If already active, just reset/extend the timer
-        if (this.isActive) {
-            // Clear existing exit timer
-            if (this.exitTimer) {
-                this.exitTimer.remove();
-                this.exitTimer = null;
-            }
-
-            // Set a new exit timer with the full duration
-            this.setExitTimer(scene, duration);
-        } else {
-            // Not active yet, enter slow motion with duration
-            this.enterSlowMotion(scene, duration);
-        }
-
-        // Visual feedback (reusing the kanji from ALIEN_WORLD)
+    // Display visual effect (optional)
+    showVisualEffect: function (scene) {
         const kanji = scene.add.text(player.x, player.y - 40, '異世界', {
             fontFamily: 'Arial',
             fontSize: '24px',
@@ -354,25 +353,7 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
         });
     },
 
-    // Initialize component
-    initialize: function () {
-        this.isActive = false;
-        this.currentTimeScale = 1.0;
-        this.playerSpeedFactor = 1.0;
-        this.enemySlowdown = 1.0;
-        this.originalPlayerSpeed = playerSpeed;
-    },
-
-    // Handle player being hit
-    onHit: function (scene, enemy) {
-        // Calculate slow motion duration based on luck
-        const baseSlowdownDuration = Math.sqrt(playerLuck / BASE_STATS.LUK) * 1000;
-
-        // Activate time dilation with the calculated duration
-        this.activateTimeDilation(scene, baseSlowdownDuration);
-    },
-
-    // Clean up component
+    // Clean up resources
     cleanup: function () {
         const scene = game.scene.scenes[0];
         if (!scene) return;
@@ -384,9 +365,9 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
         enemySpeedFactor = 1.0;
 
         // Clear any tween
-        if (scene.slowMoTween) {
-            scene.slowMoTween.stop();
-            scene.slowMoTween = null;
+        if (this.slowMoTween) {
+            this.slowMoTween.stop();
+            this.slowMoTween = null;
         }
 
         // Clear exit timer
@@ -396,32 +377,75 @@ OnHitEffectSystem.registerComponent('timeDilationEffect', {
         }
 
         // Restore player speed
-        playerSpeed = this.originalPlayerSpeed;
+        if (this.originalPlayerSpeed) {
+            playerSpeed = this.originalPlayerSpeed;
+        }
 
         this.isActive = false;
         this.currentTimeScale = 1.0;
         this.playerSpeedFactor = 1.0;
+        this.enemySlowdown = 1.0;
     }
-});
+};
 
 // Add a public function to activate time dilation from anywhere
-window.activateTimeDilation = function (duration = null) {
+window.activateTimeDilation = function (duration = null, showVisualEffect = true) {
     const scene = game.scene.scenes[0];
-    if (!scene) return;
+    if (!scene) return false;
 
-    // Check if time dilation component is active
-    if (OnHitEffectSystem.hasComponent('timeDilationEffect')) {
-        const component = OnHitEffectSystem.getComponent('timeDilationEffect');
-        if (component) {
-            // Calculate duration based on luck if none provided
-            const actualDuration = duration ?? Math.sqrt(playerLuck / BASE_STATS.LUK) * 1000;
-            component.activateTimeDilation(scene, actualDuration);
-            return true;
-        }
+    // Initialize the system if needed
+    if (!window.TimeDilationSystem.isActive) {
+        window.TimeDilationSystem.initialize();
     }
 
-    return false;
+    // Calculate duration based on luck if none provided
+    const actualDuration = duration ?? Math.sqrt(playerLuck / BASE_STATS.LUK) * 1000;
+
+    // If already active, just reset/extend the timer
+    if (window.TimeDilationSystem.isActive) {
+        // Clear existing exit timer
+        if (window.TimeDilationSystem.exitTimer) {
+            window.TimeDilationSystem.exitTimer.remove();
+            window.TimeDilationSystem.exitTimer = null;
+        }
+
+        // Set a new exit timer with the full duration
+        window.TimeDilationSystem.setExitTimer(scene, actualDuration);
+    } else {
+        // Not active yet, enter slow motion with duration
+        window.TimeDilationSystem.enterSlowMotion(scene, actualDuration);
+    }
+
+    // Show visual effect if requested
+    if (showVisualEffect) {
+        window.TimeDilationSystem.showVisualEffect(scene);
+    }
+
+    return true;
 };
+
+// Modified timeDilationEffect component - now only handles on-hit triggering
+OnHitEffectSystem.registerComponent('timeDilationEffect', {
+    // Initialize component
+    initialize: function () {
+        // Nothing needed here - system will be initialized when activated
+    },
+
+    // Handle player being hit
+    onHit: function (scene, enemy) {
+        // Calculate slow motion duration based on luck
+        const baseSlowdownDuration = Math.sqrt(playerLuck / BASE_STATS.LUK) * 1000;
+
+        // Activate time dilation with the calculated duration
+        window.activateTimeDilation(baseSlowdownDuration);
+    },
+
+    // Clean up component
+    cleanup: function () {
+        // Cleanup the time dilation system
+        window.TimeDilationSystem.cleanup();
+    }
+});
 
 // Register the perk with the OnHitPerkRegistry
 OnHitPerkRegistry.registerPerkEffect('ALIEN_WORLD', {

@@ -130,7 +130,8 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             options: {
                 hasPeriodicEffect: true, // Generic flag for drops with periodic effects
                 periodicEffectCooldown: 15000, // Base cooldown for the effect
-                fireImmediately: true // Flag to indicate it should fire immediately on spawn
+                fireImmediately: true, // Flag to indicate it should fire immediately on spawn
+                needsPulsing: true // Flag for visual pulsing effect
             }
         };
     },

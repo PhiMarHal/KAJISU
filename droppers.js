@@ -155,6 +155,14 @@ const DropperSystem = {
             ease: 'Back.out'
         });
 
+        // Add pulsing effect if needed
+        if (dropConfig.options.needsPulsing) {
+            // Use our visual effects system for pulsing
+            if (window.VisualEffects) {
+                VisualEffects.createPulsing(scene, entity);
+            }
+        }
+
         // Set up auto-destruction timer if lifespan is specified
         if (drop.lifespan !== null) {
             const timer = scene.time.delayedCall(drop.lifespan, function () {

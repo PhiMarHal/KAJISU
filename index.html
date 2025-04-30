@@ -115,11 +115,6 @@
         <div id="border-top-right" class="border-decoration"></div>
         <div id="border-bottom-left" class="border-decoration"></div>
         <div id="border-bottom-right" class="border-decoration"></div>
-
-        <div id="game-ui">
-            <div id="level">Time Survived: 00:00:00</div>
-            <div id="kills">Enemies killed: 0</div>
-        </div>
     </div>
 
     <script>
@@ -1417,7 +1412,7 @@
             acquirePerk(this, perkType);
 
             // Update player stats text
-            updatePlayerStatsText();
+            GameUI.updateStatCircles(this);
 
             // Update health bar
             GameUI.updateHealthBar(this);
@@ -1683,12 +1678,6 @@
             GameUI.createUI(this);
             OrbitalSystem.init();
 
-            // Create player stats text
-            playerStatsText = this.add.text(
-                10, 100,
-                `Speed: ${playerSpeed}\nDamage: ${playerDamage}\nLuck: ${playerLuck}`,
-                { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }
-            );
 
             // Create shield visual (initially invisible)
             shieldVisual = this.add.circle(player.x, player.y, 30, 0x3498db, 0.4);
@@ -1789,8 +1778,7 @@
             WeaponSystem.updateProjectiles(this);
 
             // Update the level display to show time survived
-            const levelDisplay = document.getElementById('level');
-            levelDisplay.innerText = `Time Survived: ${formatTime(elapsedTime)}`;
+            GameUI.updateStatusDisplay(this, elapsedTime, score);
 
             // Player movement with keyboard
             player.body.setVelocity(0);
@@ -1909,8 +1897,6 @@
             GameUI.updateHealthBar(this);
             GameUI.updateExpBar(this);
 
-            // Update UI
-            document.getElementById('kills').textContent = `Enemies killed: ${score}`;
 
             // Update orbitals
             OrbitalSystem.update(this, time);
@@ -1923,7 +1909,7 @@
             updateEnemySpawners.call(this);
 
             // Update player stats text
-            updatePlayerStatsText();
+            GameUI.updateStatCircles(this);
 
             // Update player level
             if (heroExp >= heroExpToLevel) {
@@ -2402,10 +2388,7 @@
             console.log(`Debug: Time skipped from ${Math.floor(oldElapsedTime / 60)} minutes to ${nextPhaseMinutes} minutes`);
 
             // Update the level display
-            const levelDisplay = document.getElementById('level');
-            if (levelDisplay) {
-                levelDisplay.innerText = `Time Survived: ${formatTime(elapsedTime)}`;
-            }
+            GameUI.updateStatusDisplay(this, elapsedTime, score);
 
             // Potentially trigger any time-based events that should happen
             // This will depend on how your game handles time-based events
@@ -2570,7 +2553,7 @@
                     break;
             }
             // Update UI
-            updatePlayerStatsText();
+            GameUI.updateStatCircles(this);
         };
 
         // Function to fully heal the player
@@ -2701,7 +2684,7 @@
             }
 
             // Update player stats text
-            updatePlayerStatsText();
+            GameUI.updateStatCircles(this);
         }
     </script>
 </body>

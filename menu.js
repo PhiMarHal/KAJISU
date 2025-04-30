@@ -24,6 +24,42 @@ const UI = {
         barColor: 0x00ffff,
         bgColor: 0x333333
     },
+    statusDisplay: {
+        timerY: 30,
+        killsY: 30, // Same Y as timer for horizontal alignment
+        x: 16,
+        timerWidth: 120,
+        killsWidth: 120,
+        killsX: 160, // Position kill count box to the right of timer
+        height: 20,
+        borderWidth: 2,
+        textPadding: 4,
+        clockSymbol: "時",  // Kanji for time/clock
+        deathSymbol: "殺",  // Kanji for kill/death
+        fontSize: 16
+    },
+    statDisplay: {
+        y: 30,        // Positioned at top of screen
+        x: 920,       // Starting X position on right side
+        spacing: 70,  // Spacing between stats
+        width: 50,    // Width of each stat box
+        height: 24,   // Height of each stat box
+        borderWidth: 2,
+        textPadding: 4,
+        fontSize: 20,
+        symbols: {
+            POW: "力", // Kanji for power/strength
+            AGI: "速", // Kanji for speed
+            LUK: "運", // Kanji for luck
+            END: "耐"  // Kanji for endurance
+        },
+        symbolColors: {
+            POW: "#cc0000", // Red
+            AGI: "#0088ff", // Blue
+            LUK: "#aa55cc", // Purple
+            END: "#00aa00"  // Green
+        }
+    },
     colors: {
         gold: 0xFFD700,
         green: 0x00cc00,
@@ -35,7 +71,10 @@ const UI = {
     },
     fonts: {
         level: { size: '18px', family: 'Arial', color: '#FFD700' },
-        xpNeeded: { size: '12px', family: 'Arial', color: '#00ffff' }
+        xpNeeded: { size: '12px', family: 'Arial', color: '#00ffff' },
+        stats: { size: '20px', family: 'Arial', color: '#FFFFFF' },
+        timer: { size: '18px', family: 'Arial', color: '#FFFFFF' },
+        kills: { size: '18px', family: 'Arial', color: '#FFFFFF' }
     }
 };
 
@@ -252,16 +291,245 @@ const ExpBar = {
     }
 };
 
+// Status display for timer and kills
+const StatusDisplay = {
+    create: function (scene) {
+        // Clean up existing elements if they exist
+        if (scene.timerBox) scene.timerBox.destroy();
+        if (scene.timerBoxInner) scene.timerBoxInner.destroy();
+        if (scene.timerText) scene.timerText.destroy();
+        if (scene.timerSymbol) scene.timerSymbol.destroy();
+
+        if (scene.killsBox) scene.killsBox.destroy();
+        if (scene.killsBoxInner) scene.killsBoxInner.destroy();
+        if (scene.killsText) scene.killsText.destroy();
+        if (scene.killsSymbol) scene.killsSymbol.destroy();
+
+        // Create timer display with gold border
+        scene.timerBox = scene.add.rectangle(
+            UI.statusDisplay.x + UI.statusDisplay.timerWidth / 2,
+            UI.statusDisplay.timerY,
+            UI.statusDisplay.timerWidth + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height + (UI.statusDisplay.borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(UI.depth.ui).setOrigin(0.5);
+
+        // Create inner black background for timer
+        scene.timerBoxInner = scene.add.rectangle(
+            UI.statusDisplay.x + UI.statusDisplay.timerWidth / 2,
+            UI.statusDisplay.timerY,
+            UI.statusDisplay.timerWidth,
+            UI.statusDisplay.height,
+            UI.colors.black
+        ).setDepth(UI.depth.ui).setOrigin(0.5);
+
+        // Create the timer kanji symbol
+        scene.timerSymbol = scene.add.text(
+            UI.statusDisplay.x + UI.statusDisplay.textPadding,
+            UI.statusDisplay.timerY,
+            UI.statusDisplay.clockSymbol,
+            {
+                fontFamily: UI.fonts.timer.family,
+                fontSize: UI.statusDisplay.fontSize,
+                color: UI.fonts.timer.color
+            }
+        ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
+
+        // Create the timer text
+        scene.timerText = scene.add.text(
+            UI.statusDisplay.x + UI.statusDisplay.timerWidth - UI.statusDisplay.textPadding,
+            UI.statusDisplay.timerY,
+            "00:00:00",
+            {
+                fontFamily: UI.fonts.timer.family,
+                fontSize: UI.statusDisplay.fontSize,
+                color: UI.fonts.timer.color
+            }
+        ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+
+        // Create kills display with gold border (to the right of timer)
+        scene.killsBox = scene.add.rectangle(
+            UI.statusDisplay.killsX + UI.statusDisplay.killsWidth / 2,
+            UI.statusDisplay.killsY,
+            UI.statusDisplay.killsWidth + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height + (UI.statusDisplay.borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(UI.depth.ui).setOrigin(0.5);
+
+        // Create inner black background for kills
+        scene.killsBoxInner = scene.add.rectangle(
+            UI.statusDisplay.killsX + UI.statusDisplay.killsWidth / 2,
+            UI.statusDisplay.killsY,
+            UI.statusDisplay.killsWidth,
+            UI.statusDisplay.height,
+            UI.colors.black
+        ).setDepth(UI.depth.ui).setOrigin(0.5);
+
+        // Create the kills kanji symbol
+        scene.killsSymbol = scene.add.text(
+            UI.statusDisplay.killsX + UI.statusDisplay.textPadding,
+            UI.statusDisplay.killsY,
+            UI.statusDisplay.deathSymbol,
+            {
+                fontFamily: UI.fonts.kills.family,
+                fontSize: UI.statusDisplay.fontSize,
+                color: UI.fonts.kills.color
+            }
+        ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
+
+        // Create the kills text
+        scene.killsText = scene.add.text(
+            UI.statusDisplay.killsX + UI.statusDisplay.killsWidth - UI.statusDisplay.textPadding,
+            UI.statusDisplay.killsY,
+            "0",
+            {
+                fontFamily: UI.fonts.kills.family,
+                fontSize: UI.statusDisplay.fontSize,
+                color: UI.fonts.kills.color
+            }
+        ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+
+        // Initial update
+        this.update(scene);
+    },
+
+    update: function (scene, time, kills) {
+        // Update timer text if it exists
+        if (scene.timerText) {
+            scene.timerText.setText(formatTime(time ?? elapsedTime));
+        }
+
+        // Update kills text if it exists
+        if (scene.killsText) {
+            scene.killsText.setText(formatLargeNumber(kills ?? score));
+        }
+    }
+};
+
+// Stat display rectangles for POW, AGI, LUK, END
+const StatDisplay = {
+    create: function (scene) {
+        // Clean up existing elements
+        if (scene.statRects) {
+            scene.statRects.forEach(stat => {
+                if (stat.rectBg) stat.rectBg.destroy();
+                if (stat.rectInner) stat.rectInner.destroy();
+                if (stat.symbolText) stat.symbolText.destroy();
+                if (stat.valueText) stat.valueText.destroy();
+            });
+        }
+
+        // Initialize the stat rectangles array
+        scene.statRects = [];
+
+        // Define stat order
+        const stats = ['POW', 'AGI', 'LUK', 'END'];
+
+        // Create each stat rectangle
+        stats.forEach((stat, index) => {
+            const x = UI.statDisplay.x + (index * UI.statDisplay.spacing);
+
+            // Create gold border rectangle
+            const rectBg = scene.add.rectangle(
+                x + UI.statDisplay.width / 2,
+                UI.statDisplay.y,
+                UI.statDisplay.width + (UI.statDisplay.borderWidth * 2),
+                UI.statDisplay.height + (UI.statDisplay.borderWidth * 2),
+                UI.colors.gold
+            ).setDepth(UI.depth.ui).setOrigin(0.5);
+
+            // Create inner black rectangle
+            const rectInner = scene.add.rectangle(
+                x + UI.statDisplay.width / 2,
+                UI.statDisplay.y,
+                UI.statDisplay.width,
+                UI.statDisplay.height,
+                UI.colors.black
+            ).setDepth(UI.depth.ui).setOrigin(0.5);
+
+            // Create the symbol text
+            const symbolText = scene.add.text(
+                x + UI.statDisplay.textPadding,
+                UI.statDisplay.y,
+                UI.statDisplay.symbols[stat],
+                {
+                    fontFamily: 'Arial',
+                    fontSize: UI.statDisplay.fontSize,
+                    color: UI.statDisplay.symbolColors[stat]
+                }
+            ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
+
+            // Create the value text
+            const valueText = scene.add.text(
+                x + UI.statDisplay.width - UI.statDisplay.textPadding,
+                UI.statDisplay.y,
+                "0",
+                {
+                    fontFamily: 'Arial',
+                    fontSize: UI.statDisplay.fontSize,
+                    color: UI.fonts.stats.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+
+            // Store references
+            scene.statRects[index] = {
+                stat: stat,
+                rectBg: rectBg,
+                rectInner: rectInner,
+                symbolText: symbolText,
+                valueText: valueText
+            };
+        });
+
+        // Initial update
+        this.update(scene);
+    },
+
+    update: function (scene) {
+        // Exit if elements don't exist
+        if (!scene.statRects) return;
+
+        // Update each stat value
+        scene.statRects.forEach(item => {
+            let value = 0;
+
+            // Get the current value for each stat
+            switch (item.stat) {
+                case 'POW':
+                    value = playerDamage ?? 0;
+                    break;
+                case 'AGI':
+                    value = playerFireRate ?? 0;
+                    break;
+                case 'LUK':
+                    value = playerLuck ?? 0;
+                    break;
+                case 'END':
+                    value = maxPlayerHealth ?? 0;
+                    break;
+            }
+
+            // Update the display
+            if (item.valueText) {
+                item.valueText.setText(Math.floor(value).toString());
+            }
+        });
+    }
+};
 
 // Function to create all UI elements
 function createUI(scene) {
     HealthBar.create(scene);
     ExpBar.create(scene);
+    StatusDisplay.create(scene);
+    StatDisplay.create(scene);
 }
 
 // Export for use in the main game
 window.GameUI = {
     createUI: createUI,
     updateHealthBar: HealthBar.update,
-    updateExpBar: ExpBar.update
+    updateExpBar: ExpBar.update,
+    updateStatusDisplay: StatusDisplay.update,
+    updateStatCircles: StatDisplay.update
 };

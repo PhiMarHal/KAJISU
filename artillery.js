@@ -106,7 +106,7 @@ ProjectileComponentSystem.registerComponent('slowEffect', {
 
     onHit: function (projectile, enemy, scene) {
         // Slow the enemy by half
-        enemy.speed = Math.max(10, enemy.speed * 0.5);
+        enemy.speed = enemy.speed * 0.5;
 
         // Visual indication of slowed enemy
         enemy.setColor('#00ffff');

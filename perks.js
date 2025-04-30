@@ -322,6 +322,19 @@ const PERKS = {
             window.activatePoisonFlower();
         }
     },
+    "COLD_FLOWER": {
+        kanji: "冷花",
+        kana: "れいばな",
+        romaji: "reibana",
+        english: "Frost Flower",
+        description: "Creates flowers that slow nearby enemies",
+        color: "#00ffff", // Cyan color matching the slow effect
+        hoverColor: 0x00dddd,
+        onAcquire: function () {
+            window.activateColdFlower();
+        }
+    },
+
     /*"AREA_PULSE": {
         kanji: "波動",
         kana: "はどう",

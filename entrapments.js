@@ -210,11 +210,11 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
             color: '#2aad27', // Green color for poison
             fontSize: 28, // Medium size
             behaviorType: 'areaEffect', // Use area effect behavior
-            damage: playerDamage * 1, // Half player damage for poison tick
+            damage: playerDamage * 1,
             damageInterval: 0, // Not used for area effects
             lifespan: null, // Permanent until touched by enemy
             options: {
-                areaEffectInterval: 8000, // Pulse every 3 seconds
+                areaEffectInterval: 8000, //
                 areaEffectRadius: 160, // Base radius
                 pulseColor: 0x2aad27, // Green color for the pulse effect
                 needsPulsing: true, // Add pulsing animation
@@ -240,14 +240,61 @@ window.activatePoisonFlower = function () {
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['POISON_FLOWER'].getConfig();
 
     // Explicitly set random position for the first flower
-    flowerConfig.x = Phaser.Math.Between(100, 1100);
-    flowerConfig.y = Phaser.Math.Between(100, 700);
+    flowerConfig.x = Phaser.Math.Between(0, 1200);
+    flowerConfig.y = Phaser.Math.Between(0, 800);
 
     // Create the first flower immediately
     DropperSystem.create(scene, flowerConfig);
 
     // Apply the dropper perk for future flowers
     return DropperPerkRegistry.applyDropperPerk(scene, 'POISON_FLOWER');
+};
+
+DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
+    getConfig: function () {
+        return {
+            symbol: '冷', // Kanji for "cold"
+            color: '#00ffff', // Cyan color for frost
+            fontSize: 28, // Medium size
+            behaviorType: 'areaEffect', // Use area effect behavior
+            damage: playerDamage,
+            damageInterval: 0, // Not used for area effects
+            lifespan: null, // Permanent until touched by enemy
+            options: {
+                areaEffectInterval: 12000, //
+                areaEffectRadius: 240, //
+                pulseColor: 0x00ffff, // Cyan color for the pulse effect
+                needsPulsing: true, // Add pulsing animation
+                effectComponent: 'slowEffect' // Use the slowEffect component
+            }
+        };
+    },
+    cooldown: function () {
+        // Base 12 second cooldown, scaled by luck
+        return 20000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
+    },
+    positionMode: 'random', // Random position on screen
+    activationMethod: 'periodic' // Periodically create frost flowers
+});
+
+// Function to activate the Cold Flower perk
+window.activateColdFlower = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create a flower configuration
+    const flowerConfig = DropperPerkRegistry.perkDropperConfigs['COLD_FLOWER'].getConfig();
+
+    // Explicitly set random position for the first flower
+    flowerConfig.x = Phaser.Math.Between(0, 1200);
+    flowerConfig.y = Phaser.Math.Between(0, 800);
+
+    // Create the first flower immediately
+    DropperSystem.create(scene, flowerConfig);
+
+    // Apply the dropper perk for future flowers
+    return DropperPerkRegistry.applyDropperPerk(scene, 'COLD_FLOWER');
 };
 
 // Export the registry for use in other files

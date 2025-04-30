@@ -20,6 +20,9 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - time slowdown fails to affect orbits and tweens
 - picking up clock during slowdown period fails to activate effect
 - speed sometimes doesn't reset <= probably fixed with basePlayerSpeed, but that's a bit of a hack
+- cold projectiles stack infinitely
+- poison resets tween to base = cold+poison = back to base despite cold
+- fairies shoot at max distance
 
 DONE
 - Move remaining perks outside of index.html (orbiting? landmine?) orbiting done. landmine+afterimage next

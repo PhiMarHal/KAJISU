@@ -100,16 +100,44 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
 // Register component for slow effect
 ProjectileComponentSystem.registerComponent('slowEffect', {
     initialize: function (projectile) {
+        // Safety check for projectile
+        if (!projectile || !projectile.active) return;
+
         // Visual indicator
-        projectile.setColor('#00ffff');
+        try {
+            projectile.setColor('#00ffff');
+        } catch (e) {
+            console.log("Error setting projectile color in slowEffect:", e);
+        }
     },
 
     onHit: function (projectile, enemy, scene) {
-        // Slow the enemy by half
-        enemy.speed = enemy.speed * 0.5;
+        // Safety check for enemy
+        if (!enemy || !enemy.active || enemy.health <= 0) return;
 
-        // Visual indication of slowed enemy
-        enemy.setColor('#00ffff');
+        // Check if enemy is already slowed (to avoid redundant processing)
+        if (enemy.isSlowed) return;
+
+        // Mark enemy as slowed
+        enemy.isSlowed = true;
+
+        // Store original speed for recovery later
+        enemy.originalSpeed = enemy.speed || 50; // Default value if speed is undefined
+
+        // Slow the enemy by half with safety check
+        try {
+            enemy.speed = Math.max(10, enemy.speed * 0.5);
+
+            // Store original color
+            enemy.originalColor = enemy.style && enemy.style.color ? enemy.style.color : '#ff5555';
+
+            // Visual indication of slowed enemy
+            if (typeof enemy.setColor === 'function') {
+                enemy.setColor('#00ffff');
+            }
+        } catch (e) {
+            console.log("Error in slowEffect onHit:", e);
+        }
     }
 });
 

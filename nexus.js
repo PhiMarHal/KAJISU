@@ -380,7 +380,7 @@ window.activateCopyFairy = function () {
             scene,
             orbital,
             orbital.options.familiarType,
-            800 // 800ms base cooldown (half rate compared to player)
+            1200 //
         );
     }
 };
@@ -401,7 +401,7 @@ window.activateBerserkFairy = function () {
             scene,
             orbital,
             orbital.options.familiarType,
-            400 // 400ms base cooldown (same rate as player)
+            600 //
         );
     }
 };
@@ -447,7 +447,7 @@ window.activateColdFairy = function () {
             scene,
             orbital,
             orbital.options.familiarType,
-            2000 // 2000ms base cooldown
+            6000 // cold is very powerful, so we won't have her shoot too often
         );
     }
 };
@@ -493,7 +493,7 @@ window.activateFunFairy = function () {
             scene,
             orbital,
             orbital.options.familiarType,
-            1200 // 1200ms base cooldown as requested
+            4000 // need high cd because the effect is 100%
         );
 
         // Add color-changing effect to the fairy kanji using the exported function

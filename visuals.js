@@ -12,7 +12,7 @@ const VisualEffects = {
         const alpha = options.alpha ?? 1;
 
         // Create the pulse circle with no fill by default
-        const pulse = scene.add.circle(x, y, radius * 0.8, color, 0);
+        const pulse = scene.add.circle(x, y, radius * 1, color, 0);
 
         // Set a stroke (outline) instead of a fill
         pulse.setStrokeStyle(strokeWidth, color, alpha);

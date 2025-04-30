@@ -202,5 +202,53 @@ window.activateAreaPulse = function () {
     DropperPerkRegistry.applyDropperPerk(scene, 'AREA_PULSE');
 };
 
+// Register the perk with DropperPerkRegistry in entrapments.js
+DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
+    getConfig: function () {
+        return {
+            symbol: '毒', // Kanji for "poison"
+            color: '#2aad27', // Green color for poison
+            fontSize: 28, // Medium size
+            behaviorType: 'areaEffect', // Use area effect behavior
+            damage: playerDamage * 1, // Half player damage for poison tick
+            damageInterval: 0, // Not used for area effects
+            lifespan: null, // Permanent until touched by enemy
+            options: {
+                areaEffectInterval: 8000, // Pulse every 3 seconds
+                areaEffectRadius: 160, // Base radius
+                pulseColor: 0x2aad27, // Green color for the pulse effect
+                needsPulsing: true, // Add pulsing animation
+                effectComponent: 'poisonEffect' // Use the poisonEffect component
+            }
+        };
+    },
+    cooldown: function () {
+        // Base 15 second cooldown, scaled by luck
+        return 15000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
+    },
+    positionMode: 'random', // Random position on screen
+    activationMethod: 'periodic' // Periodically create poison flowers
+});
+
+// Function to activate the poison flower perk
+window.activatePoisonFlower = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create a flower configuration
+    const flowerConfig = DropperPerkRegistry.perkDropperConfigs['POISON_FLOWER'].getConfig();
+
+    // Explicitly set random position for the first flower
+    flowerConfig.x = Phaser.Math.Between(100, 1100);
+    flowerConfig.y = Phaser.Math.Between(100, 700);
+
+    // Create the first flower immediately
+    DropperSystem.create(scene, flowerConfig);
+
+    // Apply the dropper perk for future flowers
+    return DropperPerkRegistry.applyDropperPerk(scene, 'POISON_FLOWER');
+};
+
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

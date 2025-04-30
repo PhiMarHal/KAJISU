@@ -37,6 +37,8 @@ const DropBehaviors = {
     areaEffect: function (scene, drop, enemy) {
         // We don't need to do anything here since area effects 
         // are processed by the update loop, not by collision
+        // Destroy the drop if enemy touches it
+        DropperSystem.destroyDrop(drop);
     }
 };
 
@@ -121,7 +123,7 @@ const DropperSystem = {
             drop.areaEffectTimer = CooldownManager.createTimer({
                 statName: 'luck',
                 baseCooldown: drop.areaEffectInterval,
-                formula: 'divide',
+                formula: 'sqrt',
                 component: drop, // Reference for cleanup
                 callback: function () {
                     if (gameOver || gamePaused || drop.destroyed ||
@@ -196,7 +198,6 @@ const DropperSystem = {
     },
 
     // Process area effect for a drop
-    // Updated processAreaEffect function in DropperSystem
     processAreaEffect: function (scene, drop, time) {
         // Get all active enemies
         const allEnemies = enemies.getChildren();
@@ -205,8 +206,12 @@ const DropperSystem = {
         const centerX = drop.entity.x;
         const centerY = drop.entity.y;
 
-        // Get the radius for this effect
-        const radius = drop.areaEffectRadius;
+        // Calculate radius based on base radius and playerLuck
+        let radius = drop.areaEffectRadius;
+        // If radiusScalesWithLuck flag is set, apply luck scaling
+        if (drop.options.radiusScalesWithLuck) {
+            radius = radius * Math.sqrt(playerLuck / BASE_STATS.LUK);
+        }
 
         // Get the color from drop options or use default yellow
         const effectColor = drop.options.pulseColor ?? 0xffff00;
@@ -214,8 +219,13 @@ const DropperSystem = {
         // Always create visual effect regardless of enemy hits
         this.createPulseEffect(scene, centerX, centerY, radius, effectColor);
 
-        // Apply damage to all enemies in range
+        // Apply damage or effects to all enemies in range
         let hitCount = 0;
+
+        // Check if this area effect has a component
+        const componentName = drop.options.effectComponent;
+        const component = componentName ?
+            ProjectileComponentSystem.componentTypes[componentName] : null;
 
         allEnemies.forEach(enemy => {
             if (!enemy.active) return;
@@ -225,15 +235,12 @@ const DropperSystem = {
             const dy = enemy.y - centerY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            // If within effect radius, apply damage
+            // If within effect radius, apply effect
             if (distance <= radius) {
-                // Apply full damage without falloff
+                // Always apply regular damage
                 const damageAmount = drop.entity.damage;
-
-                // Create a unique source ID for each enemy in each pulse
                 const areaSourceId = `${drop.entity.damageSourceId}_area_${enemy.id ?? Math.random()}`;
 
-                // Apply damage using the contact damage system
                 applyContactDamage.call(
                     scene,
                     {
@@ -245,6 +252,21 @@ const DropperSystem = {
                     damageAmount,
                     0 // No cooldown since the area effect has its own interval timing
                 );
+
+                // If there's a component with onHit method, call it as well
+                if (component && component.onHit) {
+                    // Create a synthetic projectile with minimal required properties
+                    const syntheticProjectile = {
+                        damage: drop.entity.damage,
+                        x: centerX,
+                        y: centerY,
+                        // Add other properties that might be needed
+                        damageSourceId: `${drop.entity.damageSourceId}_component_${Date.now()}_${Math.random()}`
+                    };
+
+                    // Call the component's onHit method directly
+                    component.onHit(syntheticProjectile, enemy, scene);
+                }
 
                 hitCount++;
             }
@@ -503,8 +525,8 @@ const DropperSystem = {
     }
 };
 
-// Export the system for use in other files
-window.DropperSystem = DropperSystem;
-
 // Export for use in other files
 window.setupPeriodicEffectsSystem = DropperSystem.setupPeriodicEffectsSystem.bind(DropperSystem);
+
+// Export the system for use in other files
+window.DropperSystem = DropperSystem;

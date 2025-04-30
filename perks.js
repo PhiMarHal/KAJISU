@@ -310,6 +310,18 @@ const PERKS = {
             // The logic for this is handled in the projectileHitEnemy function
         }
     },
+    "POISON_FLOWER": {
+        kanji: "毒花",
+        kana: "どくばな",
+        romaji: "dokubana",
+        english: "Poison Flower",
+        description: "Creates flowers that release poison, damaging enemies over time",
+        color: "#2aad27", // Green color matching the poison effect
+        hoverColor: 0x1a8d17,
+        onAcquire: function () {
+            window.activatePoisonFlower();
+        }
+    },
     /*"AREA_PULSE": {
         kanji: "波動",
         kana: "はどう",

@@ -1,52 +1,106 @@
 // menu.js - UI Elements for Word Survivors
 
-// UI Element constants
+// UI Element constants with relative positioning
 const UI = {
+    // Functions to get current game dimensions
+    game: {
+        getWidth: function () {
+            return 1200; // Default width if no game instance available
+        },
+        getHeight: function () {
+            return 800; // Default height if no game instance available
+        },
+        init: function (scene) {
+            // Update getters to use actual canvas dimensions instead of config
+            if (scene && scene.sys && scene.sys.game) {
+                // Get the actual rendered canvas size rather than the config size
+                this.getWidth = function () {
+                    const canvas = scene.sys.game.canvas;
+                    return canvas ? canvas.width : scene.sys.game.config.width;
+                };
+                this.getHeight = function () {
+                    const canvas = scene.sys.game.canvas;
+                    return canvas ? canvas.height : scene.sys.game.config.height;
+                };
+
+                // Log the dimensions for debugging
+                console.log(`UI initialized with dimensions: ${this.getWidth()}x${this.getHeight()}`);
+            }
+        }
+    },
+
+    // Helper functions for relative positioning
+    rel: {
+        width: function (percentage) {
+            return UI.game.getWidth() * (percentage / 100);
+        },
+        height: function (percentage) {
+            return UI.game.getHeight() * (percentage / 100);
+        },
+        x: function (percentage) {
+            return UI.game.getWidth() * (percentage / 100);
+        },
+        y: function (percentage) {
+            return UI.game.getHeight() * (percentage / 100);
+        },
+        // Function to calculate font size relative to screen height
+        fontSize: function (percentage) {
+            return Math.floor(UI.game.getHeight() * (percentage / 100));
+        }
+    },
+
+    // Health bar configuration
     healthBar: {
-        width: 300,
-        height: 10,
+        width: function () { return UI.rel.width(25); },       // 25% of screen width
+        height: function () { return UI.rel.height(1.25); },   // 1.25% of screen height
         borderWidth: 2,
         innerMargin: 2,
-        segmentGap: 4,
-        y: 20,
-        centerX: 600,
-        startX: 450
+        segmentGap: function () { return UI.rel.width(0.33); }, // 0.33% of screen width
+        y: function () { return UI.rel.y(2.5); },              // 2.5% from top
+        centerX: function () { return UI.rel.x(50); },         // Center of screen
+        startX: function () { return UI.rel.x(37.5); }         // 37.5% of screen width
     },
+
+    // Experience bar configuration
     expBar: {
-        width: 200,
-        height: 5,
+        width: function () { return UI.rel.width(16.7); },     // 16.7% of screen width
+        height: function () { return UI.rel.height(0.625); },  // 0.625% of screen height
         borderWidth: 2,
         innerMargin: 1,
-        y: 44,
-        centerX: 600,
-        startX: 500,
+        y: function () { return UI.rel.y(5.5); },              // 5.5% from top
+        centerX: function () { return UI.rel.x(50); },         // Center of screen
+        startX: function () { return UI.rel.x(41.7); },        // 41.7% from left
         textColor: "#00ffff",
         barColor: 0x00ffff,
         bgColor: 0x333333
     },
+
+    // Status display (timer and kills)
     statusDisplay: {
-        timerY: 30,
-        killsY: 30, // Same Y as timer for horizontal alignment
-        x: 16,
-        timerWidth: 120,
-        killsWidth: 120,
-        killsX: 160, // Position kill count box to the right of timer
-        height: 20,
+        timerY: function () { return UI.rel.y(3.75); },        // 3.75% from top
+        killsY: function () { return UI.rel.y(3.75); },        // Same Y as timer
+        x: function () { return UI.rel.x(1.33); },             // 1.33% from left
+        timerWidth: function () { return UI.rel.width(10); },  // 10% of screen width
+        killsWidth: function () { return UI.rel.width(10); },  // Same width as timer
+        killsX: function () { return UI.rel.x(13.33); },       // Position to right of timer
+        height: function () { return UI.rel.height(2.5); },    // 2.5% of screen height
         borderWidth: 2,
-        textPadding: 4,
+        textPadding: function () { return UI.rel.width(0.33); }, // 0.33% of screen width
         clockSymbol: "時",  // Kanji for time/clock
         deathSymbol: "殺",  // Kanji for kill/death
-        fontSize: 16
+        fontSize: function () { return UI.rel.fontSize(2); }   // 2% of screen height
     },
+
+    // Stat display (POW, AGI, LUK, END)
     statDisplay: {
-        y: 30,        // Positioned at top of screen
-        x: 920,       // Starting X position on right side
-        spacing: 70,  // Spacing between stats
-        width: 50,    // Width of each stat box
-        height: 24,   // Height of each stat box
+        y: function () { return UI.rel.y(3.75); },            // 3.75% from top
+        x: function () { return UI.rel.x(76.7); },            // 76.7% from left (right side)
+        spacing: function () { return UI.rel.width(5.83); },  // 5.83% of screen width
+        width: function () { return UI.rel.width(4.17); },    // 4.17% of screen width
+        height: function () { return UI.rel.height(3); },     // 3% of screen height
         borderWidth: 2,
-        textPadding: 4,
-        fontSize: 20,
+        textPadding: function () { return UI.rel.width(0.33); }, // 0.33% of screen width
+        fontSize: function () { return UI.rel.fontSize(2.5); }, // 2.5% of screen height
         symbols: {
             POW: "力", // Kanji for power/strength
             AGI: "速", // Kanji for speed
@@ -60,27 +114,56 @@ const UI = {
             END: "#00aa00"  // Green
         }
     },
+
+    // Color constants
     colors: {
         gold: 0xFFD700,
         green: 0x00cc00,
         black: 0x000000,
         grey: 0x333333
     },
+
+    // Depth constants
     depth: {
         ui: 100
     },
+
+    // Font definitions
     fonts: {
-        level: { size: '18px', family: 'Arial', color: '#FFD700' },
-        xpNeeded: { size: '12px', family: 'Arial', color: '#00ffff' },
-        stats: { size: '20px', family: 'Arial', color: '#FFFFFF' },
-        timer: { size: '18px', family: 'Arial', color: '#FFFFFF' },
-        kills: { size: '18px', family: 'Arial', color: '#FFFFFF' }
+        level: {
+            size: function () { return `${UI.rel.fontSize(2.25)}px`; },
+            family: 'Arial',
+            color: '#FFD700'
+        },
+        xpNeeded: {
+            size: function () { return `${UI.rel.fontSize(1.5)}px`; },
+            family: 'Arial',
+            color: '#00ffff'
+        },
+        stats: {
+            size: function () { return `${UI.rel.fontSize(2.5)}px`; },
+            family: 'Arial',
+            color: '#FFFFFF'
+        },
+        timer: {
+            size: function () { return `${UI.rel.fontSize(2.25)}px`; },
+            family: 'Arial',
+            color: '#FFFFFF'
+        },
+        kills: {
+            size: function () { return `${UI.rel.fontSize(2.25)}px`; },
+            family: 'Arial',
+            color: '#FFFFFF'
+        }
     }
 };
 
 // Health bar functions
 const HealthBar = {
     create: function (scene) {
+        // Initialize relative dimensions
+        UI.game.init(scene);
+
         // Remove old health bar elements if they exist
         if (scene.healthBar) scene.healthBar.destroy();
         if (scene.healthBarBg) scene.healthBarBg.destroy();
@@ -88,19 +171,19 @@ const HealthBar = {
 
         // Create new container with golden border
         scene.healthBarBg = scene.add.rectangle(
-            UI.healthBar.centerX,
-            UI.healthBar.y,
-            UI.healthBar.width + (UI.healthBar.borderWidth * 2),
-            UI.healthBar.height + (UI.healthBar.borderWidth * 2),
+            UI.healthBar.centerX(),
+            UI.healthBar.y(),
+            UI.healthBar.width() + (UI.healthBar.borderWidth * 2),
+            UI.healthBar.height() + (UI.healthBar.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui);
 
         // Create inner black background
         const innerBg = scene.add.rectangle(
-            UI.healthBar.centerX,
-            UI.healthBar.y,
-            UI.healthBar.width,
-            UI.healthBar.height,
+            UI.healthBar.centerX(),
+            UI.healthBar.y(),
+            UI.healthBar.width(),
+            UI.healthBar.height(),
             UI.colors.black
         ).setDepth(UI.depth.ui);
 
@@ -123,14 +206,14 @@ const HealthBar = {
         if (scene.healthSeparators) scene.healthSeparators.clear(true, true);
 
         // Actual content width (excluding margins)
-        const contentWidth = UI.healthBar.width - (UI.healthBar.innerMargin * 2);
+        const contentWidth = UI.healthBar.width() - (UI.healthBar.innerMargin * 2);
 
         // Calculate segment width based on max health
-        const totalGapWidth = (maxPlayerHealth - 1) * UI.healthBar.segmentGap;
+        const totalGapWidth = (maxPlayerHealth - 1) * UI.healthBar.segmentGap();
         const segmentWidth = (contentWidth - totalGapWidth) / maxPlayerHealth;
 
         // Starting X position (accounting for margin)
-        const startPosX = UI.healthBar.startX + UI.healthBar.innerMargin;
+        const startPosX = UI.healthBar.startX() + UI.healthBar.innerMargin;
 
         // Create each segment
         for (let i = 0; i < maxPlayerHealth; i++) {
@@ -138,14 +221,14 @@ const HealthBar = {
             const isFilled = i < playerHealth;
 
             // Calculate segment position
-            const segmentX = startPosX + (i * (segmentWidth + UI.healthBar.segmentGap));
+            const segmentX = startPosX + (i * (segmentWidth + UI.healthBar.segmentGap()));
 
             // Create segment with high depth
             const segment = scene.add.rectangle(
                 segmentX + (segmentWidth / 2),
-                UI.healthBar.y,
+                UI.healthBar.y(),
                 segmentWidth,
-                UI.healthBar.height - (UI.healthBar.innerMargin * 2),
+                UI.healthBar.height() - (UI.healthBar.innerMargin * 2),
                 isFilled ? UI.colors.green : UI.colors.grey
             ).setDepth(UI.depth.ui);
 
@@ -154,12 +237,12 @@ const HealthBar = {
 
             // Add golden separator after each segment (except the last one)
             if (i < maxPlayerHealth - 1) {
-                const separatorX = segmentX + segmentWidth + (UI.healthBar.segmentGap / 2);
+                const separatorX = segmentX + segmentWidth + (UI.healthBar.segmentGap() / 2);
                 const separator = scene.add.rectangle(
                     separatorX,
-                    UI.healthBar.y,
+                    UI.healthBar.y(),
                     2,
-                    UI.healthBar.height - (UI.healthBar.innerMargin * 2),
+                    UI.healthBar.height() - (UI.healthBar.innerMargin * 2),
                     UI.colors.gold
                 ).setDepth(UI.depth.ui);
                 scene.healthSeparators.add(separator);
@@ -210,6 +293,9 @@ function formatLargeNumber(number) {
 // Experience bar functions
 const ExpBar = {
     create: function (scene) {
+        // Initialize relative dimensions
+        UI.game.init(scene);
+
         // Remove old exp bar elements if they exist
         if (scene.expBar) scene.expBar.destroy();
         if (scene.expBarBg) scene.expBarBg.destroy();
@@ -219,51 +305,51 @@ const ExpBar = {
 
         // Create new container with golden border
         scene.expBarBg = scene.add.rectangle(
-            UI.expBar.centerX,
-            UI.expBar.y,
-            UI.expBar.width + (UI.expBar.borderWidth * 2),
-            UI.expBar.height + (UI.expBar.borderWidth * 2),
+            UI.expBar.centerX(),
+            UI.expBar.y(),
+            UI.expBar.width() + (UI.expBar.borderWidth * 2),
+            UI.expBar.height() + (UI.expBar.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui);
 
         // Create inner black background
         const innerBg = scene.add.rectangle(
-            UI.expBar.centerX,
-            UI.expBar.y,
-            UI.expBar.width,
-            UI.expBar.height,
+            UI.expBar.centerX(),
+            UI.expBar.y(),
+            UI.expBar.width(),
+            UI.expBar.height(),
             UI.colors.black
         ).setDepth(UI.depth.ui);
 
         // Create the exp bar itself (initially empty)
         scene.expBar = scene.add.rectangle(
-            UI.expBar.startX,
-            UI.expBar.y,
+            UI.expBar.startX(),
+            UI.expBar.y(),
             0,
-            UI.expBar.height - (UI.expBar.innerMargin * 2),
+            UI.expBar.height() - (UI.expBar.innerMargin * 2),
             UI.expBar.barColor
         ).setOrigin(0, 0.5).setDepth(UI.depth.ui);
 
         // Create level text to the left of the bar
         scene.levelText = scene.add.text(
-            UI.expBar.startX - 30,
-            UI.expBar.y,
+            UI.expBar.startX() - UI.rel.width(2.5),
+            UI.expBar.y(),
             "1",
             {
                 fontFamily: UI.fonts.level.family,
-                fontSize: UI.fonts.level.size,
+                fontSize: UI.fonts.level.size(),
                 color: UI.fonts.level.color
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
 
         // Create XP needed text to the right of the bar
         scene.xpNeededText = scene.add.text(
-            UI.expBar.startX + UI.expBar.width + 30,
-            UI.expBar.y,
+            UI.expBar.startX() + UI.expBar.width() + UI.rel.width(2.5),
+            UI.expBar.y(),
             "5",
             {
                 fontFamily: UI.fonts.xpNeeded.family,
-                fontSize: UI.fonts.xpNeeded.size,
+                fontSize: UI.fonts.xpNeeded.size(),
                 color: UI.fonts.xpNeeded.color
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
@@ -280,7 +366,7 @@ const ExpBar = {
         const expPercentage = Math.max(0, Math.min(1, heroExp / heroExpToLevel));
 
         // Set the width of the exp bar
-        scene.expBar.width = expPercentage * UI.expBar.width;
+        scene.expBar.width = expPercentage * UI.expBar.width();
 
         // Update the level text
         scene.levelText.setText(`${playerLevel}`);
@@ -294,6 +380,9 @@ const ExpBar = {
 // Status display for timer and kills
 const StatusDisplay = {
     create: function (scene) {
+        // Initialize relative dimensions
+        UI.game.init(scene);
+
         // Clean up existing elements if they exist
         if (scene.timerBox) scene.timerBox.destroy();
         if (scene.timerBoxInner) scene.timerBoxInner.destroy();
@@ -307,84 +396,84 @@ const StatusDisplay = {
 
         // Create timer display with gold border
         scene.timerBox = scene.add.rectangle(
-            UI.statusDisplay.x + UI.statusDisplay.timerWidth / 2,
-            UI.statusDisplay.timerY,
-            UI.statusDisplay.timerWidth + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.x() + UI.statusDisplay.timerWidth() / 2,
+            UI.statusDisplay.timerY(),
+            UI.statusDisplay.timerWidth() + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
         // Create inner black background for timer
         scene.timerBoxInner = scene.add.rectangle(
-            UI.statusDisplay.x + UI.statusDisplay.timerWidth / 2,
-            UI.statusDisplay.timerY,
-            UI.statusDisplay.timerWidth,
-            UI.statusDisplay.height,
+            UI.statusDisplay.x() + UI.statusDisplay.timerWidth() / 2,
+            UI.statusDisplay.timerY(),
+            UI.statusDisplay.timerWidth(),
+            UI.statusDisplay.height(),
             UI.colors.black
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
         // Create the timer kanji symbol
         scene.timerSymbol = scene.add.text(
-            UI.statusDisplay.x + UI.statusDisplay.textPadding,
-            UI.statusDisplay.timerY,
+            UI.statusDisplay.x() + UI.statusDisplay.textPadding(),
+            UI.statusDisplay.timerY(),
             UI.statusDisplay.clockSymbol,
             {
                 fontFamily: UI.fonts.timer.family,
-                fontSize: UI.statusDisplay.fontSize,
+                fontSize: UI.fonts.timer.size(),
                 color: UI.fonts.timer.color
             }
         ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
 
         // Create the timer text
         scene.timerText = scene.add.text(
-            UI.statusDisplay.x + UI.statusDisplay.timerWidth - UI.statusDisplay.textPadding,
-            UI.statusDisplay.timerY,
+            UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding(),
+            UI.statusDisplay.timerY(),
             "00:00:00",
             {
                 fontFamily: UI.fonts.timer.family,
-                fontSize: UI.statusDisplay.fontSize,
+                fontSize: UI.fonts.timer.size(),
                 color: UI.fonts.timer.color
             }
         ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
 
         // Create kills display with gold border (to the right of timer)
         scene.killsBox = scene.add.rectangle(
-            UI.statusDisplay.killsX + UI.statusDisplay.killsWidth / 2,
-            UI.statusDisplay.killsY,
-            UI.statusDisplay.killsWidth + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth() / 2,
+            UI.statusDisplay.killsY(),
+            UI.statusDisplay.killsWidth() + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
         // Create inner black background for kills
         scene.killsBoxInner = scene.add.rectangle(
-            UI.statusDisplay.killsX + UI.statusDisplay.killsWidth / 2,
-            UI.statusDisplay.killsY,
-            UI.statusDisplay.killsWidth,
-            UI.statusDisplay.height,
+            UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth() / 2,
+            UI.statusDisplay.killsY(),
+            UI.statusDisplay.killsWidth(),
+            UI.statusDisplay.height(),
             UI.colors.black
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
         // Create the kills kanji symbol
         scene.killsSymbol = scene.add.text(
-            UI.statusDisplay.killsX + UI.statusDisplay.textPadding,
-            UI.statusDisplay.killsY,
+            UI.statusDisplay.killsX() + UI.statusDisplay.textPadding(),
+            UI.statusDisplay.killsY(),
             UI.statusDisplay.deathSymbol,
             {
                 fontFamily: UI.fonts.kills.family,
-                fontSize: UI.statusDisplay.fontSize,
+                fontSize: UI.fonts.kills.size(),
                 color: UI.fonts.kills.color
             }
         ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
 
         // Create the kills text
         scene.killsText = scene.add.text(
-            UI.statusDisplay.killsX + UI.statusDisplay.killsWidth - UI.statusDisplay.textPadding,
-            UI.statusDisplay.killsY,
+            UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth() - UI.statusDisplay.textPadding(),
+            UI.statusDisplay.killsY(),
             "0",
             {
                 fontFamily: UI.fonts.kills.family,
-                fontSize: UI.statusDisplay.fontSize,
+                fontSize: UI.fonts.kills.size(),
                 color: UI.fonts.kills.color
             }
         ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
@@ -409,6 +498,9 @@ const StatusDisplay = {
 // Stat display rectangles for POW, AGI, LUK, END
 const StatDisplay = {
     create: function (scene) {
+        // Initialize relative dimensions
+        UI.game.init(scene);
+
         // Clean up existing elements
         if (scene.statRects) {
             scene.statRects.forEach(stat => {
@@ -427,46 +519,46 @@ const StatDisplay = {
 
         // Create each stat rectangle
         stats.forEach((stat, index) => {
-            const x = UI.statDisplay.x + (index * UI.statDisplay.spacing);
+            const x = UI.statDisplay.x() + (index * UI.statDisplay.spacing());
 
             // Create gold border rectangle
             const rectBg = scene.add.rectangle(
-                x + UI.statDisplay.width / 2,
-                UI.statDisplay.y,
-                UI.statDisplay.width + (UI.statDisplay.borderWidth * 2),
-                UI.statDisplay.height + (UI.statDisplay.borderWidth * 2),
+                x + UI.statDisplay.width() / 2,
+                UI.statDisplay.y(),
+                UI.statDisplay.width() + (UI.statDisplay.borderWidth * 2),
+                UI.statDisplay.height() + (UI.statDisplay.borderWidth * 2),
                 UI.colors.gold
             ).setDepth(UI.depth.ui).setOrigin(0.5);
 
             // Create inner black rectangle
             const rectInner = scene.add.rectangle(
-                x + UI.statDisplay.width / 2,
-                UI.statDisplay.y,
-                UI.statDisplay.width,
-                UI.statDisplay.height,
+                x + UI.statDisplay.width() / 2,
+                UI.statDisplay.y(),
+                UI.statDisplay.width(),
+                UI.statDisplay.height(),
                 UI.colors.black
             ).setDepth(UI.depth.ui).setOrigin(0.5);
 
             // Create the symbol text
             const symbolText = scene.add.text(
-                x + UI.statDisplay.textPadding,
-                UI.statDisplay.y,
+                x + UI.statDisplay.textPadding(),
+                UI.statDisplay.y(),
                 UI.statDisplay.symbols[stat],
                 {
                     fontFamily: 'Arial',
-                    fontSize: UI.statDisplay.fontSize,
+                    fontSize: UI.statDisplay.fontSize(),
                     color: UI.statDisplay.symbolColors[stat]
                 }
             ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
 
             // Create the value text
             const valueText = scene.add.text(
-                x + UI.statDisplay.width - UI.statDisplay.textPadding,
-                UI.statDisplay.y,
+                x + UI.statDisplay.width() - UI.statDisplay.textPadding(),
+                UI.statDisplay.y(),
                 "0",
                 {
                     fontFamily: 'Arial',
-                    fontSize: UI.statDisplay.fontSize,
+                    fontSize: UI.fonts.stats.size(),
                     color: UI.fonts.stats.color
                 }
             ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
@@ -519,10 +611,19 @@ const StatDisplay = {
 
 // Function to create all UI elements
 function createUI(scene) {
+    // Initialize relative dimensions with the scene
+    UI.game.init(scene);
+
     HealthBar.create(scene);
     ExpBar.create(scene);
     StatusDisplay.create(scene);
     StatDisplay.create(scene);
+}
+
+// Method to update UI on window resize (to be called when game canvas is resized)
+function resizeUI(scene) {
+    // Re-create all UI elements with new dimensions
+    createUI(scene);
 }
 
 // Export for use in the main game
@@ -531,5 +632,6 @@ window.GameUI = {
     updateHealthBar: HealthBar.update,
     updateExpBar: ExpBar.update,
     updateStatusDisplay: StatusDisplay.update,
-    updateStatCircles: StatDisplay.update
+    updateStatCircles: StatDisplay.update,
+    resize: resizeUI
 };

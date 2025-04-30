@@ -60,6 +60,46 @@ const VisualEffects = {
 
         // Return the tween in case the caller wants to modify it
         return tween;
+    },
+
+    createDamageFlash: function (scene, entity) {
+        if (!entity || !entity.active) return;
+
+        // Store original alpha if not already stored
+        if (entity.originalAlpha === undefined) {
+            entity.originalAlpha = entity.alpha;
+        }
+
+        // If there's already a damage animation in progress, stop it and reset alpha
+        if (entity.damageAnimation && !entity.damageAnimation.isDestroyed) {
+            entity.damageAnimation.stop();
+            // Important: Reset alpha before starting new animation
+            entity.alpha = entity.originalAlpha;
+        }
+
+        // Create a flash animation
+        entity.damageAnimation = scene.tweens.add({
+            targets: entity,
+            alpha: { from: entity.originalAlpha, to: 0.3 },
+            duration: 100,  // Faster fade-out
+            yoyo: true,    // Return to original
+            repeat: 1,     // Single blink
+            onComplete: function () {
+                // Ensure alpha is reset properly
+                if (entity.active && !entity.alphaControlledByEffect) {
+                    entity.alpha = entity.originalAlpha;
+                }
+                entity.damageAnimation = null;
+            },
+            onStop: function () {
+                // Also handle alpha reset if animation is stopped prematurely
+                if (entity.active && !entity.alphaControlledByEffect) {
+                    entity.alpha = entity.originalAlpha;
+                }
+            }
+        });
+
+        return entity.damageAnimation;
     }
 
     // Additional visual effects can be added here

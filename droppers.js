@@ -14,11 +14,19 @@ const DropBehaviors = {
             drop.entity,
             enemy,
             drop.entity.damage,
-            0 // No cooldown for projectiles as they destroy themselves after contact
+            drop.damageInterval
         );
 
-        // Destroy the drop
-        DropperSystem.destroyDrop(drop);
+        // Reduce drop health by 1
+        drop.health -= 1;
+
+        // Show damage visual effect
+        VisualEffects.createDamageFlash(scene, drop.entity);
+
+        // Only destroy if health reaches 0 or below
+        if (drop.health <= 0) {
+            DropperSystem.destroyDrop(drop);
+        }
     },
 
     // Persistent behavior - deals continuous damage while enemies overlap
@@ -35,10 +43,16 @@ const DropBehaviors = {
 
     // Area effect behavior - deals damage to all enemies in range periodically
     areaEffect: function (scene, drop, enemy) {
-        // We don't need to do anything here since area effects 
-        // are processed by the update loop, not by collision
-        // Destroy the drop if enemy touches it
-        DropperSystem.destroyDrop(drop);
+        // Reduce drop health by 1
+        drop.health -= 1;
+
+        // Show damage visual effect
+        VisualEffects.createDamageFlash(scene, drop.entity);
+
+        // Only destroy if health reaches 0 or below
+        if (drop.health <= 0) {
+            DropperSystem.destroyDrop(drop);
+        }
     }
 };
 
@@ -60,11 +74,12 @@ const DropperSystem = {
             fontSize: 32,                // Size of the font
             x: player.x,                 // X position (default to player position)
             y: player.y,                 // Y position (default to player position)
-            behaviorType: 'projectile',   // Behavior type ('projectile', 'persistent', 'areaEffect')
+            behaviorType: 'projectile',  // Behavior type ('projectile', 'persistent', 'areaEffect')
             damage: playerDamage,        // Damage dealt to enemies
             damageInterval: 500,         // Minimum time between damage instances in ms
             colliderSize: 0.8,           // Size multiplier for collision detection
             lifespan: null,              // Time in ms before auto-destruction (null for permanent)
+            health: 1,                   // NEW: Health points (1 = dies on first hit)
             options: {}                  // Additional options for specific behaviors
         };
 
@@ -108,6 +123,7 @@ const DropperSystem = {
             lifespan: dropConfig.lifespan,
             areaEffectInterval: dropConfig.options.areaEffectInterval ?? 1000,
             areaEffectRadius: dropConfig.options.areaEffectRadius ?? 100,
+            health: dropConfig.health,   // NEW: Store health in the drop object
             options: dropConfig.options,
             destroyed: false             // Flag to mark for cleanup
         };

@@ -1612,42 +1612,7 @@
         // Helper function for enemy visual damage feedback
         function showEnemyDamageEffect(scene, enemy) {
             if (!enemy || !enemy.active) return;
-
-            // Store original alpha if not already stored
-            if (enemy.originalAlpha === undefined) {
-                enemy.originalAlpha = enemy.alpha;
-            }
-
-            // If there's already a damage animation in progress, stop it and reset alpha
-            if (enemy.damageAnimation && !enemy.damageAnimation.isDestroyed) {
-                enemy.damageAnimation.stop();
-                // Important: Reset alpha before starting new animation
-                enemy.alpha = enemy.originalAlpha;
-            }
-
-            // Create a unique sequence for rapid hits
-            // Instead of just fading to 0.3 and back, make a more distinct blink
-            // that works better with multiple hits
-            enemy.damageAnimation = scene.tweens.add({
-                targets: enemy,
-                alpha: { from: enemy.originalAlpha, to: 0.3 },
-                duration: 100,  // Faster fade-out
-                yoyo: true,    // Return to original
-                repeat: 1,     // Single blink
-                onComplete: function () {
-                    // Ensure alpha is reset properly
-                    if (enemy.active && !enemy.alphaControlledByEffect) {
-                        enemy.alpha = enemy.originalAlpha;
-                    }
-                    enemy.damageAnimation = null;
-                },
-                onStop: function () {
-                    // Also handle alpha reset if animation is stopped prematurely
-                    if (enemy.active && !enemy.alphaControlledByEffect) {
-                        enemy.alpha = enemy.originalAlpha;
-                    }
-                }
-            });
+            VisualEffects.createDamageFlash(scene, enemy);
         }
 
         // Export for use in other files if needed

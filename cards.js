@@ -1,4 +1,4 @@
-// cards.js - Reusable card creation and management functions
+// cards.js - Enhanced Card Management System for Word Survivors
 
 // Colors for various UI elements
 const CARD_COLORS = {
@@ -291,10 +291,64 @@ function createPerkCard(perkId, x, y, options = {}) {
     });
 }
 
-// Export functions for use in other modules
-window.CardSystem = {
+/**
+ * Creates a level-up screen with perk cards and romaji challenge
+ * @param {Phaser.Scene} scene - The active game scene
+ */
+function showLevelUpScreen(scene) {
+    // Delegate to the RomajiChallengeSystem
+    if (window.RomajiChallengeSystem) {
+        window.RomajiChallengeSystem.showLevelUpChallenge(scene);
+    } else {
+        console.error("RomajiChallengeSystem not found, falling back to original implementation");
+        // Legacy fallback method - in case the implementation is incomplete or unavailable
+        if (typeof showLevelUpCards === 'function') {
+            showLevelUpCards.call(scene);
+        } else {
+            console.error("No level up card system available");
+        }
+    }
+}
+
+/**
+ * Creates and shuffles an array of perk cards for level up
+ * @param {number} count - Number of cards to generate
+ * @param {Array} excludeIds - Array of perk IDs to exclude
+ * @returns {Array} Array of shuffled perk objects
+ */
+function generateRandomPerkCards(count, excludeIds = []) {
+    // Use the existing PerkSystem if available
+    if (window.PerkSystem && window.PerkSystem.getRandomPerks) {
+        return window.PerkSystem.getRandomPerks(count, excludeIds);
+    }
+
+    // Fallback method if PerkSystem is not available
+    const PERKS = getPerks();
+    const availablePerks = Object.keys(PERKS)
+        .filter(key => !excludeIds.includes(key))
+        .map(key => ({
+            id: key,
+            ...PERKS[key]
+        }));
+
+    // Shuffle the array
+    for (let i = availablePerks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [availablePerks[i], availablePerks[j]] = [availablePerks[j], availablePerks[i]];
+    }
+
+    return availablePerks.slice(0, count);
+}
+
+// Enhanced CardSystem object
+const CardSystem = {
     createPerkCardElements,
     createPerkCard,
     getActiveScene,
+    showLevelUpScreen,
+    generateRandomPerkCards,
     CARD_COLORS
 };
+
+// Export CardSystem for use in other files
+window.CardSystem = CardSystem;

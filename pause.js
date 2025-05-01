@@ -180,35 +180,6 @@ const PauseSystem = {
             return;
         }
 
-        // Check if we have valid UI elements before trying to hide them
-        if (!this.elements.pauseScreen) {
-            console.warn("Cannot resume game: Pause screen elements not found");
-
-            // Try to force a resume by just resetting the flag
-            gamePaused = false;
-
-            // Try to resume physics
-            const activeScene = game.scene.scenes[0];
-            if (activeScene && activeScene.physics) {
-                activeScene.physics.resume();
-            }
-            if (activeScene.tweens) {
-                activeScene.tweens.resumeAll();
-            }
-
-            return;
-        }
-
-        // Hide pause screen elements
-        this.elements.pauseScreen.setVisible(false);
-        this.elements.pauseMessage.setVisible(false);
-        this.elements.resumeButton.setVisible(false);
-
-        // Hide perks container
-        if (this.elements.pausePerksContainer) {
-            this.elements.pausePerksContainer.setVisible(false);
-        }
-
         // Set pause flag
         gamePaused = false;
 
@@ -235,6 +206,20 @@ const PauseSystem = {
             }
         });
 
+        // Check if we have valid UI elements before trying to hide them
+        if (!this.elements.pauseScreen) {
+            return;
+        }
+
+        // Hide pause screen elements
+        this.elements.pauseScreen.setVisible(false);
+        this.elements.pauseMessage.setVisible(false);
+        this.elements.resumeButton.setVisible(false);
+
+        // Hide perks container
+        if (this.elements.pausePerksContainer) {
+            this.elements.pausePerksContainer.setVisible(false);
+        }
         console.log("Game resumed");
     },
 

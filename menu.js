@@ -24,7 +24,7 @@ const UI = {
                 };
 
                 // Log the dimensions for debugging
-                console.log(`UI initialized with dimensions: ${this.getWidth()}x${this.getHeight()}`);
+                //console.log(`UI initialized with dimensions: ${this.getWidth()}x${this.getHeight()}`);
             }
         }
     },

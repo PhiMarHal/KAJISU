@@ -605,77 +605,6 @@
             return baseChance * Math.sqrt(luck / BASE_STATS.LUK);
         }
 
-        // Enhanced pauseGame function
-        function pauseGame(isLevelUpPause = false) {
-            PauseSystem.pauseGame(isLevelUpPause);
-        }
-
-        function resumeGame() {
-            PauseSystem.resumeGame();
-        }
-
-        // Setup pause system
-        function setupPauseSystem() {
-            // Initialize the modular pause system
-            PauseSystem.init(this);
-        }
-
-        function createPauseScreen() {
-            // Create semi-transparent background
-            pauseScreen = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
-            pauseScreen.setVisible(false);
-            pauseScreen.setDepth(1000); // Make sure it appears on top
-
-            // Create pause message
-            pauseMessage = this.add.text(
-                600, 100,
-                'GAME PAUSED',
-                { fontFamily: 'Arial', fontSize: '40px', color: '#ffffff', fontStyle: 'bold' }
-            ).setOrigin(0.5);
-            pauseMessage.setVisible(false);
-            pauseMessage.setDepth(1001);
-
-            // Create resume button
-            resumeButton = this.add.text(
-                600, 700,
-                'RESUME GAME',
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '36px',
-                    color: '#ffffff',
-                    backgroundColor: '#008800',
-                    padding: { left: 15, right: 15, top: 10, bottom: 10 }
-                }
-            ).setOrigin(0.5);
-            resumeButton.setVisible(false);
-            resumeButton.setDepth(1001);
-            resumeButton.setInteractive();
-
-            // Add resume button functionality
-            resumeButton.on('pointerdown', resumeGame);
-            resumeButton.on('pointerover', function () {
-                this.setStyle({ backgroundColor: '#00aa00' });
-            });
-            resumeButton.on('pointerout', function () {
-                this.setStyle({ backgroundColor: '#008800' });
-            });
-
-            // Create container for perks display
-            this.pausePerksContainer = this.add.container(0, 0);
-            this.pausePerksContainer.setDepth(1001);
-            this.pausePerksContainer.setVisible(false);
-
-            // Create perks title
-            const perksTitle = this.add.text(
-                600, 200,
-                'MY PERKS',
-                { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }
-            ).setOrigin(0.5);
-
-            // Add to container
-            this.pausePerksContainer.add(perksTitle);
-        }
-
         // Pause the game and show overlay
         function pauseGameWithOverlay() {
             PauseSystem.pauseGameWithOverlay();
@@ -961,7 +890,7 @@
 
             // Initialize our new systems
             RomajiChallengeSystem.init(this);
-            setupPauseSystem.call(this);
+            PauseSystem.init(this);
             setupPerformanceMonitor.call(this);
 
             WeaponSystem.initialize(this);

@@ -164,7 +164,6 @@ const WeaponSystem = {
     },
 
     // Create a projectile with the appropriate properties
-    // Create a projectile with the appropriate properties
     createProjectile: function (scene, config) {
         const defaults = {
             x: player.x,

@@ -287,7 +287,8 @@ OrbitalPerkRegistry.registerPerkOrbital('SNIPER_FAIRY', {
             lifespan: null, // Permanent
             options: {
                 isFamiliar: true,
-                familiarType: 'sniper'
+                familiarType: 'sniper',
+                rangeModifier: 2 // 100% extra range
             }
         };
     },

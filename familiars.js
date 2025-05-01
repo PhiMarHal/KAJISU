@@ -136,15 +136,21 @@ const FamiliarBehaviors = {
     }
 };
 
-// Helper function to find a random visible enemy
-function findRandomVisibleEnemy(scene) {
-    // Get all active enemies on screen
+// Helper function to find a random visible enemy within a maximum distance
+function findRandomVisibleEnemy(scene, maxDistance = 400) {
+    // Get all active enemies 
     const activeEnemies = enemies.getChildren().filter(enemy => {
         if (!enemy || !enemy.active) return false;
 
-        // Check if enemy is on screen (with some margin)
-        return (enemy.x >= -50 && enemy.x <= 1250 &&
-            enemy.y >= -50 && enemy.y <= 850);
+        // If maxDistance is specified, check distance from player
+        if (maxDistance !== Infinity) {
+            const dx = player.x - enemy.x;
+            const dy = player.y - enemy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance <= maxDistance;
+        }
+
+        return true;
     });
 
     // Return a random enemy from the list, or null if none found
@@ -153,21 +159,17 @@ function findRandomVisibleEnemy(scene) {
     return Phaser.Utils.Array.GetRandom(activeEnemies);
 }
 
-// Helper function to find the closest visible enemy to the player
-function findClosestVisibleEnemy(scene) {
-    // Get all active enemies on screen
+// Helper function to find the closest visible enemy to the player within a maximum distance
+function findClosestVisibleEnemy(scene, maxDistance = 400) {
+    // Get all active enemies
     const activeEnemies = enemies.getChildren().filter(enemy => {
-        if (!enemy || !enemy.active) return false;
-
-        // Check if enemy is on screen (with some margin)
-        return (enemy.x >= -50 && enemy.x <= 1250 &&
-            enemy.y >= -50 && enemy.y <= 850);
+        return enemy && enemy.active;
     });
 
     if (activeEnemies.length === 0) return null;
 
     let closestEnemy = null;
-    let closestDistance = Infinity;
+    let closestDistance = maxDistance;
 
     // Find the closest enemy to the player
     activeEnemies.forEach(enemy => {
@@ -183,6 +185,7 @@ function findClosestVisibleEnemy(scene) {
 
     return closestEnemy;
 }
+
 
 // Helper function to fire a projectile from a familiar
 function fireFamiliarProjectile(scene, orbital, target, options = {}) {
@@ -246,9 +249,9 @@ function setupFamiliarFiringTimer(scene, orbital, behaviorType, baseCooldown = 4
     orbital.baseCooldown = baseCooldown;
     orbital.behaviorType = behaviorType;
 
-    // Create firing timer using CooldownManager
+    // Create firing timer using CooldownManager - keeping this LUK-based as before
     const firingTimer = CooldownManager.createTimer({
-        statName: 'luck',
+        statName: 'luck', // LUK-based timing
         baseCooldown: baseCooldown,
         formula: 'sqrt',
         component: orbital,  // Store reference to the orbital
@@ -260,8 +263,22 @@ function setupFamiliarFiringTimer(scene, orbital, behaviorType, baseCooldown = 4
                 return;
             }
 
-            // Execute the behavior
-            behaviorFn(scene, orbital, scene.time.now);
+            // Calculate max distance based on player's AGI (fire rate)
+            const baseDistance = 400; // Base distance
+            let maxDistance = baseDistance * (Math.sqrt(playerFireRate / BASE_STATS.AGI));
+
+            // Apply range modifier from options if available
+            const rangeModifier = orbital.options?.rangeModifier ?? 1.0;
+            maxDistance *= rangeModifier;
+
+            // Add time-based variation if specified in options
+            if (orbital.options?.useRangeVariation) {
+                const variation = Math.sin(scene.time.now * 0.001) * 0.2; // ±20% variation
+                maxDistance *= (1.0 + variation);
+            }
+
+            // Execute the behavior with the calculated max distance
+            behaviorFn(scene, orbital, scene.time.now, maxDistance);
         },
         callbackScope: scene,
         loop: true

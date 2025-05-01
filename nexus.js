@@ -501,5 +501,38 @@ window.activateFunFairy = function () {
     }
 };
 
+OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
+    getConfig: function () {
+        return {
+            symbol: '光槍', // Kanji for "Bright Lance"
+            color: '#ffff00',
+            fontSize: 32, // Standard size
+            radius: 96, //
+            angle: Math.random() * Math.PI * 2, // Random starting angle
+            speed: 0.1, // Use this value as rotation speed factor for direction following
+            direction: 'clockwise', // Not really used due to custom movement
+            pattern: 'directionFollowing', // Use our custom pattern
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage * 1, //
+            damageInterval: 400, //
+            lifespan: null, // Permanent
+            options: {
+                oscillationSpeed: 0.004, // Speed of the breathing effect
+                oscillationAmount: 32 // Amplitude of oscillation
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+window.activateBrightLance = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'BRIGHT_LANCE');
+};
+
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

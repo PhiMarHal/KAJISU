@@ -334,6 +334,19 @@ const PERKS = {
             window.activateColdFlower();
         }
     },
+    "BRIGHT_LANCE": {
+        kanji: "光槍",
+        kana: "こうそう",
+        romaji: "kousou",
+        english: "Bright Lance",
+        description: "Summons a glowing lance that follows your movement direction",
+        color: "#FFFF33", // Bright yellow color
+        hoverColor: 0xDDDD00,
+        onAcquire: function () {
+            window.activateBrightLance();
+        }
+    },
+
 
     /*"AREA_PULSE": {
         kanji: "波動",

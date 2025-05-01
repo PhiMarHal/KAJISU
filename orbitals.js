@@ -91,6 +91,58 @@ const MovementPatterns = {
 
         // Update orbital position
         orbital.entity.setPosition(x, y);
+    },
+
+    directionFollowing: function (orbital, time) {
+        // Skip if player is destroyed or has no velocity
+        if (!player || !player.body || !player.active) return;
+
+        // Get player velocity
+        const velocity = player.body.velocity;
+
+        // Only update angle if player is actually moving
+        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+        const movementThreshold = 10; // Minimum velocity to consider player moving
+
+        if (speed > movementThreshold) {
+            // Calculate angle from velocity
+            const newAngle = Math.atan2(velocity.y, velocity.x);
+
+            // Smooth rotation to prevent jittering
+            let targetAngle = newAngle;
+
+            // If we haven't stored a previous angle, initialize it
+            if (orbital.lastAngle === undefined) {
+                orbital.lastAngle = targetAngle;
+            }
+
+            // Calculate angle difference (accounting for wrapping)
+            let angleDiff = targetAngle - orbital.lastAngle;
+            if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+            // Apply smooth rotation using the orbital.speed as the rotation speed factor
+            orbital.lastAngle += angleDiff * orbital.speed;
+
+            // Store last computed angle to use as the facing direction
+            orbital.angle = orbital.lastAngle;
+        }
+
+        // Calculate new position based on player position and orbit angle
+        // Add a small oscillation on the radius to make it "breathe"
+        const oscillationSpeed = orbital.options.oscillationSpeed ?? 0.002;
+        const oscillationAmount = orbital.options.oscillationAmount ?? 20;
+        const oscillation = Math.sin(time * oscillationSpeed) * oscillationAmount;
+        const currentRadius = orbital.radius + oscillation;
+
+        const x = player.x + Math.cos(orbital.angle) * currentRadius;
+        const y = player.y + Math.sin(orbital.angle) * currentRadius;
+
+        // Update orbital position
+        orbital.entity.setPosition(x, y);
+
+        // Rotate the text to match the direction
+        orbital.entity.setAngle((orbital.angle * 180 / Math.PI)); // Add 90 degrees to point forward
     }
 };
 

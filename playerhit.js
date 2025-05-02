@@ -196,7 +196,7 @@ function playerDeath() {
     gameOver = true;
 
     // Pause the game physics to stop all movement
-    pauseGame();
+    PauseSystem.pauseGame()
 
     // Show game over text and restart button
     gameOverText.setText(`GAME OVER\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`);

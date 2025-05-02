@@ -588,10 +588,10 @@ const StatDisplay = {
             // Get the current value for each stat
             switch (item.stat) {
                 case 'POW':
-                    value = playerDamage ?? 0;
+                    value = getEffectiveDamage() ?? 0;
                     break;
                 case 'AGI':
-                    value = playerFireRate ?? 0;
+                    value = getEffectiveFireRate() ?? 0;
                     break;
                 case 'LUK':
                     value = playerLuck ?? 0;

@@ -142,9 +142,10 @@ PlayerComponentSystem.registerComponent('berserkerState', {
 
         // Set global berserk multiplier
         berserkMultiplier = this.damageMultiplier;
+        console.log("BERSERK!");
 
         // Update player stats display to show new values
-        updatePlayerStatsText();
+        GameUI.updateStatCircles(scene);
     },
 
     update: function (player) {
@@ -152,6 +153,7 @@ PlayerComponentSystem.registerComponent('berserkerState', {
         const healthPercentage = playerHealth / maxPlayerHealth;
         if (healthPercentage > 0.25) {
             PlayerComponentSystem.removeComponent('berserkerState');
+
         }
     },
 
@@ -170,7 +172,10 @@ PlayerComponentSystem.registerComponent('berserkerState', {
         player.setColor(this.originalColor || '#ffffff');
 
         // Update player stats display
-        updatePlayerStatsText();
+        const scene = game.scene.scenes[0];
+        if (scene) {
+            GameUI.updateStatCircles(scene);
+        }
     }
 });
 
@@ -426,6 +431,8 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
 
         // Instead of manipulating the timer directly, we'll use WeaponSystem's updateFiringRate
         WeaponSystem.updateFiringRate(scene);
+
+        GameUI.updateStatCircles(scene);
     },
 
     cleanup: function (player) {

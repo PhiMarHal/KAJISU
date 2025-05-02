@@ -590,8 +590,8 @@
             // If no base size provided, use the global projectileSizeFactor
             const baseSize = baseFontSize ?? projectileSizeFactor;
 
-            // Use provided damage or default to playerDamage
-            const damage = damageValue ?? playerDamage;
+            // Use provided damage or default to getEffectiveDamage()
+            const damage = damageValue ?? getEffectiveDamage();
 
             // Get the scaling factor using square root approach
             const scalingFactor = Math.sqrt(damage / BASE_STATS.POW);
@@ -603,71 +603,6 @@
         // Proc chance
         function calculateProcChance(luck, baseChance) {
             return baseChance * Math.sqrt(luck / BASE_STATS.LUK);
-        }
-
-        // Pause the game and show overlay
-        function pauseGameWithOverlay() {
-            PauseSystem.pauseGameWithOverlay();
-        }
-
-        // Update the updatePerkCardDisplay function to use our generalized function
-        function updatePerkCardDisplay() {
-            RomajiChallengeSystem.updatePerkCardDisplay(this);
-        }
-
-        // Improved pause screen perks display with better visuals
-        function updatePauseScreenPerks() {
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                PauseSystem.updatePauseScreenPerks(scene);
-            }
-        }
-
-        // Function to show detailed perk card with improved visuals
-        function showPerkCard(perkId, x, y) {
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                PauseSystem.showPerkCard(scene, perkId, x, y);
-            }
-        }
-
-        // Function to hide perk card
-        function hidePerkCard() {
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                PauseSystem.hidePerkCard(scene);
-            }
-        }
-
-        // Enhanced level up cards with romaji typing challenge
-        function showLevelUpCards() {
-            RomajiChallengeSystem.showLevelUpChallenge(this);
-        }
-
-
-        // Function to validate romaji input
-        function validateRomajiInput() {
-            RomajiChallengeSystem.validateRomajiInput(this);
-        }
-
-        // Function to handle correct romaji input
-        function handleCorrectRomaji() {
-            RomajiChallengeSystem.handleCorrectRomaji(this);
-        }
-
-        // Function to handle incorrect romaji input
-        function handleWrongRomaji() {
-            RomajiChallengeSystem.handleWrongRomaji(this);
-        }
-
-        // Function to update input visibility
-        function updateInputVisibility() {
-            RomajiChallengeSystem.updateInputVisibility();
-        }
-
-        // Modified select card function
-        function selectCard(perkType) {
-            RomajiChallengeSystem.selectCard(this, perkType);
         }
 
         function shuffleArray(array) {
@@ -1237,12 +1172,6 @@
             CardSystem.showLevelUpScreen(this);
         }
 
-        function updatePlayerStatsText() {
-            let statsText = `POW: ${playerDamage}\nAGI: ${playerFireRate}\nLUK: ${playerLuck}\nEND: ${maxPlayerHealth}`;
-            // Update the text
-            playerStatsText.setText(statsText);
-        }
-
         function fireProjectile() {
             if (gameOver) return;
             // Just delegate to the weapon system
@@ -1363,28 +1292,6 @@
             updatePlayerStatus();
         }
 
-
-        // Helper function to disable debug keys
-        function disableDebugKeys() {
-            // We'll use a simple approach: add a flag that the debug key handlers can check
-            this.debugKeysDisabled = true;
-        }
-
-        // Helper function to restore debug keys
-        function restoreDebugKeys() {
-            // Clear the flag to allow debug keys to work again
-            this.debugKeysDisabled = false;
-        }
-
-        // Function to create the input field for romaji typing
-        function createRomajiInput(x, y) {
-            RomajiChallengeSystem.createRomajiInput(this, x, y);
-        }
-
-        // Enhanced cleanup function
-        function closeLevelUpCards() {
-            RomajiChallengeSystem.closeLevelUpCards(this);
-        }
 
         // Helper function to disable debug keys
         function disableDebugKeys() {
@@ -1554,11 +1461,6 @@
             }
         }
 
-        // Helper function to generate random ID for keyboard event namespace
-        function randomKeyboardId() {
-            return 'romaji-input-' + Math.floor(Math.random() * 1000000);
-        }
-
         function detectKeyboardLayout() {
             // Detect keyboard layout
             try {
@@ -1611,7 +1513,6 @@
                 });
             }
         }
-
 
         // Updated modifyStat function that handles negative values
         window.modifyStat = function (statName, amount) {

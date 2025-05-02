@@ -14,14 +14,13 @@ but the system could work for the first xxx kanjis. or, unlocks could be 10 for 
 after 100 perks we need 1000 kills of a new kanji for a perk unlock. good for longterm progression, but might be tedious
 ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks and rotating in favor of new one.
 fixed at high value (perhaps 1k) would make more sense with that latter design
-- add screen coloring on damage taken
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
 - time slowdown fails to affect orbits and tweens <= think we'll live with this and call it a quirk
 - picking up clock during slowdown period fails to activate effect <= should be fixed
 - speed sometimes doesn't reset <= probably fixed with basePlayerSpeed, but that's a bit of a hack
 - cold projectiles stack infinitely <= should be fixed, more testing needed
 - poison resets tween to base = cold+poison = back to base despite cold
-- if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow
+- if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow <= possibly fixed by window.TimeDilationSystem.cleanup();, need testing
 
 DONE
 - Move remaining perks outside of index.html (orbiting? landmine?) orbiting done. landmine+afterimage next
@@ -33,3 +32,4 @@ DONE
 ^^ changing my mind on this again. We'll see. Leave this here for consideration
 ^^^ am ok with this so far
 - Arrange timer, P.A.L.E.
+- add screen coloring on damage taken

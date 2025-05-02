@@ -853,6 +853,18 @@ const PERKS = {
             }
         }
     },
+    "MAGMA_FLOOR": {
+        kanji: "熔地",
+        kana: "ようち",
+        romaji: "youchi",
+        english: "Magma Floor",
+        description: "Creates pools of magma that damage enemies",
+        color: "#FF4400", // Orange-red color
+        hoverColor: 0xDD2200,
+        onAcquire: function () {
+            window.activateMagmaFloor();
+        }
+    },
     "FROST_SHRAPNEL": {
         kanji: "氷片",
         kana: "ひょうへん",

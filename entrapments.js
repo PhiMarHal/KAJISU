@@ -84,6 +84,48 @@ window.activateLandmines = function () {
     }
 };
 
+DropperPerkRegistry.registerDropperPerk('MAGMA_FLOOR', {
+    getConfig: function () {
+        return {
+            symbol: '熔', // Kanji for "magma/melting"
+            color: '#FF4400', // Orange-red color for magma
+            fontSize: 64, // Very large size as requested
+            behaviorType: 'persistent', // Persistent type to stay and deal damage
+            damage: playerDamage, // Full player damage
+            damageInterval: 1000, // 1 second between damage applications
+            lifespan: playerLuck * 1000, // Lasts for playerLuck seconds
+            options: {
+                needsPulsing: true, // Add pulsing animation for better visibility
+                opacity: 0.8 // Slightly transparent
+            }
+        };
+    },
+    cooldown: function () {
+        // Base cooldown is 8 seconds, scaled by player luck
+        return 8000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
+    },
+    positionMode: 'player', // Drop at player position
+    activationMethod: 'periodic' // Periodically create magma floors
+});
+
+// Function to activate the MAGMA_FLOOR perk
+window.activateMagmaFloor = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create a magma floor configuration
+    const magmaConfig = DropperPerkRegistry.perkDropperConfigs['MAGMA_FLOOR'].getConfig();
+
+    // Create the first magma floor immediately
+    magmaConfig.x = player.x;
+    magmaConfig.y = player.y;
+    DropperSystem.create(scene, magmaConfig);
+
+    // Apply the dropper perk for future magma floors
+    return DropperPerkRegistry.applyDropperPerk(scene, 'MAGMA_FLOOR');
+};
+
 // Register the Green Dream perk (afterimages)
 DropperPerkRegistry.registerDropperPerk('GREEN_DREAM', {
     getConfig: function () {

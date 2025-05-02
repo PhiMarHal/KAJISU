@@ -203,17 +203,7 @@ const DropperSystem = {
         // Set up auto-destruction timer if lifespan is specified
         if (drop.lifespan !== null) {
             const timer = scene.time.delayedCall(drop.lifespan, function () {
-                // Create a fade-out effect
-                scene.tweens.add({
-                    targets: entity,
-                    alpha: 0,
-                    // Only change scale if initialScale wasn't already 1
-                    scale: dropConfig.initialScale !== 1 ? dropConfig.initialScale : entity.scale,
-                    duration: 300,
-                    onComplete: function () {
-                        DropperSystem.destroyDrop(drop);
-                    }
-                });
+                DropperSystem.destroyDrop(drop);
             });
 
             // Register the timer for cleanup

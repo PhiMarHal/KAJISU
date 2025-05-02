@@ -127,7 +127,6 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
     getConfig: function () {
         return {
             symbol: '★',
-            color: '#00FFFF', // Teal color
             fontSize: projectileSizeFactor * playerDamage,
             radius: 16 * playerLuck, // Scale radius with luck
             speed: 0.02,
@@ -161,6 +160,126 @@ window.activateOrbitingProjectile = function () {
         OrbitalPerkRegistry.applyPerkOrbital(scene, 'TEAL_OCTOPUS');
     }
 };
+
+OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
+    getConfig: function () {
+        return {
+            symbol: '★',
+            color: '#FF55FF', // Pink color to differentiate from TEAL_OCTOPUS
+            fontSize: projectileSizeFactor * playerDamage,
+            radius: 16 * playerLuck, // Scale radius with luck - same as TEAL_OCTOPUS
+            speed: 0.02,
+            direction: 'counterclockwise', // Key difference: counter-clockwise rotation
+            pattern: 'standard',
+            collisionType: 'projectile', // Destroyed on hit
+            damage: playerDamage,
+            damageInterval: 0, // Not used for projectiles
+            lifespan: null, // Permanent until hit
+            options: {}
+        };
+    },
+    count: 1,
+    cooldown: function () {
+        // Calculate cooldown based on Agi - same as TEAL_OCTOPUS
+        return 4000 / playerFireRate;
+    },
+    activationMethod: 'timer'
+});
+
+// Create activation function in nexus.js
+window.activateInvertedOctopus = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create initial orbital immediately
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['INVERTED_OCTOPUS'].getConfig();
+    OrbitalSystem.create(scene, orbitalConfig);
+
+    // Set up timer for subsequent orbitals
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'INVERTED_OCTOPUS');
+};
+
+// In nexus.js, add this function
+window.activateTentacleGrasp = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Launch tentacles immediately
+    launchTentacles(scene);
+
+    // Set up a timer using CooldownManager
+    const tentacleTimer = CooldownManager.createTimer({
+        statName: 'luck',
+        baseCooldown: 30000, // 30 seconds base cooldown
+        formula: 'sqrt', //
+        callback: function () {
+            launchTentacles(scene);
+        },
+        callbackScope: scene,
+        loop: true
+    });
+};
+
+// Helper function to launch tentacles
+// Helper function to launch tentacles with oscillating pattern
+function launchTentacles(scene) {
+    const tentacleCount = 4;
+
+    // Define our radii
+    const radii = [24, 48, 72, 96];
+
+    // Create tentacles in evenly distributed angles
+    for (let i = 0; i < tentacleCount; i++) {
+        // Calculate the base angle for this tentacle
+        const baseAngle = (i / tentacleCount) * Math.PI * 2;
+
+        // Create each segment with slightly varied angles based on the same base
+        radii.forEach((radius, index) => {
+            // Add a small random variation to the angle for organic feel
+            // More variation for outer segments
+            const angleVariation = (Math.random() * 0.2 - 0.1) * (index * 0.5 + 1);
+            const segmentAngle = baseAngle + angleVariation;
+
+            // Customize wobble parameters for each segment
+            // Outer segments wobble more for a more organic feel
+            const wobbleFrequency = 2; // Increases with distance
+            const wobbleAmplitude = radius * 0.1 * (index + 1); // Proportional to radius
+
+            const orbitalConfig = {
+                symbol: '✧', // Star symbol for tentacle segment
+                color: '#8800AA', // Purple color
+                fontSize: 24,
+                radius: radius, // Use the current radius
+                angle: segmentAngle, // Use the varied angle
+                speed: 0.01, // Slower speed for better tentacle effect
+                direction: 'clockwise',
+                pattern: 'oscillating', // Use oscillating pattern for organic movement
+                collisionType: 'projectile', // Destroyed on hit with enemies
+                damage: playerDamage, //
+                damageInterval: 0, // Not used for projectiles
+                lifespan: null, // Permanent until hit
+                options: {
+                    wobbleFrequency: wobbleFrequency, // How quickly it oscillates
+                    wobbleAmplitude: wobbleAmplitude // How far it oscillates
+                }
+            };
+
+            // Create the orbital segment
+            OrbitalSystem.create(scene, orbitalConfig);
+        });
+    }
+
+    // Visual effect when launching tentacles
+    scene.tweens.add({
+        targets: player,
+        scale: 1.2,
+        duration: 200,
+        yoyo: true,
+        ease: 'Cubic.easeOut'
+    });
+}
 
 // Track the current angle of immortal body parts
 let immortalBodyAngle = Math.random() * Math.PI * 2; // Initial random angle

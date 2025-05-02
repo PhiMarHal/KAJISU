@@ -64,6 +64,30 @@ const PERKS = {
             window.activateOrbitingProjectile();
         }
     },
+    "INVERTED_OCTOPUS": {
+        kanji: "逆蛸",
+        kana: "ぎゃくたこ",
+        romaji: "gyakutako",
+        english: "Inverted Octopus",
+        description: "Gain counter-rotating orbiting projectiles",
+        color: "#FF55FF", // Pink color
+        hoverColor: 0xDD33DD,
+        onAcquire: function () {
+            window.activateInvertedOctopus();
+        }
+    },
+    "TENTACLE_GRASP": {
+        kanji: "触手",
+        kana: "しょくしゅ",
+        romaji: "shokushu",
+        english: "Tentacle Grasp",
+        description: "Periodically launches multiple tentacles in all directions",
+        color: "#8800AA", // Purple color
+        hoverColor: 0x660088,
+        onAcquire: function () {
+            window.activateTentacleGrasp();
+        }
+    },
     "GLASS_CANNON": {
         kanji: "硝子砲",
         kana: "がらすほう",

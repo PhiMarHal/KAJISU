@@ -297,5 +297,46 @@ window.activateColdFlower = function () {
     return DropperPerkRegistry.applyDropperPerk(scene, 'COLD_FLOWER');
 };
 
+DropperPerkRegistry.registerDropperPerk('FROST_SHRAPNEL', {
+    getConfig: function () {
+        return {
+            symbol: '氷',  // Kanji for "ice"
+            color: '#00FFFF', // Cyan color for frost
+            fontSize: 16, // Medium size for visibility
+            behaviorType: 'projectile', // Projectile type as requested
+            damage: playerDamage * 0.2, // 1/5th of player damage
+            damageInterval: 1000, // 1 second between damage applications
+            lifespan: null, // Permanent until destroyed
+            options: {
+                effectComponent: 'slowEffect' // Apply slow effect like Azure Frost
+            }
+        };
+    },
+    cooldown: function () {
+        // Base cooldown is 4 seconds, scaled by player fire rate
+        return 4000 / (Math.sqrt(playerFireRate / BASE_STATS.AGI));
+    },
+    positionMode: 'player', // Drop at player position
+    activationMethod: 'periodic' // Periodically create shrapnel
+});
+
+// Function to activate the FROST_SHRAPNEL perk
+window.activateFrostShrapnel = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create a shrapnel configuration
+    const shrapnelConfig = DropperPerkRegistry.perkDropperConfigs['FROST_SHRAPNEL'].getConfig();
+
+    // Create the first shrapnel immediately
+    shrapnelConfig.x = player.x;
+    shrapnelConfig.y = player.y;
+    DropperSystem.create(scene, shrapnelConfig);
+
+    // Apply the dropper perk for future shrapnel pieces
+    return DropperPerkRegistry.applyDropperPerk(scene, 'FROST_SHRAPNEL');
+};
+
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

@@ -832,6 +832,39 @@ const PERKS = {
             window.triggerOneTimeEffect('purpleChaos');
         }
     },
+    "ALIEN_MUSHROOM": {
+        kanji: "異菇",
+        kana: "いきのこ",
+        romaji: "ikinoko",
+        english: "Alien Mushroom",
+        description: "+1 to all stats and a brief time dilation",
+        color: "#9966FF", // Purple-blue color
+        hoverColor: 0x7744DD,
+        onAcquire: function () {
+            // +1 to all stats
+            window.modifyStat('damage', 1);
+            window.modifyStat('fireRate', 1);
+            window.modifyStat('luck', 1);
+            window.modifyStat('health', 1);
+
+            // Activate time dilation once (if available)
+            if (window.TimeDilationSystem && window.activateTimeDilation) {
+                window.activateTimeDilation(2000); // 4 seconds of time dilation (2s / 50%)
+            }
+        }
+    },
+    "FROST_SHRAPNEL": {
+        kanji: "氷片",
+        kana: "ひょうへん",
+        romaji: "hyouhen",
+        english: "Frost Shrapnel",
+        description: "Periodically drops ice shards that damage and slow enemies",
+        color: "#00FFFF", // Cyan color
+        hoverColor: 0x00DDDD,
+        onAcquire: function () {
+            window.activateFrostShrapnel();
+        }
+    },
     "OBLIVION_BLOSSOM": {
         kanji: "忘却の花",
         kana: "ぼうきゃくのはな",

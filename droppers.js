@@ -17,6 +17,25 @@ const DropBehaviors = {
             drop.damageInterval
         );
 
+        // Apply effect component if specified
+        if (drop.options && drop.options.effectComponent) {
+            const componentName = drop.options.effectComponent;
+            const component = ProjectileComponentSystem.componentTypes[componentName];
+
+            if (component && component.onHit) {
+                // Create a minimal synthetic projectile with necessary properties
+                const syntheticProjectile = {
+                    damage: drop.entity.damage,
+                    x: drop.entity.x,
+                    y: drop.entity.y,
+                    damageSourceId: drop.entity.damageSourceId + '_effect'
+                };
+
+                // Apply the effect
+                component.onHit(syntheticProjectile, enemy, scene);
+            }
+        }
+
         // Reduce drop health by 1
         drop.health -= 1;
 

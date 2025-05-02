@@ -729,6 +729,9 @@
             activeEffects.timers = [];
             activeEffects.entities = [];
             activeEffects.activePerks = [];
+
+            // Make sure time flows
+            window.TimeDilationSystem.cleanup();
         }
 
         function resetAllPerks() {

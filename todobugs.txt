@@ -21,6 +21,7 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - speed sometimes doesn't reset <= probably fixed with basePlayerSpeed, but that's a bit of a hack
 - cold projectiles stack infinitely <= should be fixed, more testing needed
 - poison resets tween to base = cold+poison = back to base despite cold
+- if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow
 
 DONE
 - Move remaining perks outside of index.html (orbiting? landmine?) orbiting done. landmine+afterimage next

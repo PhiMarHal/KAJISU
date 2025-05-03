@@ -293,6 +293,9 @@ const OneTimeEffects = {
         OrbitalSystem.clearAll();
         DropperSystem.clearAll();
 
+        // Add this line to reinitialize the player hit system:
+        PlayerHitSystem.init(scene);
+
         // Set perk array to just this perk
         acquiredPerks = ['OBLIVION_BLOSSOM'];
     }

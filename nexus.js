@@ -165,7 +165,6 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
     getConfig: function () {
         return {
             symbol: '★',
-            color: '#FF55FF', // Pink color to differentiate from TEAL_OCTOPUS
             fontSize: projectileSizeFactor * playerDamage,
             radius: 16 * playerLuck, // Scale radius with luck - same as TEAL_OCTOPUS
             speed: 0.02,
@@ -200,7 +199,28 @@ window.activateInvertedOctopus = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'INVERTED_OCTOPUS');
 };
 
-// In nexus.js, add this function
+// First, register the perk with the registry
+OrbitalPerkRegistry.registerPerkOrbital('TENTACLE_GRASP', {
+    getConfig: function () {
+        return {
+            symbol: '✧', // Star symbol for tentacle segment
+            color: '#8800AA', // Purple color
+            fontSize: 24,
+            radius: 80, // Medium orbit radius
+            angle: Math.random() * Math.PI * 2, // Random starting angle
+            speed: 0.01, // Moderate speed
+            pattern: 'oscillating', // Use oscillating pattern for organic movement
+            collisionType: 'projectile', // Destroyed on hit with enemies
+            damage: playerDamage, //
+            damageInterval: 0, // Not used for projectiles
+            lifespan: null, // Permanent until hit
+        };
+    },
+    cooldown: 30000, // 30 seconds base cooldown
+    activationMethod: 'timer' // Create periodically on a timer
+});
+
+// Then modify the activateTentacleGrasp function to use the registry
 window.activateTentacleGrasp = function () {
     // Get the current active scene
     const scene = game.scene.scenes[0];
@@ -209,26 +229,16 @@ window.activateTentacleGrasp = function () {
     // Launch tentacles immediately
     launchTentacles(scene);
 
-    // Set up a timer using CooldownManager
-    const tentacleTimer = CooldownManager.createTimer({
-        statName: 'luck',
-        baseCooldown: 30000, // 30 seconds base cooldown
-        formula: 'sqrt', //
-        callback: function () {
-            launchTentacles(scene);
-        },
-        callbackScope: scene,
-        loop: true
-    });
+    // Apply the orbital perk using the registry (this ensures proper cleanup)
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'TENTACLE_GRASP');
 };
 
-// Helper function to launch tentacles
 // Helper function to launch tentacles with oscillating pattern
 function launchTentacles(scene) {
     const tentacleCount = 4;
 
     // Define our radii
-    const radii = [24, 48, 72, 96];
+    const radii = [30, 50, 70, 90];
 
     // Create tentacles in evenly distributed angles
     for (let i = 0; i < tentacleCount; i++) {

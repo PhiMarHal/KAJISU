@@ -337,18 +337,28 @@ const DropperSystem = {
     },
 
     // Setup periodic drops
+    // Modified setupPeriodicDrops function for droppers.js
+    // This fixes the trail mode by using a flag instead of early returns
+
     setupPeriodicDrops: function (scene, config) {
+        // Default options
         const defaults = {
             getConfig: function () { return {}; },  // Function that returns drop configuration
             cooldown: 4000,                        // Time between drops in ms
             positionMode: 'player',                // 'player', 'random', or 'trail'
-            trailInterval: 500,                    // For 'trail' mode, min distance to place new drop
+            trailInterval: 32,                    // For 'trail' mode, min distance to place new drop
             lastDropPos: { x: 0, y: 0 },           // For 'trail' mode, last position where we dropped
             enabled: true                          // Whether drops are currently enabled
         };
 
         // Merge provided config with defaults
         const dropperConfig = { ...defaults, ...config };
+
+        // Initialize lastDropPos with player's current position for trail mode
+        if (dropperConfig.positionMode === 'trail' && player) {
+            dropperConfig.lastDropPos.x = player.x;
+            dropperConfig.lastDropPos.y = player.y;
+        }
 
         // Calculate cooldown based on player stats if needed
         let cooldown = dropperConfig.cooldown;
@@ -363,26 +373,40 @@ const DropperSystem = {
                 // Skip if disabled
                 if (!dropperConfig.enabled) return;
 
+                // Skip if game state prevents updates
+                if (gameOver || gamePaused) return;
+
                 // Get fresh configuration each time (in case player stats changed)
                 const dropConfig = dropperConfig.getConfig();
 
                 // Determine position based on mode
                 let x, y;
+                let shouldCreateDrop = true; // Flag to determine if we create a drop this cycle
 
                 switch (dropperConfig.positionMode) {
                     case 'random':
-                        // Random position on screen no padding
+                        // Random position on screen without padding
                         x = Phaser.Math.Between(0, 1200);
                         y = Phaser.Math.Between(0, 800);
                         break;
 
                     case 'trail':
-                        // Place at player position if sufficiently far from last drop
+                        // Make sure player exists
+                        if (!player || !player.active) {
+                            shouldCreateDrop = false;
+                            break;
+                        }
+
+                        // Calculate distance moved since last drop
                         const dx = player.x - dropperConfig.lastDropPos.x;
                         const dy = player.y - dropperConfig.lastDropPos.y;
                         const distanceMoved = Math.sqrt(dx * dx + dy * dy);
 
+                        // Debug info - uncomment if needed for troubleshooting
+                        //console.log(`Trail check: moved ${distanceMoved.toFixed(2)}px, need ${dropperConfig.trailInterval}px`);
+
                         if (distanceMoved >= dropperConfig.trailInterval) {
+                            // Far enough to place a new drop
                             x = player.x;
                             y = player.y;
 
@@ -390,23 +414,28 @@ const DropperSystem = {
                             dropperConfig.lastDropPos.x = x;
                             dropperConfig.lastDropPos.y = y;
                         } else {
-                            // Not far enough from last drop, skip this one
-                            return;
+                            // Not far enough from last drop, skip this cycle
+                            shouldCreateDrop = false;
                         }
                         break;
 
                     case 'player':
                     default:
-                        // At player position
+                        // Place at player position
                         x = player.x;
                         y = player.y;
                         break;
                 }
 
-                // Create the drop
-                dropConfig.x = x;
-                dropConfig.y = y;
-                DropperSystem.create(scene, dropConfig);
+                // Only create the drop if our flag is still true
+                if (shouldCreateDrop) {
+                    // Assign position to drop config
+                    dropConfig.x = x;
+                    dropConfig.y = y;
+
+                    // Create the drop
+                    DropperSystem.create(scene, dropConfig);
+                }
             },
             callbackScope: scene,
             loop: true

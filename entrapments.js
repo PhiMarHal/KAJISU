@@ -38,7 +38,7 @@ const DropperPerkRegistry = {
                 return DropperSystem.setupPeriodicDrops(scene, {
                     getConfig: perkConfig.getConfig,
                     cooldown: perkConfig.cooldown,
-                    positionMode: perkConfig.positionMode
+                    positionMode: perkConfig.positionMode,
                 });
 
             default:
@@ -378,6 +378,48 @@ window.activateFrostShrapnel = function () {
 
     // Apply the dropper perk for future shrapnel pieces
     return DropperPerkRegistry.applyDropperPerk(scene, 'FROST_SHRAPNEL');
+};
+
+// Register TOXIC_TRAIL perk with DropperPerkRegistry
+DropperPerkRegistry.registerDropperPerk('TOXIC_TRAIL', {
+    getConfig: function () {
+        return {
+            symbol: '毒', // Kanji for "toxic"
+            color: '#33cc33', // Green color for poison theme
+            fontSize: 16, // Small size for trail elements
+            behaviorType: 'projectile', // Dies on enemy contact
+            damage: playerDamage * 0.5,
+            lifespan: Math.ceil(4000 * Math.sqrt(playerLuck / BASE_STATS.LUK)), // 4 seconds * luck factor
+            options: {
+                effectComponent: 'poisonEffect', // Apply poison effect component
+                needsPulsing: true // Add pulsing visual effect
+            }
+        };
+    },
+    cooldown: 200, // Fixed 200ms cooldown (very fast)
+    positionMode: 'trail', // Follow player's movement
+    trailInterval: 32, // Minimum 32px distance between drops
+    activationMethod: 'periodic' // Periodically create drops
+});
+
+// Function to activate the TOXIC_TRAIL perk
+window.activateToxicTrail = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create a trail configuration
+    const trailConfig = DropperPerkRegistry.perkDropperConfigs['TOXIC_TRAIL'].getConfig();
+
+    // Explicitly set initial position to player's position
+    trailConfig.x = player.x;
+    trailConfig.y = player.y;
+
+    // Create the first drop immediately
+    DropperSystem.create(scene, trailConfig);
+
+    // Apply the dropper perk for future trail elements
+    return DropperPerkRegistry.applyDropperPerk(scene, 'TOXIC_TRAIL');
 };
 
 // Export the registry for use in other files

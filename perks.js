@@ -370,7 +370,22 @@ const PERKS = {
             window.activateBrightLance();
         }
     },
-
+    "TOXIC_TRAIL": {
+        kanji: "毒痕",
+        kana: "どくあと",
+        romaji: "dokuato",
+        english: "Toxic Trail",
+        description: "Leaves a trail of poison that damages enemies over time, but makes you sick too",
+        color: "#33cc33", // Green color for poison
+        hoverColor: 0x22aa22, // Darker green for hover effect
+        onAcquire: function () {
+            window.activateToxicTrail();
+            window.modifyStat('health', -1);
+            window.modifyStat('damage', -1);
+            window.modifyStat('fireRate', -1);
+            window.modifyStat('luck', -1);
+        }
+    },
 
     /*"AREA_PULSE": {
         kanji: "波動",

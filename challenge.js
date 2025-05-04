@@ -623,10 +623,10 @@ const RomajiChallengeSystem = {
                 window.levelUpInProgress = false;
 
                 // Check if we have enough XP for another level up
-                if (heroExp >= heroExpToLevel) {
+                if (heroExp >= xpForNextLevel(playerLevel)) {
                     // Use the scene parameter passed to selectCard instead of looking up game.scene
                     setTimeout(() => {
-                        if (heroExp >= heroExpToLevel && !window.levelUpInProgress) {
+                        if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
                             window.levelUpInProgress = true;
                             levelUp.call(scene);
                         }

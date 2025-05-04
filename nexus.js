@@ -127,7 +127,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
     getConfig: function () {
         return {
             symbol: '★',
-            fontSize: projectileSizeFactor * playerDamage,
+            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
             radius: 16 * playerLuck, // Scale radius with luck
             speed: 0.02,
             pattern: 'standard',
@@ -165,7 +165,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
     getConfig: function () {
         return {
             symbol: '★',
-            fontSize: projectileSizeFactor * playerDamage,
+            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
             radius: 16 * playerLuck, // Scale radius with luck - same as TEAL_OCTOPUS
             speed: 0.02,
             direction: 'counterclockwise', // Key difference: counter-clockwise rotation

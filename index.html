@@ -277,7 +277,6 @@
         // Hero experience system
         let playerLevel = 1;
         let heroExp = 0;
-        let heroExpToLevel = 5;
         let levelUpCards = [];
         let gamePaused = false;
 
@@ -1089,7 +1088,7 @@
             GameUI.updateStatCircles(this);
 
             // Update player level
-            if (heroExp >= heroExpToLevel) {
+            if (heroExp >= xpForNextLevel(playerLevel)) {
                 levelUp.call(this);
             }
         }
@@ -1155,13 +1154,10 @@
 
         function levelUp() {
             // Calculate excess XP
-            const excessXP = heroExp - heroExpToLevel;
+            const excessXP = heroExp - xpForNextLevel(playerLevel);
 
             // Increase player level
             playerLevel++;
-
-            // Set new XP threshold
-            heroExpToLevel = xpForNextLevel(playerLevel);
 
             // Set XP to excess amount (instead of resetting to 0)
             heroExp = Math.max(0, excessXP);
@@ -1314,7 +1310,7 @@
 
                 if (!gamePaused && !gameOver) {
                     // Add enough XP to level up
-                    const xpNeeded = heroExpToLevel - heroExp;
+                    const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
                     heroExp += xpNeeded;
                     GameUI.updateExpBar(this);
                     console.log("Debug: Instant level up triggered");
@@ -1642,7 +1638,6 @@
             // Reset XP and level
             heroExp = 0;
             playerLevel = 1;
-            heroExpToLevel = xpForNextLevel(playerLevel);
 
             // Reset player position
             player.x = 600;

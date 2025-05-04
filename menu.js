@@ -363,7 +363,7 @@ const ExpBar = {
         if (!scene.expBar || !scene.levelText || !scene.xpNeededText) return;
 
         // Calculate experience percentage
-        const expPercentage = Math.max(0, Math.min(1, heroExp / heroExpToLevel));
+        const expPercentage = Math.max(0, Math.min(1, heroExp / xpForNextLevel(playerLevel)));
 
         // Set the width of the exp bar
         scene.expBar.width = expPercentage * UI.expBar.width();
@@ -372,7 +372,7 @@ const ExpBar = {
         scene.levelText.setText(`${playerLevel}`);
 
         // Calculate and update the XP REMAINING text with formatting for large numbers
-        const xpRemaining = heroExpToLevel - heroExp;
+        const xpRemaining = xpForNextLevel(playerLevel) - heroExp;
         scene.xpNeededText.setText(formatLargeNumber(xpRemaining));
     }
 };

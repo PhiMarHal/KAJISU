@@ -1331,7 +1331,7 @@ PlayerComponentSystem.registerComponent('stormCallerAbility', {
         // Create and register timer
         this.stormTimer = CooldownManager.createTimer({
             statName: 'luck',
-            baseCooldown: 4000, // 4 seconds base cooldown
+            baseCooldown: 2000, //
             formula: 'sqrt',
             component: this,
             callback: function () {
@@ -1382,6 +1382,158 @@ window.activateStormCaller = function () {
 
 // Make the function globally accessible for other perks
 window.createLightningStrike = createLightningStrike;
+
+// Register component for Storm Bringer ability in hero.js
+PlayerComponentSystem.registerComponent('stormBringerAbility', {
+    // Store timer reference
+    beaconTimer: null,
+
+    initialize: function () {
+        // Get the scene
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Create and register timer
+        this.beaconTimer = CooldownManager.createTimer({
+            statName: 'luck',
+            baseCooldown: 30000, // 30 seconds base cooldown
+            formula: 'sqrt',
+            component: this,
+            callback: this.spawnBeacon,
+            callbackScope: scene,
+            loop: true
+        });
+
+        // Spawn initial beacon
+        this.spawnBeacon.call(scene);
+    },
+
+    // Method to spawn a storm beacon
+    spawnBeacon: function () {
+        // Skip if game is over or paused
+        if (gameOver || gamePaused) return;
+
+        // Random position on screen (with padding from edges)
+        const x = Phaser.Math.Between(360, (1200 - 360));
+        const y = Phaser.Math.Between(360, (800 - 360));
+
+        // Create the beacon using the kanji for "storm"
+        const beacon = this.add.text(x, y, '嵐', {
+            fontFamily: 'Arial',
+            fontSize: '24px',
+            color: '#00DDFF', // Bright cyan color
+            stroke: '#FFFFFF',
+            strokeThickness: 2,
+            shadow: {
+                offsetX: 0,
+                offsetY: 0,
+                color: '#FFFFFF',
+                blur: 8,
+                stroke: true,
+                fill: true
+            }
+        }).setOrigin(0.5);
+
+        // Add physics body for collision detection
+        this.physics.world.enable(beacon);
+        beacon.body.setSize(beacon.width * 0.8, beacon.height * 0.8);
+
+        // Set as immovable
+        beacon.body.immovable = true;
+
+        // Add a unique ID to prevent duplicate collection
+        beacon.beaconId = 'storm_beacon_' + Date.now() + '_' + Math.random();
+
+        // Register entity for cleanup
+        window.registerEffect('entity', beacon);
+
+        // Add overlap with player
+        this.physics.add.overlap(beacon, player, function (beacon, player) {
+            // Only collect if not already collected
+            if (beacon.collected) return;
+
+            // Mark as collected to prevent multiple triggers
+            beacon.collected = true;
+
+            // Create a lightning storm at this position
+            const centerX = beacon.x;
+            const centerY = beacon.y;
+            const lightningCount = 8; // 8 lightning strikes
+            const radius = 360; // Radius around the center point
+
+            // Create first lightning at the center
+            createLightningStrike(this, centerX, centerY);
+
+            // Create remaining lightning strikes with delays
+            for (let i = 1; i < lightningCount; i++) {
+                // Calculate position - random point within radius
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * radius;
+                const x = centerX + Math.cos(angle) * distance;
+                const y = centerY + Math.sin(angle) * distance;
+
+                // Schedule with increasing delay
+                this.time.delayedCall(i * 300, function () {
+                    if (gameOver || gamePaused) return;
+                    createLightningStrike(this, x, y);
+                }, [], this);
+            }
+
+            // Visual effect for collection
+            this.tweens.add({
+                targets: beacon,
+                alpha: 0,
+                scale: 2,
+                duration: 500,
+                onComplete: function () {
+                    beacon.destroy();
+                }
+            });
+
+            // Create radial flash effect
+            const flash = this.add.circle(beacon.x, beacon.y, 50, 0x00DDFF, 0.7);
+            window.registerEffect('entity', flash);
+
+            this.tweens.add({
+                targets: flash,
+                radius: 200,
+                alpha: 0,
+                duration: 800,
+                onComplete: function () {
+                    flash.destroy();
+                }
+            });
+
+        }, null, this);
+
+        // Add pulsing animation
+        VisualEffects.createPulsing(this, beacon);
+    },
+
+    // Cleanup on removal
+    cleanup: function () {
+        // Remove timer
+        if (this.beaconTimer) {
+            CooldownManager.removeTimer(this.beaconTimer);
+            this.beaconTimer = null;
+        }
+    }
+});
+
+// Register the perk with the PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('STORM_BRINGER', {
+    componentName: 'stormBringerAbility',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
+// Function to activate storm bringer
+window.activateStormBringer = function () {
+    // Simply add the component through the component system
+    PlayerComponentSystem.addComponent('stormBringerAbility');
+};
 
 // Function to update player status in game loop
 function updatePlayerStatus() {

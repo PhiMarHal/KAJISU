@@ -398,6 +398,18 @@ const PERKS = {
             window.activateStormCaller();
         }
     },
+    "STORM_BRINGER": {
+        kanji: "雷招",
+        kana: "らいまねき",
+        romaji: "raimaneki",
+        english: "Storm Bringer",
+        description: "Periodically spawns beacons that unleash lightning storms",
+        color: "#00DDFF", // Bright cyan color
+        hoverColor: 0x00BBDD,
+        onAcquire: function () {
+            window.activateStormBringer();
+        }
+    },
 
     /*"AREA_PULSE": {
         kanji: "波動",

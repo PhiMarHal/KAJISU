@@ -410,6 +410,19 @@ const PERKS = {
             window.activateStormBringer();
         }
     },
+    "STORM_VENGEANCE": {
+        kanji: "雷怨",
+        kana: "らいえん",
+        romaji: "raien",
+        english: "Storm Vengeance",
+        description: "When hit, triggers lightning strikes around you, damaging nearby enemies",
+        color: "#FFAAFF", // Pinkish lightning color
+        hoverColor: 0xDD88DD,
+        onAcquire: function () {
+            // The effect is handled by the OnHitEffectSystem
+            // No additional implementation needed here
+        }
+    },
 
     /*"AREA_PULSE": {
         kanji: "波動",

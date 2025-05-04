@@ -153,6 +153,7 @@ OnHitEffectSystem.registerComponent('defensiveBurst', {
     }
 });
 
+
 // Registry for mapping perks to on-hit components
 const OnHitPerkRegistry = {
     // Store perk-to-component mappings
@@ -206,6 +207,65 @@ const OnHitPerkRegistry = {
 // Register the Purple Hedgehog perk effect
 OnHitPerkRegistry.registerPerkEffect('PURPLE_HEDGEHOG', {
     componentName: 'defensiveBurst',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
+OnHitEffectSystem.registerComponent('stormVengeanceEffect', {
+    // Initialize component with default configuration
+    initialize: function () {
+        // Nothing needed here - configuration is set at creation time
+    },
+
+    // Handle the player being hit
+    onHit: function (scene, enemy) {
+        // Calculate number of lightning strikes based on player luck
+        const strikeCount = playerLuck;
+
+        // Create lightning strikes in a circle around the player
+        this.createVengeanceStorm(scene, strikeCount);
+    },
+
+    // Helper method to create multiple lightning strikes in a circle
+    createVengeanceStorm: function (scene, count) {
+        // Define the radius of the lightning storm
+        const radius = 128; // 128px as specified
+
+        // Create unique damage source ID for this storm
+        const stormId = `vengeance_storm_${Date.now()}_${Math.random()}`;
+
+        // Create lightning strikes at equidistant points around the circle
+        for (let i = 0; i < count; i++) {
+            // Calculate equidistant angles around the circle
+            const angle = (i / count) * Math.PI * 2;
+
+            // Fixed distance at the radius
+            const distance = radius;
+
+            // Calculate position
+            const x = player.x + Math.cos(angle) * distance;
+            const y = player.y + Math.sin(angle) * distance;
+
+            // Add a delay based on index to stagger the lightning strikes
+            scene.time.delayedCall(i * 100, function () {
+                // Create lightning strike using the existing function from hero.js
+                createLightningStrike(scene, x, y, {
+                    segmentCount: 4,
+                });
+            }, [], scene);
+        }
+    },
+
+    // Clean up component
+    cleanup: function () {
+        // Nothing to clean up here
+    }
+});
+
+OnHitPerkRegistry.registerPerkEffect('STORM_VENGEANCE', {
+    componentName: 'stormVengeanceEffect',
     condition: function () {
         // Always active when perk is acquired
         return true;

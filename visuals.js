@@ -105,7 +105,7 @@ const VisualEffects = {
     // Add this to the VisualEffects object in visuals.js
     createLightningFlash: function (scene, x, y, options = {}) {
         // Default options
-        const radius = options.radius ?? 32;  // 64px circle by default
+        const radius = options.radius ?? 48;  // 96px circle by default
         const color = options.color ?? 0xFFFF66; // Yellow-white color
         const alpha = options.alpha ?? 0.5;
         const duration = options.duration ?? 1000;
@@ -128,7 +128,59 @@ const VisualEffects = {
         });
 
         return flash;
-    }
+    },
+
+    // Add this to the VisualEffects object in visuals.js
+    createLightningStrike: function (scene, x, y, options = {}) {
+        // Default options
+        const damage = options.damage ?? playerDamage;
+        const color = options.color ?? '#FFDD00';
+        const size = options.size ?? 32;
+        const symbol = options.symbol ?? '雷';
+
+        // Create the lightning bolt starting above the target
+        const lightning = scene.add.text(x, y - 300, symbol, {
+            fontFamily: 'Arial',
+            fontSize: `${size}px`,
+            color: color,
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        // Register for cleanup
+        window.registerEffect('entity', lightning);
+
+        // Add falling animation
+        scene.tweens.add({
+            targets: lightning,
+            y: y,
+            duration: 500,
+            ease: 'Bounce.easeOut',
+            onComplete: function () {
+                // Create flash effect on impact
+                VisualEffects.createLightningFlash(scene, x, y);
+
+                // Create the actual dropper
+                const dropConfig = {
+                    symbol: symbol,
+                    color: color,
+                    fontSize: size,
+                    x: x,
+                    y: y,
+                    behaviorType: 'persistent',
+                    damage: damage,
+                    damageInterval: 1000,
+                    lifespan: 1000
+                };
+
+                DropperSystem.create(scene, dropConfig);
+
+                // Remove the falling lightning
+                lightning.destroy();
+            }
+        });
+
+        return lightning;
+    },
 
     // Additional visual effects can be added here
 };

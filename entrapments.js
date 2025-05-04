@@ -84,41 +84,6 @@ window.activateLandmines = function () {
     }
 };
 
-// Register the STORM_CALLER perk with DropperPerkRegistry in entrapments.js
-DropperPerkRegistry.registerDropperPerk('STORM_CALLER', {
-    getConfig: function () {
-        return {
-            symbol: '雷', // Kanji for lightning/thunder
-            color: '#FFDD00', // Bright yellow color
-            fontSize: 64, // Size in pixels
-            behaviorType: 'persistent', // Persistent type
-            damage: playerDamage, // Full player damage
-            damageInterval: 1000, // 1 second between damage applications
-            lifespan: 1000, // 1 second lifespan
-            options: {
-                // Use our new visual effect system
-                visualEffect: 'createLightningFlash'
-            }
-        };
-    },
-    cooldown: function () {
-        // Base cooldown is 4 seconds, scaled by player luck
-        return 4000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
-    },
-    positionMode: 'random', // Use random positioning
-    activationMethod: 'periodic' // Create periodically
-});
-
-// Function to activate the STORM_CALLER perk
-window.activateStormCaller = function () {
-    // Get the current active scene
-    const scene = game.scene.scenes[0];
-    if (!scene) return;
-
-    // Simply apply the dropper perk - the visual effect is now handled automatically!
-    return DropperPerkRegistry.applyDropperPerk(scene, 'STORM_CALLER');
-};
-
 DropperPerkRegistry.registerDropperPerk('MAGMA_FLOOR', {
     getConfig: function () {
         return {

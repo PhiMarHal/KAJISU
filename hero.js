@@ -1229,6 +1229,95 @@ window.activateAlienClock = function () {
     PlayerComponentSystem.addComponent('alienClockAbility');
 };
 
+// Lightning strike function in hero.js (outside the component)
+function createLightningStrike(scene, x, y, options = {}) {
+    // Skip if game is over or paused
+    if (gameOver || gamePaused) return;
+
+    // Default options
+    const damage = options.damage ?? (playerDamage * 4); // 4x damage as in your code
+    const color = options.color ?? '#FFDD00';
+    const size = options.size ?? 32;
+    const symbol = options.symbol ?? '雷';
+    const segmentCount = options.segmentCount ?? 8; // 8 segments as in your code
+
+    // Create a lightning column of kanjis with decreasing opacity
+    const lightningSegments = [];
+
+    // Create the main lightning at the impact point
+    const mainLightning = scene.add.text(x, y, symbol, {
+        fontFamily: 'Arial',
+        fontSize: `${size}px`,
+        color: color,
+        fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    // Register for cleanup
+    window.registerEffect('entity', mainLightning);
+    lightningSegments.push(mainLightning);
+
+    // Create lightning segments above with decreasing opacity
+    for (let i = 1; i < segmentCount; i++) {
+        const opacity = 0.8 - (i * 0.1); // From 0.8 down to 0.1 as in your code
+        const segment = scene.add.text(x, y - (i * size), symbol, {
+            fontFamily: 'Arial',
+            fontSize: `${size}px`,
+            color: color,
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setAlpha(opacity);
+
+        // Register for cleanup
+        window.registerEffect('entity', segment);
+        lightningSegments.push(segment);
+    }
+
+    // Create flash effect simultaneously with the lightning
+    VisualEffects.createLightningFlash(scene, x, y, {
+        radius: 48, // 48px radius as in your code
+        color: 0xFFFF66,
+        alpha: 0.7,
+        duration: 1000 // Match the fade-out duration of the lightning
+    });
+
+    // Apply damage to nearby enemies immediately
+    const hitRadius = 64; // 64px hit radius as in your code
+    const enemies = scene.physics.overlapCirc(x, y, hitRadius, true, true);
+
+    // Create unique ID for this lightning strike
+    const strikeId = `lightning_${Date.now()}_${Math.random()}`;
+
+    // Apply damage to all enemies in radius
+    enemies.forEach(body => {
+        if (body.gameObject && body.gameObject.active) {
+            applyContactDamage.call(
+                scene,
+                {
+                    damageSourceId: strikeId,
+                    damage: damage,
+                    active: true
+                },
+                body.gameObject,
+                damage,
+                0 // No cooldown needed for one-time effect
+            );
+        }
+    });
+
+    // Fade everything out together
+    scene.tweens.add({
+        targets: lightningSegments,
+        alpha: 0,
+        duration: 1000,
+        onComplete: function () {
+            // Clean up all elements
+            lightningSegments.forEach(segment => segment.destroy());
+        }
+    });
+
+    // Return the segments array for any additional manipulation
+    return lightningSegments;
+}
+
 // Register component for Storm Caller ability in hero.js
 PlayerComponentSystem.registerComponent('stormCallerAbility', {
     // Store timer reference
@@ -1253,86 +1342,17 @@ PlayerComponentSystem.registerComponent('stormCallerAbility', {
                 const targetX = Phaser.Math.Between(100, 1100);
                 const targetY = Phaser.Math.Between(100, 700);
 
-                // Create a lightning column of kanjis with decreasing opacity
-                const lightningSegments = [];
-                const segmentCount = 8; // Number of segments in the lightning
-
-                // Create the main lightning at the impact point
-                const mainLightning = scene.add.text(targetX, targetY, '雷', {
-                    fontFamily: 'Arial',
-                    fontSize: '32px',
-                    color: '#FFDD00',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5);
-
-                // Register for cleanup
-                window.registerEffect('entity', mainLightning);
-                lightningSegments.push(mainLightning);
-
-                // Create lightning segments above with decreasing opacity
-                for (let i = 1; i < segmentCount; i++) {
-                    const opacity = 0.8 - (i * 0.1); // From 0.8 down to 0.1
-                    const segment = scene.add.text(targetX, targetY - (i * 32), '雷', {
-                        fontFamily: 'Arial',
-                        fontSize: '32px',
-                        color: '#FFDD00',
-                        fontStyle: 'bold'
-                    }).setOrigin(0.5).setAlpha(opacity);
-
-                    // Register for cleanup
-                    window.registerEffect('entity', segment);
-                    lightningSegments.push(segment);
-                }
-
-                // Create flash effect simultaneously with the lightning
-                VisualEffects.createLightningFlash(scene, targetX, targetY, {
-                    radius: 48,
-                    color: 0xFFFF66,
-                    alpha: 0.7,
-                    duration: 1000 // Match the fade-out duration of the lightning
-                });
-
-                // Apply damage to nearby enemies immediately
-                const hitRadius = 64;
-                const enemies = scene.physics.overlapCirc(targetX, targetY, hitRadius, true, true);
-
-                // Create unique ID for this lightning strike
-                const strikeId = `lightning_${Date.now()}_${Math.random()}`;
-
-                // Apply damage to all enemies in radius
-                enemies.forEach(body => {
-                    if (body.gameObject && body.gameObject.active) {
-                        applyContactDamage.call(
-                            scene,
-                            {
-                                damageSourceId: strikeId,
-                                damage: playerDamage * 4,
-                                active: true
-                            },
-                            body.gameObject,
-                            playerDamage * 4,
-                            0 // No cooldown needed for one-time effect
-                        );
-                    }
-                });
-
-                // Fade everything out together
-                scene.tweens.add({
-                    targets: lightningSegments,
-                    alpha: 0,
-                    duration: 1000,
-                    onComplete: function () {
-                        // Clean up all elements
-                        lightningSegments.forEach(segment => segment.destroy());
-                    }
-                });
+                // Call the lightning strike function
+                createLightningStrike(scene, targetX, targetY);
             },
             callbackScope: scene,
             loop: true
         });
 
-        // Create initial lightning immediately by calling the callback once
-        this.stormTimer.callback.call(scene);
+        // Create initial lightning immediately
+        const targetX = Phaser.Math.Between(100, 1100);
+        const targetY = Phaser.Math.Between(100, 700);
+        createLightningStrike(scene, targetX, targetY);
     },
 
     // Cleanup on removal
@@ -1359,6 +1379,9 @@ window.activateStormCaller = function () {
     // Simply add the component through the component system
     PlayerComponentSystem.addComponent('stormCallerAbility');
 };
+
+// Make the function globally accessible for other perks
+window.createLightningStrike = createLightningStrike;
 
 // Function to update player status in game loop
 function updatePlayerStatus() {

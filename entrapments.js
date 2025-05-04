@@ -84,6 +84,41 @@ window.activateLandmines = function () {
     }
 };
 
+// Register the STORM_CALLER perk with DropperPerkRegistry in entrapments.js
+DropperPerkRegistry.registerDropperPerk('STORM_CALLER', {
+    getConfig: function () {
+        return {
+            symbol: '雷', // Kanji for lightning/thunder
+            color: '#FFDD00', // Bright yellow color
+            fontSize: 64, // Size in pixels
+            behaviorType: 'persistent', // Persistent type
+            damage: playerDamage, // Full player damage
+            damageInterval: 1000, // 1 second between damage applications
+            lifespan: 1000, // 1 second lifespan
+            options: {
+                // Use our new visual effect system
+                visualEffect: 'createLightningFlash'
+            }
+        };
+    },
+    cooldown: function () {
+        // Base cooldown is 4 seconds, scaled by player luck
+        return 4000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
+    },
+    positionMode: 'random', // Use random positioning
+    activationMethod: 'periodic' // Create periodically
+});
+
+// Function to activate the STORM_CALLER perk
+window.activateStormCaller = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Simply apply the dropper perk - the visual effect is now handled automatically!
+    return DropperPerkRegistry.applyDropperPerk(scene, 'STORM_CALLER');
+};
+
 DropperPerkRegistry.registerDropperPerk('MAGMA_FLOOR', {
     getConfig: function () {
         return {
@@ -95,7 +130,7 @@ DropperPerkRegistry.registerDropperPerk('MAGMA_FLOOR', {
             damageInterval: 1000, // 1 second between damage applications
             lifespan: playerLuck * 1000, // Lasts for playerLuck seconds
             options: {
-                needsPulsing: true, // Add pulsing animation for better visibility
+                visualEffect: 'createPulsing', // Add pulsing animation for better visibility
                 opacity: 0.8 // Slightly transparent
             }
         };
@@ -173,7 +208,7 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
                 hasPeriodicEffect: true, // Generic flag for drops with periodic effects
                 periodicEffectCooldown: 15000, // Base cooldown for the effect
                 fireImmediately: true, // Flag to indicate it should fire immediately on spawn
-                needsPulsing: true // Flag for visual pulsing effect
+                visualEffect: 'createPulsing' // Flag for visual pulsing effect
             }
         };
     },
@@ -259,7 +294,7 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
                 areaEffectInterval: 8000, //
                 areaEffectRadius: 160, // Base radius
                 pulseColor: 0x2aad27, // Green color for the pulse effect
-                needsPulsing: true, // Add pulsing animation
+                visualEffect: 'createPulsing', // Add pulsing animation
                 effectComponent: 'poisonEffect' // Use the poisonEffect component
             }
         };
@@ -306,7 +341,7 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
                 areaEffectInterval: 12000, //
                 areaEffectRadius: 240, //
                 pulseColor: 0x00ffff, // Cyan color for the pulse effect
-                needsPulsing: true, // Add pulsing animation
+                visualEffect: 'createPulsing', // Add pulsing animation
                 effectComponent: 'slowEffect' // Use the slowEffect component
             }
         };
@@ -392,7 +427,7 @@ DropperPerkRegistry.registerDropperPerk('TOXIC_TRAIL', {
             lifespan: Math.ceil(4000 * Math.sqrt(playerLuck / BASE_STATS.LUK)), // 4 seconds * luck factor
             options: {
                 effectComponent: 'poisonEffect', // Apply poison effect component
-                needsPulsing: true // Add pulsing visual effect
+                visualEffect: 'createPulsing' // Add pulsing visual effect
             }
         };
     },

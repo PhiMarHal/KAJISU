@@ -386,6 +386,18 @@ const PERKS = {
             window.modifyStat('luck', -1);
         }
     },
+    "STORM_CALLER": {
+        kanji: "雷神",
+        kana: "らいじん",
+        romaji: "raijin",
+        english: "Storm Caller",
+        description: "Periodically summons lightning strikes that damage enemies",
+        color: "#FFDD00", // Bright yellow color
+        hoverColor: 0xDDBB00,
+        onAcquire: function () {
+            window.activateStormCaller();
+        }
+    },
 
     /*"AREA_PULSE": {
         kanji: "波動",

@@ -100,6 +100,34 @@ const VisualEffects = {
         });
 
         return entity.damageAnimation;
+    },
+
+    // Add this to the VisualEffects object in visuals.js
+    createLightningFlash: function (scene, x, y, options = {}) {
+        // Default options
+        const radius = options.radius ?? 32;  // 64px circle by default
+        const color = options.color ?? 0xFFFF66; // Yellow-white color
+        const alpha = options.alpha ?? 0.5;
+        const duration = options.duration ?? 1000;
+
+        // Create flash effect as a circle
+        const flash = scene.add.circle(x, y, radius, color, alpha);
+
+        // Register for cleanup
+        window.registerEffect('entity', flash);
+
+        // Animate fade-out with expansion
+        scene.tweens.add({
+            targets: flash,
+            alpha: 0,
+            radius: radius * 1.5, // Expand slightly
+            duration: duration,
+            onComplete: function () {
+                flash.destroy();
+            }
+        });
+
+        return flash;
     }
 
     // Additional visual effects can be added here

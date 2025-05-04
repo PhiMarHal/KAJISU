@@ -113,9 +113,6 @@ const VisualEffects = {
         // Create flash effect as a circle
         const flash = scene.add.circle(x, y, radius, color, alpha);
 
-        // Register for cleanup
-        window.registerEffect('entity', flash);
-
         // Animate fade-out with expansion
         scene.tweens.add({
             targets: flash,

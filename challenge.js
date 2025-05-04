@@ -618,6 +618,20 @@ const RomajiChallengeSystem = {
             onComplete: function () {
                 player.setScale(1);
                 player.alpha = 1;
+
+                // Reset the level up lock
+                window.levelUpInProgress = false;
+
+                // Check if we have enough XP for another level up
+                if (heroExp >= heroExpToLevel) {
+                    // Use the scene parameter passed to selectCard instead of looking up game.scene
+                    setTimeout(() => {
+                        if (heroExp >= heroExpToLevel && !window.levelUpInProgress) {
+                            window.levelUpInProgress = true;
+                            levelUp.call(scene);
+                        }
+                    }, 100);
+                }
             }
         });
 

@@ -280,6 +280,7 @@
         let heroExpToLevel = 5;
         let levelUpCards = [];
         let gamePaused = false;
+        let levelUpInProgress = false;
 
         // Helper function to calculate XP needed for next level
         function xpForNextLevel(heroLevel) {
@@ -1089,7 +1090,8 @@
             GameUI.updateStatCircles(this);
 
             // Update player level
-            if (heroExp >= heroExpToLevel) {
+            if (heroExp >= heroExpToLevel && !levelUpInProgress) {
+                levelUpInProgress = true;
                 levelUp.call(this);
             }
         }
@@ -1593,6 +1595,7 @@
             // Reset game state variables
             gameOver = false;
             gamePaused = false;
+            levelUpInProgress = false;
             elapsedTime = 0;
             score = 0;
             level = 1;

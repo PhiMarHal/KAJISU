@@ -387,18 +387,18 @@ const RomajiChallengeSystem = {
         if (this.state.currentCards >= this.state.maxCards) {
             // Award 25% of XP needed for next level
             const currentLevel = playerLevel;
-            const currentExpToLevel = heroExpToLevel;
+            const currentExpToLevel = xpForNextLevel(playerLevel);
             const currentExp = heroExp;
 
-            const xpReward = Math.ceil(heroExpToLevel * 0.25);
+            const xpReward = Math.ceil(xpForNextLevel(playerLevel) * 0.25);
             console.log(`Level ${currentLevel}: Calculating reward as 25% of ${currentExpToLevel} = ${xpReward}`);
 
             heroExp += xpReward;
-            console.log(`XP before: ${currentExp}, after: ${heroExp}, needed: ${heroExpToLevel}`);
+            console.log(`XP before: ${currentExp}, after: ${heroExp}, needed: ${xpForNextLevel(playerLevel)}`);
 
             // After updating the XP bar, check if something unexpected happened
             setTimeout(() => {
-                console.log(`Post-update check: Level ${playerLevel}, XP ${heroExp}/${heroExpToLevel}`);
+                console.log(`Post-update check: Level ${playerLevel}, XP ${heroExp}/${xpForNextLevel(playerLevel)}`);
                 if (playerLevel > currentLevel) {
                     console.log(`WARNING: Level changed from ${currentLevel} to ${playerLevel} after challenge reward!`);
                 }

@@ -143,9 +143,6 @@ const VisualEffects = {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // Register for cleanup
-        window.registerEffect('entity', lightning);
-
         // Add falling animation
         scene.tweens.add({
             targets: lightning,

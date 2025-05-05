@@ -186,7 +186,7 @@ const CollisionBehaviors = {
         const explosionId = `orbital_explosion_${Date.now()}_${Math.random()}`;
 
         // Get all active enemies
-        const allEnemies = enemies.getChildren();
+        const allEnemies = EnemySystem.enemiesGroup.getChildren();
 
         // Apply damage to all enemies in blast radius
         allEnemies.forEach(nearbyEnemy => {
@@ -353,7 +353,7 @@ const OrbitalSystem = {
         const collisionBehavior = CollisionBehaviors[orbitalConfig.collisionType] ?? CollisionBehaviors.persistent;
 
         // Add overlap with enemies
-        scene.physics.add.overlap(entity, enemies, function (orbitalEntity, enemy) {
+        scene.physics.add.overlap(entity, EnemySystem.enemiesGroup, function (orbitalEntity, enemy) {
             // Skip if orbital is already marked as destroyed
             if (orbital.destroyed) return;
 

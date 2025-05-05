@@ -139,7 +139,7 @@ const FamiliarBehaviors = {
 // Helper function to find a random visible enemy within a maximum distance
 function findRandomVisibleEnemy(scene, maxDistance = 400) {
     // Get all active enemies 
-    const activeEnemies = enemies.getChildren().filter(enemy => {
+    const activeEnemies = EnemySystem.enemiesGroup.getChildren().filter(enemy => {
         if (!enemy || !enemy.active) return false;
 
         // If maxDistance is specified, check distance from player
@@ -162,7 +162,7 @@ function findRandomVisibleEnemy(scene, maxDistance = 400) {
 // Helper function to find the closest visible enemy to the player within a maximum distance
 function findClosestVisibleEnemy(scene, maxDistance = 400) {
     // Get all active enemies
-    const activeEnemies = enemies.getChildren().filter(enemy => {
+    const activeEnemies = EnemySystem.enemiesGroup.getChildren().filter(enemy => {
         return enemy && enemy.active;
     });
 

@@ -176,7 +176,7 @@ const DropperSystem = {
         const behavior = DropBehaviors[dropConfig.behaviorType] ?? DropBehaviors.projectile;
 
         // Add overlap with enemies based on behavior
-        scene.physics.add.overlap(entity, enemies, function (dropEntity, enemy) {
+        scene.physics.add.overlap(entity, EnemySystem.enemiesGroup, function (dropEntity, enemy) {
             // Skip if drop is already marked as destroyed
             if (drop.destroyed) return;
 
@@ -220,7 +220,7 @@ const DropperSystem = {
     // Process area effect for a drop
     processAreaEffect: function (scene, drop, time) {
         // Get all active enemies
-        const allEnemies = enemies.getChildren();
+        const allEnemies = EnemySystem.enemiesGroup.getChildren();
 
         // Get center position of the drop
         const centerX = drop.entity.x;

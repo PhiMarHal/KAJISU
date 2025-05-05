@@ -23,6 +23,7 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow <= possibly fixed by window.TimeDilationSystem.cleanup();, need testing
 - tentacle doesn't go away on oblivion blossom
 - no player damage visual post Oblivion, maybe caused by shield visual? testing, doesn't seem directly linked or alone
+- storm caller, divine beacon and alien beacon remain after BLOSSOM (didn't we fix this before, for divine?? maybe just restart...)
 
 DONE
 - Move remaining perks outside of index.html (orbiting? landmine?) orbiting done. landmine+afterimage next

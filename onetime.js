@@ -25,7 +25,7 @@ const OneTimeEffects = {
         // Apply damage after a slight delay for visual effect
         scene.time.delayedCall(100, function () {
             // Get all active enemies on screen
-            const allEnemies = enemies.getChildren();
+            const allEnemies = EnemySystem.enemiesGroup.getChildren();
             if (!allEnemies || allEnemies.length === 0) return;
 
             // Calculate massive damage

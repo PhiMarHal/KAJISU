@@ -768,10 +768,10 @@ PlayerComponentSystem.registerComponent('godHammerAbility', {
 // Function to drop the God Hammer on enemies
 function dropGodHammer() {
     // Skip if no enemies
-    if (!enemies || enemies.getChildren().length === 0) return;
+    if (!EnemySystem.enemiesGroup || EnemySystem.enemiesGroup.getChildren().length === 0) return;
 
     // Get all active enemies on screen
-    const activeEnemies = enemies.getChildren().filter(enemy =>
+    const activeEnemies = EnemySystem.enemiesGroup.getChildren().filter(enemy =>
         enemy.active &&
         enemy.x >= 0 && enemy.x <= 1200 &&
         enemy.y >= 0 && enemy.y <= 800
@@ -807,7 +807,7 @@ function dropGodHammer() {
     window.registerEffect('entity', hammer);
 
     // Add overlap with enemies
-    this.physics.add.overlap(hammer, enemies, function (hammer, enemy) {
+    this.physics.add.overlap(hammer, EnemySystem.enemiesGroup, function (hammer, enemy) {
         applyContactDamage.call(this, hammer, enemy, hammer.damage);
     }, null, this);
 
@@ -1281,13 +1281,13 @@ function createLightningStrike(scene, x, y, options = {}) {
 
     // Apply damage to nearby enemies immediately
     const hitRadius = 64; // 64px hit radius as in your code
-    const enemies = scene.physics.overlapCirc(x, y, hitRadius, true, true);
+    const targets = scene.physics.overlapCirc(x, y, hitRadius, true, true);
 
     // Create unique ID for this lightning strike
     const strikeId = `lightning_${Date.now()}_${Math.random()}`;
 
     // Apply damage to all enemies in radius
-    enemies.forEach(body => {
+    targets.forEach(body => {
         if (body.gameObject && body.gameObject.active) {
             applyContactDamage.call(
                 scene,

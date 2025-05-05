@@ -171,7 +171,7 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
         const explosionDamage = playerDamage * this.damageMultiplier;
 
         // Get all active enemies
-        const allEnemies = enemies.getChildren();
+        const allEnemies = EnemySystem.enemiesGroup.getChildren();
 
         // Track primary target to avoid double-counting
         const primaryTarget = enemy;
@@ -378,7 +378,7 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
 
         // The rest of the damage logic remains unchanged
         // Get all active enemies
-        const allEnemies = enemies.getChildren();
+        const allEnemies = EnemySystem.enemiesGroup.getChildren();
 
         // Apply damage to enemies in range
         allEnemies.forEach(enemy => {
@@ -457,7 +457,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
                 if (!fire.active) return; // Stop if fire is gone
 
                 // Find enemies overlapping the fire
-                scene.physics.overlap(fire, enemies, (fireInstance, overlappedEnemy) => {
+                scene.physics.overlap(fire, EnemySystem.enemiesGroup, (fireInstance, overlappedEnemy) => {
                     // Use the generic contact damage function from index.html
                     // Pass a shorter cooldown specific to fire ticks (e.g., slightly less than tick interval)
                     applyContactDamage.call(scene, fireInstance, overlappedEnemy, fireInstance.damagePerTick, fireInstance.tickInterval - 100);

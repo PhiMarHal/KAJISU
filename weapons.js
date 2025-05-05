@@ -35,7 +35,7 @@ const WeaponSystem = {
         window.piercingProjectiles = this.piercingProjectilesGroup;
 
         // Set up overlap for piercing projectiles
-        scene.physics.add.overlap(this.piercingProjectilesGroup, enemies, projectileHitEnemy, null, scene);
+        scene.physics.add.overlap(this.piercingProjectilesGroup, EnemySystem.enemiesGroup, projectileHitEnemy, null, scene);
     },
 
     // Create the weapon firing timer
@@ -236,14 +236,14 @@ const WeaponSystem = {
 
     // Find the closest enemy within range
     findClosestEnemy: function (scene, maxDistance) {
-        if (!enemies || enemies.getChildren().length === 0) {
+        if (!EnemySystem.enemiesGroup || EnemySystem.enemiesGroup.getChildren().length === 0) {
             return null;
         }
 
         let closestEnemy = null;
         let closestDistance = maxDistance;
 
-        enemies.getChildren().forEach(enemy => {
+        EnemySystem.enemiesGroup.getChildren().forEach(enemy => {
             if (!enemy || !enemy.active) return;
 
             const distance = Phaser.Math.Distance.Between(

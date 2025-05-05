@@ -316,7 +316,7 @@ window.TimeDilationSystem = {
                 scene.time.timeScale = this.currentTimeScale;
 
                 // Update the global enemy speed factor
-                enemySpeedFactor = this.enemySlowdown;
+                EnemySystem.setEnemySpeedFactor(this.enemySlowdown);
 
                 // Update player speed
                 playerSpeed = basePlayerSpeed * this.playerSpeedFactor;
@@ -355,7 +355,7 @@ window.TimeDilationSystem = {
                 scene.time.timeScale = this.currentTimeScale;
 
                 // Update the global enemy speed factor
-                enemySpeedFactor = this.enemySlowdown;
+                EnemySystem.setEnemySpeedFactor(this.enemySlowdown);
 
                 // Update player speed
                 playerSpeed = basePlayerSpeed * this.playerSpeedFactor;
@@ -365,7 +365,7 @@ window.TimeDilationSystem = {
                 this.isExiting = false; // Reset the exiting flag
 
                 // Reset global enemy speed factor (redundant but safe)
-                enemySpeedFactor = 1.0;
+                EnemySystem.setEnemySpeedFactor(this.enemySlowdown);
 
                 // Ensure player speed is fully restored
                 playerSpeed = basePlayerSpeed;
@@ -424,7 +424,7 @@ window.TimeDilationSystem = {
         scene.time.timeScale = 1.0;
 
         // Reset enemy speed factor
-        enemySpeedFactor = 1.0;
+        EnemySystem.setEnemySpeedFactor(this.enemySlowdown);
 
         // Clear any tween
         if (this.slowMoTween) {

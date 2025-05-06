@@ -28,6 +28,7 @@
     <script src="pause.js"></script>
     <script src="challenge.js"></script>
     <script src="enemy.js"></script>
+    <script src="life.js"></script>
 
     <style>
         body {
@@ -492,7 +493,7 @@
             RomajiChallengeSystem.init(this);
             PauseSystem.init(this);
             setupPerformanceMonitor.call(this);
-
+            LifeSystem.initialize(this);
             WeaponSystem.initialize(this);
             PlayerHitSystem.init(this);
             InputSystem.setupCursorHiding(this);
@@ -524,7 +525,7 @@
             shieldVisual.setVisible(false);
 
             // Add health regeneration
-            setupHealthRegeneration.call(this);
+            LifeSystem.setupHealthRegeneration(this);
 
             // Create enemy group
             EnemySystem.initialize(this);
@@ -696,65 +697,6 @@
             if (heroExp >= xpForNextLevel(playerLevel)) {
                 levelUp.call(this);
             }
-        }
-
-        // Setup health regeneration
-        function setupHealthRegeneration() {
-            // Calculate delay based on max health (100s / maxHealth)
-            const regenDelay = Math.ceil(100000 / maxPlayerHealth); // In milliseconds
-
-            // Remove any existing regen timer
-            if (healthRegenTimer) {
-                healthRegenTimer.remove();
-            }
-
-            // Create and register health regeneration timer
-            healthRegenTimer = registerTimer(this.time.addEvent({
-                delay: regenDelay,
-                callback: regenerateHealth,
-                callbackScope: this,
-                loop: true
-            }));
-
-            GameUI.updateHealthBar(this);
-
-            console.log(`Health regeneration timer set: +1 HP every ${regenDelay / 1000} seconds`);
-        }
-
-        function regenerateHealth() {
-            if (gameOver || gamePaused) return;
-
-            // Only regenerate if health is below max
-            if (playerHealth < maxPlayerHealth) {
-                // Add 1 HP
-                playerHealth = Math.min(playerHealth + 1, maxPlayerHealth);
-
-                // Update health bar and text
-                GameUI.updateHealthBar(this);
-
-                // Show visual effect
-                showRegenEffect(this);
-            }
-        }
-
-        function showRegenEffect(scene) {
-            // Create a healing indicator
-            const healEffect = scene.add.text(player.x, player.y - 20, '+1', {
-                fontFamily: 'Arial',
-                fontSize: '16px',
-                color: '#00ff00'
-            }).setOrigin(0.5);
-
-            // Animate the healing indicator
-            scene.tweens.add({
-                targets: healEffect,
-                y: healEffect.y - 15,
-                alpha: 0,
-                duration: 800,
-                onComplete: function () {
-                    healEffect.destroy();
-                }
-            });
         }
 
         function levelUp() {
@@ -1106,7 +1048,7 @@
                         // If increasing max health, also increase current health
                         playerHealth += amount;
                     }
-                    setupHealthRegeneration.call(scene);
+                    LifeSystem.setupHealthRegeneration(scene);
                     break;
                 case 'luck':
                     playerLuck += amount;
@@ -1232,7 +1174,7 @@
             }
 
             // Restart health regeneration
-            setupHealthRegeneration.call(this);
+            LifeSystem.setupHealthRegeneration(this);
 
             // Reset difficulty scaling
             gameStartTime = this.time.now;

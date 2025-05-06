@@ -231,25 +231,23 @@ OnHitEffectSystem.registerComponent('stormVengeanceEffect', {
     // Helper method to create multiple lightning strikes in a circle
     createVengeanceStorm: function (scene, count) {
         // Define the radius of the lightning storm
-        const radius = 128; // 128px as specified
+        const radius = 192;
 
         // Create unique damage source ID for this storm
         const stormId = `vengeance_storm_${Date.now()}_${Math.random()}`;
 
-        // Create lightning strikes at equidistant points around the circle
+        // Create lightning strikes at random positions within the circle
         for (let i = 0; i < count; i++) {
-            // Calculate equidistant angles around the circle
-            const angle = (i / count) * Math.PI * 2;
-
-            // Fixed distance at the radius
-            const distance = radius;
+            // Calculate random angle and distance within the circle
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * radius;
 
             // Calculate position
             const x = player.x + Math.cos(angle) * distance;
             const y = player.y + Math.sin(angle) * distance;
 
             // Add a delay based on index to stagger the lightning strikes
-            scene.time.delayedCall(i * 100, function () {
+            scene.time.delayedCall(i * 200, function () {
                 // Create lightning strike using the existing function from hero.js
                 createLightningStrike(scene, x, y, {
                     segmentCount: 4,

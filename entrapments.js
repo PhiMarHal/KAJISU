@@ -171,7 +171,7 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             lifespan: null, // Indefinite lifespan until touched by enemy
             options: {
                 hasPeriodicEffect: true, // Generic flag for drops with periodic effects
-                periodicEffectCooldown: 15000, // Base cooldown for the effect
+                periodicEffectCooldown: 4000, // Base cooldown for the effect
                 fireImmediately: true, // Flag to indicate it should fire immediately on spawn
                 visualEffect: 'createPulsing' // Flag for visual pulsing effect
             }
@@ -257,7 +257,7 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
             lifespan: null, // Permanent until touched by enemy
             options: {
                 areaEffectInterval: 8000, //
-                areaEffectRadius: 160, // Base radius
+                areaEffectRadius: 320, // Base radius
                 pulseColor: 0x2aad27, // Green color for the pulse effect
                 visualEffect: 'createPulsing', // Add pulsing animation
                 effectComponent: 'poisonEffect' // Use the poisonEffect component
@@ -303,7 +303,7 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
             damageInterval: 0, // Not used for area effects
             lifespan: null, // Permanent until touched by enemy
             options: {
-                areaEffectInterval: 12000, //
+                areaEffectInterval: 7000, //
                 areaEffectRadius: 240, //
                 pulseColor: 0x00ffff, // Cyan color for the pulse effect
                 visualEffect: 'createPulsing', // Add pulsing animation

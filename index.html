@@ -1066,36 +1066,6 @@
             GameUI.updateStatCircles(this);
         };
 
-        // Function to fully heal the player
-        window.fullHeal = function () {
-            playerHealth = maxPlayerHealth;
-
-            // Update the health bar
-            GameUI.updateHealthBar(this);
-
-            // Visual effect to show healing
-            const scene = game.scene.scenes[0];
-            if (scene) {
-                // Show healing particles or effect
-                const healEffect = scene.add.text(player.x, player.y - 40, '+HEAL', {
-                    fontFamily: 'Arial',
-                    fontSize: '18px',
-                    color: '#00ff00'
-                }).setOrigin(0.5);
-
-                // Animate the effect
-                scene.tweens.add({
-                    targets: healEffect,
-                    y: healEffect.y - 30,
-                    alpha: 0,
-                    duration: 1000,
-                    onComplete: function () {
-                        healEffect.destroy();
-                    }
-                });
-            }
-        };
-
         function startGame() {
             // Reset game state variables
             gameOver = false;

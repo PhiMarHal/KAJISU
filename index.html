@@ -180,7 +180,6 @@
 
         // Game variables
         let player;
-        let enemies;
         let projectiles;
         let cursors;
         let wasdKeys;
@@ -224,35 +223,22 @@
             activePerks: []     // Store all acquired perks
         };
 
-        let playerHealthDisplay = 0; // For displaying to player
-
         // Initial player stats
-        let basePlayerHealth = BASE_STATS.END;
-        let baseMaxHealth = BASE_STATS.END;
         let basePlayerSpeed = 8;
-        let basePlayerDamage = BASE_STATS.POW;
-        let basePlayerLuck = BASE_STATS.LUK;
-        let basePlayerFireRate = BASE_STATS.AGI;
         let baseProcChance = 0.2;
         let baseShootingDelay = 2000;
         let baseHeroExpToLevel = 5;
         let acquiredPerks = [];
-        let playerHealth = basePlayerHealth;
-        let maxPlayerHealth = baseMaxHealth;
+        let playerHealth = BASE_STATS.END;
+        let maxPlayerHealth = BASE_STATS.END;
         let playerSpeed = basePlayerSpeed;
-        let playerDamage = basePlayerDamage;
-        let playerLuck = basePlayerLuck;
+        let playerDamage = BASE_STATS.POW;
+        let playerLuck = BASE_STATS.LUK;
         let shootingDelay = baseShootingDelay; // ms between shots
-        let playerFireRate = basePlayerFireRate; // Multiplier for shooting rate
+        let playerFireRate = BASE_STATS.AGI; // Multiplier for shooting rate
         let projectileSizeFactor = 4; // Multiply player damage by this to get proj size
         let berserkMultiplier = 1.0;
         let archerMultiplier = 1.0;
-        let healthBar;
-        let healthBarBg;
-        let expBar;
-        let expBarBg;
-        let expText;
-        let playerStatsText;
         let score = 0;
         let level = 1;
         let touchInput = { x: 0, y: 0, isActive: false };
@@ -1216,12 +1202,12 @@
             if (resumeButton) resumeButton.setVisible(false);
 
             // Reset player stats to base values
-            playerHealth = basePlayerHealth;
-            maxPlayerHealth = baseMaxHealth;
+            playerHealth = BASE_STATS.END;
+            maxPlayerHealth = BASE_STATS.END;
             playerSpeed = basePlayerSpeed;
-            playerDamage = basePlayerDamage;
-            playerLuck = basePlayerLuck;
-            playerFireRate = basePlayerFireRate;
+            playerDamage = BASE_STATS.POW;
+            playerLuck = BASE_STATS.LUK;
+            playerFireRate = BASE_STATS.AGI;
 
             // Reset XP and level
             heroExp = 0;

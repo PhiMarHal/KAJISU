@@ -65,15 +65,45 @@ const PlayerComponentSystem = {
         const component = this.activeComponents[componentName];
         if (!component) return false;
 
+        console.log(`Removing component: ${componentName}`);
+
         // Call cleanup function if it exists
         if (component.cleanup) {
             component.cleanup(player);
+        }
+
+        // Check for and clean up timers created by CooldownManager
+        // Components typically store timer references in properties
+        for (const key in component) {
+            const value = component[key];
+
+            // Check if property is a timer from CooldownManager
+            if (value &&
+                (typeof value === 'object') &&
+                (value.delay !== undefined || value.paused !== undefined || value.elapsed !== undefined)) {
+
+                console.log(`Found potential timer in ${componentName}.${key}`);
+
+                // Try to remove via CooldownManager first
+                if (window.CooldownManager && window.CooldownManager.removeTimer) {
+                    window.CooldownManager.removeTimer(value);
+                }
+
+                // Also try directly removing the timer as backup
+                if (value.remove) {
+                    value.remove();
+                }
+
+                // Clear reference
+                component[key] = null;
+            }
         }
 
         // Remove the component
         delete this.activeComponents[componentName];
         return true;
     },
+
 
     // Process a specific event for all components
     processEvent: function (eventName, ...args) {
@@ -97,13 +127,20 @@ const PlayerComponentSystem = {
 
     // Reset all components
     resetAll: function () {
+        console.log("Resetting all player components...");
+
+        // Get a list of all component names first to avoid modification during iteration
+        const componentNames = Object.keys(this.activeComponents);
+
         // Clean up each component
-        Object.keys(this.activeComponents).forEach(name => {
+        componentNames.forEach(name => {
             this.removeComponent(name);
         });
 
         // Ensure activeComponents is empty
         this.activeComponents = {};
+
+        console.log("All player components reset complete");
     }
 };
 

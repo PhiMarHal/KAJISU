@@ -15,17 +15,20 @@ after 100 perks we need 1000 kills of a new kanji for a perk unlock. good for lo
 ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks and rotating in favor of new one.
 fixed at high value (perhaps 1k) would make more sense with that latter design
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
+- poison resets tween to base = cold+poison = back to base despite cold
+- no player damage visual post Oblivion, maybe caused by shield visual? testing, doesn't seem directly linked or alone
+- return storm vengeance to random? circle looks artificial
+
+POSSIBLE FIX BUT NEEDS TESTING
+- if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow <= possibly fixed by window.TimeDilationSystem.cleanup();, need testing
+- storm caller, divine beacon and alien beacon remain after BLOSSOM (didn't we fix this before, for divine?? maybe just restart...) -> possibly fixed
+
+DONE
+- tentacle doesn't go away on oblivion blossom
 - time slowdown fails to affect orbits and tweens <= think we'll live with this and call it a quirk
 - picking up clock during slowdown period fails to activate effect <= should be fixed
 - speed sometimes doesn't reset <= probably fixed with basePlayerSpeed, but that's a bit of a hack
 - cold projectiles stack infinitely <= should be fixed, more testing needed
-- poison resets tween to base = cold+poison = back to base despite cold
-- if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow <= possibly fixed by window.TimeDilationSystem.cleanup();, need testing
-- tentacle doesn't go away on oblivion blossom
-- no player damage visual post Oblivion, maybe caused by shield visual? testing, doesn't seem directly linked or alone
-- storm caller, divine beacon and alien beacon remain after BLOSSOM (didn't we fix this before, for divine?? maybe just restart...)
-
-DONE
 - Move remaining perks outside of index.html (orbiting? landmine?) orbiting done. landmine+afterimage next
 - hide cursor! = after 1s delay
 - T3 enemies? = up to T6

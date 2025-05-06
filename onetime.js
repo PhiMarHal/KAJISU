@@ -199,10 +199,10 @@ const OneTimeEffects = {
         const perkCount = acquiredPerks.length;
 
         // Reset stats to base values
-        playerDamage = basePlayerDamage;
-        maxPlayerHealth = baseMaxHealth;
-        playerLuck = basePlayerLuck;
-        playerFireRate = basePlayerFireRate;
+        playerDamage = BASE_STATS.POW;
+        maxPlayerHealth = BASE_STATS.END;
+        playerLuck = BASE_STATS.LUK;
+        playerFireRate = BASE_STATS.AGI;
 
         // Also reset current health to match new max
         playerHealth = maxPlayerHealth;

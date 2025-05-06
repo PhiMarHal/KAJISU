@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KAJISU</title>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
+
     <script src="droppers.js"></script>
     <script src="cooldown.js"></script>
     <script src="hero.js"></script>
@@ -29,6 +31,7 @@
     <script src="challenge.js"></script>
     <script src="enemy.js"></script>
     <script src="life.js"></script>
+    <script src="debug.js"></script>
 
     <style>
         body {
@@ -391,79 +394,6 @@
             // No image assets to preload
         }
 
-        // Function to toggle debug mode and stats
-        function toggleDebugMode() {
-            // Toggle debug mode
-            debugModeEnabled = !debugModeEnabled;
-
-            // Toggle stats visibility
-            if (statsText) {
-                statsText.visible = debugModeEnabled;
-                statsVisible = debugModeEnabled;
-            }
-
-            // Toggle physics debug rendering
-            this.physics.world.drawDebug = debugModeEnabled;
-
-            // When enabling debug mode, we need to create the debug graphics if it doesn't exist
-            if (debugModeEnabled && !this.physics.world.debugGraphic) {
-                this.physics.world.createDebugGraphic();
-            }
-
-            // Toggle the visibility of the debug graphics
-            if (this.physics.world.debugGraphic) {
-                this.physics.world.debugGraphic.visible = debugModeEnabled;
-            }
-
-            console.log(`Debug mode ${debugModeEnabled ? 'enabled' : 'disabled'}`);
-        }
-
-        // Add this to your update function
-        function updatePerformanceStats(time, delta) {
-            if (statsText && statsVisible) {
-                const fps = Math.round(this.game.loop.actualFps);
-
-                // Get physics bodies count
-                let bodyCount = 0;
-                if (this.physics && this.physics.world) {
-                    bodyCount = this.physics.world.bodies.size;
-                }
-
-                // Count active game objects by type
-                const totalObjects = this.children.list.length;
-                let enemyCount = 0;
-                let projectileCount = 0;
-
-                if (EnemySystem.enemiesGroup) {
-                    enemyCount = EnemySystem.enemiesGroup.getChildren().length;
-                }
-                if (projectiles) {
-                    projectileCount = projectiles.getChildren().length;
-                }
-
-                // Calculate frame time from delta
-                const frameTime = delta.toFixed(2);
-
-                // Get memory usage if available
-                let memoryUsage = "N/A";
-                if (window.performance && window.performance.memory) {
-                    memoryUsage = Math.round(window.performance.memory.usedJSHeapSize / 1048576) + " MB";
-                }
-
-                // Update stats text
-                statsText.setText(
-                    `DEBUG MODE ON\n` +
-                    `FPS: ${fps}\n` +
-                    `Frame Time: ${frameTime}ms\n` +
-                    `Memory: ${memoryUsage}\n` +
-                    `Total Objects: ${totalObjects}\n` +
-                    `Enemies: ${enemyCount}\n` +
-                    `Projectiles: ${projectileCount}\n` +
-                    `Physics Bodies: ${bodyCount}`
-                );
-            }
-        }
-
         function create() {
             // Listen for the Phaser-specific resize event which is more reliable
             this.scale.on('resize', (gameSize, baseSize, displaySize, resolution) => {
@@ -492,7 +422,7 @@
             // Initialize our new systems
             RomajiChallengeSystem.init(this);
             PauseSystem.init(this);
-            setupPerformanceMonitor.call(this);
+            DebugSystem.init(this);
             LifeSystem.initialize(this);
             WeaponSystem.initialize(this);
             PlayerHitSystem.init(this);
@@ -563,9 +493,6 @@
                 touchInput.isActive = false;
             });
 
-            // Debug function to lvl up
-            setupDebugKeys.call(this);
-
             // Create the game over screen (hidden initially)
             gameOverText = this.add.text(
                 600, 400,
@@ -606,7 +533,7 @@
             if (gameOver) return;
             if (gamePaused) return; // Skip updates when game is paused for level up
 
-            updatePerformanceStats.call(this, time, delta);
+            DebugSystem.updatePerformanceStats(this, time, delta);
             updatePlayerStateEffects();
             updateOnHitEffects();
 
@@ -797,175 +724,6 @@
         function updatePlayerStateEffects() {
             // This now just calls the centralized player status system
             updatePlayerStatus();
-        }
-
-
-        // Helper function to disable debug keys
-        function disableDebugKeys() {
-            // We'll use a simple approach: add a flag that the debug key handlers can check
-            this.debugKeysDisabled = true;
-        }
-
-        // Helper function to restore debug keys
-        function restoreDebugKeys() {
-            // Clear the flag to allow debug keys to work again
-            this.debugKeysDisabled = false;
-        }
-
-        // Updated setupDebugKeys function that handles all debug keys including performance monitor (O key)
-        function setupDebugKeys() {
-            // Add debug key (R key for instant level up)
-            this.input.keyboard.on('keydown-R', function (event) {
-                // Skip if debug keys are disabled
-                if (this.debugKeysDisabled) return;
-
-                if (!gamePaused && !gameOver) {
-                    // Add enough XP to level up
-                    const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
-                    heroExp += xpNeeded;
-                    GameUI.updateExpBar(this);
-                    console.log("Debug: Instant level up triggered");
-                }
-            }, this);
-
-            // Add debug key (T key for instant enemy spawn)
-            this.input.keyboard.on('keydown-T', function (event) {
-                // Skip if debug keys are disabled
-                if (this.debugKeysDisabled) return;
-
-                if (!gamePaused && !gameOver) {
-                    // Access the main game scene and call spawnEnemyOfRank on it with rank 1
-                    const activeScene = game.scene.scenes[0];
-                    if (activeScene) {
-                        spawnEnemyOfRank.call(activeScene, 1);
-                        console.log("Debug: Rank 1 enemy spawned");
-                    }
-                }
-            }, this);
-
-            // Add debug key (K key for skipping to next enemy phase)
-            this.input.keyboard.on('keydown-K', function (event) {
-                // Skip if debug keys are disabled
-                if (this.debugKeysDisabled) return;
-
-                if (!gamePaused && !gameOver) {
-                    // Skip to next phase based on current elapsed time
-                    skipToNextPhase.call(this);
-                }
-            }, this);
-
-            // Add debug key (O key for performance monitor toggle)
-            this.input.keyboard.on('keydown-O', function (event) {
-                // Skip if debug keys are disabled
-                if (this.debugKeysDisabled) return;
-
-                // Toggle debug mode and stats visibility
-                toggleDebugMode.call(this);
-            }, this);
-        }
-
-        function skipToNextPhase() {
-            // Get the current minutes elapsed
-            const currentMinutes = elapsedTime / 60;
-
-            // Find the next phase timing based on rankEnemyStartTimes
-            // Convert the start times from seconds to minutes
-            const phaseTimings = Object.values(rankEnemyStartTimes).map(time => time / 60);
-
-            // Sort the phase timings to ensure they're in ascending order
-            phaseTimings.sort((a, b) => a - b);
-
-            // Find the next phase timing
-            let nextPhaseMinutes = null;
-            for (const phaseTime of phaseTimings) {
-                if (phaseTime > currentMinutes) {
-                    nextPhaseMinutes = phaseTime;
-                    break;
-                }
-            }
-
-            // If no next phase was found, add 12 minutes (common phase interval)
-            if (nextPhaseMinutes === null) {
-                // Find the highest phase timing and add 12 minutes
-                const highestPhase = Math.max(...phaseTimings);
-                nextPhaseMinutes = Math.floor(currentMinutes / 12) * 12 + 12;
-
-                // Ensure we're actually advancing time
-                if (nextPhaseMinutes <= currentMinutes) {
-                    nextPhaseMinutes = currentMinutes + 12;
-                }
-            }
-
-            // Update elapsedTime to the new phase time (in seconds)
-            const oldElapsedTime = elapsedTime;
-            elapsedTime = nextPhaseMinutes * 60;
-
-            // Log the action
-            console.log(`Debug: Time skipped from ${Math.floor(oldElapsedTime / 60)} minutes to ${nextPhaseMinutes} minutes`);
-
-            // Update the level display
-            GameUI.updateStatusDisplay(this, elapsedTime, score);
-
-            // Potentially trigger any time-based events that should happen
-            // This will depend on how your game handles time-based events
-
-            // Update enemy spawners to reflect the new time
-            const activeScene = game.scene.scenes[0];
-            if (activeScene) {
-                EnemySystem.updateEnemySpawners();
-            }
-        }
-
-        // Update setupPerformanceMonitor to not add its own key listener
-        function setupPerformanceMonitor() {
-            // Create stats text display (initially hidden)
-            statsText = this.add.text(1000, 10, 'FPS: 0', {
-                fontFamily: 'Arial',
-                fontSize: '14px',
-                color: '#00ff00',
-                backgroundColor: '#000000',
-                padding: { x: 5, y: 5 }
-            });
-            statsText.setDepth(1000);
-            statsText.visible = false;
-            statsVisible = false;
-
-            // O key listener is now handled in setupDebugKeys
-
-            console.log("Performance monitor initialized (press O to toggle)");
-        }
-
-        // Helper function to handle debug keys state
-        function setupDebugKeysState(enabled) {
-            // Safely handle debug key state without accessing internal Phaser structures
-            try {
-                // Store the current state if we're disabling
-                if (!enabled) {
-                    this.debugKeysEnabled = false;
-
-                    // Disable the debug keys by removing their event handlers
-                    const debugKeys = ['R', 'T', 'O'];
-                    debugKeys.forEach(key => {
-                        const keyObj = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[key]);
-                        if (keyObj) {
-                            keyObj.enabled = false;
-                        }
-                    });
-                } else {
-                    this.debugKeysEnabled = true;
-
-                    // Re-enable the debug keys
-                    const debugKeys = ['R', 'T', 'O'];
-                    debugKeys.forEach(key => {
-                        const keyObj = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[key]);
-                        if (keyObj) {
-                            keyObj.enabled = true;
-                        }
-                    });
-                }
-            } catch (error) {
-                console.log("Error managing debug keys:", error);
-            }
         }
 
         function detectKeyboardLayout() {

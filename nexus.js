@@ -639,7 +639,7 @@ OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
             fontSize: 32, // Standard size
             radius: 96, //
             angle: Math.random() * Math.PI * 2, // Random starting angle
-            speed: 0.1, // Use this value as rotation speed factor for direction following
+            speed: 0.04, // Use this value as rotation speed factor for direction following
             direction: 'clockwise', // Not really used due to custom movement
             pattern: 'directionFollowing', // Use our custom pattern
             collisionType: 'persistent', // Stays after hitting enemies

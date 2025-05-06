@@ -108,21 +108,37 @@ const MovementPatterns = {
             // Calculate angle from velocity
             const newAngle = Math.atan2(velocity.y, velocity.x);
 
-            // Smooth rotation to prevent jittering
-            let targetAngle = newAngle;
-
             // If we haven't stored a previous angle, initialize it
             if (orbital.lastAngle === undefined) {
-                orbital.lastAngle = targetAngle;
+                orbital.lastAngle = newAngle;
             }
 
-            // Calculate angle difference (accounting for wrapping)
-            let angleDiff = targetAngle - orbital.lastAngle;
-            if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-            if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            // Normalize both angles to 0-2π range for consistent comparison
+            const normalizedCurrent = orbital.lastAngle % (Math.PI * 2);
+            const normalizedNew = newAngle % (Math.PI * 2);
 
-            // Apply smooth rotation using the orbital.speed as the rotation speed factor
+            // Ensure positive values (0 to 2π)
+            const currentAngle = normalizedCurrent >= 0 ? normalizedCurrent : normalizedCurrent + Math.PI * 2;
+            const targetAngle = normalizedNew >= 0 ? normalizedNew : normalizedNew + Math.PI * 2;
+
+            // Calculate both possible rotation directions
+            const clockwiseDiff = (targetAngle <= currentAngle) ?
+                (targetAngle + Math.PI * 2) - currentAngle :
+                targetAngle - currentAngle;
+
+            const counterClockwiseDiff = (targetAngle >= currentAngle) ?
+                (currentAngle + Math.PI * 2) - targetAngle :
+                currentAngle - targetAngle;
+
+            // Choose the smaller angle difference and correct sign
+            let angleDiff = (clockwiseDiff <= counterClockwiseDiff) ?
+                clockwiseDiff : -counterClockwiseDiff;
+
+            // Apply smooth rotation using orbital.speed as the rotation speed factor
             orbital.lastAngle += angleDiff * orbital.speed;
+
+            // Keep lastAngle in reasonable range to prevent floating point issues over time
+            orbital.lastAngle = orbital.lastAngle % (Math.PI * 2);
 
             // Store last computed angle to use as the facing direction
             orbital.angle = orbital.lastAngle;
@@ -142,7 +158,7 @@ const MovementPatterns = {
         orbital.entity.setPosition(x, y);
 
         // Rotate the text to match the direction
-        orbital.entity.setAngle((orbital.angle * 180 / Math.PI)); // Add 90 degrees to point forward
+        orbital.entity.setAngle((orbital.angle * 180 / Math.PI));
     }
 };
 

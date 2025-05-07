@@ -149,7 +149,7 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
 
         // Set default properties
         this.damageMultiplier = 1; // 100% of player damage in AOE
-        this.radiusMultiplier = 64; // 64 * sqrt luck
+        this.radiusMultiplier = 80; // 80 * sqrt luck
         this.falloffMultiplier = 0; // No falloff by default
 
         // Calculate radius based on player luck at creation time
@@ -362,7 +362,7 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
 
     createStompEffect: function (projectile, scene) {
         // Calculate radius based on player luck
-        const radius = 80 * Math.sqrt(playerLuck / BASE_STATS.LUK);
+        const radius = 96 * Math.sqrt(playerLuck / BASE_STATS.LUK);
 
         // Get player position
         const x = player.x;

@@ -8,7 +8,7 @@ const PERKS = {
         kana: "あかりゅう",
         romaji: "akaryuu",
         english: "Red Dragon",
-        description: "Crimson flames rise\nStrength comes at the cost of speed\nDragon awakens",
+        description: "+2 POW / -1 AGI",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -21,7 +21,7 @@ const PERKS = {
         kana: "あおくじら",
         romaji: "aokujira",
         english: "Blue Whale",
-        description: "Ocean's guardian\nShield of azure protects you\nEndless as the sea",
+        description: "Permanent Protection",
         color: "#3498db",
         hoverColor: 0x2980b9,
         onAcquire: function () {
@@ -33,7 +33,7 @@ const PERKS = {
         kana: "うんめいのたて",
         romaji: "unmeinotate",
         english: "Fated Shield",
-        description: "Death's door opens\nDestiny intervenes now\nOne last chance to live",
+        description: "Auto Shield when at 1 HP",
         color: "#FF5555",
         hoverColor: 0xDD3333,
         onAcquire: function () {
@@ -45,7 +45,7 @@ const PERKS = {
         kana: "はなさく",
         romaji: "hanasaku",
         english: "Blooming Flower",
-        description: "Petals unfurling\nDeadly blooms across the field\nBeauty hides sharp thorns",
+        description: "Periodically spawns flowers that attack nearby enemies",
         color: "#FF66AA", // Pink color
         hoverColor: 0xDD4488,
         onAcquire: function () {
@@ -57,7 +57,7 @@ const PERKS = {
         kana: "あおみどりたこ",
         romaji: "aomidoritako",
         english: "Teal Octopus",
-        description: "Eight arms protect you\nGlowing orbs circle your form\nEndless spiraling",
+        description: "Gain orbiting projectiles",
         color: "#008080",
         hoverColor: 0x005f5f,
         onAcquire: function () {
@@ -69,7 +69,7 @@ const PERKS = {
         kana: "ぎゃくたこ",
         romaji: "gyakutako",
         english: "Inverted Octopus",
-        description: "Reverse the current\nContra-rotating stars\nOpposite yet same",
+        description: "Gain counter-rotating orbiting projectiles",
         color: "#FF55FF", // Pink color
         hoverColor: 0xDD33DD,
         onAcquire: function () {
@@ -81,7 +81,7 @@ const PERKS = {
         kana: "しょくしゅ",
         romaji: "shokushu",
         english: "Tentacle Grasp",
-        description: "From depths they emerge\nReaching in all directions\nGrasping enemies",
+        description: "Periodically launches multiple tentacles in all directions",
         color: "#8800AA", // Purple color
         hoverColor: 0x660088,
         onAcquire: function () {
@@ -93,7 +93,7 @@ const PERKS = {
         kana: "がらすほう",
         romaji: "garasuhou",
         english: "Glass Cannon",
-        description: "Fragile as crystal\nYet power beyond measure\nBreath catches - one hit",
+        description: "+5 POW / END reduced to 1",
         color: "#FF0000",
         hoverColor: 0xDD0000,
         onAcquire: function () {
@@ -109,7 +109,7 @@ const PERKS = {
         kana: "こはくこうちゅう",
         romaji: "kohakukouchuu",
         english: "Amber Beetle",
-        description: "Ancient trapped in gold\nExplosive gifts deployed\nTime-frozen insects",
+        description: "Drops explosive mines that damage enemies",
         color: "#ffbf00",
         hoverColor: 0xbb8c00,
         onAcquire: function () {
@@ -121,7 +121,7 @@ const PERKS = {
         kana: "ねらう",
         romaji: "nerau",
         english: "Sniper Fairy",
-        description: "Tiny marksman aims\nSharp-eyed companion shoots true\nNever misses prey",
+        description: "Summons a fairy that fires powerful shots at random enemies",
         color: "#FF55AA",
         hoverColor: 0xDD3388,
         onAcquire: function () {
@@ -133,7 +133,7 @@ const PERKS = {
         kana: "のようせい",
         romaji: "noyousei",
         english: "Wild Fairy",
-        description: "Untamed forest sprite\nErratic, swift as the wind\nChaos in orbit",
+        description: "Summons an erratic fairy that orbits you at high speed and damages enemies",
         color: "#FF66CC", // Bright pink color
         hoverColor: 0xDD44AA,
         onAcquire: function () {
@@ -146,7 +146,7 @@ const PERKS = {
         kana: "てんみつ",
         romaji: "tenmitsu",
         english: "Angel Honey",
-        description: "Heavenly sweetness\nGolden drops heal mortal wounds\nNectar of the gods",
+        description: "Periodically spawns healing honey that restores your health",
         color: "#00CC00", // Green color
         hoverColor: 0x00AA00,
         onAcquire: function () {
@@ -160,7 +160,7 @@ const PERKS = {
         kana: "すし",
         romaji: "sushi",
         english: "Sushi",
-        description: "Ocean's gift, perfect\nRice and fish restore your strength\nVital force renewed",
+        description: "+1 END, full heal",
         color: "#FFFFFF",
         hoverColor: 0xE0E0E0,
         onAcquire: function () {
@@ -173,7 +173,7 @@ const PERKS = {
         kana: "ラーメン",
         romaji: "raamen",
         english: "Ramen",
-        description: "Steaming noodle bowl\nWarm broth shields and restores you\nComfort in chaos",
+        description: "+1 END and temporary shield",
         color: "#FFA07A",
         hoverColor: 0xDD8866,
         onAcquire: function () {
@@ -186,7 +186,7 @@ const PERKS = {
         kana: "おにぎり",
         romaji: "onigiri",
         english: "Rice Ball",
-        description: "Triangle of life\nSimple rice heals deepest wounds\nPortable power",
+        description: "+1 END and fully heals",
         color: "#F5F5DC",
         hoverColor: 0xE5E5CC,
         onAcquire: function () {
@@ -199,7 +199,7 @@ const PERKS = {
         kana: "もち",
         romaji: "mochi",
         english: "Rice Cake",
-        description: "Soft and stretching white\nGlutinous healing sweetness\nStrength in chewy bites",
+        description: "+1 END and fully heals",
         color: "#FFE4E1",
         hoverColor: 0xEED4D1,
         onAcquire: function () {
@@ -212,7 +212,7 @@ const PERKS = {
         kana: "だんご",
         romaji: "dango",
         english: "Dumpling",
-        description: "Three spheres on a stick\nSweet dumplings of restoration\nVitality grows",
+        description: "+1 END and fully heals",
         color: "#F0E68C",
         hoverColor: 0xE0D67C,
         onAcquire: function () {
@@ -225,7 +225,7 @@ const PERKS = {
         kana: "てんぷら",
         romaji: "tenpura",
         english: "Tempura",
-        description: "Crispy golden clouds\nFried to light perfection now\nHealing in each bite",
+        description: "+1 END and fully heals",
         color: "#FFD700",
         hoverColor: 0xEEC700,
         onAcquire: function () {
@@ -238,7 +238,7 @@ const PERKS = {
         kana: "うどん",
         romaji: "udon",
         english: "Udon Noodles",
-        description: "Thick noodles swimming\nComforting broth restores strength\nSlurp to full vigor",
+        description: "+1 END and fully heals",
         color: "#FAEBD7",
         hoverColor: 0xEADBc7,
         onAcquire: function () {
@@ -251,7 +251,7 @@ const PERKS = {
         kana: "やきとり",
         romaji: "yakitori",
         english: "Grilled Chicken",
-        description: "Skewered, smoky meat\nChicken grilled to perfection\nRestores lost vitals",
+        description: "+1 END and fully heals",
         color: "#CD853F",
         hoverColor: 0xBD752F,
         onAcquire: function () {
@@ -264,7 +264,7 @@ const PERKS = {
         kana: "たこやき",
         romaji: "takoyaki",
         english: "Octopus Balls",
-        description: "Savory round bites\nOctopus heart of each ball\nWarms and heals your core",
+        description: "+1 END and fully heals",
         color: "#8B4513",
         hoverColor: 0x7B3503,
         onAcquire: function () {
@@ -277,7 +277,7 @@ const PERKS = {
         kana: "ぎょうざ",
         romaji: "gyouza",
         english: "Dumplings",
-        description: "Crescent moon pockets\nFilled with healing energies\nRestores life's fullness",
+        description: "+1 END and fully heals",
         color: "#D3D3D3",
         hoverColor: 0xC3C3C3,
         onAcquire: function () {
@@ -290,7 +290,7 @@ const PERKS = {
         kana: "たいやき",
         romaji: "taiyaki",
         english: "Fish-shaped Cake",
-        description: "Sweet fish-shaped pastry\nFilled with healing red bean paste\nSwims through your sorrow",
+        description: "+1 END and fully heals",
         color: "#DEB887",
         hoverColor: 0xCEA877,
         onAcquire: function () {
@@ -303,7 +303,7 @@ const PERKS = {
         kana: "べんとう",
         romaji: "bentou",
         english: "Lunch Box",
-        description: "Compartments of life\nBalance in neat arrangement\nComplete nourishment",
+        description: "+1 END and fully heals",
         color: "#FF6347",
         hoverColor: 0xEF5337,
         onAcquire: function () {
@@ -316,7 +316,7 @@ const PERKS = {
         kana: "みどりどく",
         romaji: "midoridoku",
         english: "Green Venom",
-        description: "Emerald droplets\nTime ravages foes slowly\nPoison's patient work",
+        description: "Chance to fire poisonous projectiles that deal damage over time",
         color: "#2aad27",
         hoverColor: 0x1a8d17,
         onAcquire: function () {
@@ -327,7 +327,7 @@ const PERKS = {
         kana: "あおのまた",
         romaji: "aonomata",
         english: "Azure Fork",
-        description: "One becomes two paths\nBlue lightning splits asunder\nDouble the damage",
+        description: "Projectiles have a chance to split in two when hitting enemies",
         color: "#1E90FF",
         hoverColor: 0x0070DD,
         onAcquire: function () {
@@ -339,7 +339,7 @@ const PERKS = {
         kana: "どくばな",
         romaji: "dokubana",
         english: "Poison Flower",
-        description: "Deadly petals bloom\nToxic pollen fills the air\nSlow pain consumes foes",
+        description: "Creates flowers that release poison, damaging enemies over time",
         color: "#2aad27", // Green color matching the poison effect
         hoverColor: 0x1a8d17,
         onAcquire: function () {
@@ -351,7 +351,7 @@ const PERKS = {
         kana: "れいばな",
         romaji: "reibana",
         english: "Frost Flower",
-        description: "Ice blossoms open\nFrost slows enemies' movements\nWinter's cold embrace",
+        description: "Creates flowers that slow nearby enemies",
         color: "#00ffff", // Cyan color matching the slow effect
         hoverColor: 0x00dddd,
         onAcquire: function () {
@@ -363,7 +363,7 @@ const PERKS = {
         kana: "こうそう",
         romaji: "kousou",
         english: "Bright Lance",
-        description: "Shaft of pure sunlight\nFollows where your movement leads\nPiercing enemies",
+        description: "Summons a glowing lance that follows your movement direction",
         color: "#FFFF33", // Bright yellow color
         hoverColor: 0xDDDD00,
         onAcquire: function () {
@@ -375,7 +375,7 @@ const PERKS = {
         kana: "どくあと",
         romaji: "dokuato",
         english: "Toxic Trail",
-        description: "Poison footprints left\nSickness spreads - you weaken too\nPain shared with your foes",
+        description: "Leaves a trail of poison that damages enemies over time, but makes you sick too",
         color: "#33cc33", // Green color for poison
         hoverColor: 0x22aa22, // Darker green for hover effect
         onAcquire: function () {
@@ -391,7 +391,7 @@ const PERKS = {
         kana: "らいじん",
         romaji: "raijin",
         english: "Storm Caller",
-        description: "Thunder god beckons\nLightning strikes from clear skies\nWrath from above falls",
+        description: "Periodically summons lightning strikes that damage enemies",
         color: "#FFDD00", // Bright yellow color
         hoverColor: 0xDDBB00,
         onAcquire: function () {
@@ -403,7 +403,7 @@ const PERKS = {
         kana: "らいまねき",
         romaji: "raimaneki",
         english: "Storm Bringer",
-        description: "Beacons call the storm\nGather clouds, invite lightning\nThunder's symphony",
+        description: "Periodically spawns beacons that unleash lightning storms",
         color: "#00DDFF", // Bright cyan color
         hoverColor: 0x00BBDD,
         onAcquire: function () {
@@ -415,7 +415,7 @@ const PERKS = {
         kana: "らいえん",
         romaji: "raien",
         english: "Storm Vengeance",
-        description: "Pain invites lightning\nWhen struck, skies answer in rage\nRetribution falls",
+        description: "When hit, triggers lightning strikes around you, damaging nearby enemies",
         color: "#FFAAFF", // Pinkish lightning color
         hoverColor: 0xDD88DD,
         onAcquire: function () {
@@ -429,7 +429,7 @@ const PERKS = {
         kana: "はどう",
         romaji: "hadou",
         english: "Area Pulse",
-        description: "Energy waves ripple\nExpanding rings of power\nEnemies wither",
+        description: "Periodically creates pulsing fields that damage nearby enemies",
         color: "#ff00ff", // Magenta color
         hoverColor: 0xdd00dd,
         onAcquire: function () {
@@ -441,7 +441,7 @@ const PERKS = {
         kana: "ひえん",
         romaji: "hien",
         english: "Scarlet Ember",
-        description: "Crimson sparks alight\nBurning trails left in your wake\nFlames consume them all",
+        description: "Projectiles may leave fire that burns enemies over time",
         color: "#FF4500",
         hoverColor: 0xCC3700,
         onAcquire: function () {
@@ -455,7 +455,7 @@ const PERKS = {
         kana: "あかとら",
         romaji: "akatora",
         english: "Red Tiger",
-        description: "Crimson striped fury\nClaws sharpen, strength increases\nPower awakens",
+        description: "+1 POW",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -467,7 +467,7 @@ const PERKS = {
         kana: "あかたか",
         romaji: "akataka",
         english: "Red Hawk",
-        description: "Scarlet wings beating\nSpeed and power in balance\nRaptor takes to sky",
+        description: "+1 POW / +1 AGI",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -480,7 +480,7 @@ const PERKS = {
         kana: "あかくま",
         romaji: "akakuma",
         english: "Red Bear",
-        description: "Mighty paws of flame\nStrength outweighs agility\nPowerful yet slow",
+        description: "+2 POW / -1 AGI",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -493,7 +493,7 @@ const PERKS = {
         kana: "あかさそり",
         romaji: "akasasori",
         english: "Red Scorpion",
-        description: "Crimson stinger strikes\nVenom potent but luck fades\nBalance of cosmos",
+        description: "+2 POW / -1 LUK",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -506,7 +506,7 @@ const PERKS = {
         kana: "あかきつね",
         romaji: "akakitsune",
         english: "Red Fox",
-        description: "Clever fire trickster\nCombines luck with raw power\nCunning predator",
+        description: "+1 POW / +1 LUK",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -519,7 +519,7 @@ const PERKS = {
         kana: "あかおおかみ",
         romaji: "akaookami",
         english: "Red Wolf",
-        description: "Scarlet hunter howls\nStrength coursing through blood and bone\nDamage increases",
+        description: "+1 POW",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -531,7 +531,7 @@ const PERKS = {
         kana: "あかへび",
         romaji: "akahebi",
         english: "Red Snake",
-        description: "Ruby scales gleaming\nVenom coursing, power grows\nStrike with more fury",
+        description: "+1 POW",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -543,7 +543,7 @@ const PERKS = {
         kana: "あかかまきり",
         romaji: "akakamakiri",
         english: "Red Mantis",
-        description: "Crimson prayer hands\nScythes that slice with more power\nPatient predator",
+        description: "+1 POW",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -555,7 +555,7 @@ const PERKS = {
         kana: "あかしし",
         romaji: "akashishi",
         english: "Red Lion",
-        description: "Scarlet king roars loud\nPride strengthens your striking power\nMane of fierce embers",
+        description: "+1 POW",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -567,7 +567,7 @@ const PERKS = {
         kana: "あかはやぶさ",
         romaji: "akahayabusa",
         english: "Red Falcon",
-        description: "Crimson wings diving\nTalons sharpen with power\nPrey falls beneath you",
+        description: "+1 POW",
         color: "#ff3333",
         hoverColor: 0xbb2222,
         onAcquire: function () {
@@ -581,7 +581,7 @@ const PERKS = {
         kana: "きひょう",
         romaji: "kihyou",
         english: "Yellow Cheetah",
-        description: "Golden blur racing\nSpeed increases with each step\nFaster than the wind",
+        description: "+1 AGI",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -593,7 +593,7 @@ const PERKS = {
         kana: "きはちどり",
         romaji: "kihachidori",
         english: "Yellow Hummingbird",
-        description: "Wings beat like lightning\nSpeed at cost of raw power\nBlurred golden dart",
+        description: "+4 AGI / -2 POW",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -606,7 +606,7 @@ const PERKS = {
         kana: "きばち",
         romaji: "kibachi",
         english: "Yellow Wasp",
-        description: "Swift amber stinger\nRapid strikes cost endurance\nSpeed through fragile form",
+        description: "+2 AGI / -2 END",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -619,7 +619,7 @@ const PERKS = {
         kana: "きやまいぬ",
         romaji: "kiyamainu",
         english: "Yellow Jackal",
-        description: "Desert trickster howls\nSwift, yet weaker in body\nSpeed over all else",
+        description: "+3 AGI / -1 POW / -1 END",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -633,7 +633,7 @@ const PERKS = {
         kana: "きどり",
         romaji: "kidori",
         english: "Yellow Canary",
-        description: "Small bird sings quickly\nNotes flow faster than before\nWings blur with speed",
+        description: "+1 AGI",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -645,7 +645,7 @@ const PERKS = {
         kana: "きすずめばち",
         romaji: "kisuzumebachi",
         english: "Yellow Hornet",
-        description: "Buzzing crescendos\nDanger in each rapid strike\nSpeed of golden wings",
+        description: "+1 AGI",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -657,7 +657,7 @@ const PERKS = {
         kana: "きみつばち",
         romaji: "kimitsubachi",
         english: "Yellow Bee",
-        description: "Golden pollen dance\nWings beat faster than before\nSwift honey maker",
+        description: "+1 AGI",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -669,7 +669,7 @@ const PERKS = {
         kana: "きひわ",
         romaji: "kihiwa",
         english: "Yellow Finch",
-        description: "Small gold songbird flies\nQuick movements, faster strikes\nNimble little wings",
+        description: "+1 AGI",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -681,7 +681,7 @@ const PERKS = {
         kana: "きマングース",
         romaji: "kimanguusu",
         english: "Yellow Mongoose",
-        description: "Swift snake hunter moves\nBlinding speed of paws and teeth\nRate of fire grows",
+        description: "+1 AGI",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -693,7 +693,7 @@ const PERKS = {
         kana: "きりす",
         romaji: "kirisu",
         english: "Yellow Squirrel",
-        description: "Quick paws gathering\nDarting movements, faster now\nNuts stored for winter",
+        description: "+1 AGI",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -705,20 +705,19 @@ const PERKS = {
         kana: "きせみ",
         romaji: "kisemi",
         english: "Yellow Cicada",
-        description: "Summer's song quickens\nWings vibrate at higher pace\nCeaseless buzzing chant",
+        description: "+1 AGI",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
             window.modifyStat('fireRate', 1);
         }
     },
-    // Continuing from previous artifact
     "YELLOW_CRICKET": {
         kanji: "黄蟋蟀",
         kana: "きこおろぎ",
         romaji: "kikoorogi",
         english: "Yellow Cricket",
-        description: "Night song quickens pace\nLegs rub faster, chirping grows\nRhythm accelerates",
+        description: "+1 AGI",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
@@ -732,7 +731,7 @@ const PERKS = {
         kana: "むらさきざる",
         romaji: "murasakizaru",
         english: "Purple Monkey",
-        description: "Violet primate grins\nFortune follows playful leaps\nLuck in mischief grows",
+        description: "+1 LUK",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -744,7 +743,7 @@ const PERKS = {
         kana: "むらさきねこ",
         romaji: "murasakineko",
         english: "Purple Cat",
-        description: "Amethyst feline\nLucky whiskers, gleaming eyes\nFortune's silent steps",
+        description: "+1 LUK",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -756,7 +755,7 @@ const PERKS = {
         kana: "むらさきちょう",
         romaji: "murasakichou",
         english: "Purple Butterfly",
-        description: "Lilac wings flutter\nCarrying fortuitous winds\nLuck rides gentle draft",
+        description: "+1 LUK",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -768,7 +767,7 @@ const PERKS = {
         kana: "むらさきうさぎ",
         romaji: "murasakiusagi",
         english: "Purple Rabbit",
-        description: "Lucky rabbit hops\nBlessed paws, fragile body\nCost of fortune's gift",
+        description: "+2 LUK / -1 END",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -781,7 +780,7 @@ const PERKS = {
         kana: "むらさきふくろう",
         romaji: "murasakifukurou",
         english: "Purple Owl",
-        description: "Wise eyes see further\nFortune follows midnight flights\nDouble shot may fly",
+        description: "+1 LUK",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -793,7 +792,7 @@ const PERKS = {
         kana: "むらさききつね",
         romaji: "murasakikitsune",
         english: "Purple Fox",
-        description: "Fortune's nine tails wave\nLuck soars as speed, strength falter\nCost of mystic gifts",
+        description: "+3 LUK / -1 POW / -1 AGI",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -807,7 +806,7 @@ const PERKS = {
         kana: "むらさきてんとうむし",
         romaji: "murasakitentoumushi",
         english: "Purple Ladybug",
-        description: "Spots of fortune shine\nTiny bearer of good luck\nViolet wings take flight",
+        description: "+1 LUK",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -819,7 +818,7 @@ const PERKS = {
         kana: "むらさきこうもり",
         romaji: "murasakikoumori",
         english: "Purple Bat",
-        description: "Echo of fortune\nLilac wings cut through nighttime\nLucky shadows soar",
+        description: "+1 LUK",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -831,7 +830,7 @@ const PERKS = {
         kana: "むらさきカメレオン",
         romaji: "murasakikamereon",
         english: "Purple Chameleon",
-        description: "Fortune shifts color\nSpeed sacrificed for luck's glow\nHidden blessings wait",
+        description: "+2 LUK / -1 AGI",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -844,7 +843,7 @@ const PERKS = {
         kana: "むらさきのうさぎ",
         romaji: "murasakinousagi",
         english: "Purple Hare",
-        description: "Wild luck runs swiftly\nAmethyst ears catch good winds\nFortune's grass rustles",
+        description: "+1 LUK",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -856,7 +855,7 @@ const PERKS = {
         kana: "むらさきが",
         romaji: "murasakiga",
         english: "Purple Moth",
-        description: "Luck's powder dusts air\nViolet wings drawn to fortune\nDancing in moonlight",
+        description: "+1 LUK",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -868,7 +867,7 @@ const PERKS = {
         kana: "かんつう",
         romaji: "kantsuu",
         english: "Piercing Shot",
-        description: "Arrows pierce through flesh\nOne shot finds multiple marks\nBarriers mean naught",
+        description: "Pierce through enemies",
         color: "#00ff88",
         hoverColor: 0x00cc66,
         onAcquire: function () {
@@ -879,7 +878,7 @@ const PERKS = {
         kana: "きかい",
         romaji: "kikai",
         english: "Yellow Boomerang",
-        description: "Gold arc flings away\nCompletes its destined circle\nReturns to your hand",
+        description: "Projectiles return to you after traveling, hitting multiple enemies",
         color: "#FFA500", // Orange color
         hoverColor: 0xDD8800,
         onAcquire: function () {
@@ -890,7 +889,7 @@ const PERKS = {
         kana: "しゅうえん",
         romaji: "shuuen",
         english: "Final Catastrophe",
-        description: "World's end unleashed now\nApocalypse in your hands\nAll foes swept away",
+        description: "Unleashes an apocalyptic blast that devastates all enemies",
         color: "#FF3300", // Bright red-orange
         hoverColor: 0xCC2200,
         onAcquire: function () {
@@ -902,7 +901,7 @@ const PERKS = {
         kana: "むらさきこんとん",
         romaji: "murasakikonton",
         english: "Purple Chaos",
-        description: "Stats dance, rearranged\nCosmic disorder reshapes\nLuck emerges, grows",
+        description: "Randomly rearranges all your stats\nThen +2 LUK",
         color: "#9932cc",
         hoverColor: 0x8822bc,
         onAcquire: function () {
@@ -914,7 +913,7 @@ const PERKS = {
         kana: "いきのこ",
         romaji: "ikinoko",
         english: "Alien Mushroom",
-        description: "Strange fungus consumed\nTime slows, all power grows\nCosmic enhancement",
+        description: "+1 to all stats and a brief time dilation",
         color: "#9966FF", // Purple-blue color
         hoverColor: 0x7744DD,
         onAcquire: function () {
@@ -935,7 +934,7 @@ const PERKS = {
         kana: "ようち",
         romaji: "youchi",
         english: "Magma Floor",
-        description: "Ground becomes molten\nEarth's blood burns those who tread it\nFiery trap awaits",
+        description: "Creates pools of magma that damage enemies",
         color: "#FF4400", // Orange-red color
         hoverColor: 0xDD2200,
         onAcquire: function () {
@@ -947,7 +946,7 @@ const PERKS = {
         kana: "ひょうへん",
         romaji: "hyouhen",
         english: "Frost Shrapnel",
-        description: "Ice shards scatter wide\nFreeze enemies' swift movements\nWinter's sharp embrace",
+        description: "Periodically drops ice shards that damage and slow enemies",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {
@@ -959,7 +958,7 @@ const PERKS = {
         kana: "ぼうきゃくのはな",
         romaji: "boukyakunohana",
         english: "Oblivion Blossom",
-        description: "Memories fade like mist\nEach lost perk gives new power\nForget to grow strong",
+        description: "Sacrifice all your perks, gaining permanent strength from each memory lost",
         color: "#BBBBFF", // Light purple/blue color
         hoverColor: 0x9999DD,
         onAcquire: function () {
@@ -971,7 +970,7 @@ const PERKS = {
         kana: "うつしせい",
         romaji: "utsushisei",
         english: "Copy Fairy",
-        description: "Mirror sprite mimics\nWatching closest enemies\nShots echo your own",
+        description: "Summons a fairy that orbits close to you and fires at the closest enemy",
         color: "#55FFAA", // Greenish color
         hoverColor: 0x33DD88,
         onAcquire: function () {
@@ -983,7 +982,7 @@ const PERKS = {
         kana: "ゆうせい",
         romaji: "yuusei",
         english: "Fun Fairy",
-        description: "Prankster sprite giggles\nUnpredictable magic\nChaos rains as gifts",
+        description: "Summons a playful fairy that fires random effect projectiles at enemies",
         color: "#FF55FF", // Pink color
         hoverColor: 0xDD33DD,
         onAcquire: function () {
@@ -995,7 +994,7 @@ const PERKS = {
         kana: "れいせい",
         romaji: "reisei",
         english: "Cold Fairy",
-        description: "Ice spirit dances slow\nFrost coats enemies' movements\nWinter's sharp embrace",
+        description: "Summons a fairy that fires slowing ice projectiles at enemies",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {
@@ -1007,7 +1006,7 @@ const PERKS = {
         kana: "きょうせい",
         romaji: "kyousei",
         english: "Berserk Fairy",
-        description: "Frenzied sprite screams wild\nDistant orbit, rapid fire\nMadness finds its mark",
+        description: "Summons a wild fairy that orbits far from you and rapidly fires at random enemies",
         color: "#FF5500", // Orange-red color
         hoverColor: 0xDD3300,
         onAcquire: function () {
@@ -1021,7 +1020,7 @@ const PERKS = {
         kana: "みどりしか",
         romaji: "midorishika",
         english: "Green Deer",
-        description: "Forest guardian\nVitality in emerald form\nEndurance doubles",
+        description: "+2 END",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1033,7 +1032,7 @@ const PERKS = {
         kana: "みどりかえる",
         romaji: "midorikaeru",
         english: "Green Frog",
-        description: "Small jade amphibian\nPower grows with each spring leap\nStrength in humble form",
+        description: "+1 POW",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1045,7 +1044,7 @@ const PERKS = {
         kana: "みどりガゼル",
         romaji: "midorigazeru",
         english: "Green Gazelle",
-        description: "Swift emerald runner\nSpeed at cost of vital force\nHurried but fragile",
+        description: "+2 AGI / -1 END",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1058,7 +1057,7 @@ const PERKS = {
         kana: "みどりうま",
         romaji: "midoriuma",
         english: "Green Horse",
-        description: "Jade steed gallops fast\nSpeed surges but strength falters\nRapid yet weaker",
+        description: "+3 AGI / -1 POW",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1071,7 +1070,7 @@ const PERKS = {
         kana: "みどりこおろぎ",
         romaji: "midorikoorogi",
         english: "Green Cricket",
-        description: "Emerald chirper sings\nFortune grows with each buzzing\nLuck in tiny form",
+        description: "+1 LUK",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1083,7 +1082,7 @@ const PERKS = {
         kana: "みどりうさぎ",
         romaji: "midoriusagi",
         english: "Green Rabbit",
-        description: "Verdant lucky hare\nBlessings grow but speed falters\nFortune's slow embrace",
+        description: "+2 LUK / -1 AGI",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1096,7 +1095,7 @@ const PERKS = {
         kana: "みどりとかげ",
         romaji: "midoritokage",
         english: "Green Lizard",
-        description: "Quick jade reptile moves\nSpeed grows with each darting step\nSwift emerald blur",
+        description: "+1 AGI",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1108,7 +1107,7 @@ const PERKS = {
         kana: "みどりはちどり",
         romaji: "midorihachidori",
         english: "Green Hummingbird",
-        description: "Emerald wings blur fast\nSpeed and power in balance\nDual gifts combined",
+        description: "+1 AGI / +1 POW",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1121,7 +1120,7 @@ const PERKS = {
         kana: "みどりいるか",
         romaji: "midoriiruka",
         english: "Green Dolphin",
-        description: "Jade ocean dancer\nSpeed increases, life lessens\nSwift but now fragile",
+        description: "+2 AGI / -1 END",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1134,7 +1133,7 @@ const PERKS = {
         kana: "みどりばった",
         romaji: "midoribatta",
         english: "Green Grasshopper",
-        description: "Spring legs, lucky leaps\nFortune and speed intertwined\nTwin gifts from nature",
+        description: "+1 AGI / +1 LUK",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1147,7 +1146,7 @@ const PERKS = {
         kana: "みどりへび",
         romaji: "midorihebi",
         english: "Green Snake",
-        description: "Emerald coils slide\nQuick strikes with forked tongue dart\nSpeed in scales grows",
+        description: "+1 AGI",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1159,7 +1158,7 @@ const PERKS = {
         kana: "みどりのゆめ",
         romaji: "midorinoyume",
         english: "Green Dream",
-        description: "Fading emerald ghosts\nEchoes of your movements left\nDamage where you walked",
+        description: "Creates after-images that damage enemies",
         color: "#00cc66",
         hoverColor: 0x00aa44,
         onAcquire: function () {
@@ -1171,7 +1170,7 @@ const PERKS = {
         kana: "むらさきふくろう",
         romaji: "murasakifukurou",
         english: "Purple Owl",
-        description: "Two shots from one pull\nWisdom multiplies your force\nDouble your damage",
+        description: "Chance to fire a second projectile",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -1183,7 +1182,7 @@ const PERKS = {
         kana: "いせかい",
         romaji: "isekai",
         english: "Alien World",
-        description: "When struck, time slows down\nYou move through frozen moments\nWorld bends to your will",
+        description: "When hit, slows down time while maintaining your speed",
         color: "#00ffff", // Cyan color
         hoverColor: 0x00dddd,
         onAcquire: function () {
@@ -1195,7 +1194,7 @@ const PERKS = {
         kana: "ときのすな",
         romaji: "tokinosuna",
         english: "Alien Clock",
-        description: "Time beacons appear\nSand falls through strange hourglasses\nMoments stretch like taffy",
+        description: "Periodically spawns time beacons that slow time when collected",
         color: "#00ffff", // Cyan color like ALIEN_WORLD
         hoverColor: 0x00dddd,
         onAcquire: function () {
@@ -1208,7 +1207,7 @@ const PERKS = {
         kana: "むらさきはりねずみ",
         romaji: "murasakiharinezumi",
         english: "Purple Hedgehog",
-        description: "Spines fly when you're struck\nCounterattack in all ways\nPain becomes power",
+        description: "Release projectiles in all directions when hit",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -1220,7 +1219,7 @@ const PERKS = {
         kana: "べにさんだん",
         romaji: "benisandan",
         english: "Crimson Scatter",
-        description: "Close range, deadly force\nDistance weakens crimson shots\nPower near your form",
+        description: "Higher damage at short range",
         color: "#FF3030",
         hoverColor: 0xC02020,
         onAcquire: function () {
@@ -1231,7 +1230,7 @@ const PERKS = {
         kana: "くれないのいかり",
         romaji: "kurenainoikari",
         english: "Crimson Fury",
-        description: "Near death, rage ignites\nBleeding wounds fuel crimson strength\nDouble your damage",
+        description: "Double damage when below 25% health",
         color: "#FF0000",
         hoverColor: 0xCC0000,
         onAcquire: function () {
@@ -1244,7 +1243,7 @@ const PERKS = {
         kana: "ふしのうで",
         romaji: "fushinoude",
         english: "Immortal Arm",
-        description: "Severed limb orbits\nDeath denied, still serving you\nEternal guardian",
+        description: "Summons an arm that orbits you and damages enemies",
         color: "#9932CC", // A deep purple color
         hoverColor: 0x7922BC,
         onAcquire: function () {
@@ -1256,7 +1255,7 @@ const PERKS = {
         kana: "ふしのあたま",
         romaji: "fushinoatama",
         english: "Immortal Head",
-        description: "Deathless skull still thinks\nCircles close, protecting you\nEternally aware",
+        description: "Summons a head that orbits close to you and damages enemies",
         color: "#9932CC", // Deep purple color
         hoverColor: 0x7922BC,
         onAcquire: function () {
@@ -1268,7 +1267,7 @@ const PERKS = {
         kana: "ふしのあし",
         romaji: "fushinoashi",
         english: "Immortal Leg",
-        description: "Undying limb kicks\nWide orbit, distant guardian\nDances past death's reach",
+        description: "Summons a leg that orbits far from you and damages enemies",
         color: "#9932CC", // Deep purple color
         hoverColor: 0x7922BC,
         onAcquire: function () {
@@ -1280,7 +1279,7 @@ const PERKS = {
         kana: "かみのつち",
         romaji: "kaminotsuchi",
         english: "God Hammer",
-        description: "Divine smith's weapon\nHeavy blows from heaven strike\nGods favor your cause",
+        description: "Periodically drops a divine hammer on enemies",
         color: "#FFD700",
         hoverColor: 0xDAA520,
         onAcquire: function () {
@@ -1292,7 +1291,7 @@ const PERKS = {
         kana: "えいえんのりつどう",
         romaji: "eiennoritsudou",
         english: "Eternal Rhythm",
-        description: "Movement fuels your pace\nSpeed builds with each step you take\nDancing through battle",
+        description: "While moving, gradually increases fire rate up to 2x",
         color: "#FFDD00",
         hoverColor: 0xDDBB00,
         onAcquire: function () {
@@ -1304,7 +1303,7 @@ const PERKS = {
         kana: "こはくばく",
         romaji: "kohakubaku",
         english: "Amber Nova",
-        description: "Golden bursts appear\nExplosions where shots impact\nArea damage spreads",
+        description: "Projectiles explode on impact, damaging nearby enemies",
         color: "#FF9500", // Amber/orange color
         hoverColor: 0xDD7000,
         onAcquire: function () {
@@ -1316,7 +1315,7 @@ const PERKS = {
         kana: "きょとう",
         romaji: "kyotou",
         english: "Titan Stomp",
-        description: "Giant's footsteps shake\nEarth trembles beneath your shots\nShockwaves crush all foes",
+        description: "Chance to create shockwaves around you when firing",
         color: "#8B4513", // Brown color
         hoverColor: 0x6B3503,
         onAcquire: function () {
@@ -1328,7 +1327,7 @@ const PERKS = {
         kana: "あおしも",
         romaji: "aoshimo",
         english: "Azure Frost",
-        description: "Blue ice coats your shots\nEnemies move in slow motion\nFrozen in their tracks",
+        description: "Projectiles may slow enemies upon impact",
         color: "#00ffff", // Cyan color
         hoverColor: 0x00dddd,
         onAcquire: function () {
@@ -1341,7 +1340,7 @@ const PERKS = {
         kana: "てんのしるべ",
         romaji: "tennoshirube",
         english: "Divine Beacon",
-        description: "Heaven's markers shine\nCollect to call divine wrath\nFate guides your journey",
+        description: "Periodically spawns heavenly markers that summon God Hammers when collected",
         color: "#FFD700",
         hoverColor: 0xDEB887,
         onAcquire: function () {
@@ -1349,7 +1348,6 @@ const PERKS = {
         }
     }
 };
-
 
 // Helper functions for the perk system
 const PerkSystem = {

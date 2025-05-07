@@ -176,6 +176,24 @@ const VisualEffects = {
         return lightning;
     },
 
+    convertToColorValue: function (color) {
+        // If it's already a number, return it directly
+        if (typeof color === 'number') {
+            return color;
+        }
+
+        // If it's a string in hex format (e.g., '#FF0000' or 'FF0000')
+        if (typeof color === 'string') {
+            // Remove # prefix if present
+            const hex = color.startsWith('#') ? color.substring(1) : color;
+            // Convert hex string to number
+            return parseInt(hex, 16);
+        }
+
+        // Default to white if conversion fails
+        return 0xFFFFFF;
+    }
+
     // Additional visual effects can be added here
 };
 

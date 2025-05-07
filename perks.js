@@ -104,6 +104,19 @@ const PERKS = {
             window.modifyStat('health', -999);
         }
     },
+    "WRECKING_BALL": {
+        kanji: "破球",
+        kana: "はきゅう",
+        romaji: "hakyuu",
+        english: "Wrecking Ball",
+        description: "Summons a heavy ball that orbits in a figure-eight pattern and explodes on contact",
+        color: "#777777", // Iron/steel gray color
+        hoverColor: 0x555555,
+        onAcquire: function () {
+            window.activateWreckingBall();
+        }
+    },
+
     "AMBER_BEETLE": {
         kanji: "琥珀甲虫",
         kana: "こはくこうちゅう",

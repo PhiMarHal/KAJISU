@@ -193,10 +193,12 @@ const CollisionBehaviors = {
 
     // Explosive orbital that deals area damage and is destroyed on impact
     explosive: function (scene, orbital, enemy) {
-        // Find all enemies within blast radius
-        const blastRadius = orbital.options.blastRadius ?? 100;
-        const centerX = orbital.entity.x;
-        const centerY = orbital.entity.y;
+        // Get position of impact (where the enemy was hit)
+        const centerX = enemy.x;
+        const centerY = enemy.y;
+
+        // Get blast radius from options or use default
+        const blastRadius = orbital.options.blastRadius ?? 128;
 
         // Create a unique explosion ID for this blast
         const explosionId = `orbital_explosion_${Date.now()}_${Math.random()}`;
@@ -213,12 +215,8 @@ const CollisionBehaviors = {
             const dy = nearbyEnemy.y - centerY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            // If within blast radius, apply damage with falloff
+            // If within blast radius, apply damage
             if (distance <= blastRadius) {
-                // Calculate damage falloff (100% at center, 50% at edge)
-                const falloff = 1 - (distance / blastRadius) * 0.5;
-                const damageAmount = orbital.entity.damage * falloff;
-
                 // Create a unique ID for each affected enemy
                 const enemySpecificExplosionId = `${explosionId}_${nearbyEnemy.x}_${nearbyEnemy.y}`;
 
@@ -227,55 +225,26 @@ const CollisionBehaviors = {
                     scene,
                     {
                         damageSourceId: enemySpecificExplosionId,
-                        damage: damageAmount,
+                        damage: orbital.entity.damage,
                         active: true
                     },
                     nearbyEnemy,
-                    damageAmount,
+                    orbital.entity.damage,
                     0 // No cooldown for explosion effects
                 );
-
-                // Visual effect (keeps the original visual feedback)
-                scene.tweens.add({
-                    targets: nearbyEnemy,
-                    alpha: 0.3,
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 1
-                });
             }
         });
 
-        // Create explosion effect
-        createExplosionEffect(scene, orbital, blastRadius);
+        // Create explosion effect with converted color
+        const explosionColor = VisualEffects.convertToColorValue(orbital.entity.style.color);
+        VisualEffects.createExplosion(scene, centerX, centerY, blastRadius, explosionColor, {
+            startScale: 0.2
+        });
 
         // Destroy the orbital
         destroyOrbital(orbital);
     }
 };
-
-// Helper function to create explosion effect
-function createExplosionEffect(scene, orbital, radius = 50) {
-    // Create an explosion at the orbital's position
-    const explosion = scene.add.circle(
-        orbital.entity.x,
-        orbital.entity.y,
-        radius,
-        0xffaa00,
-        0.7
-    );
-
-    // Add fade-out animation
-    scene.tweens.add({
-        targets: explosion,
-        alpha: 0,
-        scale: 1.5,
-        duration: 300,
-        onComplete: function () {
-            explosion.destroy();
-        }
-    });
-}
 
 // Helper function to destroy an orbital
 function destroyOrbital(orbital) {

@@ -664,5 +664,45 @@ window.activateBrightLance = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'BRIGHT_LANCE');
 };
 
+OrbitalPerkRegistry.registerPerkOrbital('WRECKING_BALL', {
+    getConfig: function () {
+        return {
+            symbol: '球', // Kanji for "ball" as a clear visual representation
+            color: '#777777', // Iron/steel gray color
+            fontSize: 32, // Standard size for visibility
+            radius: 192, //
+            speed: 0.015, //
+            direction: 'clockwise',
+            pattern: 'figureEight', //
+            collisionType: 'explosive', // Use the explosive collision behavior
+            damage: playerDamage * 2,
+            damageInterval: 0, // Not used for explosive behavior
+            lifespan: null, // Permanent until hit
+            options: {
+                blastRadius: 128 //
+            }
+        };
+    },
+    cooldown: function () {
+        // 16 second base cooldown that scales with sqrt of player luck
+        return 16000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
+    },
+    activationMethod: 'timer' // Create periodically on a timer
+});
+
+window.activateWreckingBall = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create a wrecking ball configuration
+    const wreckingBallConfig = OrbitalPerkRegistry.perkOrbitalConfigs['WRECKING_BALL'].getConfig();
+
+    // Create the first wrecking ball immediately
+    OrbitalSystem.create(scene, wreckingBallConfig);
+
+    // Apply the orbital perk for future wrecking balls
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'WRECKING_BALL');
+};
+
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

@@ -6,13 +6,15 @@ This document outlines the purpose and organization of each major file in the Wo
 
 ### Core Game Files
 
-**index.html** - Main game file containing the Phaser game initialization, core gameplay loop, player movement, enemy interactions, and UI rendering. This file ties together all other modules and handles the game's main state, including pausing, level-up UI, and game over conditions. While large, it serves as the central hub that coordinates all systems.
+**index.html** - Main game file containing the Phaser game initialization, core gameplay loop, and central coordination of all systems. Handles game start/restart, global variable declarations, and core configuration.
 
 **weapons.js** - Implements the `WeaponSystem` which centralizes the player's primary weapon firing logic. Manages the firing timer (scaling with fire rate), target selection (closest enemy), and basic projectile creation, integrating with perk systems for effects like double shot or piercing.
 
 **hero.js** - Manages the player character's state, attributes, and status effects through a component-based system (`PlayerComponentSystem`). Contains the hero's basic properties (kanji, translations, base stats) and implements a framework for applying, updating, and removing status effects (components like `berserkerState`, `eternalRhythmState`, `permanentShieldAbility`) triggered by perks or game conditions. Includes a registry (`PlayerPerkRegistry`) to link perks to player status components and manages the `ShieldSystem`.
 
 **bestiary.js** - Defines all enemy types using Japanese kanji characters, including their base properties like translations and readings. Implements rank-based defaults (health, speed, size, etc.) and provides utility functions to retrieve enemy data and generate random enemies during gameplay. Also handles dynamic assignment of enemies to difficulty tiers.
+
+**enemy.js** - Implements the `EnemySystem` which handles enemy spawning, movement, attack patterns, and difficulty scaling. Manages enemy rank progression over time and controls spawn rates based on game progression.
 
 ### Component Systems
 
@@ -36,11 +38,21 @@ This document outlines the purpose and organization of each major file in the Wo
 
 ### UI and Input
 
-**menu.js** - Manages specific UI elements like the player's Health Bar and Experience Bar, including their creation and dynamic updates based on player stats. Contains the `GameUI` interface for other files to interact with.
+**menu.js** - Manages UI elements like the player's Health Bar and Experience Bar, including their creation and dynamic updates based on player stats. Contains the `GameUI` interface for other files to interact with.
 
 **input.js** - Provides custom input handling enhancements through the `InputSystem`. Manages cursor visibility, automatic hiding after inactivity, and ensures proper state restoration when the game window focus changes.
 
 **cards.js** - Contains reusable functions for creating and managing perk card UI elements. Provides the `CardSystem` which standardizes card creation, styling, and interaction handling.
+
+**challenge.js** - Implements the `RomajiChallengeSystem` which manages the romaji typing challenge during level-up screens. Handles card display, input validation, and rewards for successful challenges.
+
+**pause.js** - Provides the `PauseSystem` that handles game pausing, the pause overlay UI, and perk display during pauses. Manages game state during pauses and ensures proper restoration when resuming.
+
+**debug.js** - Implements the `DebugSystem` which provides debugging utilities and performance monitoring. Manages debug keyboard shortcuts (R, T, K, O keys), performance statistics display, and phase skipping functionality for testing.
+
+### Life and Health Systems
+
+**life.js** - Contains the `LifeSystem` which manages player health regeneration and healing effects. Handles health timer creation, regeneration rates based on stats, and visual effects for healing.
 
 ### Perk and Effect Systems
 
@@ -49,6 +61,10 @@ This document outlines the purpose and organization of each major file in the Wo
 **cooldown.js** - Defines `CooldownManager` which manages timers whose cooldowns dynamically scale based on player stats (like luck or fire rate). Updates these timers automatically when the relevant stats change significantly, ensuring abilities scale correctly with upgrades.
 
 **onetime.js** - Defines `OneTimeEffects` which manages effects that trigger only once upon acquiring certain perks (e.g., screen clearing blasts like `shuuen`, stat scrambles like `purpleChaos`). Provides a registry and a function (`triggerOneTimeEffect`) to execute these single-use effects.
+
+### Visual Effects
+
+**visuals.js** - Contains the `VisualEffects` namespace which provides reusable visual effects functions. Includes effects like explosions, damage flashes, pulsing animations, and lightning visuals that can be used throughout the game.
 
 ### Utility Files
 
@@ -92,3 +108,16 @@ This architecture enables:
 - Easy addition of new effects
 - Separation of concerns between systems
 - Clear organization of game mechanics
+
+## System Interaction Flow
+
+1. **Core Game Loop** (index.html) coordinates all systems and controls game state
+2. **Player Input** (input.js) handled and translated to player movement
+3. **Weapon Firing** (weapons.js) processes shooting input and creates projectiles
+4. **Projectiles** (artillery.js, ballistics.js) manages projectile movement and effects
+5. **Enemy Spawning and AI** (enemy.js, bestiary.js) controls enemy behavior
+6. **Collision Detection** handled by Phaser's physics system
+7. **Effect Application** managed by respective component systems
+8. **UI Updates** (menu.js) reflect changes in player state
+9. **Perk Acquisition** (perks.js, cards.js, challenge.js) handles player progression
+10. **Special Systems** (life.js, pause.js, debug.js) provide additional functionality

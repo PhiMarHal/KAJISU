@@ -104,6 +104,18 @@ const PERKS = {
             window.modifyStat('health', -999);
         }
     },
+    "HEALING_FAIRY": {
+        kanji: "癒精",
+        kana: "いやせい",
+        romaji: "iyasei",
+        english: "Healing Fairy",
+        description: "Summons a fairy that shoots healing projectiles. Healing auras only work if you're close to the impact.",
+        color: "#7FFF7F", // Light green color
+        hoverColor: 0x5FDF5F,
+        onAcquire: function () {
+            window.activateHealingFairy();
+        }
+    },
     "WRECKING_BALL": {
         kanji: "破球",
         kana: "はきゅう",

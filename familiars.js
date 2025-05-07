@@ -133,6 +133,35 @@ const FamiliarBehaviors = {
         }
 
         return false; // No shot fired
+    },
+
+    healer: function (scene, orbital, time) {
+        // Calculate shot properties
+        const damage = playerDamage * 0.5; // Half player damage
+        const projectileColor = '#00ff00'; // Light green color
+        const projectileSymbol = '癒'; // Healing kanji
+
+        // Find the closest enemy
+        const target = findClosestVisibleEnemy(scene);
+
+        // If a target was found, fire at it
+        if (target) {
+            // Create projectile with custom properties
+            const projectile = fireFamiliarProjectile(scene, orbital, target, {
+                damage: damage,
+                color: projectileColor,
+                symbol: projectileSymbol
+            });
+
+            // Add healing effect component to the projectile
+            if (projectile) {
+                ProjectileComponentSystem.addComponent(projectile, 'healingAuraEffect');
+            }
+
+            return true; // Shot fired successfully
+        }
+
+        return false; // No shot fired
     }
 };
 

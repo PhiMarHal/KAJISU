@@ -515,6 +515,39 @@ ProjectileComponentSystem.registerComponent('piercingEffect', {
     }
 });
 
+ProjectileComponentSystem.registerComponent('healingAuraEffect', {
+    initialize: function (projectile) {
+        // Visual indicator for healing projectile
+        projectile.setColor('#00ff00'); // Light green color
+
+        // Set default properties
+        this.healRadius = 128; // 128px healing radius
+    },
+
+    onHit: function (projectile, enemy, scene) {
+        // Get hit position (enemy's location)
+        const hitX = enemy.x;
+        const hitY = enemy.y;
+
+        // Create healing aura visual
+        const healColor = VisualEffects.convertToColorValue('#00ff00');
+        VisualEffects.createExplosion(scene, hitX, hitY, this.healRadius, healColor, {
+            startScale: 0.2,
+            duration: 1000
+        });
+
+        // Check if player is within healing radius
+        const dx = player.x - hitX;
+        const dy = player.y - hitY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance <= this.healRadius) {
+            // Use LifeSystem's regenerateHealth
+            LifeSystem.regenerateHealth.call(scene);
+        }
+    }
+});
+
 // Register component for boomerang effect
 ProjectileComponentSystem.registerComponent('boomerangEffect', {
     initialize: function (projectile) {

@@ -664,6 +664,55 @@ window.activateBrightLance = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'BRIGHT_LANCE');
 };
 
+// Updated HEALING_FAIRY registration in nexus.js
+OrbitalPerkRegistry.registerPerkOrbital('HEALING_FAIRY', {
+    getConfig: function () {
+        return {
+            symbol: '癒', // Kanji for "healing"
+            color: '#00ff00', // Bright green color
+            fontSize: 22, // Medium size
+            radius: 100, // Medium orbit radius
+            speed: 0.01, // Moderate speed
+            pattern: 'oscillating', // More dynamic movement pattern
+            collisionType: 'projectile', // Dies when hit by enemies
+            damage: playerDamage * 0.1, // Very low contact damage
+            damageInterval: 500, // Half second between damage ticks
+            lifespan: 20000, // 20 seconds lifespan
+            options: {
+                isFamiliar: true,
+                familiarType: 'healer',
+                wobbleFrequency: 3, // Control oscillation frequency
+                wobbleAmplitude: 20 // Control oscillation amplitude
+            }
+        };
+    },
+    cooldown: 20000, // Fixed 20 second cooldown
+    activationMethod: 'timer' // Create periodically on a timer
+});
+
+// Simplified activateHealingFairy function in nexus.js
+window.activateHealingFairy = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create initial fairy immediately 
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['HEALING_FAIRY'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Set up timer for the fairy to fire healing projectiles
+    if (orbital && orbital.options && orbital.options.isFamiliar) {
+        orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
+            scene,
+            orbital,
+            orbital.options.familiarType,
+            4000 // 4 seconds cooldown base (will scale with luck)
+        );
+    }
+
+    // Apply the perk to set up automatic respawning through the registry system
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'HEALING_FAIRY');
+}
+
 OrbitalPerkRegistry.registerPerkOrbital('WRECKING_BALL', {
     getConfig: function () {
         return {

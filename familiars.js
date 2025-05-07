@@ -162,7 +162,40 @@ const FamiliarBehaviors = {
         }
 
         return false; // No shot fired
-    }
+    },
+
+    deathFinger: function (scene, orbital, time) {
+        // This familiar strikes enemies in the direction it's facing
+
+        // Calculate shot properties
+        const damage = playerDamage;
+        const speed = 1000; // Very fast speed
+        const projectileColor = '#FFFF00'; // Completely invisible (black like background)
+        const projectileSymbol = '　'; // Invisible character (ideographic space)
+
+        // We don't need a target since we fire in the direction the orbital is facing
+        // Use the standard firing method but with an angle instead of a target
+
+        // Calculate the angle from the orbital's angle property (set by directionFollowing)
+        const angle = orbital.angle;
+
+        // Create the projectile using the standard function
+        const projectile = fireFamiliarProjectile(scene, orbital, null, {
+            damage: damage,
+            color: projectileColor,
+            symbol: projectileSymbol,
+            speed: speed,
+            // Override the angle calculation since we're not targeting an enemy
+            overrideAngle: angle
+        });
+
+        // Add piercing component to the projectile
+        if (projectile) {
+            ProjectileComponentSystem.addComponent(projectile, 'piercingEffect');
+        }
+
+        return true; // Shot fired successfully
+    },
 };
 
 // Helper function to find a random visible enemy within a maximum distance
@@ -228,10 +261,12 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
     };
 
     // Calculate direction to the target
-    const angle = Phaser.Math.Angle.Between(
+    const angle = target ? Phaser.Math.Angle.Between(
         orbital.entity.x, orbital.entity.y,
         target.x, target.y
-    );
+    ) : config.overrideAngle || 0;
+
+
 
     // Create the projectile
     const projectile = createProjectileBase(scene, orbital.entity.x, orbital.entity.y, config.color, config.symbol);

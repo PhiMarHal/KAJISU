@@ -104,6 +104,18 @@ const PERKS = {
             window.modifyStat('health', -999);
         }
     },
+    "DEATH_FINGER": {
+        kanji: "死指",
+        kana: "しゆび",
+        romaji: "shiyubi",
+        english: "Death Finger",
+        description: "Summons a finger of death that strikes enemies in your movement direction",
+        color: "#FF0000", // Red color
+        hoverColor: 0xDD0000,
+        onAcquire: function () {
+            window.activateDeathFinger();
+        }
+    },
     "HEALING_FAIRY": {
         kanji: "癒精",
         kana: "いやせい",

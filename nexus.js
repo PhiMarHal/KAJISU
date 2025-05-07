@@ -631,6 +631,53 @@ window.activateFunFairy = function () {
     }
 };
 
+OrbitalPerkRegistry.registerPerkOrbital('DEATH_FINGER', {
+    getConfig: function () {
+        return {
+            symbol: '指', // Kanji for "finger"
+            color: '#FF0000', // Red color
+            fontSize: 16, // Small size
+            radius: 32, // Close to player
+            angle: 0, // Starting angle (will be updated by directionFollowing)
+            speed: 0.1, // Speed for rotation
+            direction: 'clockwise',
+            pattern: 'directionFollowing', // Follows player movement direction
+            collisionType: 'persistent', // Never dies from collisions
+            damage: 0, // No contact damage
+            damageInterval: 0, // Not used
+            lifespan: null, // Permanent
+            options: {
+                isFamiliar: true,
+                familiarType: 'deathFinger',
+                oscillationSpeed: 0.01, // Control oscillation frequency
+                oscillationAmount: 2 // Control oscillation amplitude
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Add this function to nexus.js
+window.activateDeathFinger = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital to create the familiar
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['DEATH_FINGER'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Set up timer for the death finger to fire
+    if (orbital && orbital.options && orbital.options.isFamiliar) {
+        orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
+            scene,
+            orbital,
+            orbital.options.familiarType,
+            1000
+        );
+    }
+};
+
 OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
     getConfig: function () {
         return {

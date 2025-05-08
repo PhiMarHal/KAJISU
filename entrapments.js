@@ -178,8 +178,8 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
         };
     },
     cooldown: function () {
-        // Base 32 second cooldown, scaled by luck
-        return 32000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
+        // Base 31 second cooldown, scaled by luck
+        return 31000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
     },
     positionMode: 'random', // Random position on screen
     activationMethod: 'periodic' // Periodically spawn flowers

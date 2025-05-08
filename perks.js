@@ -158,7 +158,7 @@ const PERKS = {
     "DENIAL_OF_FATE": {
         kanji: "運命否定",
         kana: "うんめいひてい",
-        romaji: "unmei hitei",
+        romaji: "unmeihitei",
         english: "Denial of Fate",
         description: "+2 POW / +2 AGI / -4 LUK",
         color: "#ff6600", // Orange-red color

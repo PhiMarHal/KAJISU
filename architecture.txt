@@ -1,4 +1,4 @@
-# Word Survivors Code Architecture
+# KAJISU Code Architecture
 
 ## Files Overview
 

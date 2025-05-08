@@ -17,7 +17,8 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
 - poison resets tween to base = cold+poison = back to base despite cold
 - no player damage visual post Oblivion, maybe caused by shield visual? testing, doesn't seem directly linked or alone
-
+- change all coordinates to be relative, not absolute
+- storm beacon does not sapwn immediately
 
 POSSIBLE FIX BUT NEEDS TESTING
 - if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow <= possibly fixed by window.TimeDilationSystem.cleanup();, need testing

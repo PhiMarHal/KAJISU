@@ -976,7 +976,7 @@ const PERKS = {
     "ANGER_RISING": {
         kanji: "怒上昇",
         kana: "いかりじょうしょう",
-        romaji: "ikari joushou",
+        romaji: "ikarijoushou",
         english: "Anger Rising",
         description: "Damage increases by 10% each time you're hit (up to +100%). Anger decays over time.",
         color: "#FF4500", // Orange-red

@@ -260,11 +260,11 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
         ...options
     };
 
-    // Calculate direction to the target
-    const angle = Phaser.Math.Angle.Between(
+    // Calculate direction to the target or use overrideAngle if provided
+    const angle = target ? Phaser.Math.Angle.Between(
         orbital.entity.x, orbital.entity.y,
         target.x, target.y
-    );
+    ) : config.overrideAngle ?? 0; // Use overrideAngle or default to 0
 
     // Calculate the appropriate size based on the actual damage
     const familiarProjectileSize = getEffectiveSize(projectileSizeFactor, config.damage);

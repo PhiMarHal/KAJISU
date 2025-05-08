@@ -148,11 +148,12 @@ const PlayerComponentSystem = {
 PlayerComponentSystem.registerComponent('berserkerState', {
     // Store original values for restoration
     originalColor: null,
-    damageMultiplier: 2.0,
+
+    // Track our contribution to the global berserkMultiplier
+    damageMultiplier: 1.0, // Changed from 2.0 to 1.0 (represents +100%)
     colorTween: null,
 
     initialize: function (player) {
-
         // Store original color
         this.originalColor = player.style.color || '#ffffff';
 
@@ -177,8 +178,10 @@ PlayerComponentSystem.registerComponent('berserkerState', {
             });
         }
 
-        // Set global berserk multiplier
-        berserkMultiplier = this.damageMultiplier;
+        // Add our multiplier to the global value
+        // Now we're adding our contribution rather than directly setting it
+        berserkMultiplier += this.damageMultiplier;
+
         console.log("BERSERK!");
 
         // Update player stats display to show new values
@@ -190,14 +193,17 @@ PlayerComponentSystem.registerComponent('berserkerState', {
         const healthPercentage = playerHealth / maxPlayerHealth;
         if (healthPercentage > 0.25) {
             PlayerComponentSystem.removeComponent('berserkerState');
-
         }
     },
 
     cleanup: function (player) {
+        // Subtract our contribution from the multiplier
+        berserkMultiplier -= this.damageMultiplier;
 
-        // Reset multiplier
-        berserkMultiplier = 1.0;
+        // Ensure multiplier doesn't go below 1.0
+        if (berserkMultiplier < 1.0) {
+            berserkMultiplier = 1.0;
+        }
 
         // Stop color tween if it exists
         if (this.colorTween) {

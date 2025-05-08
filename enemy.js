@@ -140,6 +140,7 @@ const EnemySystem = {
         if (!enemy.lastContactDamage[sourceKey] || (currentTime - enemy.lastContactDamage[sourceKey] > cooldownMs)) {
             // Apply damage to enemy
             enemy.health -= damage;
+            //console.log(enemy.health);
             enemy.lastContactDamage[sourceKey] = currentTime;
 
             // Show visual damage effect

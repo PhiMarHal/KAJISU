@@ -140,7 +140,35 @@ const PERKS = {
             window.activateWreckingBall();
         }
     },
-
+    "GOLD_FORTRESS": {
+        kanji: "金城",
+        kana: "きんじょう",
+        romaji: "kinjou",
+        english: "Gold Fortress",
+        description: "-1 POW / -1 AGI / -1 LUK / +5 END",
+        color: "#FFD700",        // Gold
+        hoverColor: 0xB8860B,     // DarkGoldenRod (or 0xCCA700 if you prefer that shade)
+        onAcquire: function () {
+            window.modifyStat('damage', -1);    // -1 POW
+            window.modifyStat('fireRate', -1);  // -1 AGI
+            window.modifyStat('luck', -1);      // -1 LUK
+            window.modifyStat('health', 5);     // +5 END
+        }
+    },
+    "DENIAL_OF_FATE": {
+        kanji: "運命否定",
+        kana: "うんめいひてい",
+        romaji: "unmei hitei",
+        english: "Denial of Fate",
+        description: "+2 POW / +2 AGI / -4 LUK",
+        color: "#ff6600", // Orange-red color
+        hoverColor: 0xdd4400,
+        onAcquire: function () {
+            window.modifyStat('damage', 2);
+            window.modifyStat('fireRate', 2);
+            window.modifyStat('luck', -4);
+        }
+    },
     "AMBER_BEETLE": {
         kanji: "琥珀甲虫",
         kana: "こはくこうちゅう",
@@ -943,6 +971,18 @@ const PERKS = {
         hoverColor: 0x8822bc,
         onAcquire: function () {
             window.triggerOneTimeEffect('purpleChaos');
+        }
+    },
+    "ANGER_RISING": {
+        kanji: "怒上昇",
+        kana: "いかりじょうしょう",
+        romaji: "ikari joushou",
+        english: "Anger Rising",
+        description: "Damage increases by 10% each time you're hit (up to +100%). Anger decays over time.",
+        color: "#FF4500", // Orange-red
+        hoverColor: 0xDD3300,
+        onAcquire: function () {
+            // The effect is handled by the OnHitEffectSystem
         }
     },
     "ALIEN_MUSHROOM": {

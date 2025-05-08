@@ -517,6 +517,166 @@ OnHitPerkRegistry.registerPerkEffect('ALIEN_WORLD', {
     }
 });
 
+// Register component for Anger Rising ability
+OnHitEffectSystem.registerComponent('angerRisingEffect', {
+    // Track the multiplier contribution from this perk
+    multiplierContribution: 0,
+    maxMultiplier: 1.0,
+    multiplierStep: 0.1,
+    decayTimer: null,
+    decayInterval: 30000, // 30 seconds between decay steps
+    originalColor: null,   // Store the player's original color
+
+    // Initialize component
+    initialize: function () {
+        this.multiplierContribution = 0;
+
+        // Store player's original color
+        this.originalColor = player.style ? player.style.color : '#ffffff';
+
+        // Start the decay timer
+        this.startDecayTimer();
+    },
+
+    // Start the decay timer with fixed interval
+    startDecayTimer: function () {
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Create a timer that decreases rage over time with fixed interval
+        this.decayTimer = scene.time.addEvent({
+            delay: this.decayInterval,
+            callback: this.decayRage,
+            callbackScope: this,
+            loop: true
+        });
+
+        // Register for cleanup
+        window.registerEffect('timer', this.decayTimer);
+    },
+
+    // Decrease rage by one step
+    decayRage: function () {
+        if (this.multiplierContribution <= 0) return;
+
+        // Get scene for visual effects
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Decrease by one step
+        this.multiplierContribution -= this.multiplierStep;
+        berserkMultiplier -= this.multiplierStep;
+
+        // Ensure we don't go negative
+        if (this.multiplierContribution < 0) {
+            berserkMultiplier -= this.multiplierContribution; // Correct any overshoot
+            this.multiplierContribution = 0;
+        }
+
+        // Update player color to reflect rage level
+        this.updatePlayerColor();
+
+        // Update UI to reflect new damage values
+        GameUI.updateStatCircles(scene);
+    },
+
+    // Handle the player being hit
+    onHit: function (scene, enemy) {
+        // Only increase if below max
+        if (this.multiplierContribution < this.maxMultiplier) {
+            // Increase our contribution
+            this.multiplierContribution += this.multiplierStep;
+
+            // Apply to global berserkMultiplier
+            berserkMultiplier += this.multiplierStep;
+
+            // Cap at our maximum contribution
+            if (this.multiplierContribution > this.maxMultiplier) {
+                const excess = this.multiplierContribution - this.maxMultiplier;
+                this.multiplierContribution = this.maxMultiplier;
+                berserkMultiplier -= excess;
+            }
+
+            // Flash the player to indicate hit
+            scene.tweens.add({
+                targets: player,
+                alpha: 0.6,
+                scale: 1.1,
+                duration: 100,
+                yoyo: true,
+                onComplete: () => {
+                    // Update player color to new rage level
+                    this.updatePlayerColor();
+                }
+            });
+
+            // Update UI to reflect new damage values
+            GameUI.updateStatCircles(scene);
+        }
+    },
+
+    // Update player color based on current rage level
+    updatePlayerColor: function () {
+        if (!player || !player.active) return;
+
+        // No color change if no rage built up
+        if (this.multiplierContribution <= 0) {
+            // Reset to original color
+            player.setColor(this.originalColor);
+            return;
+        }
+
+        // Calculate color based on rage level - white to orange to red
+        // Start with pure white (255, 255, 255)
+        // Full rage will be bright orange-red (255, 100, 0)
+
+        // Calculate green component (255 → 100 as rage increases)
+        const greenValue = Math.floor(255 - (155 * (this.multiplierContribution / this.maxMultiplier)));
+
+        // Calculate blue component (255 → 0 as rage increases)
+        const blueValue = Math.floor(255 - (255 * (this.multiplierContribution / this.maxMultiplier)));
+
+        // Create the color string
+        const rageColor = `rgb(255,${greenValue},${blueValue})`;
+
+        // Apply the color to the player
+        player.setColor(rageColor);
+    },
+
+    // Clean up component
+    cleanup: function () {
+        // Remove decay timer if it exists
+        if (this.decayTimer) {
+            this.decayTimer.remove();
+            this.decayTimer = null;
+        }
+
+        // Remove our contribution from the global multiplier
+        berserkMultiplier -= this.multiplierContribution;
+
+        // Ensure multiplier doesn't go below 1.0
+        if (berserkMultiplier < 1.0) {
+            berserkMultiplier = 1.0;
+        }
+
+        // Reset player color to original
+        if (player && player.active && this.originalColor) {
+            player.setColor(this.originalColor);
+        }
+
+        this.multiplierContribution = 0;
+    }
+});
+
+// Register the perk with the OnHitPerkRegistry
+OnHitPerkRegistry.registerPerkEffect('ANGER_RISING', {
+    componentName: 'angerRisingEffect',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
 // Main handler for player hit events - coordinates the entire hit response
 function handlePlayerHit(scene, enemy) {
     // First trigger any on-hit effects that should happen regardless of shields

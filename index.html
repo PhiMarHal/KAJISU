@@ -259,10 +259,10 @@
         let gamePaused = false;
         let levelUpInProgress = false;
 
-        // Helper function to calculate XP needed for next level
-        function xpForNextLevel(heroLevel) {
-            return Math.ceil(baseHeroExpToLevel * Math.pow(1.2, heroLevel - 1));
-        }
+        // Perk system variables
+        let playerPerks = {};
+        let shieldVisual = null;
+        let healthRegenTimer = null;
 
         // Format time to hh:mm:ss
         function formatTime(seconds) {
@@ -272,10 +272,10 @@
             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
-        // Perk system variables
-        let playerPerks = {};
-        let shieldVisual = null;
-        let healthRegenTimer = null;
+        // Helper function to calculate XP needed for next level
+        function xpForNextLevel(heroLevel) {
+            return Math.ceil(baseHeroExpToLevel * Math.pow(1.2, heroLevel - 1));
+        }
 
         // Effective Damage
         function getEffectiveDamage() {
@@ -315,6 +315,19 @@
             return array;
         }
 
+        // Add this helper function to register effects
+        window.registerEffect = function (type, item) {
+            if (type === 'timer' && item) {
+                activeEffects.timers.push(item);
+                // If game is paused, also pause the new timer
+                if (gamePaused && item.paused !== undefined) {
+                    item.paused = true;
+                }
+            } else if (type === 'entity' && item) {
+                activeEffects.entities.push(item);
+            }
+        };
+
         // Perk system helper functions
         function initializePerks() {
             playerPerks = {};
@@ -332,19 +345,6 @@
             // Apply the perk
             return PerkSystem.applyPerk(scene, perkId);
         }
-
-        // Add this helper function to register effects
-        window.registerEffect = function (type, item) {
-            if (type === 'timer' && item) {
-                activeEffects.timers.push(item);
-                // If game is paused, also pause the new timer
-                if (gamePaused && item.paused !== undefined) {
-                    item.paused = true;
-                }
-            } else if (type === 'entity' && item) {
-                activeEffects.entities.push(item);
-            }
-        };
 
         // Add this cleanup function to your startGame function
         function clearAllPerkEffects() {
@@ -447,7 +447,6 @@
             GameUI.createUI(this);
             OrbitalSystem.init();
 
-
             // Create shield visual (initially invisible)
             shieldVisual = this.add.circle(player.x, player.y, 30, 0x3498db, 0.4);
             shieldVisual.setStrokeStyle(3, 0x0088ff);
@@ -530,7 +529,7 @@
             if (gamePaused) return; // Skip updates when game is paused for level up
 
             DebugSystem.updatePerformanceStats(this, time, delta);
-            updatePlayerStateEffects();
+            updatePlayerStatus();
             updateOnHitEffects();
 
             // Increment elapsed time
@@ -636,11 +635,6 @@
             GameUI.updateExpBar(this);
 
             CardSystem.showLevelUpScreen(this);
-        }
-
-        function updatePlayerStateEffects() {
-            // This now just calls the centralized player status system
-            updatePlayerStatus();
         }
 
         function detectKeyboardLayout() {

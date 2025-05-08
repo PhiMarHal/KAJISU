@@ -121,17 +121,17 @@ window.createDefensiveBurst = function (scene, x, y, options = {}) {
         // Calculate angle for even distribution (in radians)
         const angle = (i / config.projectileCount) * Math.PI * 2;
 
-        // Create projectile using shared base
-        const projectile = createProjectileBase(scene, x, y, config.color, config.symbol);
-
-        // Set velocity based on angle
-        projectile.body.setVelocity(
-            Math.cos(angle) * config.speed,
-            Math.sin(angle) * config.speed
-        );
-
-        // Set damage
-        projectile.damage = config.damage;
+        // Create projectile using WeaponSystem
+        const projectile = WeaponSystem.createProjectile(scene, {
+            x: x,
+            y: y,
+            angle: angle,
+            symbol: config.symbol,
+            color: config.color,
+            speed: config.speed,
+            damage: config.damage,
+            skipComponents: false // 
+        });
 
         // Add special property
         projectile.isDefensiveBurst = true;

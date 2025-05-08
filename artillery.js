@@ -322,21 +322,20 @@ ProjectileComponentSystem.registerComponent('splitEffect', {
 
             // Create the two split projectiles
             for (const splitAngle of [angle1, angle2]) {
-                // Create a new projectile at the enemy's position
-                const splitProjectile = createProjectileBase(scene, enemy.x, enemy.y, '#1E90FF', '✧');
-
-                // Set half damage for split projectiles
-                splitProjectile.damage = projectile.damage / 2;
+                // Create a new projectile at the enemy's position using WeaponSystem
+                const splitProjectile = WeaponSystem.createProjectile(scene, {
+                    x: enemy.x,
+                    y: enemy.y,
+                    angle: splitAngle,
+                    color: '#1E90FF',
+                    symbol: '✧',
+                    damage: projectile.damage / 2,
+                    speed: 300, // Slightly slower than regular projectiles
+                    skipComponents: true // Skip components to prevent infinite splitting
+                });
 
                 // Mark that this is a split projectile to prevent infinite splitting
                 splitProjectile.hasSplit = true;
-
-                // Set velocity based on the calculated angles
-                const speed = 300; // Slightly slower than regular projectiles
-                splitProjectile.body.setVelocity(
-                    Math.cos(splitAngle) * speed,
-                    Math.sin(splitAngle) * speed
-                );
 
                 // Add visual effect
                 scene.tweens.add({

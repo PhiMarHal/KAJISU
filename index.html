@@ -649,54 +649,6 @@
                 fireWeapon(this);
         }
 
-        function createProjectileBase(scene, x, y, color = '#ffff00', symbol = '★') {
-            // Get the effective damage including all multipliers
-            const effectiveDamage = getEffectiveDamage();
-
-            // Calculate the effective size for this projectile
-            const effectiveSize = getEffectiveSize();
-
-            // Create the projectile
-            const projectile = scene.add.text(x, y, symbol, {
-                fontFamily: 'Arial',
-                fontSize: `${effectiveSize}px`,
-                color: color,
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            // Add to physics group
-            projectiles.add(projectile);
-
-            // Set projectile properties (smaller hitbox for better visual feel)
-            projectile.body.setSize(projectile.width / 2, projectile.height / 2);
-
-            // Set damage value using the effective damage
-            projectile.damage = effectiveDamage;
-
-            // Initialize empty components object
-            projectile.components = {};
-
-            // Return the created projectile
-            return projectile;
-        }
-
-        function createSingleProjectile(angle) {
-            // Create base projectile
-            const projectile = createProjectileBase(this, player.x, player.y);
-
-            // Set projectile velocity based on angle
-            const speed = 400;
-            projectile.body.setVelocity(
-                Math.cos(angle) * speed,
-                Math.sin(angle) * speed
-            );
-
-            // Apply all registered perk effects automatically
-            ProjectilePerkRegistry.applyPerkEffects(projectile, this);
-
-            return projectile;
-        }
-
         function projectileHitEnemy(projectile, enemy) {
             // Skip if projectile is already destroyed
             if (!projectile.active || !enemy.active) return;

@@ -261,30 +261,26 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
     };
 
     // Calculate direction to the target
-    const angle = target ? Phaser.Math.Angle.Between(
+    const angle = Phaser.Math.Angle.Between(
         orbital.entity.x, orbital.entity.y,
         target.x, target.y
-    ) : config.overrideAngle || 0;
-
-
-
-    // Create the projectile
-    const projectile = createProjectileBase(scene, orbital.entity.x, orbital.entity.y, config.color, config.symbol);
-
-    // Set damage
-    projectile.damage = config.damage;
+    );
 
     // Calculate the appropriate size based on the actual damage
     const familiarProjectileSize = getEffectiveSize(projectileSizeFactor, config.damage);
 
-    // Set the size explicitly
-    projectile.setFontSize(familiarProjectileSize);
-
-    // Set velocity
-    projectile.body.setVelocity(
-        Math.cos(angle) * config.speed,
-        Math.sin(angle) * config.speed
-    );
+    // Create the projectile using WeaponSystem
+    const projectile = WeaponSystem.createProjectile(scene, {
+        x: orbital.entity.x,
+        y: orbital.entity.y,
+        angle: angle,
+        symbol: config.symbol,
+        color: config.color,
+        speed: config.speed,
+        damage: config.damage,
+        fontSize: familiarProjectileSize,
+        skipComponents: true // Skip components for familiar projectiles, apply them manually if needed
+    });
 
     // Add visual effect for the shot
     scene.tweens.add({

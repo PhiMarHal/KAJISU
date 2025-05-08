@@ -184,7 +184,6 @@
 
         // Game variables
         let player;
-        let projectiles;
         let cursors;
         let wasdKeys;
         let keyboardLayout = 'qwerty'; // Default to QWERTY
@@ -463,9 +462,6 @@
             // Create projectile group
             projectiles = this.physics.add.group();
 
-            // Set up collision between projectiles and EnemySystem.enemiesGroup
-            this.physics.add.collider(projectiles, EnemySystem.enemiesGroup, projectileHitEnemy, null, this);
-
             // Set up collision between player and EnemySystem.enemiesGroup
             this.physics.add.overlap(player, EnemySystem.enemiesGroup, PlayerHitSystem.playerIsHit, null, this);
 
@@ -640,30 +636,6 @@
             GameUI.updateExpBar(this);
 
             CardSystem.showLevelUpScreen(this);
-        }
-
-        function projectileHitEnemy(projectile, enemy) {
-            // Skip if projectile is already destroyed
-            if (!projectile.active || !enemy.active) return;
-
-            // Ensure projectile has a damage source ID
-            if (!projectile.damageSourceId) {
-                projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
-            }
-
-            // Process hit event for all components
-            if (projectile.components) {
-                ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, this);
-            }
-
-            // Apply damage using the contact damage system with a very short cooldown
-            // (Regular projectiles are destroyed on hit, so cooldown is mostly irrelevant)
-            applyContactDamage.call(this, projectile, enemy, projectile.damage, 1000);
-
-            // Destroy non-piercing projectiles after hit
-            if (!projectile.piercing) {
-                projectile.destroy();
-            }
         }
 
         function updatePlayerStateEffects() {

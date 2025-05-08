@@ -1,4 +1,5 @@
-// Fixed weapons.js - addressing the physics body issue
+// Updated weapons.js with consolidated collision handling
+
 const WeaponSystem = {
     // Currently active weapon type
     activeWeaponType: 'BASIC_PROJECTILE',
@@ -25,17 +26,61 @@ const WeaponSystem = {
 
     // Initialize physics groups
     initPhysicsGroups: function (scene) {
-        // Use existing projectiles group if available
-        this.projectilesGroup = projectiles;
+        // Create regular projectiles group (instead of using global projectiles)
+        this.projectilesGroup = scene.physics.add.group();
 
         // Create piercing projectiles group
         this.piercingProjectilesGroup = scene.physics.add.group();
 
-        // Make global reference
+        // Make global references available for backward compatibility
+        window.projectiles = this.projectilesGroup;
         window.piercingProjectiles = this.piercingProjectilesGroup;
 
+        // Set up collisions for regular projectiles
+        scene.physics.add.collider(
+            this.projectilesGroup,
+            EnemySystem.enemiesGroup,
+            this.projectileHitEnemy,
+            null,
+            scene
+        );
+
         // Set up overlap for piercing projectiles
-        scene.physics.add.overlap(this.piercingProjectilesGroup, EnemySystem.enemiesGroup, projectileHitEnemy, null, scene);
+        scene.physics.add.overlap(
+            this.piercingProjectilesGroup,
+            EnemySystem.enemiesGroup,
+            this.projectileHitEnemy,
+            null,
+            scene
+        );
+    },
+
+    // Handle projectile collision with enemy
+    projectileHitEnemy: function (projectile, enemy) {
+        // "this" is the scene due to the function context in physics.add.collider
+        const scene = this;
+
+        // Skip if projectile is already destroyed
+        if (!projectile.active || !enemy.active) return;
+
+        // Ensure projectile has a damage source ID
+        if (!projectile.damageSourceId) {
+            projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
+        }
+
+        // Process hit event for all components
+        if (projectile.components) {
+            ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, scene);
+        }
+
+        // Apply damage using the contact damage system with a very short cooldown
+        // (Regular projectiles are destroyed on hit, so cooldown is mostly irrelevant)
+        applyContactDamage.call(scene, projectile, enemy, projectile.damage, 1000);
+
+        // Destroy non-piercing projectiles after hit
+        if (!projectile.piercing) {
+            projectile.destroy();
+        }
     },
 
     // Create the weapon firing timer
@@ -266,6 +311,15 @@ const WeaponSystem = {
         if (this.weaponTimer) {
             this.weaponTimer.remove();
             this.weaponTimer = null;
+        }
+
+        // Clear the projectile groups
+        if (this.projectilesGroup) {
+            this.projectilesGroup.clear(true, true);
+        }
+
+        if (this.piercingProjectilesGroup) {
+            this.piercingProjectilesGroup.clear(true, true);
         }
 
         // Reset to default weapon

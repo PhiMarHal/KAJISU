@@ -642,13 +642,6 @@
             CardSystem.showLevelUpScreen(this);
         }
 
-        function fireProjectile() {
-            if (gameOver) return;
-            // Just delegate to the weapon system
-            WeaponSystem.
-                fireWeapon(this);
-        }
-
         function projectileHitEnemy(projectile, enemy) {
             // Skip if projectile is already destroyed
             if (!projectile.active || !enemy.active) return;

@@ -368,7 +368,7 @@ const PERKS = {
         color: "#1E90FF",
         hoverColor: 0x0070DD,
         onAcquire: function () {
-            // The logic for this is handled in the projectileHitEnemy function
+            //
         }
     },
     "POISON_FLOWER": {
@@ -482,7 +482,7 @@ const PERKS = {
         color: "#FF4500",
         hoverColor: 0xCC3700,
         onAcquire: function () {
-            // Logic handled in projectileHitEnemy
+            //
         }
     },
 

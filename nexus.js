@@ -760,6 +760,48 @@ window.activateHealingFairy = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'HEALING_FAIRY');
 }
 
+// Add this to nexus.js
+// Register the Lava Fairies perk
+OrbitalPerkRegistry.registerPerkOrbital('LAVA_FAIRIES', {
+    getConfig: function () {
+        return {
+            symbol: '溶', // Kanji for "melt/dissolve"
+            color: '#FF6600', // Orange-red color for lava
+            fontSize: 24, // Medium size
+            radius: playerLuck * 16, // Radius scales with luck as requested
+            speed: 0.012, // Moderate speed
+            pattern: 'standard', // Standard circular pattern as requested
+            collisionType: 'projectile', // Dies when hit enemies
+            damage: playerDamage * 0.5, // Half player damage
+            damageInterval: 500, // Half second between damage ticks
+            lifespan: 16000, // 16 seconds lifespan
+            options: {
+                // Specify components to attach
+                components: [
+                    {
+                        name: 'magmaDropEffect'
+                    }
+                ]
+            }
+        };
+    },
+    cooldown: 4000, // Fixed 4 second cooldown
+    activationMethod: 'timer' // Create periodically
+});
+
+// Function to activate the Lava Fairies perk
+window.activateLavaFairies = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create initial fairy immediately
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['LAVA_FAIRIES'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Apply the perk through the registry system for automatic spawning
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'LAVA_FAIRIES');
+};
+
 OrbitalPerkRegistry.registerPerkOrbital('WRECKING_BALL', {
     getConfig: function () {
         return {

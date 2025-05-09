@@ -435,6 +435,18 @@ const PERKS = {
             window.activateBrightLance();
         }
     },
+    "LAVA_FAIRIES": {
+        kanji: "溶精",
+        kana: "ようせい",
+        romaji: "yousei",
+        english: "Lava Fairies",
+        description: "Summons lava fairies that orbit around you. When they expire, they drop magma that damages enemies.",
+        color: "#FF6600", // Orange-red color for lava
+        hoverColor: 0xDD4400,
+        onAcquire: function () {
+            window.activateLavaFairies();
+        }
+    },
     "TOXIC_TRAIL": {
         kanji: "毒痕",
         kana: "どくあと",

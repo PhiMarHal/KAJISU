@@ -162,10 +162,26 @@ const MovementPatterns = {
     }
 };
 
+// Helper function to process component events during collision
+function processOrbitalComponentEvent(scene, orbital, enemy, eventName) {
+    // Skip if no components
+    if (!orbital.entity || !orbital.entity.components) return;
+
+    // Process event for all components
+    Object.values(orbital.entity.components).forEach(component => {
+        if (component[eventName]) {
+            component[eventName](orbital.entity, enemy, scene);
+        }
+    });
+}
+
 // Collision behavior implementations
 const CollisionBehaviors = {
     // Persistent orbital that deals contact damage and stays after hitting enemies
     persistent: function (scene, orbital, enemy) {
+        // Process onhit components if any
+        processOrbitalComponentEvent(scene, orbital, enemy, 'onHit');
+
         // Apply contact damage with the specified cooldown interval
         applyContactDamage.call(
             scene,
@@ -178,6 +194,9 @@ const CollisionBehaviors = {
 
     // Projectile-like orbital that deals damage once and is destroyed on impact
     projectile: function (scene, orbital, enemy) {
+        // Process onhit components if any
+        processOrbitalComponentEvent(scene, orbital, enemy, 'onHit');
+
         // Apply damage using the contact damage system
         applyContactDamage.call(
             scene,
@@ -193,6 +212,9 @@ const CollisionBehaviors = {
 
     // Explosive orbital that deals area damage and is destroyed on impact
     explosive: function (scene, orbital, enemy) {
+        // Process onhit components if any
+        processOrbitalComponentEvent(scene, orbital, enemy, 'onHit');
+
         // Get position of impact (where the enemy was hit)
         const centerX = enemy.x;
         const centerY = enemy.y;

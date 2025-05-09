@@ -406,100 +406,190 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
     }
 });
 
-// Register component for fire effect
+// Create a persistent damage-over-time effect at a specific position
+function createPersistentEffect(scene, x, y, config = {}) {
+    // Default configuration
+    const defaults = {
+        symbol: '火', // Default is fire kanji
+        color: '#FF4500', // Default is orange-red
+        fontSize: '24px', // Default size
+        damage: playerDamage / 10, // Default damage
+        tickInterval: 200, // Default interval between damage ticks (ms)
+        duration: 4000, // Default duration (ms)
+        pulsing: true, // Whether to add pulsing animation
+        bodyScale: 0.8, // Scale factor for physics body
+        startScale: 0.5, // Initial scale for spawn animation
+        alpha: 1.0, // Opacity
+        sourceEffect: null // For tracking which effect created this
+    };
+
+    // Merge with provided config
+    const effectConfig = { ...defaults, ...config };
+
+    // Create the effect object
+    const effect = scene.add.text(x, y, effectConfig.symbol, {
+        fontFamily: 'Arial',
+        fontSize: effectConfig.fontSize,
+        color: effectConfig.color,
+        fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    // Set initial alpha
+    effect.setAlpha(effectConfig.alpha);
+
+    // Add physics body
+    scene.physics.world.enable(effect);
+    effect.body.setSize(effect.width * effectConfig.bodyScale, effect.height * effectConfig.bodyScale);
+    effect.body.setAllowGravity(false);
+    effect.body.setImmovable(true);
+
+    // Custom properties
+    effect.damagePerTick = effectConfig.damage;
+    effect.tickInterval = effectConfig.tickInterval;
+    effect.damageSourceId = `effect_${Date.now()}_${Math.random()}`;
+    effect.sourceEffect = effectConfig.sourceEffect;
+
+    // Register for cleanup
+    window.registerEffect('entity', effect);
+
+    // Damage tick timer
+    const damageTimer = registerTimer(scene.time.addEvent({
+        delay: effectConfig.tickInterval,
+        callback: function () {
+            if (!effect.active) return;
+
+            // Apply damage to overlapping enemies
+            scene.physics.overlap(effect, EnemySystem.enemiesGroup, (effectObj, enemy) => {
+                applyContactDamage.call(
+                    scene,
+                    effectObj,
+                    enemy,
+                    effectObj.damagePerTick,
+                    effectObj.tickInterval - 100
+                );
+            });
+        },
+        callbackScope: scene,
+        loop: true
+    }));
+
+    // Add visual effects
+    let pulseTween = null;
+    if (effectConfig.pulsing) {
+        pulseTween = scene.tweens.add({
+            targets: effect,
+            scale: { from: 0.9, to: 1.1 },
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    // Fade out over duration
+    const fadeTween = scene.tweens.add({
+        targets: effect,
+        alpha: { from: effectConfig.alpha, to: 0 },
+        duration: effectConfig.duration,
+        delay: 100,
+        onComplete: function () {
+            // Cleanup when fade completes
+            damageTimer.remove();
+            if (pulseTween) pulseTween.stop();
+            effect.destroy();
+        }
+    });
+
+    // Initial spawn animation
+    effect.setScale(effectConfig.startScale);
+    scene.tweens.add({
+        targets: effect,
+        scale: 1,
+        duration: 200,
+        ease: 'Back.out'
+    });
+
+    return effect;
+}
+
+// Make the function globally accessible
+window.createPersistentEffect = createPersistentEffect;
+
+// Update the fireEffect component in artillery.js to use the generalized function
 ProjectileComponentSystem.registerComponent('fireEffect', {
     initialize: function (projectile) {
         // Visual indicator for the projectile itself
         projectile.setColor('#FF4500');
-        this.fireDamage = playerDamage / 10; // Store damage based on player state when projectile was created
-        this.fireDuration = 4000; // 4s
-        this.fireTickInterval = 200; // 0.2 seconds
+        this.fireDamage = playerDamage / 10; // Default fire damage
+        this.fireDuration = 4000; // 4s default duration
+        this.fireTickInterval = 200; // 0.2 seconds default tick interval
     },
 
     onHit: function (projectile, enemy, scene) {
         // Don't create fire if enemy is already dead
         if (!enemy || !enemy.active || enemy.health <= 0) return;
 
-        // Also make sure to do this check, in case origin proj is piercing
+        // Prevent multiple triggers for piercing projectiles
         if (projectile.effectTriggered) return;
         projectile.effectTriggered = true;
 
-        // Create fire at the enemy's last known position (or projectile impact)
-        const fireX = projectile.x;
-        const fireY = projectile.y;
-
-        // --- Fire Object Logic START ---
-        const fire = scene.add.text(fireX, fireY, '火', {
-            fontFamily: 'Arial',
-            fontSize: '24px', // `${projectileSizeFactor * playerDamage * 4 / 5}px`, // Use stored damage, but scale it to 80%
-            color: '#FF4500',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        scene.physics.world.enable(fire);
-        fire.body.setSize(fire.width * 0.8, fire.height * 0.8);
-        fire.body.setAllowGravity(false); // Ensure it doesn't fall if gravity is ever enabled
-        fire.body.setImmovable(true);
-
-        // Custom properties for the fire object
-        fire.damagePerTick = this.fireDamage; // Use damage from the projectile component
-        fire.tickInterval = this.fireTickInterval;
-        fire.damageSourceId = `fire_${Date.now()}_${Math.random()}`; // Unique ID for contact damage cooldown
-
-        // Register the fire entity for cleanup on game reset
-        window.registerEffect('entity', fire);
-
-        // --- Damage Ticking Timer ---
-        const damageTimer = registerTimer(scene.time.addEvent({
-            delay: fire.tickInterval,
-            callback: function () {
-                if (!fire.active) return; // Stop if fire is gone
-
-                // Find enemies overlapping the fire
-                scene.physics.overlap(fire, EnemySystem.enemiesGroup, (fireInstance, overlappedEnemy) => {
-                    // Use the generic contact damage function from index.html
-                    // Pass a shorter cooldown specific to fire ticks (e.g., slightly less than tick interval)
-                    applyContactDamage.call(scene, fireInstance, overlappedEnemy, fireInstance.damagePerTick, fireInstance.tickInterval - 100);
-                });
-            },
-            callbackScope: scene, // Ensure 'this' is the scene inside callback
-            loop: true
-        }));
-
-        // --- Visual Tweens (Managed by Scene Tween Manager) ---
-        const pulseTween = scene.tweens.add({
-            targets: fire,
-            scale: { from: 0.9, to: 1.1 },
-            duration: 500,
-            yoyo: true,
-            repeat: -1 // Loop indefinitely until stopped
+        // Use the generalized function to create fire
+        createPersistentEffect(scene, projectile.x, projectile.y, {
+            symbol: '火', // Fire kanji
+            color: '#FF4500', // Orange-red color
+            fontSize: '24px',
+            damage: this.fireDamage,
+            tickInterval: this.fireTickInterval,
+            duration: this.fireDuration,
+            sourceEffect: 'fire'
         });
+    }
+});
 
-        const fadeTween = scene.tweens.add({
-            targets: fire,
-            alpha: { from: 1, to: 0 },
-            duration: this.fireDuration, // Use stored duration
-            delay: 100, // Start fade slightly after creation
-            onComplete: function () {
-                // Cleanup when fade is complete
-                damageTimer.remove(); // Stop the damage timer
-                pulseTween.stop(); // Stop the pulse tween
-                // Remove from effect registry? (Optional, depends on how reset works)
-                // const index = activeEffects.entities.indexOf(fire);
-                // if (index > -1) activeEffects.entities.splice(index, 1);
-                fire.destroy(); // Destroy the fire object
-            }
-        });
+// Create magmaDropEffect component using the generalized function
+ProjectileComponentSystem.registerComponent('magmaDropEffect', {
+    initialize: function (projectile) {
+        // Visual indicator for the projectile itself
+        projectile.setColor('#FF6600');
+        this.magmaDamage = playerDamage; // Full damage for magma
+        this.magmaDuration = playerLuck * 1000; // Duration scales with luck
+        this.magmaTickInterval = 1000; // 1 second between ticks
+    },
 
-        // Initial spawn effect
-        fire.setScale(0.5);
-        scene.tweens.add({
-            targets: fire,
-            scale: 1,
-            duration: 200,
-            ease: 'Back.out'
+    onHit: function (projectile, enemy, scene) {
+        // Don't create magma if enemy is already dead
+        if (!enemy || !enemy.active || enemy.health <= 0) return;
+
+        // Prevent multiple triggers for piercing projectiles
+        if (projectile.effectTriggered) return;
+        projectile.effectTriggered = true;
+
+        // Use the generalized function to create magma
+        createPersistentEffect(scene, projectile.x, projectile.y, {
+            symbol: '熔', // Magma kanji
+            color: '#FF4400', // Orange-red color
+            fontSize: '32px', // Larger size
+            damage: this.magmaDamage,
+            tickInterval: this.magmaTickInterval,
+            duration: this.magmaDuration,
+            sourceEffect: 'magma'
         });
-        // --- Fire Object Logic END ---
+    },
+
+    // Handle when projectile dies without hitting an enemy (lifespan expiration)
+    onDestroy: function (projectile, scene) {
+        // Don't proceed if the effect was already triggered by a hit
+        if (projectile.effectTriggered) return;
+
+        // Use the generalized function to create magma
+        createPersistentEffect(scene, projectile.x, projectile.y, {
+            symbol: '熔', // Magma kanji
+            color: '#FF4400', // Orange-red color
+            fontSize: '32px', // Larger size
+            damage: this.magmaDamage,
+            tickInterval: this.magmaTickInterval,
+            duration: this.magmaDuration,
+            sourceEffect: 'magma'
+        });
     }
 });
 

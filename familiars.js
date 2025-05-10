@@ -164,14 +164,18 @@ const FamiliarBehaviors = {
         return false; // No shot fired
     },
 
-    deathFinger: function (scene, orbital, time) {
-        // This familiar strikes enemies in the direction it's facing
+    finger: function (scene, orbital, time, options = {}) {
+        // Default options
+        const defaults = {
+            damage: playerDamage,    // Default to full damage
+            speed: 1000,             // Very fast speed
+            color: '#FFFF00',        // Default to yellow
+            symbol: '　',             // Invisible character by default
+            componentName: null      // No component by default
+        };
 
-        // Calculate shot properties
-        const damage = playerDamage;
-        const speed = 1000; // Very fast speed
-        const projectileColor = '#FFFF00'; // Completely invisible (black like background)
-        const projectileSymbol = '　'; // Invisible character (ideographic space)
+        // Merge with provided options
+        const config = { ...defaults, ...options };
 
         // We don't need a target since we fire in the direction the orbital is facing
         // Use the standard firing method but with an angle instead of a target
@@ -181,20 +185,47 @@ const FamiliarBehaviors = {
 
         // Create the projectile using the standard function
         const projectile = fireFamiliarProjectile(scene, orbital, null, {
-            damage: damage,
-            color: projectileColor,
-            symbol: projectileSymbol,
-            speed: speed,
+            damage: config.damage,
+            color: config.color,
+            symbol: config.symbol,
+            speed: config.speed,
             // Override the angle calculation since we're not targeting an enemy
             overrideAngle: angle
         });
 
-        // Add piercing component to the projectile
+        // Add piercing component
         if (projectile) {
             ProjectileComponentSystem.addComponent(projectile, 'piercingEffect');
         }
 
+        // Add any additional component that was specified
+        if (projectile && config.componentName &&
+            ProjectileComponentSystem.componentTypes[config.componentName]) {
+            ProjectileComponentSystem.addComponent(projectile, config.componentName);
+        }
+
         return true; // Shot fired successfully
+    },
+
+    deathFinger: function (scene, orbital, time) {
+        return FamiliarBehaviors.finger(scene, orbital, time, {
+            damage: playerDamage,
+            speed: 1000,
+            color: '#FFFF00',
+            symbol: '　',
+            componentName: null
+        });
+    },
+
+    // Add a new decayFinger behavior that uses the generic finger
+    decayFinger: function (scene, orbital, time) {
+        return FamiliarBehaviors.finger(scene, orbital, time, {
+            damage: playerDamage * 0.5,
+            speed: 1000,
+            color: '#FFFF00',
+            symbol: '　',
+            componentName: 'poisonEffect'
+        });
     },
 };
 

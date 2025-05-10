@@ -678,6 +678,54 @@ window.activateDeathFinger = function () {
     }
 };
 
+OrbitalPerkRegistry.registerPerkOrbital('FINGER_OF_DECAY', {
+    getConfig: function () {
+        return {
+            symbol: '朽', // Kanji for "decay/rot" - single kanji for the orbital
+            color: '#88AA22', // Sickly greenish-yellow color
+            fontSize: 16, // Small size
+            radius: 48, // Slightly larger than Death Finger
+            angle: 0, // Starting angle (will be updated by directionFollowing)
+            speed: 0.1, // Speed for rotation
+            direction: 'clockwise',
+            pattern: 'directionFollowing', // Follows player movement direction
+            collisionType: 'persistent', // Never dies from collisions
+            damage: 0, // No contact damage
+            damageInterval: 0, // Not used
+            lifespan: null, // Permanent
+            options: {
+                isFamiliar: true,
+                familiarType: 'decayFinger', // Use our new decayFinger behavior
+                oscillationSpeed: 0.01, // Control oscillation frequency
+                oscillationAmount: 2 // Control oscillation amplitude
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+// Add this function to nexus.js
+window.activateFingerOfDecay = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital to create the familiar
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['FINGER_OF_DECAY'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Set up timer for the finger to fire (every 2000ms instead of 1000ms)
+    if (orbital && orbital.options && orbital.options.isFamiliar) {
+        orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
+            scene,
+            orbital,
+            orbital.options.familiarType,
+            2000 // Fire every 2 seconds
+        );
+    }
+};
+
+
 OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
     getConfig: function () {
         return {

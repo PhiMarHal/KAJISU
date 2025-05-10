@@ -463,6 +463,18 @@ const PERKS = {
             window.modifyStat('luck', -1);
         }
     },
+    "FINGER_OF_DECAY": {
+        kanji: "朽指",
+        kana: "くちゆび",
+        romaji: "kuchiyubi",
+        english: "Finger of Decay",
+        description: "Summons a finger of decay that strikes enemies in your direction, poisoning them",
+        color: "#88AA22", // Sickly greenish-yellow color
+        hoverColor: 0x668800,
+        onAcquire: function () {
+            window.activateFingerOfDecay();
+        }
+    },
     "STORM_CALLER": {
         kanji: "雷神",
         kana: "らいじん",

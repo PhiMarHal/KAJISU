@@ -573,23 +573,6 @@ ProjectileComponentSystem.registerComponent('magmaDropEffect', {
             duration: this.magmaDuration,
             sourceEffect: 'magma'
         });
-    },
-
-    // Handle when projectile dies without hitting an enemy (lifespan expiration)
-    onDestroy: function (projectile, scene) {
-        // Don't proceed if the effect was already triggered by a hit
-        if (projectile.effectTriggered) return;
-
-        // Use the generalized function to create magma
-        createPersistentEffect(scene, projectile.x, projectile.y, {
-            symbol: '熔', // Magma kanji
-            color: '#FF4400', // Orange-red color
-            fontSize: '32px', // Larger size
-            damage: this.magmaDamage,
-            tickInterval: this.magmaTickInterval,
-            duration: this.magmaDuration,
-            sourceEffect: 'magma'
-        });
     }
 });
 

@@ -164,7 +164,7 @@ const MovementPatterns = {
 
 // Helper function to process component events during collision
 function processOrbitalComponentEvent(scene, orbital, enemy, eventName) {
-    // Skip if no components
+    // Skip if entity doesn't exist or has no components
     if (!orbital.entity || !orbital.entity.components) return;
 
     // Process event for all components
@@ -271,6 +271,19 @@ const CollisionBehaviors = {
 // Helper function to destroy an orbital
 function destroyOrbital(orbital) {
     if (orbital.entity && orbital.entity.active) {
+        // Process onDestroy event for components if they exist
+        if (orbital.entity.components) {
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                Object.values(orbital.entity.components).forEach(component => {
+                    if (component.onDestroy) {
+                        component.onDestroy(orbital.entity, scene);
+                    }
+                });
+            }
+        }
+
+        // Destroy the entity
         orbital.entity.destroy();
     }
 
@@ -287,6 +300,7 @@ const OrbitalSystem = {
         console.log("Orbital system initialized");
     },
 
+    // Create a new orbital entity
     // Create a new orbital entity
     create: function (scene, config) {
         // Default configuration with fallbacks
@@ -332,6 +346,23 @@ const OrbitalSystem = {
 
         // Store damage value on the entity
         entity.damage = orbitalConfig.damage;
+
+        // Initialize components object if components are specified
+        if (orbitalConfig.options && orbitalConfig.options.components) {
+            entity.components = {};
+
+            // Add each specified component to the entity
+            orbitalConfig.options.components.forEach(component => {
+                if (component.name && ProjectileComponentSystem.componentTypes[component.name]) {
+                    // Add the component to the entity
+                    ProjectileComponentSystem.addComponent(
+                        entity,
+                        component.name,
+                        component.config || {}
+                    );
+                }
+            });
+        }
 
         // Create the orbital object that tracks all properties
         const orbital = {

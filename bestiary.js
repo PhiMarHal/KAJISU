@@ -444,40 +444,6 @@ const ENEMY_TYPES = {
     }
 };
 
-const DEFEAT_SYNONYMS = [
-    "defeated",
-    "removed",
-    "deleted",
-    "relocated",
-    "disentangled",
-    "terminated",
-    "vanquished",
-    "eliminated",
-    "dispatched",
-    "neutralized",
-    "subdued",
-    "erased",
-    "eradicated",
-    "ousted",
-    "banished",
-    "dissolved",
-    "pacified"
-];
-
-const LEGIBLE_COLORS = [
-    '#ffffff', // white
-    '#ffff00', // yellow
-    '#00ffff', // cyan
-    '#ff00ff', // magenta
-    '#00ff88', // mint green
-    '#ff8800', // orange
-    '#88ff00', // lime
-    '#00bbff', // sky blue
-    '#ff88ff', // pink
-    '#ffbb00', // gold
-    '#00ffbb', // turquoise
-    '#bbff00'  // chartreuse
-];
 
 // Dynamic tier assignments - will store enemy types for each rank
 let ENEMY_TIER_ASSIGNMENTS = {

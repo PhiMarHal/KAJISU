@@ -5,8 +5,6 @@ let enemyCountScaleFactor = 1.25;     // How quickly enemy count increases over 
 let enemySpeedFactor = 1.0;           // Global modifier for enemy speed
 let currentEnemyRank = 1;             // Current highest enemy rank
 let currentEnemyHealth = 40;          // Current base enemy health value
-let baseEnemyHealth = 40;             // Starting value for enemy health
-let baseSpawnDelay = 4000;            // Initial spawn delay (4 seconds)
 
 // Rank timing configurations
 const rankEnemyStartTimes = {
@@ -490,8 +488,6 @@ window.enemyCountScaleFactor = enemyCountScaleFactor;
 window.enemySpeedFactor = enemySpeedFactor;
 window.currentEnemyRank = currentEnemyRank;
 window.currentEnemyHealth = currentEnemyHealth;
-window.baseEnemyHealth = baseEnemyHealth;
-window.baseSpawnDelay = baseSpawnDelay;
 window.rankEnemyStartTimes = rankEnemyStartTimes;
 window.rankSpawnDelays = rankSpawnDelays;
 

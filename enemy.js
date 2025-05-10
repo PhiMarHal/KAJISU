@@ -12,15 +12,15 @@ const rankEnemyStartTimes = {
     2: 10 * 60,      // Rank 2 enemies start after 10 minutes
     3: 18 * 60,      // Rank 3 after 18 minutes
     4: 24 * 60,      // Rank 4 after 24 minutes
-    5: 28 * 60,      // Rank 5 after 28 minutes
-    6: 32 * 60       // Rank 6 after 32 minutes
+    5: 30 * 60,      // Rank 5 after 30 minutes
+    6: 36 * 60       // Rank 6 after 36 minutes
 };
 
 // Spawn delay configurations for each rank
 const rankSpawnDelays = {
-    1: { base: 4000, min: 500 },
-    2: { base: 8000, min: 1000 },
-    3: { base: 12000, min: 1500 },
+    1: { base: 4000, min: 400 },
+    2: { base: 8000, min: 800 },
+    3: { base: 12000, min: 1200 },
     4: { base: 16000, min: 2000 },
     5: { base: 20000, min: 3000 },
     6: { base: 24000, min: 4000 }

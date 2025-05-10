@@ -130,7 +130,7 @@ window.createDefensiveBurst = function (scene, x, y, options = {}) {
             color: config.color,
             speed: config.speed,
             damage: config.damage,
-            skipComponents: false // 
+            skipComponents: true // fun, but breaks framerate with zone effects like amber nova 
         });
 
         // Add special property

@@ -18,8 +18,7 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - poison resets tween to base = cold+poison = back to base despite cold
 - no player damage visual post Oblivion, maybe caused by shield visual? testing, doesn't seem directly linked or alone
 - change all coordinates to be relative, not absolute
-- storm beacon does not spawn immediately
-- amber nova triggers too much in late game with defensive burst, this kills framerate
+
 - still possible to "beat" the game, want to rethink rank spawns
 
 POSSIBLE FIX BUT NEEDS TESTING
@@ -27,6 +26,8 @@ POSSIBLE FIX BUT NEEDS TESTING
 - storm caller, divine beacon and alien beacon remain after BLOSSOM (didn't we fix this before, for divine?? maybe just restart...) -> possibly fixed
 
 DONE
+- storm beacon does not spawn immediately -> ok with "apply" instead of "call" (why??)
+- amber nova triggers too much in late game with defensive burst, this kills framerate -> removed comps on defensive burst
 - return storm vengeance to random? circle looks artificial = yes
 - tentacle doesn't go away on oblivion blossom
 - time slowdown fails to affect orbits and tweens <= think we'll live with this and call it a quirk

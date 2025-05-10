@@ -1448,7 +1448,7 @@ PlayerComponentSystem.registerComponent('stormBringerAbility', {
         });
 
         // Spawn initial beacon
-        this.spawnBeacon.call(scene);
+        this.spawnBeacon.apply(scene);
     },
 
     // Method to spawn a storm beacon

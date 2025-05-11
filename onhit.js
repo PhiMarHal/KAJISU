@@ -517,6 +517,191 @@ OnHitPerkRegistry.registerPerkEffect('ALIEN_WORLD', {
     }
 });
 
+// Register component for Flawless Fight ability
+OnHitEffectSystem.registerComponent('flawlessFightEffect', {
+    // Store component state
+    stepTimer: null,
+    stepCount: 0,
+    maxSteps: 10, // 10 steps of 5% = 50% max boost
+    stepInterval: 4000, // 4 seconds between steps
+    stepSize: 0.05, // 5% increase per step
+    // Store contribution from this perk
+    berserkContribution: 0,
+    archerContribution: 0,
+
+    // Initialize component
+    initialize: function () {
+        // Reset contributions
+        this.berserkContribution = 0;
+        this.archerContribution = 0;
+        this.stepCount = 0;
+
+        // Start the step timer
+        this.startStepTimer();
+    },
+
+    // Handle player being hit
+    onHit: function (scene, enemy) {
+        // Reset step counter
+        this.stepCount = 0;
+
+        // Remove our contribution from the global multipliers
+        berserkMultiplier -= this.berserkContribution;
+        archerMultiplier -= this.archerContribution;
+
+        // Reset our contributions
+        this.berserkContribution = 0;
+        this.archerContribution = 0;
+
+        // Restart the timer after being hit
+        this.restartStepTimer(scene);
+
+        // Update UI to reflect new damage values
+        GameUI.updateStatCircles(scene);
+    },
+
+    // Start/restart the step timer
+    startStepTimer: function () {
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Clear existing timer if any
+        this.clearStepTimer();
+
+        // Create new timer
+        this.stepTimer = scene.time.addEvent({
+            delay: this.stepInterval,
+            callback: this.incrementStep,
+            callbackScope: this,
+            loop: true
+        });
+
+        // Register for cleanup
+        window.registerEffect('timer', this.stepTimer);
+    },
+
+    // Restart the timer (convenience method)
+    restartStepTimer: function (scene) {
+        this.clearStepTimer();
+        this.startStepTimer();
+    },
+
+    // Clear the step timer
+    clearStepTimer: function () {
+        if (this.stepTimer) {
+            this.stepTimer.remove();
+            this.stepTimer = null;
+        }
+    },
+
+    // Increment the step counter and boost multipliers
+    incrementStep: function () {
+        // Skip if game is over or paused
+        if (gameOver || gamePaused) return;
+
+        // Only increase if below max steps
+        if (this.stepCount < this.maxSteps) {
+            // Increment step count
+            this.stepCount++;
+
+            // Remove previous contribution
+            berserkMultiplier -= this.berserkContribution;
+            archerMultiplier -= this.archerContribution;
+
+            // Calculate new contributions
+            this.berserkContribution = this.stepCount * this.stepSize;
+            this.archerContribution = this.stepCount * this.stepSize;
+
+            // Apply to global multipliers
+            berserkMultiplier += this.berserkContribution;
+            archerMultiplier += this.archerContribution;
+
+            // Get scene for visual effects
+            const scene = game.scene.scenes[0];
+            if (scene && player && player.active) {
+                // Store original color
+                const originalColor = player.style.color || '#ffffff';
+
+                // Create a smooth glowing animation
+                const glowTween = scene.tweens.add({
+                    targets: { value: 0 },
+                    value: 1,
+                    duration: 600,
+                    yoyo: true, // Important for smooth pulse
+                    onUpdate: function (tween) {
+                        if (!player || !player.active) return;
+
+                        // Get the tween progress (0 to 1, then back to 0)
+                        const value = tween.getValue();
+
+                        // Create a blended color that shifts between blue and original
+                        // Convert blue components to RGB
+                        const blueR = 0x00;
+                        const blueG = 0x88;
+                        const blueB = 0xFF;
+
+                        // Simple way to get RGB from original color (this works with hex strings)
+                        let origR = 255, origG = 255, origB = 255; // Default to white
+                        if (originalColor.startsWith('#')) {
+                            // Parse hex color
+                            const hex = originalColor.slice(1);
+                            if (hex.length >= 6) {
+                                origR = parseInt(hex.slice(0, 2), 16);
+                                origG = parseInt(hex.slice(2, 4), 16);
+                                origB = parseInt(hex.slice(4, 6), 16);
+                            }
+                        }
+
+                        // Blend colors based on tween value
+                        // Use more blue at the peak of the tween (value=1)
+                        const r = Math.floor(origR * (1 - value) + blueR * value);
+                        const g = Math.floor(origG * (1 - value) + blueG * value);
+                        const b = Math.floor(origB * (1 - value) + blueB * value);
+
+                        // Set the blended color
+                        const blendedColor = `rgb(${r},${g},${b})`;
+                        player.setColor(blendedColor);
+                    },
+                    onComplete: function () {
+                        // Ensure color is reset to original when complete
+                        if (player && player.active) {
+                            player.setColor(originalColor);
+                        }
+                    }
+                });
+
+                // Update UI to reflect new damage values
+                GameUI.updateStatCircles(scene);
+            }
+        }
+    },
+
+    // Clean up component
+    cleanup: function () {
+        // Remove our contribution from the global multipliers
+        berserkMultiplier -= this.berserkContribution;
+        archerMultiplier -= this.archerContribution;
+
+        // Clear timer
+        this.clearStepTimer();
+
+        // Update the game UI if possible
+        const scene = game.scene.scenes[0];
+        if (scene) {
+            GameUI.updateStatCircles(scene);
+        }
+    }
+});
+
+// Register the perk with the OnHitPerkRegistry
+OnHitPerkRegistry.registerPerkEffect('FLAWLESS_FIGHT', {
+    componentName: 'flawlessFightEffect',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
 // Register component for Anger Rising ability
 OnHitEffectSystem.registerComponent('angerRisingEffect', {
     // Track the multiplier contribution from this perk

@@ -81,7 +81,7 @@ const PERKS = {
         kana: "しょくしゅ",
         romaji: "shokushu",
         english: "Tentacle Grasp",
-        description: "Periodically launches multiple tentacles in all directions",
+        description: "Tentacles extend in all directions.",
         color: "#8800AA", // Purple color
         hoverColor: 0x660088,
         onAcquire: function () {
@@ -109,7 +109,7 @@ const PERKS = {
         kana: "しゆび",
         romaji: "shiyubi",
         english: "Death Finger",
-        description: "Summons a finger of death that strikes enemies in your movement direction",
+        description: "Nothing can stare at death and survive.",
         color: "#FF0000", // Red color
         hoverColor: 0xDD0000,
         onAcquire: function () {
@@ -121,7 +121,7 @@ const PERKS = {
         kana: "いやせい",
         romaji: "iyasei",
         english: "Healing Fairy",
-        description: "Summons a fairy that shoots healing projectiles. Healing auras only work if you're close to the impact.",
+        description: "She shoots heals. Protect her and stay close.",
         color: "#7FFF7F", // Light green color
         hoverColor: 0x5FDF5F,
         onAcquire: function () {
@@ -133,7 +133,7 @@ const PERKS = {
         kana: "はきゅう",
         romaji: "hakyuu",
         english: "Wrecking Ball",
-        description: "Summons a heavy ball that orbits in a figure-eight pattern and explodes on contact",
+        description: "Orbits and explodes",
         color: "#777777", // Iron/steel gray color
         hoverColor: 0x555555,
         onAcquire: function () {
@@ -512,19 +512,6 @@ const PERKS = {
             // No additional implementation needed here
         }
     },
-
-    /*"AREA_PULSE": {
-        kanji: "波動",
-        kana: "はどう",
-        romaji: "hadou",
-        english: "Area Pulse",
-        description: "Periodically creates pulsing fields that damage nearby enemies",
-        color: "#ff00ff", // Magenta color
-        hoverColor: 0xdd00dd,
-        onAcquire: function () {
-            window.activateAreaPulse();
-        }
-    },*/
     "SCARLET_EMBER": {
         kanji: "緋炎",
         kana: "ひえん",
@@ -765,18 +752,6 @@ const PERKS = {
             window.modifyStat('fireRate', 1);
         }
     },
-    "YELLOW_MONGOOSE": {
-        kanji: "黄マングース",
-        kana: "きマングース",
-        romaji: "kimanguusu",
-        english: "Yellow Mongoose",
-        description: "+1 AGI",
-        color: "#ffd700",
-        hoverColor: 0xcca700,
-        onAcquire: function () {
-            window.modifyStat('fireRate', 1);
-        }
-    },
     "YELLOW_SQUIRREL": {
         kanji: "黄栗鼠",
         kana: "きりす",
@@ -914,19 +889,6 @@ const PERKS = {
             window.modifyStat('luck', 1);
         }
     },
-    "PURPLE_CHAMELEON": {
-        kanji: "紫カメレオン",
-        kana: "むらさきカメレオン",
-        romaji: "murasakikamereon",
-        english: "Purple Chameleon",
-        description: "+2 LUK / -1 AGI",
-        color: "#9370db",
-        hoverColor: 0x7350bb,
-        onAcquire: function () {
-            window.modifyStat('luck', 2);
-            window.modifyStat('fireRate', -1);
-        }
-    },
     "PURPLE_HARE": {
         kanji: "紫野兎",
         kana: "むらさきのうさぎ",
@@ -967,7 +929,7 @@ const PERKS = {
         kana: "きかい",
         romaji: "kikai",
         english: "Yellow Boomerang",
-        description: "Projectiles return to you after traveling, hitting multiple enemies",
+        description: "It will come back, they won't like it",
         color: "#FFA500", // Orange color
         hoverColor: 0xDD8800,
         onAcquire: function () {
@@ -1002,7 +964,7 @@ const PERKS = {
         kana: "いかりじょうしょう",
         romaji: "ikarijoushou",
         english: "Anger Rising",
-        description: "Damage increases by 10% each time you're hit (up to +100%). Anger decays over time.",
+        description: "Get hit, be angry, deal more damage (+10%, up to +100%).",
         color: "#FF4500", // Orange-red
         hoverColor: 0xDD3300,
         onAcquire: function () {
@@ -1114,8 +1076,19 @@ const PERKS = {
             window.activateBerserkFairy();
         }
     },
-
-    // Green animal perks (converted to something else)
+    "FLAWLESS_FIGHT": {
+        kanji: "完璧",
+        kana: "かんぺき",
+        romaji: "kanpeki",
+        english: "Flawless Fight",
+        description: "Damage and fire rate increase by up to +50% while avoiding damage. Reset when hit.",
+        color: "#00FFFF", // Cyan color
+        hoverColor: 0x00DDDD,
+        onAcquire: function () {
+            // The component is added through OnHitPerkRegistry
+            // Nothing specific needed here as the registration is handled in onhit.js
+        }
+    },
     "GREEN_DEER": {
         kanji: "緑鹿",
         kana: "みどりしか",

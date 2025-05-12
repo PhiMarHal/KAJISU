@@ -160,13 +160,13 @@ const PERKS = {
         kana: "うんめいひてい",
         romaji: "unmeihitei",
         english: "Denial of Fate",
-        description: "+2 POW / +2 AGI / -4 LUK",
+        description: "+3 POW / +3 AGI / -5 LUK",
         color: "#ff6600", // Orange-red color
         hoverColor: 0xdd4400,
         onAcquire: function () {
             window.modifyStat('damage', 2);
             window.modifyStat('fireRate', 2);
-            window.modifyStat('luck', -4);
+            window.modifyStat('luck', -3);
         }
     },
     "AMBER_BEETLE": {
@@ -504,7 +504,7 @@ const PERKS = {
         kana: "らいえん",
         romaji: "raien",
         english: "Storm Vengeance",
-        description: "When hit, triggers lightning strikes around you, damaging nearby enemies",
+        description: "Lightning strikes those who dare touch you",
         color: "#FFAAFF", // Pinkish lightning color
         hoverColor: 0xDD88DD,
         onAcquire: function () {
@@ -1256,7 +1256,7 @@ const PERKS = {
         kana: "いせかい",
         romaji: "isekai",
         english: "Alien World",
-        description: "When hit, slows down time while maintaining your speed",
+        description: "When hit, the streams of time shift",
         color: "#00ffff", // Cyan color
         hoverColor: 0x00dddd,
         onAcquire: function () {
@@ -1268,7 +1268,7 @@ const PERKS = {
         kana: "ときのすな",
         romaji: "tokinosuna",
         english: "Alien Clock",
-        description: "Periodically spawns time beacons that slow time when collected",
+        description: "Pick it up and time moves differently",
         color: "#00ffff", // Cyan color like ALIEN_WORLD
         hoverColor: 0x00dddd,
         onAcquire: function () {
@@ -1414,7 +1414,7 @@ const PERKS = {
         kana: "てんのしるべ",
         romaji: "tennoshirube",
         english: "Divine Beacon",
-        description: "Periodically spawns heavenly markers that summon God Hammers when collected",
+        description: "Heavenly markers summon God Hammers when collected",
         color: "#FFD700",
         hoverColor: 0xDEB887,
         onAcquire: function () {

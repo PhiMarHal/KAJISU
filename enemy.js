@@ -6,12 +6,17 @@ let enemySpeedFactor = 1.0;           // Global modifier for enemy speed
 let currentEnemyRank = 1;             // Current highest enemy rank
 let currentEnemyHealth = 40;          // Current base enemy health value
 
+// Boss state tracking
+let bossMode = false;
+let activeBoss = null;
+let bossSpawned = false;
+
 // Rank timing configurations
 const rankEnemyStartTimes = {
     1: 0,            // Rank 1 enemies start immediately
     2: 10 * 60,      // Rank 2 enemies start after 10 minutes
-    3: 18 * 60,      // Rank 3 after 18 minutes
-    4: 24 * 60,      // Rank 4 after 24 minutes
+    3: 16 * 60,      // Rank 3 after 18 minutes
+    4: 20 * 60,      // Rank 4 after 24 minutes
     5: 30 * 60,      // Rank 5 after 30 minutes
     6: 36 * 60       // Rank 6 after 36 minutes
 };
@@ -150,6 +155,11 @@ const EnemySystem = {
                 return true; // Signal that enemy was defeated
             }
 
+            // If damage was applied and this is the boss, update health bar
+            if (enemy.isBoss) {
+                this.updateBossHealthBar(enemy);
+            }
+
             return true; // Signal that damage was applied
         }
 
@@ -158,6 +168,12 @@ const EnemySystem = {
 
     // Handle enemy defeat
     defeatEnemy: function (enemy) {
+        // Check if this is the boss
+        if (enemy.isBoss) {
+            // Handle boss defeat before calling the original method
+            this.onBossDefeated();
+        }
+
         // Only show learning feedback for enemies of the current (highest) rank
         if (this.scene.learningFeedback && enemy.rank === currentEnemyRank) {
             // Set white color for this text
@@ -204,12 +220,34 @@ const EnemySystem = {
         // Skip if game is over or paused
         if (gameOver || gamePaused) return;
 
-        // Calculate minutes elapsed for difficulty scaling
-        const minutesElapsed = elapsedTime / 60;
+        // Check if it's time to spawn the boss (based on elapsed time reaching the boss rank's start time)
+        if (!bossSpawned && elapsedTime >= rankEnemyStartTimes[BOSS_CONFIG.max_rank]) {
+            console.log("Boss spawn condition met - spawning boss!");
+            bossSpawned = true;
+            this.spawnBoss();
 
-        // Process each rank
+            // Update currentEnemyRank for consistency
+            currentEnemyRank = BOSS_CONFIG.max_rank;
+
+            // Remove any existing spawners for max rank or above
+            for (let rank = BOSS_CONFIG.max_rank; rank <= 6; rank++) {
+                if (this.enemySpawners[rank]) {
+                    console.log(`Removing spawner for rank ${rank}`);
+                    this.enemySpawners[rank].remove();
+                    delete this.enemySpawners[rank];
+                }
+            }
+        }
+
+        // Process each rank for spawner updates
         Object.keys(rankEnemyStartTimes).forEach(rank => {
             const rankNum = parseInt(rank);
+
+            // Skip ranks at or above max_rank if boss has spawned
+            if (bossSpawned && rankNum >= BOSS_CONFIG.max_rank) {
+                return;
+            }
+
             const startTime = rankEnemyStartTimes[rank];
             const rankConfig = rankSpawnDelays[rank];
 
@@ -453,6 +491,216 @@ const EnemySystem = {
         ).length;
     },
 
+    spawnBoss: function () {
+        // Get the scene
+        const scene = this.scene;
+        if (!scene) return null;
+
+        // Choose a random boss type from the highest rank
+        const bossType = getRandomEnemyTypeByRank(BOSS_CONFIG.max_rank);
+
+        // Get the enemy data
+        const enemyData = getEnemyData(bossType);
+
+        // Spawn position (center of screen)
+        const x = 600;
+        const y = 200;
+
+        // Create the boss with data-driven properties
+        const boss = scene.add.text(x, y, bossType, {
+            fontFamily: 'Arial',
+            fontSize: `${enemyData.size}px`,
+            color: enemyData.color,
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        // Add to physics group
+        this.enemiesGroup.add(boss);
+
+        // Set physics properties
+        boss.body.setSize(boss.width, boss.height);
+        boss.body.setCollideWorldBounds(true);
+        boss.body.setImmovable(false);
+        boss.body.pushable = true;
+        boss.body.setMass(2);  // Make boss harder to push
+        boss.body.setDrag(1);
+        boss.body.setBounce(0.5);
+
+        // Calculate boss health (normal health * boss multiplier)
+        boss.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier * BOSS_CONFIG.health_multiplier);
+        boss.maxHealth = boss.health; // Store max health for UI bar
+
+        // Set boss speed to fixed value from config
+        boss.speed = BOSS_CONFIG.speed;
+
+        // Store additional properties from data
+        boss.damage = enemyData.damage;
+        boss.rank = enemyData.rank;
+        boss.expValue = enemyData.expValue;
+
+        // Store all language and educational properties
+        boss.kana = enemyData.kana;
+        boss.romaji = enemyData.romaji;
+        boss.english = enemyData.english;
+
+        // Mark as boss for special handling
+        boss.isBoss = true;
+
+        // Store reference to active boss
+        activeBoss = boss;
+
+        // Update UI to show boss name and health
+        this.showBossUI(boss);
+
+        return boss;
+    },
+
+    // Show boss UI (name and health bar)
+    showBossUI: function (boss) {
+        const scene = this.scene;
+        if (!scene) return;
+
+        // Store the original feedback text if we need to restore it later
+        if (scene.learningFeedback && !scene.originalFeedbackText) {
+            scene.originalFeedbackText = scene.learningFeedback.text;
+        }
+
+        // Update learning feedback to show boss info
+        if (scene.learningFeedback) {
+            scene.learningFeedback.setText(
+                `${boss.text} (${boss.kana}) [${boss.romaji}] - ${boss.english}`
+            );
+        }
+
+        // Create boss health bar
+        this.createBossHealthBar(scene);
+
+        // Update health bar to full
+        this.updateBossHealthBar(boss);
+    },
+
+    // Create boss health bar elements
+    createBossHealthBar: function (scene) {
+        // Clean up existing health bar if any
+        if (scene.bossHealthBar) {
+            scene.bossHealthBar.destroy();
+        }
+        if (scene.bossHealthBarBg) {
+            scene.bossHealthBarBg.destroy();
+        }
+        if (scene.bossHealthBarBorder) {
+            scene.bossHealthBarBorder.destroy();
+        }
+
+        // Get dimensions from UI health bar constants for consistency
+        const width = UI.healthBar.width();
+        const height = UI.healthBar.height();
+        const borderWidth = UI.healthBar.borderWidth;
+        const innerMargin = UI.healthBar.innerMargin;
+        const centerX = UI.healthBar.centerX();
+        const y = 730; // Position near the bottom for boss health bar
+
+        // Create gold border with black background (like the player health bar)
+        scene.bossHealthBarBorder = scene.add.rectangle(
+            centerX,
+            y,
+            width + (borderWidth * 2),
+            height + (borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(100);
+
+        // Create inner black background
+        scene.bossHealthBarBg = scene.add.rectangle(
+            centerX,
+            y,
+            width,
+            height,
+            UI.colors.black
+        ).setDepth(100);
+
+        // Calculate the starting position for the health bar (accounting for margin)
+        const startX = centerX - (width / 2) + innerMargin;
+
+        // Create health bar foreground (initially full)
+        scene.bossHealthBar = scene.add.rectangle(
+            startX,
+            y,
+            width - (innerMargin * 2), // Account for margin on both sides
+            height - (innerMargin * 2), // Account for margin on both sides
+            0xff0000 // Red color for health
+        ).setOrigin(0, 0.5).setDepth(101);
+    },
+
+    // Update boss health bar based on current health
+    updateBossHealthBar: function (boss) {
+        const scene = this.scene;
+        if (!scene || !scene.bossHealthBar || !boss) return;
+
+        // Calculate health percentage
+        const healthPercent = boss.health / boss.maxHealth;
+
+        // Get width from UI health bar constants (minus margins)
+        const fullWidth = UI.healthBar.width() - (UI.healthBar.innerMargin * 2);
+
+        // Update health bar width based on percentage
+        scene.bossHealthBar.width = fullWidth * healthPercent;
+    },
+
+    // Handle boss defeat
+    onBossDefeated: function () {
+        const scene = this.scene;
+        if (!scene) return;
+
+        // End the game with victory
+        this.showVictoryScreen();
+
+        // Clean up all boss-related UI objects thoroughly
+        this.cleanupBossUI(scene);
+
+        // Reset boss state
+        bossMode = false;
+        activeBoss = null;
+    },
+
+    cleanupBossUI: function (scene) {
+        // Clean up health bar elements
+        if (scene.bossHealthBar) {
+            scene.bossHealthBar.destroy();
+            scene.bossHealthBar = null;
+        }
+        if (scene.bossHealthBarBg) {
+            scene.bossHealthBarBg.destroy();
+            scene.bossHealthBarBg = null;
+        }
+        if (scene.bossHealthBarBorder) {
+            scene.bossHealthBarBorder.destroy();
+            scene.bossHealthBarBorder = null;
+        }
+
+        // Restore original feedback text if needed
+        if (scene.learningFeedback && scene.originalFeedbackText) {
+            scene.learningFeedback.setText(scene.originalFeedbackText);
+            scene.originalFeedbackText = null;
+        }
+    },
+
+    // Show victory screen
+    showVictoryScreen: function () {
+        const scene = this.scene;
+        if (!scene) return;
+
+        // Set game over state
+        gameOver = true;
+
+        // Pause the game physics to stop all movement
+        PauseSystem.pauseGame();
+
+        // Show victory text and restart button
+        gameOverText.setText(`YOU WON!\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`);
+        gameOverText.setVisible(true);
+        restartButton.setVisible(true);
+    },
+
     // Reset the enemy system
     reset: function () {
         // Clear existing enemies
@@ -469,6 +717,17 @@ const EnemySystem = {
 
         // Reset spawners
         this.enemySpawners = {};
+
+        // Reset boss-related state
+        bossMode = false;
+        activeBoss = null;
+        bossSpawned = false;
+
+        // Clean up any boss UI elements
+        const scene = this.scene;
+        if (scene) {
+            this.cleanupBossUI(scene);
+        }
 
         // Reset enemy rank
         currentEnemyRank = 1;
@@ -490,6 +749,12 @@ window.currentEnemyRank = currentEnemyRank;
 window.currentEnemyHealth = currentEnemyHealth;
 window.rankEnemyStartTimes = rankEnemyStartTimes;
 window.rankSpawnDelays = rankSpawnDelays;
+
+// Make boss variables accessible globally
+window.bossMode = bossMode;
+window.activeBoss = activeBoss;
+window.bossSpawned = bossSpawned;
+window.BOSS_CONFIG = BOSS_CONFIG;
 
 // Setter functions to modify variables
 EnemySystem.setEnemyCountScaleFactor = function (value) {

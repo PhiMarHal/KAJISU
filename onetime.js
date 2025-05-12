@@ -209,7 +209,7 @@ const OneTimeEffects = {
 
         // Update UI to reflect new values
         GameUI.updateHealthBar(scene);
-        setupHealthRegeneration.call(scene);
+        LifeSystem.setupHealthRegeneration.call(scene);
 
         // Calculate total stat points (1.5 per perk, rounded up)
         const totalStatPoints = Math.ceil(perkCount * 1.5);

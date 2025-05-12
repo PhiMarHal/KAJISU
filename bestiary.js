@@ -73,6 +73,13 @@ const ENEMY_RANK_NAMES = {
     6: "陸"  // Formal number 6 (roku)
 };
 
+// Boss configuration
+const BOSS_CONFIG = {
+    max_rank: 4,                // Maximum rank at which the boss appears
+    health_multiplier: 20.0,    // Boss health multiplier compared to normal enemies
+    speed: 100                  // Fixed boss speed
+};
+
 // The enemy definitions - using kanji characters with readings and translations
 // Note: Removed rank field as it will be assigned dynamically
 const ENEMY_TYPES = {

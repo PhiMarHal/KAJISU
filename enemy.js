@@ -695,10 +695,17 @@ const EnemySystem = {
         // Pause the game physics to stop all movement
         PauseSystem.pauseGame();
 
-        // Show victory text and restart button
-        gameOverText.setText(`YOU WON!\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`);
-        gameOverText.setVisible(true);
-        restartButton.setVisible(true);
+        // Show victory screen using our new GameEndMenu
+        window.GameEndMenu.showVictoryScreen(scene);
+
+        // Old code - legacy support for direct DOM elements
+        // This can be removed once the new GameEndMenu is fully integrated
+        if (typeof gameOverText !== 'undefined' && gameOverText.setVisible) {
+            gameOverText.setVisible(false);
+        }
+        if (typeof restartButton !== 'undefined' && restartButton.setVisible) {
+            restartButton.setVisible(false);
+        }
     },
 
     // Reset the enemy system

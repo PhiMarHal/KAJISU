@@ -186,23 +186,38 @@ function playerIsHit(player, enemy) {
 
     // Check if player is dead
     if (playerHealth < 1) {
-        playerDeath.call(scene);
+        // Pass the enemy that killed the player to playerDeath
+        playerDeath.call(scene, enemy);
     }
 }
 
 // Handle player death
-function playerDeath() {
+function playerDeath(killerEnemy) {
     // Set game over state
     gameOver = true;
 
     // Pause the game physics to stop all movement
-    PauseSystem.pauseGame()
+    PauseSystem.pauseGame();
 
-    // Show game over text and restart button
-    gameOverText.setText(`GAME OVER\nTime Survived: ${formatTime(elapsedTime)}\nEnemies killed: ${score}`);
-    gameOverText.setVisible(true);
-    restartButton.setVisible(true);
+    // Get the scene
+    const scene = this;
+
+    // Get the kanji of the enemy that killed the player
+    const enemyKanji = killerEnemy ? killerEnemy.text : null;
+
+    // Show game over screen with the enemy kanji
+    window.GameEndMenu.showDefeatScreen(scene, enemyKanji);
+
+    // Old code - legacy support for direct DOM elements
+    // This can be removed once the new GameEndMenu is fully integrated
+    if (typeof gameOverText !== 'undefined' && gameOverText.setVisible) {
+        gameOverText.setVisible(false);
+    }
+    if (typeof restartButton !== 'undefined' && restartButton.setVisible) {
+        restartButton.setVisible(false);
+    }
 }
+
 
 // Reset the player hit system (call during game restart)
 function resetPlayerHitSystem() {

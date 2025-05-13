@@ -635,3 +635,387 @@ window.GameUI = {
     updateStatCircles: StatDisplay.update,
     resize: resizeUI
 };
+
+// Adding to the existing UI namespace in menu.js
+UI.gameEndScreen = {
+    width: function () { return UI.rel.width(50); },     // 50% of screen width
+    height: function () { return UI.rel.height(60); },   // 60% of screen height
+    y: function () { return UI.rel.y(50); },             // Center of screen vertically
+    x: function () { return UI.rel.x(50); },             // Center of screen horizontally
+    borderWidth: 4,
+    innerPadding: function () { return UI.rel.width(2); }, // 2% padding inside
+    fontSizes: {
+        title: function () { return `${UI.rel.fontSize(4)}px`; },     // 4% of screen height
+        subtitle: function () { return `${UI.rel.fontSize(3)}px`; },  // 3% of screen height
+        stats: function () { return `${UI.rel.fontSize(2.5)}px`; },   // 2.5% of screen height
+        button: function () { return `${UI.rel.fontSize(3)}px`; }     // 3% of screen height
+    }
+};
+
+// Game End Menu System for Word Survivors
+// Manages both victory and defeat end screens
+
+// Adding to the existing UI namespace in menu.js
+UI.gameEndScreen = {
+    width: function () { return UI.rel.width(50); },     // 50% of screen width
+    height: function () { return UI.rel.height(60); },   // 60% of screen height
+    y: function () { return UI.rel.y(50); },             // Center of screen vertically
+    x: function () { return UI.rel.x(50); },             // Center of screen horizontally
+    borderWidth: 4,
+    innerPadding: function () { return UI.rel.width(2); }, // 2% padding inside
+    fontSizes: {
+        title: function () { return `${UI.rel.fontSize(4)}px`; },     // 4% of screen height
+        subtitle: function () { return `${UI.rel.fontSize(3)}px`; },  // 3% of screen height
+        stats: function () { return `${UI.rel.fontSize(2.5)}px`; },   // 2.5% of screen height
+        button: function () { return `${UI.rel.fontSize(3)}px`; }     // 3% of screen height
+    }
+};
+
+// Game End Menu component
+const GameEndMenu = {
+    // UI elements
+    elements: {
+        container: null,         // Container for all elements
+        background: null,        // Background rectangle
+        borderRect: null,        // Golden border
+        heroKanji: null,         // Hero kanji (white)
+        titleText: null,         // Main title text (gold)
+        enemyKanji: null,        // Enemy kanji (enemy color)
+        subtitleText: null,      // Subtitle text (gold)
+        statsText: null,         // Time and kills (gold)
+        restartButton: null,     // Restart button
+        restartButtonBorder: null // Button border
+    },
+
+    // Create the game end screen (victory or defeat)
+    create: function (scene, isVictory = false, enemyKanji = null, bossKanji = null) {
+        // Clean up any existing menu first
+        this.destroy();
+
+        // Create a container with high depth for all elements
+        this.elements.container = scene.add.container(0, 0);
+        this.elements.container.setDepth(1000); // Same depth as pause screen
+
+        // Create black semi-transparent background for full screen
+        const fullscreenBg = scene.add.rectangle(
+            UI.game.getWidth() / 2,
+            UI.game.getHeight() / 2,
+            UI.game.getWidth(),
+            UI.game.getHeight(),
+            0x000000, 0.7
+        );
+        this.elements.container.add(fullscreenBg);
+
+        // Create panel black background (solid black)
+        this.elements.background = scene.add.rectangle(
+            UI.gameEndScreen.x(),
+            UI.gameEndScreen.y(),
+            UI.gameEndScreen.width(),
+            UI.gameEndScreen.height(),
+            0x000000
+        );
+        this.elements.container.add(this.elements.background);
+
+        // Create golden border - as a stroke around the black background
+        this.elements.borderRect = scene.add.rectangle(
+            UI.gameEndScreen.x(),
+            UI.gameEndScreen.y(),
+            UI.gameEndScreen.width(),
+            UI.gameEndScreen.height()
+        );
+        this.elements.borderRect.setStrokeStyle(UI.gameEndScreen.borderWidth, 0xFFD700); // Explicit gold color
+        this.elements.container.add(this.elements.borderRect);
+
+        // Determine content based on victory or defeat
+        if (isVictory) {
+            this.createVictoryContent(scene, bossKanji);
+        } else {
+            this.createDefeatContent(scene, enemyKanji);
+        }
+
+        // Create restart button (same for both victory and defeat)
+        this.createRestartButton(scene);
+
+        // Add keyboard handler for Enter key to restart
+        this.setupKeyboardHandler(scene);
+
+        return this.elements.container;
+    },
+
+    // Create content for victory screen
+    createVictoryContent: function (scene, bossKanji) {
+        const centerX = UI.gameEndScreen.x();
+        const titleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 3;
+        const subtitleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 6;
+
+        // The boss kanji to display (use a generic one if not specified)
+        const bossSymbol = bossKanji ?? (activeBoss?.text ?? '魔');
+
+        // Create hero kanji in WHITE
+        this.elements.heroKanji = scene.add.text(
+            centerX - 200, // Position needs to be adjusted based on your layout
+            titleY,
+            HERO_CHARACTER,
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.title(),
+                color: '#FFFFFF', // White for hero
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+        this.elements.container.add(this.elements.heroKanji);
+
+        // Create title text in GOLD - using explicit hex for gold
+        this.elements.titleText = scene.add.text(
+            centerX - 150, // Position adjusted to come after hero kanji
+            titleY,
+            'VANQUISHED THE LOOP',
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.title(),
+                color: '#FFD700', // Explicit gold color
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0, 0.5); // Left aligned
+        this.elements.container.add(this.elements.titleText);
+
+        // Create subtitle text in GOLD
+        this.elements.subtitleText = scene.add.text(
+            centerX - 100, // Position adjusted to allow space for enemy kanji
+            subtitleY,
+            'DEFEATING THE GUARDIAN ',
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.title(),
+                color: '#FFD700', // Explicit gold color 
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+        this.elements.container.add(this.elements.subtitleText);
+
+        // Create boss kanji in BOSS COLOR (RED)
+        this.elements.enemyKanji = scene.add.text(
+            centerX + 150, // Position adjusted to come after subtitle text
+            subtitleY,
+            bossSymbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.title(),
+                color: '#FF5555', // Default red for enemy
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0, 0.5); // Left aligned
+        this.elements.container.add(this.elements.enemyKanji);
+
+        // Create stats line in GOLD
+        this.elements.statsText = scene.add.text(
+            centerX,
+            UI.gameEndScreen.y() + UI.gameEndScreen.height() / 10,
+            `IN ${formatTime(elapsedTime)}          FREED ${score}`,
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.stats(),
+                color: '#FFD700', // Explicit gold color
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+        this.elements.container.add(this.elements.statsText);
+    },
+
+    // Create content for defeat screen
+    createDefeatContent: function (scene, enemyKanji) {
+        const centerX = UI.gameEndScreen.x();
+        const titleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 3;
+        const subtitleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 6;
+
+        // The enemy kanji to display (use a generic one if not specified)
+        const enemySymbol = enemyKanji ?? '敵'; // Default enemy kanji
+
+        // Create hero kanji in WHITE
+        this.elements.heroKanji = scene.add.text(
+            centerX - 200, // Position needs to be adjusted based on your layout
+            titleY,
+            HERO_CHARACTER,
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.title(),
+                color: '#FFFFFF', // White for hero
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+        this.elements.container.add(this.elements.heroKanji);
+
+        // Create title text in GOLD
+        this.elements.titleText = scene.add.text(
+            centerX - 150, // Position adjusted to come after hero kanji
+            titleY,
+            'FOUND THEIR DEMISE',
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.title(),
+                color: '#FFD700', // Explicit gold color
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0, 0.5); // Left aligned
+        this.elements.container.add(this.elements.titleText);
+
+        // Create subtitle text in GOLD
+        this.elements.subtitleText = scene.add.text(
+            centerX - 50, // Position adjusted to allow space for enemy kanji
+            subtitleY,
+            'AT THE HANDS OF ',
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.title(),
+                color: '#FFD700', // Explicit gold color
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+        this.elements.container.add(this.elements.subtitleText);
+
+        // Create enemy kanji in ENEMY COLOR (RED)
+        this.elements.enemyKanji = scene.add.text(
+            centerX + 120, // Position adjusted to come after subtitle text
+            subtitleY,
+            enemySymbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.title(),
+                color: '#FF5555', // Red color for enemy
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0, 0.5); // Left aligned
+        this.elements.container.add(this.elements.enemyKanji);
+
+        // Create stats line in GOLD
+        this.elements.statsText = scene.add.text(
+            centerX,
+            UI.gameEndScreen.y() + UI.gameEndScreen.height() / 10,
+            `SURVIVED ${formatTime(elapsedTime)}          DEFEATED ${score}`,
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.stats(),
+                color: '#FFD700', // Explicit gold color
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+        this.elements.container.add(this.elements.statsText);
+    },
+
+    // Create restart button for both screens
+    createRestartButton: function (scene) {
+        const buttonY = UI.gameEndScreen.y() + UI.gameEndScreen.height() / 3;
+        const buttonX = UI.gameEndScreen.x();
+        const buttonPadding = 20;
+
+        // Create button text in GOLD
+        this.elements.restartButton = scene.add.text(
+            buttonX,
+            buttonY,
+            'RESTART THE LOOP',
+            {
+                fontFamily: 'Arial',
+                fontSize: UI.gameEndScreen.fontSizes.button(),
+                color: '#FFD700', // Explicit gold color
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+
+        // Create button border as a rectangle with GOLD stroke
+        const buttonWidth = this.elements.restartButton.width + buttonPadding * 2;
+        const buttonHeight = this.elements.restartButton.height + buttonPadding * 2;
+
+        this.elements.restartButtonBorder = scene.add.rectangle(
+            buttonX,
+            buttonY,
+            buttonWidth,
+            buttonHeight
+        );
+        this.elements.restartButtonBorder.setStrokeStyle(2, 0xFFD700); // Explicit gold color
+        this.elements.container.add(this.elements.restartButtonBorder);
+        this.elements.container.add(this.elements.restartButton);
+
+        // Make button interactive - use the text element for interaction
+        this.elements.restartButton.setInteractive({ useHandCursor: true });
+
+        // Add hover effect - white text and thicker border
+        this.elements.restartButton.on('pointerover', () => {
+            // Change text to white
+            this.elements.restartButton.setColor('#FFFFFF');
+            // Make border thicker
+            this.elements.restartButtonBorder.setStrokeStyle(3, 0xFFD700);
+            // Scale up slightly
+            scene.tweens.add({
+                targets: [this.elements.restartButton, this.elements.restartButtonBorder],
+                scale: 1.05,
+                duration: 100
+            });
+        });
+
+        // Reset on pointer out
+        this.elements.restartButton.on('pointerout', () => {
+            // Change text back to gold
+            this.elements.restartButton.setColor('#FFD700');
+            // Reset border thickness
+            this.elements.restartButtonBorder.setStrokeStyle(2, 0xFFD700);
+            // Scale back to normal
+            scene.tweens.add({
+                targets: [this.elements.restartButton, this.elements.restartButtonBorder],
+                scale: 1,
+                duration: 100
+            });
+        });
+
+        // Add click handler
+        this.elements.restartButton.on('pointerdown', function () {
+            startGame.call(scene);
+        });
+    },
+
+    // Setup keyboard handler for Enter key
+    setupKeyboardHandler: function (scene) {
+        // Create one-time enter key handler
+        const enterKeyHandler = function (event) {
+            if (event.key === 'Enter') {
+                // Remove this listener before restarting
+                window.removeEventListener('keydown', enterKeyHandler);
+
+                // Start the game
+                startGame.call(scene);
+            }
+        };
+
+        // Add global keydown listener for Enter
+        window.addEventListener('keydown', enterKeyHandler);
+    },
+
+    // Show the victory screen
+    showVictoryScreen: function (scene) {
+        // Get the boss kanji if available
+        const bossKanji = activeBoss ? activeBoss.text : null;
+
+        // Create the victory screen
+        return this.create(scene, true, null, bossKanji);
+    },
+
+    // Show the defeat screen
+    showDefeatScreen: function (scene, enemyKanji) {
+        // Create the defeat screen
+        return this.create(scene, false, enemyKanji);
+    },
+
+    // Destroy the menu and clean up resources
+    destroy: function () {
+        if (this.elements.container) {
+            this.elements.container.destroy();
+        }
+
+        // Reset all element references
+        Object.keys(this.elements).forEach(key => {
+            this.elements[key] = null;
+        });
+    }
+};
+
+// Export the menu system for use in other files
+window.GameEndMenu = GameEndMenu;

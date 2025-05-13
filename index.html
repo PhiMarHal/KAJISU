@@ -744,6 +744,11 @@
             score = 0;
             level = 1;
 
+            // Clean up game end screens if they exist
+            if (window.GameEndMenu) {
+                window.GameEndMenu.destroy();
+            }
+
             // Reset player status components
             resetPlayerStatus();
             CooldownManager.initialize();
@@ -776,11 +781,18 @@
                 RomajiChallengeSystem.resetState();
             }
 
-
             // Hide pause screen if it was visible
             if (pauseScreen) pauseScreen.setVisible(false);
             if (pauseMessage) pauseMessage.setVisible(false);
             if (resumeButton) resumeButton.setVisible(false);
+
+            // Hide legacy game over elements if they exist
+            if (typeof gameOverText !== 'undefined' && gameOverText.setVisible) {
+                gameOverText.setVisible(false);
+            }
+            if (typeof restartButton !== 'undefined' && restartButton.setVisible) {
+                restartButton.setVisible(false);
+            }
 
             // Reset player stats to base values
             playerHealth = BASE_STATS.END;
@@ -821,10 +833,6 @@
             // Clear projectiles
             projectiles.clear(true, true);
 
-            // Hide game over elements
-            gameOverText.setVisible(false);
-            restartButton.setVisible(false);
-
             // Resume physics
             this.physics.resume();
 
@@ -837,8 +845,7 @@
 
             // Update player stats text
             GameUI.updateStatCircles(this);
-        }
-    </script>
+        }</script>
 </body>
 
 </html>

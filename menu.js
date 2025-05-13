@@ -783,9 +783,9 @@ const GameEndMenu = {
 
         // Create subtitle text in GOLD
         this.elements.subtitleText = scene.add.text(
-            centerX - 100, // Position adjusted to allow space for enemy kanji
+            centerX - 60, // Position adjusted to allow space for enemy kanji
             subtitleY,
-            'DEFEATING THE GUARDIAN ',
+            'BEATING THE GUARDIAN ',
             {
                 fontFamily: 'Arial',
                 fontSize: UI.gameEndScreen.fontSizes.title(),
@@ -797,7 +797,7 @@ const GameEndMenu = {
 
         // Create boss kanji in BOSS COLOR (RED)
         this.elements.enemyKanji = scene.add.text(
-            centerX + 150, // Position adjusted to come after subtitle text
+            centerX + 180, // Position adjusted to come after subtitle text
             subtitleY,
             bossSymbol,
             {

@@ -504,7 +504,7 @@ const EnemySystem = {
 
         // Spawn position (center of screen)
         const x = 600;
-        const y = 200;
+        const y = -50;
 
         // Create the boss with data-driven properties
         const boss = scene.add.text(x, y, bossType, {

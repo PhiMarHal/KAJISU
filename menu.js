@@ -687,6 +687,8 @@ const GameEndMenu = {
         restartButtonBorder: null // Button border
     },
 
+    enterKeyHandler: null,
+
     // Create the game end screen (victory or defeat)
     create: function (scene, isVictory = false, enemyKanji = null, bossKanji = null) {
         // Clean up any existing menu first
@@ -974,11 +976,14 @@ const GameEndMenu = {
 
     // Setup keyboard handler for Enter key
     setupKeyboardHandler: function (scene) {
-        // Create one-time enter key handler
-        const enterKeyHandler = function (event) {
+        // Clean up any existing handler first
+        this.cleanupKeyboardHandler();
+
+        // Create new enter key handler
+        this.enterKeyHandler = function (event) {
             if (event.key === 'Enter') {
                 // Remove this listener before restarting
-                window.removeEventListener('keydown', enterKeyHandler);
+                GameEndMenu.cleanupKeyboardHandler();
 
                 // Start the game
                 startGame.call(scene);
@@ -986,7 +991,7 @@ const GameEndMenu = {
         };
 
         // Add global keydown listener for Enter
-        window.addEventListener('keydown', enterKeyHandler);
+        window.addEventListener('keydown', this.enterKeyHandler);
     },
 
     // Show the victory screen
@@ -1004,8 +1009,18 @@ const GameEndMenu = {
         return this.create(scene, false, enemyKanji);
     },
 
-    // Destroy the menu and clean up resources
+    // Add a cleanup function
+    cleanupKeyboardHandler: function () {
+        if (this.enterKeyHandler) {
+            window.removeEventListener('keydown', this.enterKeyHandler);
+            this.enterKeyHandler = null;
+        }
+    },
+
+    // Modify destroy to use the cleanup function
     destroy: function () {
+        this.cleanupKeyboardHandler();
+
         if (this.elements.container) {
             this.elements.container.destroy();
         }

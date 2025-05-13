@@ -736,6 +736,8 @@
         };
 
         function startGame() {
+
+
             // Reset game state variables
             gameOver = false;
             gamePaused = false;
@@ -772,8 +774,10 @@
             // Clean up old timers
             cleanupTimers();
 
-            // Reset our new systems
+            // Reset our new systems (quick pause/unpause hack to clean tweens)
             if (PauseSystem) {
+                PauseSystem.pauseGame(false);
+                PauseSystem.resumeGame();
                 PauseSystem.cleanup();
             }
 

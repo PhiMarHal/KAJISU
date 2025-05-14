@@ -82,11 +82,13 @@ const RomajiChallengeSystem = {
         this.elements.levelUpContainer.setDepth(1000); // Same depth as pause screen for consistency
 
         // Create semi-transparent background
-        const levelUpBackground = scene.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
+        const centerX = game.config.width / 2;
+        const centerY = game.config.height / 2;
+        const levelUpBackground = scene.add.rectangle(centerX, centerY, game.config.width, game.config.height, 0x000000, 0.7);
 
         // Create level up title with improved styling
         const levelUpTitle = scene.add.text(
-            600, 150,
+            centerX, game.config.height * 0.1875, // 150/800 = 0.1875
             'LEVEL UP!',
             {
                 fontFamily: 'Arial',
@@ -110,7 +112,7 @@ const RomajiChallengeSystem = {
         this.elements.levelUpContainer.add(this.elements.perkCardContainer);
 
         // Create input field for romaji typing
-        this.createRomajiInput(scene, 600, 580);
+        this.createRomajiInput(scene, centerX, game.config.height * 0.725); // 580/800 = 0.725
 
         // Create initial card(s)
         this.updatePerkCardDisplay(scene);
@@ -158,7 +160,7 @@ const RomajiChallengeSystem = {
     createRomajiInput: function (scene, x, y) {
         // Create input prompt
         this.elements.inputPrompt = scene.add.text(
-            x, y - 50,
+            x, y - game.config.height * 0.0625, // 50/800 = 0.0625
             'TYPE ROMAJI TO UNLOCK MORE',
             {
                 fontFamily: 'Arial',
@@ -168,12 +170,13 @@ const RomajiChallengeSystem = {
         ).setOrigin(0.5);
 
         // Create input box background
-        this.elements.inputBox = scene.add.rectangle(x, y, 300, 40, 0x333333, 1)
+        const inputBoxWidth = game.config.width * 0.25; // 300/1200 = 0.25
+        this.elements.inputBox = scene.add.rectangle(x, y, inputBoxWidth, 40, 0x333333, 1)
             .setStrokeStyle(2, 0xaaaaaa);
 
-        // Create input text
+        // Create input text (positioned relative to the left of the input box)
         this.elements.inputText = scene.add.text(
-            x - 140, y - 15,
+            x - (inputBoxWidth / 2) + 10, y - 15,
             '',
             {
                 fontFamily: 'Arial',
@@ -184,7 +187,7 @@ const RomajiChallengeSystem = {
 
         // Create submit button - below the input box
         this.elements.submitButton = scene.add.text(
-            x, y + 50,
+            x, y + game.config.height * 0.0625, // 50/800 = 0.0625
             'Submit',
             {
                 fontFamily: 'Arial',
@@ -253,14 +256,17 @@ const RomajiChallengeSystem = {
 
         // Calculate positions for cards
         const cardCount = this.state.currentCards;
-        const totalWidth = cardCount * 220 + (cardCount - 1) * 20; // Card width + spacing
-        const startX = 600 - (totalWidth / 2) + 110; // Center point - half of total width + half card width
+        const cardWidth = 220; // Fixed card width
+        const cardSpacing = game.config.width * 0.0167; // 20/1200 = 0.0167
+        const totalWidth = cardCount * cardWidth + (cardCount - 1) * cardSpacing;
+        const centerX = game.config.width / 2;
+        const startX = centerX - (totalWidth / 2) + (cardWidth / 2);
 
         console.log("Creating " + cardCount + " cards");
 
         // Create each card
         for (let i = 0; i < cardCount; i++) {
-            const cardX = startX + i * 240; // 220 + 20 spacing
+            const cardX = startX + i * (cardWidth + cardSpacing);
             const perk = this.state.selectedPerks[i];
 
             if (!perk) {
@@ -282,7 +288,7 @@ const RomajiChallengeSystem = {
             const showDescription = !isCurrentChallenge || this.state.attempts >= 2;
 
             // Create card elements with appropriate options
-            const cardElements = window.CardSystem.createPerkCardElements(perk, cardX, 330, {
+            const cardElements = window.CardSystem.createPerkCardElements(perk, cardX, game.config.height * 0.4125, { // 330/800 = 0.4125
                 container: this.elements.perkCardContainer,
                 showKana: showKana,
                 showRomaji: showRomaji,
@@ -356,8 +362,10 @@ const RomajiChallengeSystem = {
         });
 
         // Show success message
+        const centerX = game.config.width / 2;
+        const successY = game.config.height * 0.8125; // 650/800 = 0.8125
         const successText = scene.add.text(
-            600, 650,
+            centerX, successY,
             'Correct!',
             {
                 fontFamily: 'Arial',
@@ -406,8 +414,9 @@ const RomajiChallengeSystem = {
             GameUI.updateExpBar(scene);
 
             // Show XP reward
+            const rewardY = game.config.height * 0.85; // 680/800 = 0.85
             const rewardText = scene.add.text(
-                600, 680,
+                centerX, rewardY,
                 `+${xpReward} XP Bonus!`,
                 {
                     fontFamily: 'Arial',
@@ -475,10 +484,13 @@ const RomajiChallengeSystem = {
         this.state.attempts++;
         console.log("Attempts increased to: " + this.state.attempts);
 
+        const centerX = game.config.width / 2;
+        const messageY = game.config.height * 0.8125; // 650/800 = 0.8125
+
         if (this.state.attempts === 1) {
             // First wrong attempt - show kana hint
             const hintText = scene.add.text(
-                600, 650,
+                centerX, messageY,
                 'Hint: Check the kana!',
                 {
                     fontFamily: 'Arial',
@@ -505,8 +517,9 @@ const RomajiChallengeSystem = {
             const cardX = this.state.cardElements[this.state.currentIndex].background.x;
 
             // Add kana text directly
+            const kanaY = game.config.height * 0.39375; // 315/800 = 0.39375
             const kanaText = scene.add.text(
-                cardX, 315,
+                cardX, kanaY,
                 currentPerk.kana,
                 { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff' }
             ).setOrigin(0.5);
@@ -518,7 +531,7 @@ const RomajiChallengeSystem = {
         } else {
             // Second wrong attempt - end input challenge
             const failText = scene.add.text(
-                600, 650,
+                centerX, messageY,
                 'Challenge ended - pick a perk',
                 {
                     fontFamily: 'Arial',

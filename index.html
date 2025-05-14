@@ -56,9 +56,9 @@
             /* Use viewport height instead of fixed 800px */
             position: relative;
             margin: 0 auto;
-            max-width: 1200px;
+            max-width: 500px;
             /* Optional: keep a maximum width */
-            max-height: 800px;
+            max-height: 1000px;
             /* Optional: keep a maximum height */
         }
 
@@ -155,8 +155,8 @@
         // Game configuration
         const config = {
             type: Phaser.AUTO,
-            width: 1200,
-            height: 800,
+            width: 500,
+            height: 1000,
             parent: 'game-container',
             physics: {
                 default: 'arcade',
@@ -173,8 +173,8 @@
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: 1200,
-                height: 800,
+                width: 500,
+                height: 1000,
                 parent: 'game-container',
                 // This is important - it ensures the canvas actually resizes
                 // when the browser window changes
@@ -428,7 +428,7 @@
             InputSystem.setupCursorHiding(this);
 
             // Create player text - using kanji character
-            player = this.add.text(600, 400, HERO_CHARACTER, {
+            player = this.add.text(game.config.width / 2, game.config.height / 2, HERO_CHARACTER, {
                 fontFamily: 'Arial',
                 fontSize: '32px',
                 color: '#ffffff',
@@ -489,15 +489,13 @@
             });
 
             // Create the game over screen (hidden initially)
-            gameOverText = this.add.text(
-                600, 400,
+            gameOverText = this.add.text(game.config.width / 2, game.config.height / 2,
                 'GAME OVER',
                 { fontFamily: 'Arial', fontSize: '40px', color: '#ff0000', fontStyle: 'bold' }
             ).setOrigin(0.5).setVisible(false);
 
             // Create restart button (hidden initially)
-            restartButton = this.add.text(
-                600, 600,
+            restartButton = this.add.text(game.config.width / 2, game.config.height * 0.75,
                 'PLAY AGAIN',
                 { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', backgroundColor: '#880000', padding: { left: 15, right: 15, top: 10, bottom: 10 } }
             ).setOrigin(0.5).setVisible(false).setInteractive();
@@ -506,17 +504,14 @@
             restartButton.on('pointerdown', startGame, this);
 
             // Create learning feedback text (initially empty)
-            this.learningFeedback = this.add.text(
-                600, 770,
-                '',
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '32px',
-                    color: '#ffffff',
-                    stroke: '#000000', // Add stroke for better readability with different colors
-                    strokeThickness: 2,
-                    align: 'center'
-                }
+            this.learningFeedback = this.add.text(game.config.width / 2, game.config.height * 0.9625, '', {
+                fontFamily: 'Arial',
+                fontSize: '32px',
+                color: '#ffffff',
+                stroke: '#000000', // Add stroke for better readability with different colors
+                strokeThickness: 2,
+                align: 'center'
+            }
             ).setOrigin(0.5).setDepth(100); // Ensure it displays above other elements
 
             // Start the game by calling startGame (replaces the need for duplicate initialization)
@@ -588,8 +583,8 @@
             // Updated projectile processing
             projectiles.getChildren().forEach(projectile => {
                 // Check if out of bounds
-                if (projectile.y < -50 || projectile.y > 850 ||
-                    projectile.x < -50 || projectile.x > 1250) {
+                if (projectile.y < -50 || projectile.y > game.config.height + 50 ||
+                    projectile.x < -50 || projectile.x > game.config.width + 50) {
                     projectile.destroy();
                     return;
                 }
@@ -811,8 +806,8 @@
             playerLevel = 1;
 
             // Reset player position
-            player.x = 600;
-            player.y = 400;
+            player.x = game.config.width / 2;
+            player.y = game.config.height / 2;
 
             // Reset UI
             player.setFontSize(32);

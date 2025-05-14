@@ -292,25 +292,6 @@ function createPerkCard(perkId, x, y, options = {}) {
 }
 
 /**
- * Creates a level-up screen with perk cards and romaji challenge
- * @param {Phaser.Scene} scene - The active game scene
- */
-function showLevelUpScreen(scene) {
-    // Delegate to the RomajiChallengeSystem
-    if (window.RomajiChallengeSystem) {
-        window.RomajiChallengeSystem.showLevelUpChallenge(scene);
-    } else {
-        console.error("RomajiChallengeSystem not found, falling back to original implementation");
-        // Legacy fallback method - in case the implementation is incomplete or unavailable
-        if (typeof showLevelUpCards === 'function') {
-            showLevelUpCards.call(scene);
-        } else {
-            console.error("No level up card system available");
-        }
-    }
-}
-
-/**
  * Creates and shuffles an array of perk cards for level up
  * @param {number} count - Number of cards to generate
  * @param {Array} excludeIds - Array of perk IDs to exclude
@@ -340,12 +321,316 @@ function generateRandomPerkCards(count, excludeIds = []) {
     return availablePerks.slice(0, count);
 }
 
-// Enhanced CardSystem object
+// Add this to cards.js
+
+/**
+ * Shows a mobile-friendly level up screen with card navigation
+ * @param {Phaser.Scene} scene - The active game scene
+ */
+function showMobileLevelUpScreen(scene) {
+    // Pause the game
+    PauseSystem.pauseGame();
+
+    // Number of perk options to offer
+    const numPerkOptions = 3;
+
+    // Get random perks (excluding already acquired ones)
+    const availablePerks = PerkSystem.getRandomPerks(numPerkOptions, acquiredPerks);
+
+    // Create a container with high depth for all level-up elements
+    const levelUpContainer = scene.add.container(0, 0);
+    levelUpContainer.setDepth(1000);
+
+    // Create semi-transparent background
+    const centerX = game.config.width / 2;
+    const centerY = game.config.height / 2;
+    const levelUpBackground = scene.add.rectangle(
+        centerX,
+        centerY,
+        game.config.width,
+        game.config.height,
+        0x000000,
+        0.7
+    );
+
+    // Create level up title with improved styling
+    const levelUpTitle = scene.add.text(
+        centerX,
+        game.config.height * 0.15,
+        'LEVEL UP!',
+        {
+            fontFamily: 'Arial',
+            fontSize: '32px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }
+    ).setOrigin(0.5);
+
+    // Create subtitle text
+    const subtitle = scene.add.text(
+        centerX,
+        game.config.height * 0.22,
+        'Choose a perk to continue',
+        {
+            fontFamily: 'Arial',
+            fontSize: '18px',
+            color: '#ffffff'
+        }
+    ).setOrigin(0.5);
+
+    // Add background and text to container
+    levelUpContainer.add(levelUpBackground);
+    levelUpContainer.add(levelUpTitle);
+    levelUpContainer.add(subtitle);
+
+    // Current perk index being displayed
+    let currentPerkIndex = 0;
+
+    // Create perk card at the center
+    let currentCardElements = [];
+
+    // Function to create or update the displayed card
+    function updateDisplayedCard() {
+        // Remove previous card elements if they exist
+        currentCardElements.forEach(element => {
+            if (element && element.destroy) {
+                element.destroy();
+            }
+        });
+        currentCardElements = [];
+
+        // Create new card with the current perk
+        const currentPerk = availablePerks[currentPerkIndex];
+        if (currentPerk) {
+            currentCardElements = CardSystem.createPerkCardElements(
+                currentPerk,
+                centerX,
+                centerY,
+                {
+                    showKana: true,
+                    showRomaji: true,
+                    showEnglish: true,
+                    showDescription: true,
+                    width: Math.min(200, game.config.width * 0.6),
+                    height: 300
+                }
+            );
+
+            // Add all card elements to the container
+            currentCardElements.forEach(element => {
+                levelUpContainer.add(element);
+            });
+
+            // Make the background clickable to select this perk
+            const cardBackground = currentCardElements[0];
+            cardBackground.setInteractive({ useHandCursor: true });
+            cardBackground.on('pointerdown', () => {
+                selectPerk(currentPerk.id);
+            });
+
+            // Add a highlight effect to emphasize it's selectable
+            scene.tweens.add({
+                targets: cardBackground,
+                strokeStyle: { value: 0xffff00 },
+                easeParams: [1, 0.5],
+                yoyo: true,
+                duration: 700,
+                repeat: -1
+            });
+        }
+    }
+
+    // Create navigation arrows
+    const arrowConfig = {
+        fontSize: '40px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 4
+    };
+
+    // Left arrow - only shown if not on first card
+    const leftArrow = scene.add.text(
+        centerX - (game.config.width * 0.25),
+        centerY,
+        '◀',
+        arrowConfig
+    ).setOrigin(0.5);
+    leftArrow.setInteractive({ useHandCursor: true });
+    leftArrow.on('pointerdown', () => {
+        currentPerkIndex = (currentPerkIndex - 1 + numPerkOptions) % numPerkOptions;
+        updateDisplayedCard();
+        updateArrowVisibility();
+    });
+
+    // Right arrow - only shown if not on last card
+    const rightArrow = scene.add.text(
+        centerX + (game.config.width * 0.25),
+        centerY,
+        '▶',
+        arrowConfig
+    ).setOrigin(0.5);
+    rightArrow.setInteractive({ useHandCursor: true });
+    rightArrow.on('pointerdown', () => {
+        currentPerkIndex = (currentPerkIndex + 1) % numPerkOptions;
+        updateDisplayedCard();
+        updateArrowVisibility();
+    });
+
+    // Add arrows to container
+    levelUpContainer.add(leftArrow);
+    levelUpContainer.add(rightArrow);
+
+    // Add card counter text (e.g., "1/3")
+    const counterText = scene.add.text(
+        centerX,
+        centerY + 180, // Below the card
+        `${currentPerkIndex + 1}/${numPerkOptions}`,
+        {
+            fontFamily: 'Arial',
+            fontSize: '18px',
+            color: '#ffffff'
+        }
+    ).setOrigin(0.5);
+    levelUpContainer.add(counterText);
+
+    // Function to update arrow visibility and counter text
+    function updateArrowVisibility() {
+        // Update counter text
+        counterText.setText(`${currentPerkIndex + 1}/${numPerkOptions}`);
+
+        // Make both arrows visible but with different alpha based on position
+        leftArrow.setVisible(true);
+        rightArrow.setVisible(true);
+
+        if (numPerkOptions <= 1) {
+            // Hide both if only one card
+            leftArrow.setVisible(false);
+            rightArrow.setVisible(false);
+        } else {
+            // Set alpha based on position
+            leftArrow.setAlpha(currentPerkIndex === 0 ? 0.5 : 1);
+            rightArrow.setAlpha(currentPerkIndex === numPerkOptions - 1 ? 0.5 : 1);
+        }
+    }
+
+    // Create a select button at the bottom
+    const selectButton = scene.add.text(
+        centerX,
+        game.config.height * 0.8,
+        'Select This Perk',
+        {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: '#ffffff',
+            backgroundColor: '#008800',
+            padding: { left: 15, right: 15, top: 10, bottom: 10 }
+        }
+    ).setOrigin(0.5);
+    selectButton.setInteractive({ useHandCursor: true });
+
+    // Add hover effects
+    selectButton.on('pointerover', function () {
+        this.setStyle({ backgroundColor: '#00aa00' });
+    });
+    selectButton.on('pointerout', function () {
+        this.setStyle({ backgroundColor: '#008800' });
+    });
+
+    // Add click event
+    selectButton.on('pointerdown', () => {
+        const currentPerk = availablePerks[currentPerkIndex];
+        if (currentPerk) {
+            selectPerk(currentPerk.id);
+        }
+    });
+
+    levelUpContainer.add(selectButton);
+
+    // Function to handle perk selection
+    function selectPerk(perkId) {
+        // Acquire the selected perk
+        acquirePerk(scene, perkId);
+
+        // Update UI elements
+        GameUI.updateStatCircles(scene);
+        GameUI.updateHealthBar(scene);
+
+        // Flash the hero when completing level up
+        scene.tweens.add({
+            targets: player,
+            alpha: 0.2,
+            scale: 1.5,
+            duration: 200,
+            yoyo: true,
+            repeat: 1,
+            onComplete: function () {
+                player.setScale(1);
+                player.alpha = 1;
+
+                // Reset the level up lock
+                window.levelUpInProgress = false;
+
+                // Check if we have enough XP for another level up
+                if (heroExp >= xpForNextLevel(playerLevel)) {
+                    // Process next level up after a short delay
+                    setTimeout(() => {
+                        if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
+                            window.levelUpInProgress = true;
+                            levelUp.call(scene);
+                        }
+                    }, 100);
+                }
+            }
+        });
+
+        // Clean up and close the level up screen
+        levelUpContainer.destroy();
+        levelUpCards = []; // Clear global array
+
+        // Resume the game
+        PauseSystem.resumeGame();
+    }
+
+    // Initial display setup
+    updateDisplayedCard();
+    updateArrowVisibility();
+
+    // Add container to global level up cards for potential cleanup
+    levelUpCards = [levelUpContainer];
+}
+
+/**
+ * Modified showLevelUpScreen function with screen size detection
+ * @param {Phaser.Scene} scene - The active game scene
+ */
+function showLevelUpScreen(scene) {
+    // Check if we're on a small screen (mobile)
+    const isMobileScreen = game.config.width < 600; // Example threshold
+
+    if (isMobileScreen) {
+        // Call the mobile-optimized version
+        showMobileLevelUpScreen(scene);
+    } else {
+        // Use the existing romaji challenge for larger screens
+        if (window.RomajiChallengeSystem) {
+            window.RomajiChallengeSystem.showLevelUpChallenge(scene);
+        } else {
+            console.error("RomajiChallengeSystem not found, falling back to mobile implementation");
+            // Fallback to mobile version if romaji system is missing
+            showMobileLevelUpScreen(scene);
+        }
+    }
+}
+
+// Update CardSystem exports to include new function
 const CardSystem = {
     createPerkCardElements,
     createPerkCard,
     getActiveScene,
     showLevelUpScreen,
+    showMobileLevelUpScreen, // Add the new function to the exported object
     generateRandomPerkCards,
     CARD_COLORS
 };

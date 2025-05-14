@@ -49,13 +49,21 @@ const DebugSystem = {
     // Setup performance monitoring display
     setupPerformanceMonitor: function (scene) {
         // Create stats text display (initially hidden)
-        this.statsText = scene.add.text(1000, 10, 'FPS: 0', {
+        // Position in top-right corner with padding
+        const rightPadding = 20;
+        const topPadding = 10;
+        const statsX = game.config.width - rightPadding;
+        const statsY = topPadding;
+
+        this.statsText = scene.add.text(statsX, statsY, 'FPS: 0', {
             fontFamily: 'Arial',
             fontSize: '14px',
             color: '#00ff00',
             backgroundColor: '#000000',
             padding: { x: 5, y: 5 }
         });
+        // Set origin to right-align text against the right edge
+        this.statsText.setOrigin(1, 0);
         this.statsText.setDepth(1000);
         this.statsText.visible = false;
         this.statsVisible = false;

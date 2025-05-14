@@ -816,8 +816,7 @@ function dropGodHammer() {
     // Get all active enemies on screen
     const activeEnemies = EnemySystem.enemiesGroup.getChildren().filter(enemy =>
         enemy.active &&
-        enemy.x >= 0 && enemy.x <= 1200 &&
-        enemy.y >= 0 && enemy.y <= 800
+        enemy.x >= 0 && enemy.x <= game.config.width && enemy.y >= 0 && enemy.y <= game.config.height
     );
 
     if (activeEnemies.length === 0) return;
@@ -920,8 +919,8 @@ PlayerComponentSystem.registerComponent('divineBeaconAbility', {
         if (gameOver || gamePaused) return;
 
         // Random position on screen (with padding from edges)
-        const x = Phaser.Math.Between(20, 1180);
-        const y = Phaser.Math.Between(20, 780);
+        const x = Phaser.Math.Between(game.config.width * 0.017, game.config.width * 0.983); // 20/1200 to 1180/1200
+        const y = Phaser.Math.Between(game.config.height * 0.025, game.config.height * 0.975); // 20/800 to 780/800
 
         // Create the beacon using the kanji for "heaven/sky": 天
         const beacon = this.add.text(x, y, '天', {
@@ -1044,8 +1043,8 @@ PlayerComponentSystem.registerComponent('angelHoneyAbility', {
         if (gameOver || gamePaused) return;
 
         // Random position on screen (with padding from edges)
-        const x = Phaser.Math.Between(20, 1180);
-        const y = Phaser.Math.Between(20, 780);
+        const x = Phaser.Math.Between(game.config.width * 0.017, game.config.width * 0.983); // 20/1200 to 1180/1200
+        const y = Phaser.Math.Between(game.config.height * 0.025, game.config.height * 0.975); // 20/800 to 780/800
 
         // Create the honey using the kanji for "honey": 蜜
         const honey = this.add.text(x, y, '蜜', {
@@ -1169,8 +1168,8 @@ PlayerComponentSystem.registerComponent('alienClockAbility', {
         if (gameOver || gamePaused) return;
 
         // Random position on screen (with padding from edges)
-        const x = Phaser.Math.Between(100, 1100);
-        const y = Phaser.Math.Between(100, 700);
+        const x = Phaser.Math.Between(game.config.width * 0.080, game.config.width * 0.920); // 100/1200 to 1100/1200
+        const y = Phaser.Math.Between(game.config.height * 0.125, game.config.height * 0.875); // 100/800 to 700/800
 
         // Create the beacon using the kanji for "time": 時
         const beacon = this.add.text(x, y, '時', {
@@ -1382,8 +1381,8 @@ PlayerComponentSystem.registerComponent('stormCallerAbility', {
                 if (gameOver || gamePaused) return;
 
                 // Get a random target position on screen
-                const targetX = Phaser.Math.Between(100, 1100);
-                const targetY = Phaser.Math.Between(100, 700);
+                const targetX = Phaser.Math.Between(game.config.width * 0.083, game.config.width * 0.917); // 100/1200 to 1100/1200
+                const targetY = Phaser.Math.Between(game.config.height * 0.125, game.config.height * 0.875); // 100/800 to 700/800
 
                 // Call the lightning strike function
                 createLightningStrike(scene, targetX, targetY);
@@ -1393,8 +1392,8 @@ PlayerComponentSystem.registerComponent('stormCallerAbility', {
         });
 
         // Create initial lightning immediately
-        const targetX = Phaser.Math.Between(100, 1100);
-        const targetY = Phaser.Math.Between(100, 700);
+        const targetX = Phaser.Math.Between(game.config.width * 0.083, game.config.width * 0.917); // 100/1200 to 1100/1200
+        const targetY = Phaser.Math.Between(game.config.height * 0.125, game.config.height * 0.875); // 100/800 to 700/800
         createLightningStrike(scene, targetX, targetY);
     },
 
@@ -1457,8 +1456,8 @@ PlayerComponentSystem.registerComponent('stormBringerAbility', {
         if (gameOver || gamePaused) return;
 
         // Random position on screen (with padding from edges)
-        const x = Phaser.Math.Between(360, (1200 - 360));
-        const y = Phaser.Math.Between(360, (800 - 360));
+        const x = Phaser.Math.Between(game.config.width * 0.2, game.config.width * 0.8); // 360/1200 to (1200-360)/1200
+        const y = Phaser.Math.Between(game.config.height * 0.2, game.config.height * 0.8); // 360/800 to (800-360)/800
 
         // Create the beacon using the kanji for "storm"
         const beacon = this.add.text(x, y, '嵐', {

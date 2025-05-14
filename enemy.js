@@ -80,12 +80,12 @@ const EnemySystem = {
         let x, y;
         if (Math.random() < 0.5) {
             // Spawn on left or right side
-            x = Math.random() < 0.5 ? -50 : 1250;
-            y = Phaser.Math.Between(50, 750);
+            x = Math.random() < 0.5 ? -50 : game.config.width + 50;
+            y = Phaser.Math.Between(50, game.config.height - 50);
         } else {
             // Spawn on top or bottom
-            x = Phaser.Math.Between(50, 1150);
-            y = Math.random() < 0.5 ? -50 : 850;
+            x = Phaser.Math.Between(50, game.config.width - 50);
+            y = Math.random() < 0.5 ? -50 : game.config.height + 50;
         }
 
         // Create the enemy with data-driven properties
@@ -318,8 +318,8 @@ const EnemySystem = {
             const randomAngle = Math.random() * Math.PI * 2;
             const randomDistance = Math.random() * 300 + 100;
 
-            const x = 600 + Math.cos(randomAngle) * randomDistance;
-            const y = 400 + Math.sin(randomAngle) * randomDistance;
+            const x = game.config.width / 2 + Math.cos(randomAngle) * randomDistance;
+            const y = game.config.height / 2 + Math.sin(randomAngle) * randomDistance;
 
             // Randomize appearance time within the duration
             const delay = Math.random() * 3000; // Random delay up to 3 seconds
@@ -365,7 +365,7 @@ const EnemySystem = {
 
         // Wait for most of the kanji to appear, then show the rank
         this.scene.time.delayedCall(2500, () => {
-            const rankText = this.scene.add.text(600, 400, rankName, {
+            const rankText = this.scene.add.text(game.config.width / 2, game.config.height / 2, rankName, {
                 fontFamily: 'Arial',
                 fontSize: '200px',
                 color: '#ff0000',
@@ -503,7 +503,7 @@ const EnemySystem = {
         const enemyData = getEnemyData(bossType);
 
         // Spawn position (center of screen)
-        const x = 600;
+        const x = game.config.width / 2;
         const y = -50;
 
         // Create the boss with data-driven properties
@@ -598,7 +598,7 @@ const EnemySystem = {
         const borderWidth = UI.healthBar.borderWidth;
         const innerMargin = UI.healthBar.innerMargin;
         const centerX = UI.healthBar.centerX();
-        const y = 730; // Position near the bottom for boss health bar
+        const y = game.config.height * 0.9125; // 730/800 = 0.9125 -- Position near the bottom for boss health bar
 
         // Create gold border with black background (like the player health bar)
         scene.bossHealthBarBorder = scene.add.rectangle(

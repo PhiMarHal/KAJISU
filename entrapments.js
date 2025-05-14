@@ -198,8 +198,8 @@ window.activateBloomingFlower = function () {
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['BLOOMING_FLOWER'].getConfig();
 
     // Explicitly set random position for the first flower
-    flowerConfig.x = Phaser.Math.Between(0, 1200);
-    flowerConfig.y = Phaser.Math.Between(0, 800);
+    flowerConfig.x = Phaser.Math.Between(0, game.config.width);
+    flowerConfig.y = Phaser.Math.Between(0, game.config.height);
 
     // Create the first flower immediately
     DropperSystem.create(scene, flowerConfig);
@@ -282,8 +282,8 @@ window.activatePoisonFlower = function () {
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['POISON_FLOWER'].getConfig();
 
     // Explicitly set random position for the first flower
-    flowerConfig.x = Phaser.Math.Between(0, 1200);
-    flowerConfig.y = Phaser.Math.Between(0, 800);
+    flowerConfig.x = Phaser.Math.Between(0, game.config.width);
+    flowerConfig.y = Phaser.Math.Between(0, game.config.height);
 
     // Create the first flower immediately
     DropperSystem.create(scene, flowerConfig);
@@ -329,8 +329,8 @@ window.activateColdFlower = function () {
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['COLD_FLOWER'].getConfig();
 
     // Explicitly set random position for the first flower
-    flowerConfig.x = Phaser.Math.Between(0, 1200);
-    flowerConfig.y = Phaser.Math.Between(0, 800);
+    flowerConfig.x = Phaser.Math.Between(0, game.config.width);
+    flowerConfig.y = Phaser.Math.Between(0, game.config.height);
 
     // Create the first flower immediately
     DropperSystem.create(scene, flowerConfig);

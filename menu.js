@@ -656,22 +656,46 @@ UI.gameEndScreen = {
 // Manages both victory and defeat end screens
 
 // Adding to the existing UI namespace in menu.js
+// Modified gameEndScreen to support minimum width for small screens
 UI.gameEndScreen = {
-    width: function () { return UI.rel.width(50); },     // 50% of screen width
+    // Width with minimum size to prevent squashing on small screens
+    width: function () {
+        const calculatedWidth = UI.rel.width(50); // Original 50% of screen width
+        return Math.max(calculatedWidth, 480); // Minimum 480px width
+    },
     height: function () { return UI.rel.height(60); },   // 60% of screen height
     y: function () { return UI.rel.y(50); },             // Center of screen vertically
     x: function () { return UI.rel.x(50); },             // Center of screen horizontally
     borderWidth: 4,
     innerPadding: function () { return UI.rel.width(2); }, // 2% padding inside
+    // Scale factor for text based on screen width relative to baseline 1200px
+    scaleFactor: function () {
+        // Calculate based on actual width and baseline of 1200px
+        const minScale = 0.8; // Minimum scale factor (used at 480px width)
+        const baselineWidth = 1200;
+        const currentWidth = UI.game.getWidth();
+
+        // Scale relative to the baseline, but not below minimum
+        return Math.max(minScale, currentWidth / baselineWidth);
+    },
     fontSizes: {
-        title: function () { return `${UI.rel.fontSize(4)}px`; },     // 4% of screen height
-        subtitle: function () { return `${UI.rel.fontSize(3)}px`; },  // 3% of screen height
-        stats: function () { return `${UI.rel.fontSize(2.5)}px`; },   // 2.5% of screen height
-        button: function () { return `${UI.rel.fontSize(3)}px`; }     // 3% of screen height
+        title: function () {
+            // Scale the font size by the scale factor
+            return `${UI.rel.fontSize(4) * UI.gameEndScreen.scaleFactor()}px`;
+        },
+        subtitle: function () {
+            return `${UI.rel.fontSize(3) * UI.gameEndScreen.scaleFactor()}px`;
+        },
+        stats: function () {
+            return `${UI.rel.fontSize(2.5) * UI.gameEndScreen.scaleFactor()}px`;
+        },
+        button: function () {
+            return `${UI.rel.fontSize(3) * UI.gameEndScreen.scaleFactor()}px`;
+        }
     }
 };
 
-// Game End Menu component
+// Game End Menu component - modified for better small screen support
 const GameEndMenu = {
     // UI elements
     elements: {
@@ -750,12 +774,22 @@ const GameEndMenu = {
         const titleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 3;
         const subtitleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 6;
 
+        // Calculate spacing based on screen/panel width
+        const panelWidth = UI.gameEndScreen.width();
+        const scaleFactor = UI.gameEndScreen.scaleFactor();
+
+        // Scale horizontal positioning based on our scale factor
+        const heroKanjiX = centerX - (200 * scaleFactor);
+        const titleTextX = centerX - (150 * scaleFactor);
+        const subtitleTextX = centerX;
+        const bossKanjiX = centerX + (180 * scaleFactor);
+
         // The boss kanji to display (use a generic one if not specified)
         const bossSymbol = bossKanji ?? (activeBoss?.text ?? '魔');
 
         // Create hero kanji in WHITE
         this.elements.heroKanji = scene.add.text(
-            centerX - 200, // Position needs to be adjusted based on your layout
+            heroKanjiX,
             titleY,
             HERO_CHARACTER,
             {
@@ -769,7 +803,7 @@ const GameEndMenu = {
 
         // Create title text in GOLD - using explicit hex for gold
         this.elements.titleText = scene.add.text(
-            centerX - 150, // Position adjusted to come after hero kanji
+            titleTextX,
             titleY,
             'VANQUISHED THE LOOP',
             {
@@ -781,11 +815,11 @@ const GameEndMenu = {
         ).setOrigin(0, 0.5); // Left aligned
         this.elements.container.add(this.elements.titleText);
 
-        // Create subtitle text in GOLD
+        // Create subtitle text in GOLD - centered for better mobile layout
         this.elements.subtitleText = scene.add.text(
-            centerX - 60, // Position adjusted to allow space for enemy kanji
+            subtitleTextX,
             subtitleY,
-            'BEATING THE GUARDIAN ',
+            'BEATING THE GUARDIAN',
             {
                 fontFamily: 'Arial',
                 fontSize: UI.gameEndScreen.fontSizes.title(),
@@ -795,9 +829,9 @@ const GameEndMenu = {
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.subtitleText);
 
-        // Create boss kanji in BOSS COLOR (RED)
+        // Create boss kanji in BOSS COLOR (RED) - positioned to the right of subtitle
         this.elements.enemyKanji = scene.add.text(
-            centerX + 180, // Position adjusted to come after subtitle text
+            bossKanjiX,
             subtitleY,
             bossSymbol,
             {
@@ -806,7 +840,7 @@ const GameEndMenu = {
                 color: '#FF5555', // Default red for enemy
                 fontStyle: 'bold'
             }
-        ).setOrigin(0, 0.5); // Left aligned
+        ).setOrigin(0.5); // Centered for better positioning
         this.elements.container.add(this.elements.enemyKanji);
 
         // Create stats line in GOLD
@@ -830,12 +864,22 @@ const GameEndMenu = {
         const titleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 3;
         const subtitleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 6;
 
+        // Calculate spacing based on screen/panel width
+        const panelWidth = UI.gameEndScreen.width();
+        const scaleFactor = UI.gameEndScreen.scaleFactor();
+
+        // Scale horizontal positioning based on our scale factor
+        const heroKanjiX = centerX - (240 * scaleFactor);
+        const titleTextX = centerX - (180 * scaleFactor);
+        const subtitleTextX = centerX - (60 * scaleFactor);
+        const enemyKanjiX = centerX + (200 * scaleFactor);
+
         // The enemy kanji to display (use a generic one if not specified)
         const enemySymbol = enemyKanji ?? '敵'; // Default enemy kanji
 
         // Create hero kanji in WHITE
         this.elements.heroKanji = scene.add.text(
-            centerX - 200, // Position needs to be adjusted based on your layout
+            heroKanjiX,
             titleY,
             HERO_CHARACTER,
             {
@@ -849,7 +893,7 @@ const GameEndMenu = {
 
         // Create title text in GOLD
         this.elements.titleText = scene.add.text(
-            centerX - 150, // Position adjusted to come after hero kanji
+            titleTextX,
             titleY,
             'FOUND THEIR DEMISE',
             {
@@ -861,11 +905,11 @@ const GameEndMenu = {
         ).setOrigin(0, 0.5); // Left aligned
         this.elements.container.add(this.elements.titleText);
 
-        // Create subtitle text in GOLD
+        // Create subtitle text in GOLD - centered for better mobile layout
         this.elements.subtitleText = scene.add.text(
-            centerX - 50, // Position adjusted to allow space for enemy kanji
+            subtitleTextX,
             subtitleY,
-            'AT THE HANDS OF ',
+            'AT THE HANDS OF',
             {
                 fontFamily: 'Arial',
                 fontSize: UI.gameEndScreen.fontSizes.title(),
@@ -877,7 +921,7 @@ const GameEndMenu = {
 
         // Create enemy kanji in ENEMY COLOR (RED)
         this.elements.enemyKanji = scene.add.text(
-            centerX + 120, // Position adjusted to come after subtitle text
+            enemyKanjiX,
             subtitleY,
             enemySymbol,
             {
@@ -886,7 +930,7 @@ const GameEndMenu = {
                 color: '#FF5555', // Red color for enemy
                 fontStyle: 'bold'
             }
-        ).setOrigin(0, 0.5); // Left aligned
+        ).setOrigin(0.5); // Centered for better positioning
         this.elements.container.add(this.elements.enemyKanji);
 
         // Create stats line in GOLD

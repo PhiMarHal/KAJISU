@@ -9,7 +9,13 @@ const OneTimeEffects = {
         if (!scene) return;
 
         // Create visual effect first
-        const flash = scene.add.rectangle(600, 400, 1200, 800, 0xFFFFFF, 0.8);
+        const flash = scene.add.rectangle(
+            game.config.width / 2,
+            game.config.height / 2,
+            game.config.width,
+            game.config.height,
+            0xFFFFFF, 0.8
+        );
         flash.setDepth(1000); // Ensure it appears on top
 
         // Flash animation
@@ -44,7 +50,7 @@ const OneTimeEffects = {
             // Expand shockwave
             scene.tweens.add({
                 targets: shockwave,
-                radius: 1600, // Expand to cover the screen
+                radius: Math.max(game.config.width, game.config.height) * 1.2, // 1.2x to ensure full coverage
                 alpha: 0,
                 duration: 1600,
                 onComplete: function () {
@@ -112,7 +118,10 @@ const OneTimeEffects = {
             });
 
             // Add dramatic sound effect text
-            const boomText = scene.add.text(600, 400, '終焉', {
+            const boomText = scene.add.text(
+                game.config.width / 2,
+                game.config.height / 2,
+                '終焉', {
                 fontFamily: 'Arial',
                 fontSize: '80px',
                 color: '#FF3300',

@@ -64,14 +64,24 @@ const PauseSystem = {
             return;
         }
 
+        const centerX = game.config.width / 2;
+        const centerY = game.config.height / 2;
+
         // Create semi-transparent background
-        this.elements.pauseScreen = scene.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
+        this.elements.pauseScreen = scene.add.rectangle(
+            centerX,
+            centerY,
+            game.config.width,
+            game.config.height,
+            0x000000, 0.7
+        );
         this.elements.pauseScreen.setVisible(false);
         this.elements.pauseScreen.setDepth(1000); // Make sure it appears on top
 
         // Create pause message
         this.elements.pauseMessage = scene.add.text(
-            600, 100,
+            centerX,
+            game.config.height * 0.125, // 100/800 = 0.125
             'GAME PAUSED',
             { fontFamily: 'Arial', fontSize: '40px', color: '#ffffff', fontStyle: 'bold' }
         ).setOrigin(0.5);
@@ -80,7 +90,8 @@ const PauseSystem = {
 
         // Create resume button
         this.elements.resumeButton = scene.add.text(
-            600, 700,
+            centerX,
+            game.config.height * 0.875, // 700/800 = 0.875
             'RESUME GAME',
             {
                 fontFamily: 'Arial',
@@ -115,7 +126,8 @@ const PauseSystem = {
 
         // Create perks title
         const perksTitle = scene.add.text(
-            600, 200,
+            centerX,
+            game.config.height * 0.25, // 200/800 = 0.25
             'MY PERKS',
             { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }
         ).setOrigin(0.5);
@@ -264,6 +276,8 @@ const PauseSystem = {
             return;
         }
 
+        const centerX = game.config.width / 2;
+
         // Clear existing perk icons first
         if (this.elements.perkIcons) {
             this.elements.perkIcons.forEach(icon => {
@@ -300,7 +314,8 @@ const PauseSystem = {
         // If no perks, show a message
         if (acquiredPerks.length === 0) {
             const noPerkText = scene.add.text(
-                600, 350,
+                centerX,
+                game.config.height * 0.4375, // 350/800 = 0.4375
                 'No perks acquired yet',
                 { fontFamily: 'Arial', fontSize: '20px', color: '#aaaaaa' }
             ).setOrigin(0.5);
@@ -333,12 +348,12 @@ const PauseSystem = {
         });
 
         // Configuration for paginated layout
-        const spacing = 20; // Pixels between kanji horizontally
+        const spacing = game.config.width * 0.0167; // 20/1200 = 0.0167 (Pixels between kanji horizontally)
         const perksPerRow = 8; // Maximum perks per row
         const rowsPerPage = 4; // Maximum rows per page
         const perksPerPage = perksPerRow * rowsPerPage; // Perks per page (32)
-        const rowHeight = 70; // Vertical spacing between rows
-        const startY = 280; // Starting Y position for the first row
+        const rowHeight = game.config.height * 0.0875; // 70/800 = 0.0875 (Vertical spacing between rows)
+        const startY = game.config.height * 0.35; // 280/800 = 0.35 (Starting Y position for the first row)
 
         // Calculate total number of pages
         const totalPages = Math.ceil(measurements.length / perksPerPage);
@@ -364,7 +379,7 @@ const PauseSystem = {
                 (spacing * (row.length - 1));
 
             // Calculate starting X position to center this row
-            let currentX = 600 - (rowWidth / 2);
+            let currentX = centerX - (rowWidth / 2);
             const y = startY + (rowIndex * rowHeight);
 
             // Create perk icons for this row
@@ -398,7 +413,7 @@ const PauseSystem = {
                     this.setScale(1.2);
 
                     // Always place card below, regardless of row position
-                    const cardY = y + 150;
+                    const cardY = y + game.config.height * 0.1875; // 150/800 = 0.1875
 
                     PauseSystem.showPerkCard(scene, perkId, centerX, cardY);
                 });
@@ -422,10 +437,13 @@ const PauseSystem = {
 
         // Only show pagination if we have multiple pages
         if (totalPages > 1) {
+            const paginationY = game.config.height * 0.725; // 580/800 = 0.725
+
             // Create left arrow (if not on first page)
             if (this.currentPerkPage > 0) {
                 const leftArrow = scene.add.text(
-                    520, 580,
+                    centerX - game.config.width * 0.067, // 80/1200 = 0.067 (shifted 80px left from center)
+                    paginationY,
                     '◀',
                     {
                         fontFamily: 'Arial',
@@ -460,7 +478,8 @@ const PauseSystem = {
 
             // Create page counter
             const pageCounter = scene.add.text(
-                600, 580,
+                centerX,
+                paginationY,
                 `${this.currentPerkPage + 1}/${totalPages}`,
                 {
                     fontFamily: 'Arial',
@@ -475,7 +494,8 @@ const PauseSystem = {
             // Create right arrow (if not on last page)
             if (this.currentPerkPage < totalPages - 1) {
                 const rightArrow = scene.add.text(
-                    680, 580,
+                    centerX + game.config.width * 0.067, // 80/1200 = 0.067 (shifted 80px right from center)
+                    paginationY,
                     '▶',
                     {
                         fontFamily: 'Arial',

@@ -26,8 +26,8 @@ function createDamageVignette(scene) {
     damageVignette.setAlpha(0); // Start invisible
 
     // Get screen dimensions from config
-    const screenWidth = config.width; // 1200
-    const screenHeight = config.height; // 800
+    const screenWidth = game.config.width; // 1200
+    const screenHeight = game.config.height; // 800
 
     // Create more rectangles for a smoother gradient
     const totalBands = 10; // Keeping the same number of bands

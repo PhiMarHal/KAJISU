@@ -160,8 +160,8 @@ const WeaponSystem = {
             if (!projectile || !projectile.active) return;
 
             // Check if out of bounds
-            if (projectile.y < -50 || projectile.y > 850 ||
-                projectile.x < -50 || projectile.x > 1250) {
+            if (projectile.y < -50 || projectile.y > game.config.height + 50 ||
+                projectile.x < -50 || projectile.x > game.config.width + 50) {
                 projectile.destroy();
                 return;
             }

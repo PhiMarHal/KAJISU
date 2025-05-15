@@ -152,11 +152,13 @@
     </div>
 
     <script>
+        const KAJISULI_MODE = true;
+
         // Game configuration
         const config = {
             type: Phaser.AUTO,
-            width: 500,
-            height: 1000,
+            width: KAJISULI_MODE ? 500 : 1200,
+            height: KAJISULI_MODE ? 1000 : 800,
             parent: 'game-container',
             physics: {
                 default: 'arcade',
@@ -173,8 +175,8 @@
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: 500,
-                height: 1000,
+                width: KAJISULI_MODE ? 500 : 1200,
+                height: KAJISULI_MODE ? 1000 : 800,
                 parent: 'game-container',
                 // This is important - it ensures the canvas actually resizes
                 // when the browser window changes

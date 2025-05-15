@@ -593,7 +593,8 @@ const EnemySystem = {
         }
 
         // Get dimensions from UI health bar constants for consistency
-        const width = UI.healthBar.width();
+        const kajisuliScale = (typeof KAJISULI_MODE !== 'undefined' && KAJISULI_MODE) ? 1.5 : 1;
+        const width = UI.healthBar.width() * kajisuliScale;
         const height = UI.healthBar.height();
         const borderWidth = UI.healthBar.borderWidth;
         const innerMargin = UI.healthBar.innerMargin;
@@ -640,7 +641,8 @@ const EnemySystem = {
         const healthPercent = boss.health / boss.maxHealth;
 
         // Get width from UI health bar constants (minus margins)
-        const fullWidth = UI.healthBar.width() - (UI.healthBar.innerMargin * 2);
+        const kajisuliScale = (typeof KAJISULI_MODE !== 'undefined' && KAJISULI_MODE) ? 1.5 : 1;
+        const fullWidth = UI.healthBar.width() * kajisuliScale - (UI.healthBar.innerMargin * 2);
 
         // Update health bar width based on percentage
         scene.bossHealthBar.width = fullWidth * healthPercent;

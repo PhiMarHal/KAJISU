@@ -1,6 +1,3 @@
-// pause.js - Pause system for Word Survivors
-// Manages game pause functionality, UI, and perk display during pause
-
 // Pause System namespace
 const PauseSystem = {
     // UI elements
@@ -11,7 +8,8 @@ const PauseSystem = {
         perkIcons: [],
         paginationControls: [],
         activePerkCard: null,
-        pausePerksContainer: null
+        pausePerksContainer: null,
+        statsContainer: null // New element for kajisuli stats display
     },
 
     // State tracking
@@ -124,10 +122,19 @@ const PauseSystem = {
         this.elements.pausePerksContainer.setDepth(1001);
         this.elements.pausePerksContainer.setVisible(false);
 
-        // Create perks title
+        // Create container for stats display (used in kajisuli mode)
+        this.elements.statsContainer = scene.add.container(0, 0);
+        this.elements.statsContainer.setDepth(1001);
+        this.elements.statsContainer.setVisible(false);
+
+        // Create perks title (adjusted for kajisuli mode to make room for stats)
+        const perksTitleY = KAJISULI_MODE ?
+            game.config.height * 0.32 : // Move down in kajisuli mode
+            game.config.height * 0.25;  // Standard position
+
         const perksTitle = scene.add.text(
             centerX,
-            game.config.height * 0.25, // 200/800 = 0.25
+            perksTitleY,
             'MY PERKS',
             { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }
         ).setOrigin(0.5);
@@ -232,6 +239,12 @@ const PauseSystem = {
         if (this.elements.pausePerksContainer) {
             this.elements.pausePerksContainer.setVisible(false);
         }
+
+        // Hide stats container if it exists
+        if (this.elements.statsContainer) {
+            this.elements.statsContainer.setVisible(false);
+        }
+
         console.log("Game resumed");
     },
 
@@ -259,13 +272,87 @@ const PauseSystem = {
         this.elements.pauseMessage.setVisible(true);
         this.elements.resumeButton.setVisible(true);
 
-        // Update and show perks
+        // Get the active scene
         const scene = game.scene.scenes[0];
         if (scene) {
+            // In kajisuli mode, show stats before perks
+            if (KAJISULI_MODE) {
+                this.showStatsDisplay(scene);
+            }
+
+            // Update and show perks
             this.updatePauseScreenPerks(scene);
         }
 
         console.log("Game paused with overlay");
+    },
+
+    // Create and show stats display (for kajisuli mode)
+    showStatsDisplay: function (scene) {
+        // Clear any existing stats display
+        if (this.elements.statsContainer) {
+            this.elements.statsContainer.removeAll(true);
+        }
+
+        // Define stat info with kanji and values
+        const stats = [
+            { symbol: UI.statDisplay.symbols.POW, value: getEffectiveDamage(), color: UI.statDisplay.symbolColors.POW },
+            { symbol: UI.statDisplay.symbols.AGI, value: getEffectiveFireRate(), color: UI.statDisplay.symbolColors.AGI },
+            { symbol: UI.statDisplay.symbols.LUK, value: playerLuck, color: UI.statDisplay.symbolColors.LUK },
+            { symbol: UI.statDisplay.symbols.END, value: maxPlayerHealth, color: UI.statDisplay.symbolColors.END }
+        ];
+
+        // Get center X position
+        const centerX = game.config.width / 2;
+
+        // Position stats below "GAME PAUSED" text
+        const statsY = game.config.height * 0.2;
+
+        // Create stats container at the right position
+        this.elements.statsContainer.setPosition(0, 0);
+        this.elements.statsContainer.setVisible(true);
+
+        // Calculate spacing and box dimensions
+        const boxWidth = game.config.width * 0.15;    // 15% of screen width per box
+        const boxHeight = game.config.height * 0.05;  // 5% of screen height
+        const spacing = game.config.width * 0.06;     // 6% of screen width between boxes
+        const totalWidth = (boxWidth * stats.length) + (spacing * (stats.length - 1));
+        const startX = centerX - (totalWidth / 2) + (boxWidth / 2);
+
+        // Add each stat in its own gold-bordered box
+        stats.forEach((stat, index) => {
+            // Calculate x position with even spacing
+            const x = startX + (spacing + boxWidth) * index;
+
+            // Create gold border for this stat
+            const border = scene.add.rectangle(
+                x, statsY,
+                boxWidth, boxHeight,
+                UI.colors.gold
+            );
+
+            // Create inner black background
+            const background = scene.add.rectangle(
+                x, statsY,
+                boxWidth - 4, boxHeight - 4,
+                0x000000
+            );
+
+            // Create the stat text: kanji and value on the same line
+            const statText = scene.add.text(
+                x, statsY,
+                `${stat.symbol} ${Math.floor(stat.value)}`,
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '24px',
+                    color: stat.color,
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5);
+
+            // Add all elements to the container
+            this.elements.statsContainer.add([border, background, statText]);
+        });
     },
 
     // Update perks display in pause screen
@@ -347,13 +434,19 @@ const PauseSystem = {
             tempText.destroy();
         });
 
-        // Configuration for paginated layout
-        const spacing = game.config.width * 0.0167; // 20/1200 = 0.0167 (Pixels between kanji horizontally)
-        const perksPerRow = 8; // Maximum perks per row
-        const rowsPerPage = 4; // Maximum rows per page
-        const perksPerPage = perksPerRow * rowsPerPage; // Perks per page (32)
-        const rowHeight = game.config.height * 0.0875; // 70/800 = 0.0875 (Vertical spacing between rows)
-        const startY = game.config.height * 0.35; // 280/800 = 0.35 (Starting Y position for the first row)
+        // Configuration for paginated layout - adjust for kajisuli mode
+        const perksPerRow = KAJISULI_MODE ? 4 : 8; // Fewer perks per row in kajisuli mode 
+        const rowsPerPage = KAJISULI_MODE ? 5 : 4; // More rows in kajisuli mode due to taller screen
+        const perksPerPage = perksPerRow * rowsPerPage;
+
+        // Adjust spacing and positioning for different screen sizes
+        const spacing = game.config.width * 0.04; // Relative spacing
+        const rowHeight = game.config.height * 0.075; // Relative row height
+
+        // Adjust startY based on kajisuli mode and stats display
+        const startY = KAJISULI_MODE ?
+            game.config.height * 0.4 : // Higher in kajisuli mode to make room for stats
+            game.config.height * 0.35; // Normal position
 
         // Calculate total number of pages
         const totalPages = Math.ceil(measurements.length / perksPerPage);
@@ -413,7 +506,10 @@ const PauseSystem = {
                     this.setScale(1.2);
 
                     // Always place card below, regardless of row position
-                    const cardY = y + game.config.height * 0.1875; // 150/800 = 0.1875
+                    // Adjust card position for kajisuli mode
+                    const cardY = KAJISULI_MODE ?
+                        Math.min(y + game.config.height * 0.15, game.config.height * 0.7) : // Keep within bounds
+                        y + game.config.height * 0.1875; // Normal position
 
                     PauseSystem.showPerkCard(scene, perkId, centerX, cardY);
                 });
@@ -437,12 +533,15 @@ const PauseSystem = {
 
         // Only show pagination if we have multiple pages
         if (totalPages > 1) {
-            const paginationY = game.config.height * 0.725; // 580/800 = 0.725
+            // Adjust pagination position for kajisuli mode
+            const paginationY = KAJISULI_MODE ?
+                game.config.height * 0.8 : // Lower in kajisuli mode
+                game.config.height * 0.725; // Normal position
 
             // Create left arrow (if not on first page)
             if (this.currentPerkPage > 0) {
                 const leftArrow = scene.add.text(
-                    centerX - game.config.width * 0.067, // 80/1200 = 0.067 (shifted 80px left from center)
+                    centerX - game.config.width * 0.15, // Relative positioning
                     paginationY,
                     '◀',
                     {
@@ -494,7 +593,7 @@ const PauseSystem = {
             // Create right arrow (if not on last page)
             if (this.currentPerkPage < totalPages - 1) {
                 const rightArrow = scene.add.text(
-                    centerX + game.config.width * 0.067, // 80/1200 = 0.067 (shifted 80px right from center)
+                    centerX + game.config.width * 0.15, // Relative positioning
                     paginationY,
                     '▶',
                     {
@@ -540,7 +639,9 @@ const PauseSystem = {
             container: this.elements.pausePerksContainer,
             backgroundColor: 0x333333,
             strokeWidth: 3,
-            strokeColor: 0xeeeeee
+            strokeColor: 0xeeeeee,
+            // Adjust card size for kajisuli mode
+            scale: KAJISULI_MODE ? 0.85 : 1 // Slightly smaller in kajisuli mode
         });
     },
 
@@ -579,7 +680,8 @@ const PauseSystem = {
             perkIcons: [],
             paginationControls: [],
             activePerkCard: null,
-            pausePerksContainer: null
+            pausePerksContainer: null,
+            statsContainer: null
         };
 
         // Reset state

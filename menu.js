@@ -2,6 +2,13 @@
 
 // UI Element constants with relative positioning
 const UI = {
+    kajisuli: {
+        enabled: function () {
+            // Access the global KAJISULI_MODE defined in index.html
+            return (typeof KAJISULI_MODE !== 'undefined') ? KAJISULI_MODE : false;
+        }
+    },
+
     // Functions to get current game dimensions
     game: {
         getWidth: function () {
@@ -169,12 +176,17 @@ const HealthBar = {
         if (scene.healthBarBg) scene.healthBarBg.destroy();
         if (scene.healthText) scene.healthText.destroy();
 
+        const kajisuliScale = {
+            width: UI.kajisuli.enabled() ? 1.5 : 1,
+            height: 1 // Keep the same height
+        };
+
         // Create new container with golden border
         scene.healthBarBg = scene.add.rectangle(
             UI.healthBar.centerX(),
             UI.healthBar.y(),
-            UI.healthBar.width() + (UI.healthBar.borderWidth * 2),
-            UI.healthBar.height() + (UI.healthBar.borderWidth * 2),
+            UI.healthBar.width() * kajisuliScale.width + (UI.healthBar.borderWidth * 2),
+            UI.healthBar.height() * kajisuliScale.height + (UI.healthBar.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui);
 
@@ -182,8 +194,8 @@ const HealthBar = {
         const innerBg = scene.add.rectangle(
             UI.healthBar.centerX(),
             UI.healthBar.y(),
-            UI.healthBar.width(),
-            UI.healthBar.height(),
+            UI.healthBar.width() * kajisuliScale.width,
+            UI.healthBar.height() * kajisuliScale.height,
             UI.colors.black
         ).setDepth(UI.depth.ui);
 
@@ -205,15 +217,18 @@ const HealthBar = {
         scene.healthSegments.clear(true, true);
         if (scene.healthSeparators) scene.healthSeparators.clear(true, true);
 
+        // Get kajisuli scale factor
+        const kajisuliScale = UI.kajisuli.enabled() ? 1.5 : 1;
+
         // Actual content width (excluding margins)
-        const contentWidth = UI.healthBar.width() - (UI.healthBar.innerMargin * 2);
+        const contentWidth = (UI.healthBar.width() * kajisuliScale.width) - (UI.healthBar.innerMargin * 2);
 
         // Calculate segment width based on max health
-        const totalGapWidth = (maxPlayerHealth - 1) * UI.healthBar.segmentGap();
+        const totalGapWidth = (maxPlayerHealth - 1) * (UI.healthBar.segmentGap() * kajisuliScale.width);
         const segmentWidth = (contentWidth - totalGapWidth) / maxPlayerHealth;
 
         // Starting X position (accounting for margin)
-        const startPosX = UI.healthBar.startX() + UI.healthBar.innerMargin;
+        const startPosX = UI.healthBar.centerX() - (contentWidth / 2) + UI.healthBar.innerMargin;
 
         // Create each segment
         for (let i = 0; i < maxPlayerHealth; i++) {
@@ -221,14 +236,14 @@ const HealthBar = {
             const isFilled = i < playerHealth;
 
             // Calculate segment position
-            const segmentX = startPosX + (i * (segmentWidth + UI.healthBar.segmentGap()));
+            const segmentX = startPosX + (i * (segmentWidth + (UI.healthBar.segmentGap() * kajisuliScale)));
 
             // Create segment with high depth
             const segment = scene.add.rectangle(
                 segmentX + (segmentWidth / 2),
                 UI.healthBar.y(),
                 segmentWidth,
-                UI.healthBar.height() - (UI.healthBar.innerMargin * 2),
+                UI.healthBar.height() * kajisuliScale.height - (UI.healthBar.innerMargin * 2),
                 isFilled ? UI.colors.green : UI.colors.grey
             ).setDepth(UI.depth.ui);
 
@@ -237,12 +252,12 @@ const HealthBar = {
 
             // Add golden separator after each segment (except the last one)
             if (i < maxPlayerHealth - 1) {
-                const separatorX = segmentX + segmentWidth + (UI.healthBar.segmentGap() / 2);
+                const separatorX = segmentX + segmentWidth + ((UI.healthBar.segmentGap() * kajisuliScale) / 2);
                 const separator = scene.add.rectangle(
                     separatorX,
                     UI.healthBar.y(),
                     2,
-                    UI.healthBar.height() - (UI.healthBar.innerMargin * 2),
+                    UI.healthBar.height() * kajisuliScale - (UI.healthBar.innerMargin * 2),
                     UI.colors.gold
                 ).setDepth(UI.depth.ui);
                 scene.healthSeparators.add(separator);
@@ -303,12 +318,18 @@ const ExpBar = {
         if (scene.levelText) scene.levelText.destroy();
         if (scene.xpNeededText) scene.xpNeededText.destroy();
 
+        // Get kajisuli scale factor
+        const kajisuliScale = {
+            width: UI.kajisuli.enabled() ? 1.5 : 1,
+            height: 1 // Keep the same height
+        };
+
         // Create new container with golden border
         scene.expBarBg = scene.add.rectangle(
             UI.expBar.centerX(),
             UI.expBar.y(),
-            UI.expBar.width() + (UI.expBar.borderWidth * 2),
-            UI.expBar.height() + (UI.expBar.borderWidth * 2),
+            UI.expBar.width() * kajisuliScale.width + (UI.expBar.borderWidth * 2),
+            UI.expBar.height() * kajisuliScale.height + (UI.expBar.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui);
 
@@ -316,40 +337,44 @@ const ExpBar = {
         const innerBg = scene.add.rectangle(
             UI.expBar.centerX(),
             UI.expBar.y(),
-            UI.expBar.width(),
-            UI.expBar.height(),
+            UI.expBar.width() * kajisuliScale.width,
+            UI.expBar.height() * kajisuliScale.height,
             UI.colors.black
         ).setDepth(UI.depth.ui);
 
         // Create the exp bar itself (initially empty)
         scene.expBar = scene.add.rectangle(
-            UI.expBar.startX(),
+            UI.expBar.centerX() - (UI.expBar.width() * kajisuliScale.width / 2),
             UI.expBar.y(),
             0,
-            UI.expBar.height() - (UI.expBar.innerMargin * 2),
+            UI.expBar.height() * kajisuliScale.height - (UI.expBar.innerMargin * 2),
             UI.expBar.barColor
         ).setOrigin(0, 0.5).setDepth(UI.depth.ui);
 
         // Create level text to the left of the bar
         scene.levelText = scene.add.text(
-            UI.expBar.startX() - UI.rel.width(2.5),
+            UI.expBar.centerX() - (UI.expBar.width() * kajisuliScale / 2) - UI.rel.width(2.5),
             UI.expBar.y(),
             "1",
             {
                 fontFamily: UI.fonts.level.family,
-                fontSize: UI.fonts.level.size(),
+                fontSize: UI.kajisuli.enabled() ?
+                    parseInt(UI.fonts.level.size()) * 1.2 + 'px' :
+                    UI.fonts.level.size(),
                 color: UI.fonts.level.color
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
 
         // Create XP needed text to the right of the bar
         scene.xpNeededText = scene.add.text(
-            UI.expBar.startX() + UI.expBar.width() + UI.rel.width(2.5),
+            UI.expBar.centerX() + (UI.expBar.width() * kajisuliScale / 2) + UI.rel.width(2.5),
             UI.expBar.y(),
             "5",
             {
                 fontFamily: UI.fonts.xpNeeded.family,
-                fontSize: UI.fonts.xpNeeded.size(),
+                fontSize: UI.kajisuli.enabled() ?
+                    parseInt(UI.fonts.xpNeeded.size()) * 1.2 + 'px' :
+                    UI.fonts.xpNeeded.size(),
                 color: UI.fonts.xpNeeded.color
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
@@ -362,11 +387,14 @@ const ExpBar = {
         // If elements don't exist yet, exit
         if (!scene.expBar || !scene.levelText || !scene.xpNeededText) return;
 
+        // Get kajisuli scale factor
+        const kajisuliScale = UI.kajisuli.enabled() ? 1.5 : 1;
+
         // Calculate experience percentage
         const expPercentage = Math.max(0, Math.min(1, heroExp / xpForNextLevel(playerLevel)));
 
         // Set the width of the exp bar
-        scene.expBar.width = expPercentage * UI.expBar.width();
+        scene.expBar.width = expPercentage * UI.expBar.width() * kajisuliScale;
 
         // Update the level text
         scene.levelText.setText(`${playerLevel}`);
@@ -394,89 +422,128 @@ const StatusDisplay = {
         if (scene.killsText) scene.killsText.destroy();
         if (scene.killsSymbol) scene.killsSymbol.destroy();
 
+        // Get kajisuli scale factor - 20% larger in kajisuli mode
+        const kajisuliScale = UI.kajisuli.enabled() ? 1.2 : 1;
+
         // Create timer display with gold border
         scene.timerBox = scene.add.rectangle(
-            UI.statusDisplay.x() + UI.statusDisplay.timerWidth() / 2,
+            UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale) / 2,
             UI.statusDisplay.timerY(),
-            UI.statusDisplay.timerWidth() + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.timerWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
         // Create inner black background for timer
         scene.timerBoxInner = scene.add.rectangle(
-            UI.statusDisplay.x() + UI.statusDisplay.timerWidth() / 2,
+            UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale) / 2,
             UI.statusDisplay.timerY(),
-            UI.statusDisplay.timerWidth(),
-            UI.statusDisplay.height(),
+            UI.statusDisplay.timerWidth() * kajisuliScale,
+            UI.statusDisplay.height() * kajisuliScale,
             UI.colors.black
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
-        // Create the timer kanji symbol
-        scene.timerSymbol = scene.add.text(
-            UI.statusDisplay.x() + UI.statusDisplay.textPadding(),
-            UI.statusDisplay.timerY(),
-            UI.statusDisplay.clockSymbol,
-            {
-                fontFamily: UI.fonts.timer.family,
-                fontSize: UI.fonts.timer.size(),
-                color: UI.fonts.timer.color
-            }
-        ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
+        // Create the timer text - centered in kajisuli mode
+        if (UI.kajisuli.enabled()) {
+            // Center time text in kajisuli mode without kanji
+            scene.timerText = scene.add.text(
+                UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale) / 2,
+                UI.statusDisplay.timerY(),
+                "00:00:00",
+                {
+                    fontFamily: UI.fonts.timer.family,
+                    fontSize: parseInt(UI.fonts.timer.size()) * 1.1 + 'px', // 10% larger font
+                    color: UI.fonts.timer.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(0.5);
+        } else {
+            // Create the timer kanji symbol in normal mode
+            scene.timerSymbol = scene.add.text(
+                UI.statusDisplay.x() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.timerY(),
+                UI.statusDisplay.clockSymbol,
+                {
+                    fontFamily: UI.fonts.timer.family,
+                    fontSize: UI.fonts.timer.size(),
+                    color: UI.fonts.timer.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
 
-        // Create the timer text
-        scene.timerText = scene.add.text(
-            UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding(),
-            UI.statusDisplay.timerY(),
-            "00:00:00",
-            {
-                fontFamily: UI.fonts.timer.family,
-                fontSize: UI.fonts.timer.size(),
-                color: UI.fonts.timer.color
-            }
-        ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+            // Create the timer text
+            scene.timerText = scene.add.text(
+                UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.timerY(),
+                "00:00:00",
+                {
+                    fontFamily: UI.fonts.timer.family,
+                    fontSize: UI.fonts.timer.size(),
+                    color: UI.fonts.timer.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+        }
 
-        // Create kills display with gold border (to the right of timer)
+        // Adjust kills display positioning for kajisuli mode
+        let killsX = UI.kajisuli.enabled() ?
+            // Move to right side in kajisuli mode
+            UI.game.getWidth() - UI.statusDisplay.x() - (UI.statusDisplay.killsWidth() * kajisuliScale / 2) :
+            // Normal position
+            UI.statusDisplay.killsX() + (UI.statusDisplay.killsWidth() * kajisuliScale / 2);
+
+        // Create kills display with gold border
         scene.killsBox = scene.add.rectangle(
-            UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth() / 2,
+            killsX,
             UI.statusDisplay.killsY(),
-            UI.statusDisplay.killsWidth() + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.killsWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
         // Create inner black background for kills
         scene.killsBoxInner = scene.add.rectangle(
-            UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth() / 2,
+            killsX,
             UI.statusDisplay.killsY(),
-            UI.statusDisplay.killsWidth(),
-            UI.statusDisplay.height(),
+            UI.statusDisplay.killsWidth() * kajisuliScale,
+            UI.statusDisplay.height() * kajisuliScale,
             UI.colors.black
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
-        // Create the kills kanji symbol
-        scene.killsSymbol = scene.add.text(
-            UI.statusDisplay.killsX() + UI.statusDisplay.textPadding(),
-            UI.statusDisplay.killsY(),
-            UI.statusDisplay.deathSymbol,
-            {
-                fontFamily: UI.fonts.kills.family,
-                fontSize: UI.fonts.kills.size(),
-                color: UI.fonts.kills.color
-            }
-        ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
+        if (UI.kajisuli.enabled()) {
+            // Create centered kills text in kajisuli mode
+            scene.killsText = scene.add.text(
+                killsX,
+                UI.statusDisplay.killsY(),
+                "0",
+                {
+                    fontFamily: UI.fonts.kills.family,
+                    fontSize: parseInt(UI.fonts.kills.size()) * 1.1 + 'px', // 10% larger font
+                    color: UI.fonts.kills.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(0.5);
+        } else {
+            // Create the kills kanji symbol
+            scene.killsSymbol = scene.add.text(
+                UI.statusDisplay.killsX() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.killsY(),
+                UI.statusDisplay.deathSymbol,
+                {
+                    fontFamily: UI.fonts.kills.family,
+                    fontSize: UI.fonts.kills.size(),
+                    color: UI.fonts.kills.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
 
-        // Create the kills text
-        scene.killsText = scene.add.text(
-            UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth() - UI.statusDisplay.textPadding(),
-            UI.statusDisplay.killsY(),
-            "0",
-            {
-                fontFamily: UI.fonts.kills.family,
-                fontSize: UI.fonts.kills.size(),
-                color: UI.fonts.kills.color
-            }
-        ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+            // Create the kills text
+            scene.killsText = scene.add.text(
+                UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.killsY(),
+                "0",
+                {
+                    fontFamily: UI.fonts.kills.family,
+                    fontSize: UI.fonts.kills.size(),
+                    color: UI.fonts.kills.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+        }
 
         // Initial update
         this.update(scene);
@@ -509,6 +576,12 @@ const StatDisplay = {
                 if (stat.symbolText) stat.symbolText.destroy();
                 if (stat.valueText) stat.valueText.destroy();
             });
+        }
+
+        // If in kajisuli mode, don't show stats on main screen
+        if (UI.kajisuli.enabled()) {
+            scene.statRects = [];
+            return;
         }
 
         // Initialize the stat rectangles array
@@ -583,6 +656,8 @@ const StatDisplay = {
 
         // Update each stat value
         scene.statRects.forEach(item => {
+            if (!item || !item.valueText) return;
+
             let value = 0;
 
             // Get the current value for each stat
@@ -602,9 +677,7 @@ const StatDisplay = {
             }
 
             // Update the display
-            if (item.valueText) {
-                item.valueText.setText(Math.floor(value).toString());
-            }
+            item.valueText.setText(Math.floor(value).toString());
         });
     }
 };

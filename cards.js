@@ -332,7 +332,7 @@ function showMobileLevelUpScreen(scene) {
     PauseSystem.pauseGame();
 
     // Number of perk options to offer
-    const numPerkOptions = 3;
+    const numPerkOptions = 4;
 
     // Get random perks (excluding already acquired ones)
     const availablePerks = PerkSystem.getRandomPerks(numPerkOptions, acquiredPerks);
@@ -606,14 +606,14 @@ function showMobileLevelUpScreen(scene) {
  * @param {Phaser.Scene} scene - The active game scene
  */
 function showLevelUpScreen(scene) {
-    // Check if we're on a small screen (mobile)
-    const isMobileScreen = game.config.width < 600; // Example threshold
+    // Check if we're in kajisuli mode (mobile)
+    const isMobileMode = typeof KAJISULI_MODE !== 'undefined' ? KAJISULI_MODE : false;
 
-    if (isMobileScreen) {
-        // Call the mobile-optimized version
+    if (isMobileMode) {
+        // Call the mobile-optimized version for kajisuli mode
         showMobileLevelUpScreen(scene);
     } else {
-        // Use the existing romaji challenge for larger screens
+        // Use the existing romaji challenge for desktop mode
         if (window.RomajiChallengeSystem) {
             window.RomajiChallengeSystem.showLevelUpChallenge(scene);
         } else {

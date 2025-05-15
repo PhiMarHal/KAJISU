@@ -496,7 +496,7 @@ const PERKS = {
         color: "#00DDFF", // Bright cyan color
         hoverColor: 0x00BBDD,
         onAcquire: function () {
-            window.activateStormBringer();
+
         }
     },
     "STORM_VENGEANCE": {

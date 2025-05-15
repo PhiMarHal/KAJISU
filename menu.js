@@ -390,9 +390,12 @@ const ExpBar = {
             UI.expBar.barColor
         ).setOrigin(0, 0.5).setDepth(UI.depth.ui);
 
+        // Increase spacing in kajisuli mode
+        const textSpacing = UI.kajisuli.enabled() ? UI.rel.width(5) : UI.rel.width(2.5);
+
         // Create level text to the left of the bar
         scene.levelText = scene.add.text(
-            centerX - (width / 2) - UI.rel.width(2.5),
+            centerX - (width / 2) - textSpacing,
             y,
             "1",
             {
@@ -406,7 +409,7 @@ const ExpBar = {
 
         // Create XP needed text to the right of the bar
         scene.xpNeededText = scene.add.text(
-            centerX + (width / 2) + UI.rel.width(2.5),
+            centerX + (width / 2) + textSpacing,
             y,
             "5",
             {
@@ -467,24 +470,34 @@ const StatusDisplay = {
         if (scene.killsText) scene.killsText.destroy();
         if (scene.killsSymbol) scene.killsSymbol.destroy();
 
-        // Get kajisuli scale factor - 20% larger in kajisuli mode
-        const kajisuliScale = UI.kajisuli.enabled() ? 1.2 : 1;
+        // Size and position adjustments for kajisuli mode
+        const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1; // 40% wider in kajisuli mode
+        const fontSizeScale = UI.kajisuli.enabled() ? 0.9 : 1; // Slightly smaller font in kajisuli mode
+
+        // Edge margin - further from edges in kajisuli mode
+        const edgeMargin = UI.kajisuli.enabled() ?
+            UI.rel.x(6) : // 6% from edges in kajisuli mode
+            UI.statusDisplay.x(); // Default in normal mode
 
         // Create timer display with gold border
+        const timerX = UI.kajisuli.enabled() ?
+            edgeMargin + (UI.statusDisplay.timerWidth() * kajisuliScale / 2) : // Left side in kajisuli mode
+            UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale / 2); // Standard position
+
         scene.timerBox = scene.add.rectangle(
-            UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale) / 2,
+            timerX,
             UI.statusDisplay.timerY(),
             UI.statusDisplay.timerWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
         // Create inner black background for timer
         scene.timerBoxInner = scene.add.rectangle(
-            UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale) / 2,
+            timerX,
             UI.statusDisplay.timerY(),
             UI.statusDisplay.timerWidth() * kajisuliScale,
-            UI.statusDisplay.height() * kajisuliScale,
+            UI.statusDisplay.height(),
             UI.colors.black
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
@@ -492,12 +505,12 @@ const StatusDisplay = {
         if (UI.kajisuli.enabled()) {
             // Center time text in kajisuli mode without kanji
             scene.timerText = scene.add.text(
-                UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale) / 2,
+                timerX,
                 UI.statusDisplay.timerY(),
-                "00:00:00",
+                "00:00", // Shorter time format
                 {
                     fontFamily: UI.fonts.timer.family,
-                    fontSize: parseInt(UI.fonts.timer.size()) * 1.1 + 'px', // 10% larger font
+                    fontSize: parseInt(UI.fonts.timer.size()) * fontSizeScale + 'px',
                     color: UI.fonts.timer.color
                 }
             ).setDepth(UI.depth.ui).setOrigin(0.5);
@@ -518,7 +531,7 @@ const StatusDisplay = {
             scene.timerText = scene.add.text(
                 UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding(),
                 UI.statusDisplay.timerY(),
-                "00:00:00",
+                "00:00", // Shorter time format
                 {
                     fontFamily: UI.fonts.timer.family,
                     fontSize: UI.fonts.timer.size(),
@@ -529,8 +542,8 @@ const StatusDisplay = {
 
         // Adjust kills display positioning for kajisuli mode
         let killsX = UI.kajisuli.enabled() ?
-            // Move to right side in kajisuli mode
-            UI.game.getWidth() - UI.statusDisplay.x() - (UI.statusDisplay.killsWidth() * kajisuliScale / 2) :
+            // Right side in kajisuli mode - further from edge
+            UI.game.getWidth() - edgeMargin - (UI.statusDisplay.killsWidth() * kajisuliScale / 2) :
             // Normal position
             UI.statusDisplay.killsX() + (UI.statusDisplay.killsWidth() * kajisuliScale / 2);
 
@@ -539,7 +552,7 @@ const StatusDisplay = {
             killsX,
             UI.statusDisplay.killsY(),
             UI.statusDisplay.killsWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
@@ -548,7 +561,7 @@ const StatusDisplay = {
             killsX,
             UI.statusDisplay.killsY(),
             UI.statusDisplay.killsWidth() * kajisuliScale,
-            UI.statusDisplay.height() * kajisuliScale,
+            UI.statusDisplay.height(),
             UI.colors.black
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
@@ -560,7 +573,7 @@ const StatusDisplay = {
                 "0",
                 {
                     fontFamily: UI.fonts.kills.family,
-                    fontSize: parseInt(UI.fonts.kills.size()) * 1.1 + 'px', // 10% larger font
+                    fontSize: parseInt(UI.fonts.kills.size()) * fontSizeScale + 'px',
                     color: UI.fonts.kills.color
                 }
             ).setDepth(UI.depth.ui).setOrigin(0.5);

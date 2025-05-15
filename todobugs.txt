@@ -27,7 +27,8 @@ POSSIBLE FIX BUT NEEDS TESTING
 - storm caller, divine beacon and alien beacon remain after BLOSSOM (didn't we fix this before, for divine?? maybe just restart...) -> possibly fixed
 
 DONE
-- storm beacon does not spawn immediately -> ok with "apply" instead of "call" (why??)
+- storm beacon does not spawn immediately -> ok with "apply" instead of "call" (why??) -> NOT ok anymore (why????)
+> fixed FOREVER, it was tied to instant activation + gamePaused check
 - amber nova triggers too much in late game with defensive burst, this kills framerate -> removed comps on defensive burst
 - return storm vengeance to random? circle looks artificial = yes
 - tentacle doesn't go away on oblivion blossom

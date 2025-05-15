@@ -176,26 +176,39 @@ const HealthBar = {
         if (scene.healthBarBg) scene.healthBarBg.destroy();
         if (scene.healthText) scene.healthText.destroy();
 
-        const kajisuliScale = {
-            width: UI.kajisuli.enabled() ? 1.5 : 1,
-            height: 1 // Keep the same height
+        // Get kajisuli scale factors - wider not thicker
+        const kajisuliScaleWidth = UI.kajisuli.enabled() ? 1.5 : 1;
+        const kajisuliScaleHeight = 1; // Keep the same height
+
+        // Store the scale factors for later use
+        scene.healthBarScales = {
+            width: kajisuliScaleWidth,
+            height: kajisuliScaleHeight
         };
+
+        // Get calculated dimensions
+        const width = UI.healthBar.width() * kajisuliScaleWidth;
+        const height = UI.healthBar.height() * kajisuliScaleHeight;
+        const borderWidth = UI.healthBar.borderWidth;
+        const innerMargin = UI.healthBar.innerMargin;
+        const centerX = UI.healthBar.centerX();
+        const y = UI.healthBar.y();
 
         // Create new container with golden border
         scene.healthBarBg = scene.add.rectangle(
-            UI.healthBar.centerX(),
-            UI.healthBar.y(),
-            UI.healthBar.width() * kajisuliScale.width + (UI.healthBar.borderWidth * 2),
-            UI.healthBar.height() * kajisuliScale.height + (UI.healthBar.borderWidth * 2),
+            centerX,
+            y,
+            width + (borderWidth * 2),
+            height + (borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui);
 
         // Create inner black background
-        const innerBg = scene.add.rectangle(
-            UI.healthBar.centerX(),
-            UI.healthBar.y(),
-            UI.healthBar.width() * kajisuliScale.width,
-            UI.healthBar.height() * kajisuliScale.height,
+        scene.healthBarInnerBg = scene.add.rectangle(
+            centerX,
+            y,
+            width,
+            height,
             UI.colors.black
         ).setDepth(UI.depth.ui);
 
@@ -217,33 +230,43 @@ const HealthBar = {
         scene.healthSegments.clear(true, true);
         if (scene.healthSeparators) scene.healthSeparators.clear(true, true);
 
-        // Get kajisuli scale factor
-        const kajisuliScale = UI.kajisuli.enabled() ? 1.5 : 1;
+        // Get the scale factors from the scene
+        const kajisuliScaleWidth = scene.healthBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
+        const kajisuliScaleHeight = scene.healthBarScales?.height ?? 1;
 
-        // Actual content width (excluding margins)
-        const contentWidth = (UI.healthBar.width() * kajisuliScale.width) - (UI.healthBar.innerMargin * 2);
+        // Get calculated dimensions
+        const width = UI.healthBar.width() * kajisuliScaleWidth;
+        const height = UI.healthBar.height() * kajisuliScaleHeight;
+        const innerMargin = UI.healthBar.innerMargin;
+        const centerX = UI.healthBar.centerX();
+        const y = UI.healthBar.y();
 
-        // Calculate segment width based on max health
-        const totalGapWidth = (maxPlayerHealth - 1) * (UI.healthBar.segmentGap() * kajisuliScale.width);
+        // Calculate content dimensions (accounting for margin)
+        const contentWidth = width - (innerMargin * 2);
+        const contentHeight = height - (innerMargin * 2);
+
+        // Calculate segment dimensions
+        const segmentGapWidth = UI.healthBar.segmentGap() * kajisuliScaleWidth;
+        const totalGapWidth = (maxPlayerHealth - 1) * segmentGapWidth;
         const segmentWidth = (contentWidth - totalGapWidth) / maxPlayerHealth;
 
-        // Starting X position (accounting for margin)
-        const startPosX = UI.healthBar.centerX() - (contentWidth / 2) + UI.healthBar.innerMargin;
+        // Calculate the starting position for the first segment (like the boss health bar)
+        const startX = centerX - (width / 2) + innerMargin;
 
         // Create each segment
         for (let i = 0; i < maxPlayerHealth; i++) {
             // Only create filled segments for current health
             const isFilled = i < playerHealth;
 
-            // Calculate segment position
-            const segmentX = startPosX + (i * (segmentWidth + (UI.healthBar.segmentGap() * kajisuliScale)));
+            // Calculate segment position - important: this is where the proper spacing happens
+            const segmentX = startX + (i * (segmentWidth + segmentGapWidth));
 
             // Create segment with high depth
             const segment = scene.add.rectangle(
-                segmentX + (segmentWidth / 2),
-                UI.healthBar.y(),
+                segmentX + (segmentWidth / 2), // Center the segment at its position
+                y,
                 segmentWidth,
-                UI.healthBar.height() * kajisuliScale.height - (UI.healthBar.innerMargin * 2),
+                contentHeight,
                 isFilled ? UI.colors.green : UI.colors.grey
             ).setDepth(UI.depth.ui);
 
@@ -252,12 +275,12 @@ const HealthBar = {
 
             // Add golden separator after each segment (except the last one)
             if (i < maxPlayerHealth - 1) {
-                const separatorX = segmentX + segmentWidth + ((UI.healthBar.segmentGap() * kajisuliScale) / 2);
+                const separatorX = segmentX + segmentWidth + (segmentGapWidth / 2);
                 const separator = scene.add.rectangle(
                     separatorX,
-                    UI.healthBar.y(),
-                    2,
-                    UI.healthBar.height() * kajisuliScale - (UI.healthBar.innerMargin * 2),
+                    y,
+                    2, // Fixed width for separator
+                    contentHeight,
                     UI.colors.gold
                 ).setDepth(UI.depth.ui);
                 scene.healthSeparators.add(separator);
@@ -265,6 +288,7 @@ const HealthBar = {
         }
     }
 };
+
 
 // Helper function to format large numbers with 4 significant digits + kanji
 function formatLargeNumber(number) {
@@ -318,43 +342,58 @@ const ExpBar = {
         if (scene.levelText) scene.levelText.destroy();
         if (scene.xpNeededText) scene.xpNeededText.destroy();
 
-        // Get kajisuli scale factor
-        const kajisuliScale = {
-            width: UI.kajisuli.enabled() ? 1.5 : 1,
-            height: 1 // Keep the same height
+        // Get kajisuli scale factors - wider not thicker
+        const kajisuliScaleWidth = UI.kajisuli.enabled() ? 1.5 : 1;
+        const kajisuliScaleHeight = 1; // Keep the same height
+
+        // Store the scale factors for later use
+        scene.expBarScales = {
+            width: kajisuliScaleWidth,
+            height: kajisuliScaleHeight
         };
+
+        // Get calculated dimensions
+        const width = UI.expBar.width() * kajisuliScaleWidth;
+        const height = UI.expBar.height() * kajisuliScaleHeight;
+        const borderWidth = UI.expBar.borderWidth;
+        const innerMargin = UI.expBar.innerMargin;
+        const centerX = UI.expBar.centerX();
+        const y = UI.expBar.y();
 
         // Create new container with golden border
         scene.expBarBg = scene.add.rectangle(
-            UI.expBar.centerX(),
-            UI.expBar.y(),
-            UI.expBar.width() * kajisuliScale.width + (UI.expBar.borderWidth * 2),
-            UI.expBar.height() * kajisuliScale.height + (UI.expBar.borderWidth * 2),
+            centerX,
+            y,
+            width + (borderWidth * 2),
+            height + (borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui);
 
         // Create inner black background
-        const innerBg = scene.add.rectangle(
-            UI.expBar.centerX(),
-            UI.expBar.y(),
-            UI.expBar.width() * kajisuliScale.width,
-            UI.expBar.height() * kajisuliScale.height,
+        scene.expBarInnerBg = scene.add.rectangle(
+            centerX,
+            y,
+            width,
+            height,
             UI.colors.black
         ).setDepth(UI.depth.ui);
 
+        // Calculate the starting position for the exp bar (at the left edge)
+        const startX = centerX - (width / 2) + innerMargin;
+
         // Create the exp bar itself (initially empty)
         scene.expBar = scene.add.rectangle(
-            UI.expBar.centerX() - (UI.expBar.width() * kajisuliScale.width / 2),
-            UI.expBar.y(),
-            0,
-            UI.expBar.height() * kajisuliScale.height - (UI.expBar.innerMargin * 2),
+            startX, // Left edge
+            y,
+            0, // Initial width is 0
+            height - (innerMargin * 2),
             UI.expBar.barColor
         ).setOrigin(0, 0.5).setDepth(UI.depth.ui);
 
         // Create level text to the left of the bar
         scene.levelText = scene.add.text(
-            UI.expBar.centerX() - (UI.expBar.width() * kajisuliScale / 2) - UI.rel.width(2.5),
-            UI.expBar.y(),
+            centerX - (width / 2) - UI.rel.width(2.5),
+            y,
             "1",
             {
                 fontFamily: UI.fonts.level.family,
@@ -367,8 +406,8 @@ const ExpBar = {
 
         // Create XP needed text to the right of the bar
         scene.xpNeededText = scene.add.text(
-            UI.expBar.centerX() + (UI.expBar.width() * kajisuliScale / 2) + UI.rel.width(2.5),
-            UI.expBar.y(),
+            centerX + (width / 2) + UI.rel.width(2.5),
+            y,
             "5",
             {
                 fontFamily: UI.fonts.xpNeeded.family,
@@ -387,14 +426,20 @@ const ExpBar = {
         // If elements don't exist yet, exit
         if (!scene.expBar || !scene.levelText || !scene.xpNeededText) return;
 
-        // Get kajisuli scale factor
-        const kajisuliScale = UI.kajisuli.enabled() ? 1.5 : 1;
+        // Get scale factors
+        const kajisuliScaleWidth = scene.expBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
+        const kajisuliScaleHeight = scene.expBarScales?.height ?? 1;
+
+        // Get width with scaling
+        const width = UI.expBar.width() * kajisuliScaleWidth;
+        const innerMargin = UI.expBar.innerMargin;
+        const contentWidth = width - (innerMargin * 2);
 
         // Calculate experience percentage
         const expPercentage = Math.max(0, Math.min(1, heroExp / xpForNextLevel(playerLevel)));
 
-        // Set the width of the exp bar
-        scene.expBar.width = expPercentage * UI.expBar.width() * kajisuliScale;
+        // Set the width of the exp bar based on percentage
+        scene.expBar.width = expPercentage * contentWidth;
 
         // Update the level text
         scene.levelText.setText(`${playerLevel}`);

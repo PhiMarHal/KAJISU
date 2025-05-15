@@ -936,7 +936,7 @@ const GameEndMenu = {
         this.elements.titleText = scene.add.text(
             titleTextX,
             titleY,
-            'VANQUISHED THE LOOP',
+            'ESCAPED THE LOOP',
             {
                 fontFamily: 'Arial',
                 fontSize: UI.gameEndScreen.fontSizes.title(),
@@ -950,7 +950,7 @@ const GameEndMenu = {
         this.elements.subtitleText = scene.add.text(
             subtitleTextX,
             subtitleY,
-            'BEATING THE GUARDIAN',
+            'VANQUISHING',
             {
                 fontFamily: 'Arial',
                 fontSize: UI.gameEndScreen.fontSizes.title(),

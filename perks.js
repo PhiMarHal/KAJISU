@@ -69,7 +69,7 @@ const PERKS = {
         kana: "ぎゃくたこ",
         romaji: "gyakutako",
         english: "Inverted Octopus",
-        description: "Gain counter-rotating orbiting projectiles",
+        description: "More orbiting projectiles",
         color: "#FF55FF", // Pink color
         hoverColor: 0xDD33DD,
         onAcquire: function () {
@@ -81,7 +81,7 @@ const PERKS = {
         kana: "しょくしゅ",
         romaji: "shokushu",
         english: "Tentacle Grasp",
-        description: "Tentacles extend in all directions.",
+        description: "Tentacles extend in all directions",
         color: "#8800AA", // Purple color
         hoverColor: 0x660088,
         onAcquire: function () {
@@ -109,7 +109,7 @@ const PERKS = {
         kana: "しゆび",
         romaji: "shiyubi",
         english: "Death Finger",
-        description: "Nothing can stare at death and survive.",
+        description: "Point and stare at their invisible demise",
         color: "#FF0000", // Red color
         hoverColor: 0xDD0000,
         onAcquire: function () {
@@ -121,7 +121,7 @@ const PERKS = {
         kana: "いやせい",
         romaji: "iyasei",
         english: "Healing Fairy",
-        description: "She shoots heals. Protect her and stay close.",
+        description: "Protect her and stay close",
         color: "#7FFF7F", // Light green color
         hoverColor: 0x5FDF5F,
         onAcquire: function () {
@@ -452,7 +452,7 @@ const PERKS = {
         kana: "どくあと",
         romaji: "dokuato",
         english: "Toxic Trail",
-        description: "Leaves a trail of poison that damages enemies over time, but makes you sick too",
+        description: "Your sickness poisons those who follow",
         color: "#33cc33", // Green color for poison
         hoverColor: 0x22aa22, // Darker green for hover effect
         onAcquire: function () {
@@ -468,7 +468,7 @@ const PERKS = {
         kana: "くちゆび",
         romaji: "kuchiyubi",
         english: "Finger of Decay",
-        description: "Summons a finger of decay that strikes enemies in your direction, poisoning them",
+        description: "Point at entropy",
         color: "#88AA22", // Sickly greenish-yellow color
         hoverColor: 0x668800,
         onAcquire: function () {
@@ -480,7 +480,7 @@ const PERKS = {
         kana: "らいじん",
         romaji: "raijin",
         english: "Storm Caller",
-        description: "Periodically summons lightning strikes that damage enemies",
+        description: "Lightning strikes your enemies",
         color: "#FFDD00", // Bright yellow color
         hoverColor: 0xDDBB00,
         onAcquire: function () {
@@ -492,7 +492,7 @@ const PERKS = {
         kana: "らいまねき",
         romaji: "raimaneki",
         english: "Storm Bringer",
-        description: "Periodically spawns beacons that unleash lightning storms",
+        description: "Beacons bring down lightning",
         color: "#00DDFF", // Bright cyan color
         hoverColor: 0x00BBDD,
         onAcquire: function () {
@@ -929,7 +929,7 @@ const PERKS = {
         kana: "きかい",
         romaji: "kikai",
         english: "Yellow Boomerang",
-        description: "It will come back, they won't like it",
+        description: "Return with benefits",
         color: "#FFA500", // Orange color
         hoverColor: 0xDD8800,
         onAcquire: function () {
@@ -1033,7 +1033,7 @@ const PERKS = {
         kana: "うつしせい",
         romaji: "utsushisei",
         english: "Copy Fairy",
-        description: "Summons a fairy that orbits close to you and fires at the closest enemy",
+        description: "Your biggest fan",
         color: "#55FFAA", // Greenish color
         hoverColor: 0x33DD88,
         onAcquire: function () {
@@ -1045,7 +1045,7 @@ const PERKS = {
         kana: "ゆうせい",
         romaji: "yuusei",
         english: "Fun Fairy",
-        description: "Summons a playful fairy that fires random effect projectiles at enemies",
+        description: "Full of tricks",
         color: "#FF55FF", // Pink color
         hoverColor: 0xDD33DD,
         onAcquire: function () {
@@ -1057,7 +1057,7 @@ const PERKS = {
         kana: "れいせい",
         romaji: "reisei",
         english: "Cold Fairy",
-        description: "Summons a fairy that fires slowing ice projectiles at enemies",
+        description: "Slow shots",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {
@@ -1069,7 +1069,7 @@ const PERKS = {
         kana: "きょうせい",
         romaji: "kyousei",
         english: "Berserk Fairy",
-        description: "Summons a wild fairy that orbits far from you and rapidly fires at random enemies",
+        description: "Wild partner",
         color: "#FF5500", // Orange-red color
         hoverColor: 0xDD3300,
         onAcquire: function () {
@@ -1081,7 +1081,7 @@ const PERKS = {
         kana: "かんぺき",
         romaji: "kanpeki",
         english: "Flawless Fight",
-        description: "Damage and fire rate increase by up to +50% while avoiding damage. Reset when hit.",
+        description: "+POW/+AGI as long as you avoid hits",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {

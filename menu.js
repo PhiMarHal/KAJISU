@@ -899,114 +899,39 @@ const GameEndMenu = {
         return this.elements.container;
     },
 
-    // Create content for victory screen
-    createVictoryContent: function (scene, bossKanji) {
+    createEndGameContent: function (scene, options) {
+        // Default options
+        const defaults = {
+            isVictory: false,           // Victory or defeat
+            heroKanjiOffset: -200,      // X offset for hero kanji
+            titleTextOffset: -150,      // X offset for title text
+            titleText: "",              // Main title text
+            subtitleText: "",           // Subtitle text
+            subtitleCentered: false,    // Whether subtitle should be centered
+            subtitleTextOffset: 0,      // X offset for subtitle
+            enemyKanji: "敵",           // Kanji to show for enemy
+            enemyKanjiOffset: 200,      // X offset for enemy kanji
+            statsTemplate: ""           // Template for stats text
+        };
+
+        // Merge with provided options
+        const config = { ...defaults, ...options };
         const centerX = UI.gameEndScreen.x();
         const titleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 3;
         const subtitleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 6;
-
-        // Calculate spacing based on screen/panel width
-        const panelWidth = UI.gameEndScreen.width();
         const scaleFactor = UI.gameEndScreen.scaleFactor();
 
-        // Scale horizontal positioning based on our scale factor
-        const heroKanjiX = centerX - (200 * scaleFactor);
-        const titleTextX = centerX - (150 * scaleFactor);
-        const subtitleTextX = centerX;
-        const bossKanjiX = centerX + (180 * scaleFactor);
+        // Calculate positions with proper scaling
+        const heroKanjiX = centerX + (config.heroKanjiOffset * scaleFactor);
+        const titleTextX = centerX + (config.titleTextOffset * scaleFactor);
 
-        // The boss kanji to display (use a generic one if not specified)
-        const bossSymbol = bossKanji ?? (activeBoss?.text ?? '魔');
+        // Subtitle position
+        const subtitleTextX = config.subtitleCentered ?
+            centerX :
+            centerX + (config.subtitleTextOffset * scaleFactor);
 
-        // Create hero kanji in WHITE
-        this.elements.heroKanji = scene.add.text(
-            heroKanjiX,
-            titleY,
-            HERO_CHARACTER,
-            {
-                fontFamily: 'Arial',
-                fontSize: UI.gameEndScreen.fontSizes.title(),
-                color: '#FFFFFF', // White for hero
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5);
-        this.elements.container.add(this.elements.heroKanji);
-
-        // Create title text in GOLD - using explicit hex for gold
-        this.elements.titleText = scene.add.text(
-            titleTextX,
-            titleY,
-            'ESCAPED THE LOOP',
-            {
-                fontFamily: 'Arial',
-                fontSize: UI.gameEndScreen.fontSizes.title(),
-                color: '#FFD700', // Explicit gold color
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0, 0.5); // Left aligned
-        this.elements.container.add(this.elements.titleText);
-
-        // Create subtitle text in GOLD - centered for better mobile layout
-        this.elements.subtitleText = scene.add.text(
-            subtitleTextX,
-            subtitleY,
-            'VANQUISHING',
-            {
-                fontFamily: 'Arial',
-                fontSize: UI.gameEndScreen.fontSizes.title(),
-                color: '#FFD700', // Explicit gold color 
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5);
-        this.elements.container.add(this.elements.subtitleText);
-
-        // Create boss kanji in BOSS COLOR (RED) - positioned to the right of subtitle
-        this.elements.enemyKanji = scene.add.text(
-            bossKanjiX,
-            subtitleY,
-            bossSymbol,
-            {
-                fontFamily: 'Arial',
-                fontSize: UI.gameEndScreen.fontSizes.title(),
-                color: '#FF5555', // Default red for enemy
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5); // Centered for better positioning
-        this.elements.container.add(this.elements.enemyKanji);
-
-        // Create stats line in GOLD
-        this.elements.statsText = scene.add.text(
-            centerX,
-            UI.gameEndScreen.y() + UI.gameEndScreen.height() / 10,
-            `IN ${formatTime(elapsedTime)}          FREED ${score}`,
-            {
-                fontFamily: 'Arial',
-                fontSize: UI.gameEndScreen.fontSizes.stats(),
-                color: '#FFD700', // Explicit gold color
-                align: 'center'
-            }
-        ).setOrigin(0.5);
-        this.elements.container.add(this.elements.statsText);
-    },
-
-    // Create content for defeat screen
-    createDefeatContent: function (scene, enemyKanji) {
-        const centerX = UI.gameEndScreen.x();
-        const titleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 3;
-        const subtitleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 6;
-
-        // Calculate spacing based on screen/panel width
-        const panelWidth = UI.gameEndScreen.width();
-        const scaleFactor = UI.gameEndScreen.scaleFactor();
-
-        // Scale horizontal positioning based on our scale factor
-        const heroKanjiX = centerX - (240 * scaleFactor);
-        const titleTextX = centerX - (180 * scaleFactor);
-        const subtitleTextX = centerX - (60 * scaleFactor);
-        const enemyKanjiX = centerX + (200 * scaleFactor);
-
-        // The enemy kanji to display (use a generic one if not specified)
-        const enemySymbol = enemyKanji ?? '敵'; // Default enemy kanji
+        // Enemy position
+        const enemyKanjiX = centerX + (config.enemyKanjiOffset * scaleFactor);
 
         // Create hero kanji in WHITE
         this.elements.heroKanji = scene.add.text(
@@ -1026,57 +951,108 @@ const GameEndMenu = {
         this.elements.titleText = scene.add.text(
             titleTextX,
             titleY,
-            'FOUND THEIR DEMISE',
+            config.titleText,
             {
                 fontFamily: 'Arial',
                 fontSize: UI.gameEndScreen.fontSizes.title(),
-                color: '#FFD700', // Explicit gold color
+                color: '#FFD700', // Gold color
                 fontStyle: 'bold'
             }
         ).setOrigin(0, 0.5); // Left aligned
         this.elements.container.add(this.elements.titleText);
 
-        // Create subtitle text in GOLD - centered for better mobile layout
+        // Create subtitle text in GOLD
+        const subtitleOrigin = config.subtitleCentered ? 0.5 : 0.5;
         this.elements.subtitleText = scene.add.text(
             subtitleTextX,
             subtitleY,
-            'AT THE HANDS OF',
+            config.subtitleText,
             {
                 fontFamily: 'Arial',
                 fontSize: UI.gameEndScreen.fontSizes.title(),
-                color: '#FFD700', // Explicit gold color
+                color: '#FFD700', // Gold color
                 fontStyle: 'bold'
             }
-        ).setOrigin(0.5);
+        ).setOrigin(subtitleOrigin);
         this.elements.container.add(this.elements.subtitleText);
 
-        // Create enemy kanji in ENEMY COLOR (RED)
+        // Create enemy kanji
         this.elements.enemyKanji = scene.add.text(
             enemyKanjiX,
             subtitleY,
-            enemySymbol,
+            config.enemyKanji,
             {
                 fontFamily: 'Arial',
                 fontSize: UI.gameEndScreen.fontSizes.title(),
                 color: '#FF5555', // Red color for enemy
                 fontStyle: 'bold'
             }
-        ).setOrigin(0.5); // Centered for better positioning
+        ).setOrigin(0.5);
         this.elements.container.add(this.elements.enemyKanji);
 
-        // Create stats line in GOLD
+        // Create stats line
         this.elements.statsText = scene.add.text(
             centerX,
             UI.gameEndScreen.y() + UI.gameEndScreen.height() / 10,
-            `SURVIVED ${formatTime(elapsedTime)}          DEFEATED ${score}`,
+            config.statsTemplate,
             {
                 fontFamily: 'Arial',
                 fontSize: UI.gameEndScreen.fontSizes.stats(),
-                color: '#FFD700', // Explicit gold color
+                color: '#FFD700', // Gold color
                 align: 'center'
             }
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.statsText);
+
+        // If score system is available, animate the stats into score
+        if (window.ScoreSystem) {
+            // Calculate score based on victory condition
+            const score = ScoreSystem.calculateScore(config.isVictory);
+
+            // Animate the score reveal
+            ScoreSystem.animateScoreReveal(scene, this.elements.statsText, score);
+        }
+    },
+
+    // Create content for victory screen
+    createVictoryContent: function (scene, bossKanji) {
+        // The boss kanji to display (use a generic one if not specified)
+        const bossSymbol = bossKanji ?? (activeBoss?.text ?? '魔');
+
+        // Create victory screen content
+        this.createEndGameContent(scene, {
+            isVictory: true,
+            heroKanjiOffset: -200,
+            titleTextOffset: -150,
+            titleText: 'ESCAPED THE LOOP',
+            subtitleText: 'VANQUISHING',
+            subtitleCentered: true,
+            subtitleTextOffset: 0,
+            enemyKanji: bossSymbol,
+            enemyKanjiOffset: 180,
+            statsTemplate: `IN ${formatTime(elapsedTime)}          FREED ${score}`
+        });
+    },
+
+
+    // Create content for defeat screen
+    createDefeatContent: function (scene, enemyKanji) {
+        // The enemy kanji to display (use a generic one if not specified)
+        const enemySymbol = enemyKanji ?? '敵';
+
+        // Create defeat screen content
+        this.createEndGameContent(scene, {
+            isVictory: false,
+            heroKanjiOffset: -220,
+            titleTextOffset: -160,
+            titleText: 'FOUND THEIR DEMISE',
+            subtitleText: 'AT THE HANDS OF',
+            subtitleCentered: false,
+            subtitleTextOffset: -60,
+            enemyKanji: enemySymbol,
+            enemyKanjiOffset: 180,
+            statsTemplate: `SURVIVED ${formatTime(elapsedTime)}          DEFEATED ${score}`
+        });
     },
 
     // Create restart button for both screens

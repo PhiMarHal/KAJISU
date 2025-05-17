@@ -535,6 +535,10 @@
             if (gameOver) return;
             if (gamePaused) return; // Skip updates when game is paused for level up
 
+            if (window.BackgroundAnimationSystem && BackgroundAnimationSystem.isInitialized) {
+                BackgroundAnimationSystem.update(time, delta);
+            }
+
             DebugSystem.updatePerformanceStats(this, time, delta);
             updatePlayerStatus();
             updateOnHitEffects();

@@ -160,6 +160,10 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
     },
 
     onHit: function (projectile, enemy, scene) {
+        // Prevent multiple triggers for piercing projectiles
+        if (projectile.effectTriggered) return;
+        projectile.effectTriggered = true;
+
         // Store the hit position (enemy's location)
         const hitX = enemy.x;
         const hitY = enemy.y;

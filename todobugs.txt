@@ -1,5 +1,4 @@
 - Need system to pick any kanji for hero
-- Game Over is ugly, make proper menu
 - Improve performance (duh). Optimize update loop (duh). Can wait until much later
 - Add animated backgrounds. JS animations? Change color as time passes and/or with enemy stages?
 - Longterm: allow for arbitrary kanjis to be selected as enemies
@@ -19,14 +18,18 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - no player damage visual post Oblivion, maybe caused by shield visual? testing, doesn't seem directly linked or alone
 - change all coordinates to be relative, not absolute
 - if player dies during the visual kanji intro of new rank, kanjis remain
-- still possible to "beat" the game, want to rethink rank spawns
+
 - amber nova might work despite piercing?
+- player tween gets stuck in grey state if hit while killing boss (?)
+- firerate resets to 3 rather than 4 (maybe roundup issue tied to archerMultiplier?)
 
 POSSIBLE FIX BUT NEEDS TESTING
 - if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow <= possibly fixed by window.TimeDilationSystem.cleanup();, need testing
 - storm caller, divine beacon and alien beacon remain after BLOSSOM (didn't we fix this before, for divine?? maybe just restart...) -> possibly fixed
 
 DONE
+- Game Over is ugly, make proper menu -> still ugly but at least proper ugly
+- still possible to "beat" the game, want to rethink rank spawns -> we have bosses now
 - storm beacon does not spawn immediately -> ok with "apply" instead of "call" (why??) -> NOT ok anymore (why????)
 > fixed FOREVER, it was tied to instant activation + gamePaused check
 - amber nova triggers too much in late game with defensive burst, this kills framerate -> removed comps on defensive burst

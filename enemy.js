@@ -549,6 +549,9 @@ const EnemySystem = {
         // Store reference to active boss
         activeBoss = boss;
 
+        // Set background to boss mode
+        if (window.BackgroundAnimationSystem) BackgroundAnimationSystem.setBossMode(true);
+
         // Update UI to show boss name and health
         this.showBossUI(boss);
 
@@ -653,6 +656,9 @@ const EnemySystem = {
         const scene = this.scene;
         if (!scene) return;
 
+        // Reset background to normal
+        if (window.BackgroundAnimationSystem) BackgroundAnimationSystem.setBossMode(false);
+
         // End the game with victory
         this.showVictoryScreen();
 
@@ -731,6 +737,10 @@ const EnemySystem = {
         bossMode = false;
         activeBoss = null;
         bossSpawned = false;
+
+        // Reset backgrounds
+        if (window.BackgroundAnimationSystem) BackgroundAnimationSystem.setBossMode(false);
+
 
         // Clean up any boss UI elements
         const scene = this.scene;

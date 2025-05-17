@@ -33,6 +33,7 @@
     <script src="life.js"></script>
     <script src="debug.js"></script>
     <script src="score.js"></script>
+    <script src="backgrounds.js"></script>
 
     <style>
         body {
@@ -436,6 +437,7 @@
             WeaponSystem.initialize(this);
             PlayerHitSystem.init(this);
             InputSystem.setupCursorHiding(this);
+            BackgroundAnimationSystem.init(this);
 
             // Create player text - using kanji character
             player = this.add.text(game.config.width / 2, game.config.height / 2, HERO_CHARACTER, {

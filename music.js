@@ -18,6 +18,12 @@ const MusicSystem = {
     musicEnabled: true,     // Music enabled/disabled flag
     currentRate: 1.0,       // Current playback rate (affected by time dilation)
 
+    // Low pass
+    pausedVolume: 0.3,      // Volume level when paused (30% of normal)
+    savedVolume: null,      // Store the original volume during pause
+    pausePulseTween: null,  // Reference to pulse effect tween
+    lowPassFilter: null,    // Reference to Web Audio low-pass filter
+
     // Initialize the music system
     initialize: function (scene) {
         console.log("Initializing music system");
@@ -305,11 +311,37 @@ const MusicSystem = {
         }
     },
 
-    // Handle game pause event
     onGamePause: function () {
-        // Pause the current track if playing
-        if (this.currentTrack && this.currentTrack.isPlaying) {
-            this.currentTrack.pause();
+        console.log("Game paused, applying muffled effect to music");
+
+        // Skip if no track is playing
+        if (!this.currentTrack || (!this.currentTrack.isPlaying && !this.currentTrack.isPaused)) {
+            return;
+        }
+
+        try {
+            // Save the current volume
+            this.savedVolume = this.currentTrack.volume;
+
+            // Apply volume reduction for muffled effect
+            this.currentTrack.setVolume(this.pausedVolume);
+
+            // Try to apply low-pass filter (advanced effect)
+            this.applyLowPassFilter();
+
+            // Create a simple volume pulse effect
+            this.createPauseVolumeEffect();
+        } catch (err) {
+            console.log("Error applying pause effects:", err);
+
+            // Fallback to just pausing
+            if (this.currentTrack && this.currentTrack.isPlaying) {
+                try {
+                    this.currentTrack.pause();
+                } catch (pauseErr) {
+                    console.log("Error even with basic pause:", pauseErr);
+                }
+            }
         }
 
         // Pause any active tweens
@@ -322,11 +354,126 @@ const MusicSystem = {
         }
     },
 
-    // Handle game resume event
+    // Helper method to apply low-pass filter
+    applyLowPassFilter: function () {
+        // Only attempt if Web Audio API is available
+        if (!this.scene || !this.scene.sound || !this.scene.sound.context) {
+            return;
+        }
+
+        try {
+            const audioContext = this.scene.sound.context;
+
+            // Create a low-pass filter
+            if (!this.lowPassFilter) {
+                this.lowPassFilter = audioContext.createBiquadFilter();
+                this.lowPassFilter.type = 'lowpass';
+                this.lowPassFilter.frequency.value = 800; // Lower = more muffled
+                this.lowPassFilter.Q.value = 0.5;
+            }
+
+            // Only try to connect if we have access to the source
+            if (this.currentTrack.source &&
+                typeof this.currentTrack.source.disconnect === 'function' &&
+                typeof this.currentTrack.source.connect === 'function') {
+
+                // Get the current destination
+                const destination = this.currentTrack.source.destination || audioContext.destination;
+
+                // Connect through the filter
+                this.currentTrack.source.disconnect();
+                this.currentTrack.source.connect(this.lowPassFilter);
+                this.lowPassFilter.connect(destination);
+
+                console.log("Applied low-pass filter");
+            }
+        } catch (err) {
+            console.log("Low-pass filter not supported:", err);
+        }
+    },
+
+    // Helper method to create volume pulse effect
+    createPauseVolumeEffect: function () {
+        // Skip if we don't have a scene or the track isn't playing
+        if (!this.scene || !this.currentTrack) {
+            return;
+        }
+
+        // Clean up any existing pulse effect
+        if (this.pausePulseTween) {
+            this.pausePulseTween.stop();
+            this.pausePulseTween = null;
+        }
+
+        // Create a simple data object to tween
+        const pulseData = { volume: this.pausedVolume };
+
+        try {
+            // Create a slow pulsing effect
+            this.pausePulseTween = this.scene.tweens.add({
+                targets: pulseData,
+                volume: this.pausedVolume * 0.7, // Pulse to 70% of pause volume
+                duration: 2000,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1,
+                onUpdate: () => {
+                    // Only modify volume if track still exists
+                    if (this.currentTrack) {
+                        this.currentTrack.setVolume(pulseData.volume);
+                    }
+                }
+            });
+
+            console.log("Created pause pulse effect");
+        } catch (err) {
+            console.log("Error creating pulse effect:", err);
+        }
+    },
+
+    // Replace the existing onGameResume method with this fixed version:
     onGameResume: function () {
-        // Resume the current track if it was playing
-        if (this.currentTrack && this.currentTrack.isPaused) {
-            this.currentTrack.resume();
+        console.log("Game resumed, removing muffled effect");
+
+        // Skip if no track exists
+        if (!this.currentTrack) {
+            return;
+        }
+
+        try {
+            // Stop the pulse effect if it exists
+            if (this.pausePulseTween) {
+                this.pausePulseTween.stop();
+                this.pausePulseTween = null;
+            }
+
+            // Restore volume
+            if (this.savedVolume !== null) {
+                this.currentTrack.setVolume(this.savedVolume);
+                this.savedVolume = null;
+            } else {
+                // Fallback to normal volume
+                this.currentTrack.setVolume(this.volume);
+            }
+
+            // Remove low-pass filter if applicable
+            this.removeLowPassFilter();
+
+            // Resume playback if paused
+            if (this.currentTrack.isPaused) {
+                this.currentTrack.resume();
+            }
+        } catch (err) {
+            console.log("Error removing pause effects:", err);
+
+            // Fallback to simple resume
+            if (this.currentTrack && this.currentTrack.isPaused) {
+                try {
+                    this.currentTrack.resume();
+                } catch (resumeErr) {
+                    console.log("Error with basic resume:", resumeErr);
+                }
+            }
         }
 
         // Resume any active tweens
@@ -336,6 +483,31 @@ const MusicSystem = {
 
         if (this.fadeOutTween && this.fadeOutTween.isPaused) {
             this.fadeOutTween.resume();
+        }
+    },
+
+    // Helper to remove low-pass filter
+    removeLowPassFilter: function () {
+        if (!this.lowPassFilter || !this.currentTrack || !this.currentTrack.source) {
+            return;
+        }
+
+        try {
+            // Only attempt if we have the necessary methods
+            if (typeof this.currentTrack.source.disconnect === 'function' &&
+                typeof this.currentTrack.source.connect === 'function') {
+
+                const audioContext = this.scene.sound.context;
+                const destination = this.currentTrack.source.destination || audioContext.destination;
+
+                // Reconnect without the filter
+                this.currentTrack.source.disconnect();
+                this.currentTrack.source.connect(destination);
+
+                console.log("Removed low-pass filter");
+            }
+        } catch (err) {
+            console.log("Error removing filter:", err);
         }
     }
 };

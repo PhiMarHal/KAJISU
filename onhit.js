@@ -291,6 +291,14 @@ window.TimeDilationSystem = {
         this.enemySlowdown = 1.0;
     },
 
+    // Slow down the sound too
+    applyMusicDilation: function (timeScale) {
+        // Update music playback if system exists
+        if (window.MusicSystem && window.MusicSystem.applyTimeDilation) {
+            window.MusicSystem.applyTimeDilation(timeScale);
+        }
+    },
+
     // Function to enter slow motion gradually
     enterSlowMotion: function (scene, duration = null) {
         // Cancel any existing tween to avoid conflicts
@@ -312,6 +320,9 @@ window.TimeDilationSystem = {
             onUpdate: () => {
                 // Apply time scale to scene for timers and tweens
                 scene.time.timeScale = this.currentTimeScale;
+
+                // Slow music down
+                this.applyMusicDilation(this.currentTimeScale);
 
                 // Update the global enemy speed factor
                 EnemySystem.setEnemySpeedFactor(this.enemySlowdown);
@@ -351,6 +362,9 @@ window.TimeDilationSystem = {
             onUpdate: () => {
                 // Apply time scale to scene
                 scene.time.timeScale = this.currentTimeScale;
+
+                // Speed music back up
+                this.applyMusicDilation(this.currentTimeScale);
 
                 // Update the global enemy speed factor
                 EnemySystem.setEnemySpeedFactor(this.enemySlowdown);

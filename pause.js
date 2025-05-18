@@ -187,6 +187,11 @@ const PauseSystem = {
                 timer.paused = true;
             }
         });
+
+        // Pause music
+        if (window.MusicSystem) {
+            window.MusicSystem.onGamePause();
+        }
     },
 
     // Resume the game and hide overlay
@@ -224,6 +229,11 @@ const PauseSystem = {
                 timer.paused = false;
             }
         });
+
+        // Resume music
+        if (window.MusicSystem) {
+            window.MusicSystem.onGameResume();
+        }
 
         // Check if we have valid UI elements before trying to hide them
         if (!this.elements.pauseScreen) {

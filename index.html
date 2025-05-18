@@ -34,6 +34,7 @@
     <script src="debug.js"></script>
     <script src="score.js"></script>
     <script src="backgrounds.js"></script>
+    <script src="music.js"></script>
 
     <style>
         body {
@@ -439,6 +440,21 @@
             InputSystem.setupCursorHiding(this);
             BackgroundAnimationSystem.init(this);
 
+            // Initialize music system
+            if (window.MusicSystem) {
+                MusicSystem.initialize(this);
+                MusicSystem.preload(this);
+
+                // Create music tracks once preload is complete
+                this.load.once('complete', function () {
+                    MusicSystem.create(this);
+                    MusicSystem.start();
+                }, this);
+
+                // Start loading
+                this.load.start();
+            }
+
             // Create player text - using kanji character
             player = this.add.text(game.config.width / 2, game.config.height / 2, HERO_CHARACTER, {
                 fontFamily: 'Arial',
@@ -620,6 +636,10 @@
             OrbitalSystem.update(this, time);
             DropperSystem.update(this, time);
 
+            if (window.MusicSystem) {
+                MusicSystem.update(time, delta);
+            }
+
             // Calculate difficulty scaling based on elapsed time instead of raw time
             const minutesElapsed = elapsedTime / 60;
 
@@ -649,34 +669,35 @@
         }
 
         function detectKeyboardLayout() {
-            // Detect keyboard layout
-            try {
-                // Check for navigator.keyboard API support (modern browsers)
-                if (navigator.keyboard && navigator.keyboard.getLayoutMap) {
-                    navigator.keyboard.getLayoutMap()
-                        .then(keyboardLayoutMap => {
-                            // Check for AZERTY layout by looking at the key for 'KeyQ'
-                            const qKey = keyboardLayoutMap.get('KeyQ');
-                            if (qKey === 'a' || qKey === 'A') {
-                                // AZERTY detected
-                                keyboardLayout = 'azerty';
-                                updateWASDKeys.call(this);
-                            }
-                        })
-                        .catch(error => {
-                            console.log('Error detecting keyboard layout:', error);
-                        });
-                } else {
-                    // Fallback method: check browser language
-                    const language = navigator.language || navigator.userLanguage;
-                    if (language && (language.startsWith('fr') || language.startsWith('be'))) {
-                        // French or Belgian language often uses AZERTY
-                        keyboardLayout = 'azerty';
-                        updateWASDKeys.call(this);
-                    }
-                }
-            } catch (error) {
-                console.log('Error in keyboard layout detection:', error);
+            // Keep QWERTY as default
+            keyboardLayout = 'qwerty';
+
+            // First, try the simpler language-based detection
+            // This is more reliable across different environments
+            const language = navigator.language || navigator.userLanguage;
+            if (language && (language.startsWith('fr') || language.startsWith('be'))) {
+                // French or Belgian language often uses AZERTY
+                keyboardLayout = 'azerty';
+                updateWASDKeys.call(this);
+                return;
+            }
+
+            // Only try the API method as a fallback
+            // This avoids issues with browser security restrictions
+            if (navigator.keyboard && navigator.keyboard.getLayoutMap) {
+                navigator.keyboard.getLayoutMap()
+                    .then(keyboardLayoutMap => {
+                        // Check for AZERTY layout by looking at the key for 'KeyQ'
+                        const qKey = keyboardLayoutMap.get('KeyQ');
+                        if (qKey === 'a' || qKey === 'A') {
+                            // AZERTY detected
+                            keyboardLayout = 'azerty';
+                            updateWASDKeys.call(this);
+                        }
+                    })
+                    .catch(error => {
+                        console.log('Error in keyboard API detection:', error);
+                    });
             }
         }
 
@@ -790,6 +811,11 @@
                 PauseSystem.pauseGame(false);
                 PauseSystem.resumeGame();
                 PauseSystem.cleanup();
+            }
+
+            // Ensure music is playing when game restarts
+            if (window.MusicSystem && !MusicSystem.currentTrack) {
+                MusicSystem.start();
             }
 
             if (RomajiChallengeSystem) {

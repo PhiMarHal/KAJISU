@@ -1119,9 +1119,16 @@ const GameEndMenu = {
             });
         });
 
-        // Add click handler
         this.elements.restartButton.on('pointerdown', function () {
-            startGame.call(scene);
+            // Try to skip any active animation, with delay if successful
+            const animationSkipped = window.ScoreSystem?.skipToFinalScore?.(scene) || false;
+
+            // Restart immediately or with delay based on whether animation was skipped
+            if (animationSkipped) {
+                scene.time.delayedCall(250, () => startGame.call(scene));
+            } else {
+                startGame.call(scene);
+            }
         });
     },
 

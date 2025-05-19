@@ -164,54 +164,97 @@ const ScoreSystem = {
         });
     },
 
-    // Completely rewritten animation using Phaser's built-in tween system
+    // Add this property to track active animations:
+    activeAnimation: null,
+
+    // Add this helper method for showing final score with celebration effect:
+    showFinalScore: function (scene, textObject, finalScore) {
+        if (!scene || !textObject || textObject.active === false) return;
+
+        // Set the final score immediately
+        textObject.setText(finalScore.toString());
+
+        // Add celebration effect (scaling pulse)
+        scene.tweens.add({
+            targets: textObject,
+            scale: 1.2,
+            duration: 200,
+            yoyo: true
+        });
+    },
+
+    // Method to skip directly to the end result
+    skipToFinalScore: function (scene) {
+        // If no active animation, do nothing
+        if (!this.activeAnimation) {
+            return false;
+        }
+
+        // Stop the active tween
+        if (this.activeAnimation.tween) {
+            this.activeAnimation.tween.stop();
+        }
+
+        // Show the final score with celebration
+        this.showFinalScore(
+            scene,
+            this.activeAnimation.textObject,
+            this.activeAnimation.finalScore
+        );
+
+        // Clear animation reference
+        this.activeAnimation = null;
+
+        return true;
+    },
+
+    // Simplified animateScoreCounter that uses the shared showFinalScore method
     animateScoreCounter: function (scene, textObject, finalScore, createdObjects) {
         if (!scene || !textObject) {
             console.error("Missing scene or textObject in animateScoreCounter");
             return;
         }
 
-        // Round finalScore to an integer to avoid decimal issues
+        // Round finalScore to an integer
         finalScore = Math.floor(finalScore);
         console.log("Starting counter animation to:", finalScore);
 
-        // Create a counter object that we'll tween
+        // Create counter object and configure animation
         const counter = { value: 0 };
-
-        // The animation duration scales with the score
         const duration = Math.min(2000, 1000 + finalScore * 10);
 
         // Create the tween
-        scene.tweens.add({
+        const scoreTween = scene.tweens.add({
             targets: counter,
             value: finalScore,
             duration: duration,
             ease: 'Linear',
-
-            // This will run on each frame update of the tween
             onUpdate: function () {
-                // Update the text with the current integer value
-                const currentValue = Math.floor(counter.value);
-                textObject.setText(currentValue.toString());
-                console.log("Counter update:", currentValue);
+                // Only update if the text object is still valid
+                if (textObject && textObject.active !== false) {
+                    const currentValue = Math.floor(counter.value);
+                    textObject.setText(currentValue.toString());
+                }
             },
-
-            // When the tween completes
-            onComplete: function () {
+            onComplete: () => {
                 console.log("Counter animation complete!");
 
-                // Ensure the final value is displayed correctly
-                textObject.setText(finalScore.toString());
+                // Clear the active animation reference
+                this.activeAnimation = null;
 
-                // Add a small celebration effect
-                scene.tweens.add({
-                    targets: textObject,
-                    scale: 1.2,
-                    duration: 200,
-                    yoyo: true
-                });
+                // Show final score with celebration effect
+                this.showFinalScore(scene, textObject, finalScore);
             }
         });
+
+        // Store animation details for potential skipping
+        this.activeAnimation = {
+            tween: scoreTween,
+            textObject: textObject,
+            finalScore: finalScore
+        };
+
+        return scoreTween;
     },
 
     // Cleanup method to destroy all created objects

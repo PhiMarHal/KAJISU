@@ -199,6 +199,9 @@ function playerDeath(killerEnemy) {
     // Pause the game physics to stop all movement
     PauseSystem.pauseGame();
 
+    // Resume music to normal if we were in boss mode
+    MusicSystem.removeBossFightEffect();
+
     // Get the scene
     const scene = this;
 

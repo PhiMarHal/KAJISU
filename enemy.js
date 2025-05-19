@@ -552,6 +552,9 @@ const EnemySystem = {
         // Set background to boss mode
         if (window.BackgroundAnimationSystem) BackgroundAnimationSystem.setBossMode(true);
 
+        // Set music to boss mode
+        MusicSystem.applyBossFightEffect();
+
         // Update UI to show boss name and health
         this.showBossUI(boss);
 
@@ -658,6 +661,9 @@ const EnemySystem = {
 
         // Reset background to normal
         if (window.BackgroundAnimationSystem) BackgroundAnimationSystem.setBossMode(false);
+
+        // Reset music to normal
+        MusicSystem.removeBossFightEffect();
 
         // End the game with victory
         this.showVictoryScreen();

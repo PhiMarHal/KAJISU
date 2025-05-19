@@ -24,6 +24,12 @@ const MusicSystem = {
     pausePulseTween: null,  // Reference to pulse effect tween
     lowPassFilter: null,    // Reference to Web Audio low-pass filter
 
+    // Boss time
+    bossFilterNode: null,      // High-pass filter for boss fights
+    chorusNodes: [],           // Array of delay nodes for chorus effect
+    isInBossFight: false,      // Track if boss fight mode is active
+    originalAudioPath: null,   // Store original audio routing
+
     // Initialize the music system
     initialize: function (scene) {
         console.log("Initializing music system");
@@ -134,7 +140,11 @@ const MusicSystem = {
 
         // Also clear any pending timers
         if (this.silenceTimer) {
-            this.silenceTimer.remove();
+            if (typeof this.silenceTimer === 'number') {
+                clearTimeout(this.silenceTimer);
+            } else if (this.silenceTimer.remove) {
+                this.silenceTimer.remove();
+            }
             this.silenceTimer = null;
         }
     },
@@ -192,7 +202,11 @@ const MusicSystem = {
 
         // Clear any existing silence timer
         if (this.silenceTimer) {
-            this.silenceTimer.remove();
+            if (typeof this.silenceTimer === 'number') {
+                clearTimeout(this.silenceTimer);
+            } else if (this.silenceTimer.remove) {
+                this.silenceTimer.remove();
+            }
             this.silenceTimer = null;
         }
 
@@ -225,6 +239,12 @@ const MusicSystem = {
         // Start playing at 0 volume
         track.setVolume(0);
         track.play();
+
+        // Re-apply boss fight effect if it was active
+        if (this.isInBossFight) {
+            this.log("Re-applying boss fight effect to new track");
+            this.applyBossFightEffect();
+        }
 
         // Create fade-in tween
         this.fadeInTween = this.scene.tweens.add({
@@ -305,7 +325,11 @@ const MusicSystem = {
 
         // Clear any silence timer
         if (this.silenceTimer) {
-            this.silenceTimer.remove();
+            if (typeof this.silenceTimer === 'number') {
+                clearTimeout(this.silenceTimer);
+            } else if (this.silenceTimer.remove) {
+                this.silenceTimer.remove();
+            }
             this.silenceTimer = null;
         }
     },
@@ -517,7 +541,153 @@ const MusicSystem = {
         } catch (err) {
             console.log("Error removing filter:", err);
         }
-    }
+    },
+
+    // Apply boss fight audio effect
+    applyBossFightEffect: function () {
+        if (!this.currentTrack || !this.scene) return;
+
+        this.log("Applying boss fight audio effect");
+
+        try {
+            const audioContext = this.scene.sound.context;
+            if (!audioContext) {
+                this.log("No audio context available");
+                return;
+            }
+
+            // Store track's original source and destination
+            if (this.currentTrack.source) {
+                this.originalAudioPath = {
+                    source: this.currentTrack.source,
+                    destination: this.currentTrack.source.destination || audioContext.destination
+                };
+
+                // Disconnect the original path
+                this.currentTrack.source.disconnect();
+
+                // 1. Create high-pass filter
+                this.bossFilterNode = audioContext.createBiquadFilter();
+                this.bossFilterNode.type = 'highpass';
+                this.bossFilterNode.frequency.value = 250; // Adjust as needed
+                this.bossFilterNode.Q.value = 1.0;
+
+                // 2. Create chorus effect with multiple delay nodes
+                const chorusCount = 3; // Number of chorus voices
+                this.chorusNodes = [];
+
+                for (let i = 0; i < chorusCount; i++) {
+                    // Create delay node for chorus
+                    const delayNode = audioContext.createDelay();
+
+                    // Set delay time - slightly different for each voice
+                    // Base delay of 20ms plus a variation up to 10ms
+                    const delayTime = 0.02 + (i * 0.01);
+                    delayNode.delayTime.value = delayTime;
+
+                    // Create gain node to control chorus voice level
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.value = 0.3; // Each voice at 30% volume
+
+                    // Store both nodes as a pair
+                    this.chorusNodes.push({ delay: delayNode, gain: gainNode });
+                }
+
+                // 3. Connect everything together
+                // First connect source to the high-pass filter
+                this.currentTrack.source.connect(this.bossFilterNode);
+
+                // Connect filter directly to destination (dry signal)
+                this.bossFilterNode.connect(this.originalAudioPath.destination);
+
+                // Also connect filter to each chorus voice
+                this.chorusNodes.forEach(chorusVoice => {
+                    // Connect filter to delay
+                    this.bossFilterNode.connect(chorusVoice.delay);
+
+                    // Connect delay to gain
+                    chorusVoice.delay.connect(chorusVoice.gain);
+
+                    // Connect gain to destination
+                    chorusVoice.gain.connect(this.originalAudioPath.destination);
+                });
+
+                // Optional: Add slight modulation to chorus delay times
+                // This makes the effect more interesting over time
+                this.chorusNodes.forEach((voice, index) => {
+                    // Create an oscillator for modulation
+                    const oscillator = audioContext.createOscillator();
+                    const oscGain = audioContext.createGain();
+
+                    // Set oscillator properties
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = 0.1 + (index * 0.05); // Different for each voice
+
+                    // Set modulation amount
+                    oscGain.gain.value = 0.001; // Small modulation amount
+
+                    // Connect oscillator through gain to delay time
+                    oscillator.connect(oscGain);
+                    oscGain.connect(voice.delay.delayTime);
+
+                    // Start the oscillator
+                    oscillator.start();
+
+                    // Store oscillator for later cleanup
+                    voice.oscillator = oscillator;
+                    voice.oscGain = oscGain;
+                });
+
+                this.isInBossFight = true;
+                this.log("Boss fight audio effect applied");
+            }
+        } catch (err) {
+            this.log("Error applying boss fight effect:", err);
+        }
+    },
+
+    // Remove boss fight audio effect
+    removeBossFightEffect: function () {
+        if (!this.isInBossFight || !this.currentTrack) return;
+
+        this.log("Removing boss fight audio effect");
+
+        try {
+            if (this.originalAudioPath && this.originalAudioPath.source) {
+                // First, stop all oscillators
+                this.chorusNodes.forEach(voice => {
+                    if (voice.oscillator) {
+                        voice.oscillator.stop();
+                    }
+                });
+
+                // Disconnect everything
+                this.originalAudioPath.source.disconnect();
+
+                if (this.bossFilterNode) {
+                    this.bossFilterNode.disconnect();
+                }
+
+                this.chorusNodes.forEach(voice => {
+                    voice.delay.disconnect();
+                    voice.gain.disconnect();
+                });
+
+                // Reconnect source directly to destination
+                this.originalAudioPath.source.connect(this.originalAudioPath.destination);
+
+                this.log("Boss fight audio effect removed");
+            }
+        } catch (err) {
+            this.log("Error removing boss fight effect:", err);
+        }
+
+        // Reset state
+        this.bossFilterNode = null;
+        this.chorusNodes = [];
+        this.isInBossFight = false;
+        this.originalAudioPath = null;
+    },
 };
 
 // Export the music system

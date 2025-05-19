@@ -182,9 +182,9 @@ const PERKS = {
         }
     },
     "SNIPER_FAIRY": {
-        kanji: "狙",
-        kana: "ねらう",
-        romaji: "nerau",
+        kanji: "狙撃精", // Changed from "狙" to "狙撃精" (Sniper Fairy)
+        kana: "そげきせい", // Changed from "ねらう" to "そげきせい"
+        romaji: "sogeikisei", // Changed from "nerau" to "sogeikisei"
         english: "Sniper Fairy",
         description: "Summons a fairy that fires powerful shots at random enemies",
         color: "#FF55AA",
@@ -436,9 +436,9 @@ const PERKS = {
         }
     },
     "LAVA_FAIRIES": {
-        kanji: "溶精",
-        kana: "ようせい",
-        romaji: "yousei",
+        kanji: "溶岩精",
+        kana: "ようがんせい",
+        romaji: "yougansei",
         english: "Lava Fairies",
         description: "Summons lava fairies that orbit around you. When they expire, they drop magma that damages enemies.",
         color: "#FF6600", // Orange-red color for lava

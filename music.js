@@ -188,21 +188,20 @@ const MusicSystem = {
 
     // Start a silence period before playing the specified track
     startSilencePeriod: function (trackId) {
+        console.log(`Starting silence period before track: ${trackId}`);
+
         // Clear any existing silence timer
         if (this.silenceTimer) {
             this.silenceTimer.remove();
+            this.silenceTimer = null;
         }
 
-        // Create new timer for silence
-        this.silenceTimer = registerTimer(this.scene.time.delayedCall(
-            this.silenceDuration,
-            function () {
-                this.startTrackWithFadeIn(trackId);
-                this.silenceTimer = null;
-            },
-            [],
-            this
-        ));
+        // Use JavaScript setTimeout instead of Phaser timer
+        // This continues to run even when game is paused
+        this.silenceTimer = setTimeout(() => {
+            console.log("Silence period complete, starting track");
+            this.startTrackWithFadeIn(trackId);
+        }, this.silenceDuration);
     },
 
     // Start playing a track with fade-in
@@ -234,22 +233,22 @@ const MusicSystem = {
             duration: this.fadeDuration,
             ease: 'Linear',
             onComplete: () => {
+                console.log("Fade-in complete");
                 this.fadeInTween = null;
 
-                // Schedule fade-out near the end of the track
-                // Need to adjust the timing based on playback rate
+                // Calculate when to start fade-out
                 const trackDuration = track.totalDuration * 1000; // Convert to ms
                 const adjustedDuration = trackDuration / this.currentRate; // Adjust for time dilation
                 const fadeOutTime = Math.max(0, adjustedDuration - this.fadeDuration);
 
-                this.scene.time.delayedCall(
-                    fadeOutTime,
-                    function () {
-                        this.startFadeOut();
-                    },
-                    [],
-                    this
-                );
+                console.log(`Scheduling fade-out in ${fadeOutTime}ms (real time)`);
+
+                // Use JavaScript setTimeout instead of Phaser timer
+                // This continues to run even when game is paused
+                setTimeout(() => {
+                    console.log("Time to start fade-out (from real timer)");
+                    this.startFadeOut();
+                }, fadeOutTime);
             }
         });
     },
@@ -324,33 +323,97 @@ const MusicSystem = {
             this.savedVolume = this.currentTrack.volume;
 
             // Apply volume reduction for muffled effect
-            this.currentTrack.setVolume(this.pausedVolume);
+            this.currentTrack.setVolume(this.pausedVolume || 0.3);
 
             // Try to apply low-pass filter (advanced effect)
-            this.applyLowPassFilter();
+            if (this.scene && this.scene.sound && this.scene.sound.context &&
+                this.currentTrack.source && this.currentTrack.source.disconnect) {
+
+                const audioContext = this.scene.sound.context;
+
+                // Create a low-pass filter
+                this.lowPassFilter = audioContext.createBiquadFilter();
+                this.lowPassFilter.type = 'lowpass';
+                this.lowPassFilter.frequency.value = 800; // Lower = more muffled
+                this.lowPassFilter.Q.value = 0.5;
+
+                // Get the current destination
+                const destination = this.currentTrack.source.destination || audioContext.destination;
+
+                // Connect through the filter
+                this.currentTrack.source.disconnect();
+                this.currentTrack.source.connect(this.lowPassFilter);
+                this.lowPassFilter.connect(destination);
+
+                console.log("Applied low-pass filter");
+            }
 
             // Create a simple volume pulse effect
-            this.createPauseVolumeEffect();
+            const pulseData = { volume: this.pausedVolume || 0.3 };
+
+            // Create a slow pulsing effect
+            this.pausePulseTween = this.scene.tweens.add({
+                targets: pulseData,
+                volume: (this.pausedVolume || 0.3) * 0.7, // Pulse to 70% of pause volume
+                duration: 2000,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1,
+                onUpdate: () => {
+                    // Only modify volume if track still exists
+                    if (this.currentTrack) {
+                        this.currentTrack.setVolume(pulseData.volume);
+                    }
+                }
+            });
         } catch (err) {
             console.log("Error applying pause effects:", err);
+        }
+    },
 
-            // Fallback to just pausing
-            if (this.currentTrack && this.currentTrack.isPlaying) {
+    // Remove the muffled effect when game is resumed
+    onGameResume: function () {
+        console.log("Game resumed, removing muffled effect");
+
+        // Skip if no track exists
+        if (!this.currentTrack) {
+            return;
+        }
+
+        try {
+            // Stop the pulse effect if it exists
+            if (this.pausePulseTween) {
+                this.pausePulseTween.stop();
+                this.pausePulseTween = null;
+            }
+
+            // Restore volume
+            if (this.savedVolume !== undefined) {
+                this.currentTrack.setVolume(this.savedVolume);
+                this.savedVolume = undefined;
+            } else {
+                // Fallback to normal volume
+                this.currentTrack.setVolume(this.volume);
+            }
+
+            // Remove low-pass filter if we applied one
+            if (this.lowPassFilter && this.currentTrack.source &&
+                this.currentTrack.source.disconnect) {
                 try {
-                    this.currentTrack.pause();
-                } catch (pauseErr) {
-                    console.log("Error even with basic pause:", pauseErr);
+                    const audioContext = this.scene.sound.context;
+                    const destination = this.currentTrack.source.destination || audioContext.destination;
+
+                    // Reconnect without the filter
+                    this.currentTrack.source.disconnect();
+                    this.currentTrack.source.connect(destination);
+
+                    console.log("Removed low-pass filter from track");
+                } catch (err) {
+                    console.log("Error removing filter:", err);
                 }
             }
-        }
-
-        // Pause any active tweens
-        if (this.fadeInTween && this.fadeInTween.isPlaying()) {
-            this.fadeInTween.pause();
-        }
-
-        if (this.fadeOutTween && this.fadeOutTween.isPlaying()) {
-            this.fadeOutTween.pause();
+        } catch (err) {
+            console.log("Error removing pause effects:", err);
         }
     },
 
@@ -428,61 +491,6 @@ const MusicSystem = {
             console.log("Created pause pulse effect");
         } catch (err) {
             console.log("Error creating pulse effect:", err);
-        }
-    },
-
-    // Replace the existing onGameResume method with this fixed version:
-    onGameResume: function () {
-        console.log("Game resumed, removing muffled effect");
-
-        // Skip if no track exists
-        if (!this.currentTrack) {
-            return;
-        }
-
-        try {
-            // Stop the pulse effect if it exists
-            if (this.pausePulseTween) {
-                this.pausePulseTween.stop();
-                this.pausePulseTween = null;
-            }
-
-            // Restore volume
-            if (this.savedVolume !== null) {
-                this.currentTrack.setVolume(this.savedVolume);
-                this.savedVolume = null;
-            } else {
-                // Fallback to normal volume
-                this.currentTrack.setVolume(this.volume);
-            }
-
-            // Remove low-pass filter if applicable
-            this.removeLowPassFilter();
-
-            // Resume playback if paused
-            if (this.currentTrack.isPaused) {
-                this.currentTrack.resume();
-            }
-        } catch (err) {
-            console.log("Error removing pause effects:", err);
-
-            // Fallback to simple resume
-            if (this.currentTrack && this.currentTrack.isPaused) {
-                try {
-                    this.currentTrack.resume();
-                } catch (resumeErr) {
-                    console.log("Error with basic resume:", resumeErr);
-                }
-            }
-        }
-
-        // Resume any active tweens
-        if (this.fadeInTween && this.fadeInTween.isPaused) {
-            this.fadeInTween.resume();
-        }
-
-        if (this.fadeOutTween && this.fadeOutTween.isPaused) {
-            this.fadeOutTween.resume();
         }
     },
 

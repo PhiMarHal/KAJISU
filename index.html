@@ -669,36 +669,67 @@
         }
 
         function detectKeyboardLayout() {
-            // Keep QWERTY as default
-            keyboardLayout = 'qwerty';
+            // Check if we're running locally
+            const isLocalEnvironment =
+                window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1' ||
+                window.location.protocol === 'file:'; // For direct file access
 
-            // First, try the simpler language-based detection
-            // This is more reliable across different environments
-            const language = navigator.language || navigator.userLanguage;
-            if (language && (language.startsWith('fr') || language.startsWith('be'))) {
-                // French or Belgian language often uses AZERTY
-                keyboardLayout = 'azerty';
-                updateWASDKeys.call(this);
-                return;
-            }
+            // Default to AZERTY for local development, QWERTY otherwise
+            keyboardLayout = isLocalEnvironment ? 'azerty' : 'qwerty';
 
-            // Only try the API method as a fallback
-            // This avoids issues with browser security restrictions
-            if (navigator.keyboard && navigator.keyboard.getLayoutMap) {
+            console.log(`Keyboard layout set to ${keyboardLayout} (${isLocalEnvironment ? 'local environment' : 'remote environment'})`);
+
+            // Try the API detection if we're in a secure context and not local
+            if (window.isSecureContext && !isLocalEnvironment && navigator.keyboard && navigator.keyboard.getLayoutMap) {
                 navigator.keyboard.getLayoutMap()
                     .then(keyboardLayoutMap => {
-                        // Check for AZERTY layout by looking at the key for 'KeyQ'
                         const qKey = keyboardLayoutMap.get('KeyQ');
                         if (qKey === 'a' || qKey === 'A') {
-                            // AZERTY detected
                             keyboardLayout = 'azerty';
                             updateWASDKeys.call(this);
+                            console.log("AZERTY keyboard detected via API");
                         }
                     })
                     .catch(error => {
                         console.log('Error in keyboard API detection:', error);
                     });
             }
+
+            // Update keys based on our determined layout
+            updateWASDKeys.call(this);
+
+            // Always add a keyboard shortcut to toggle layout if needed
+            this.input.keyboard.once('keydown-L', function () {
+                keyboardLayout = keyboardLayout === 'qwerty' ? 'azerty' : 'qwerty';
+                updateWASDKeys.call(this);
+
+                // Show confirmation
+                const confirmation = this.add.text(
+                    game.config.width / 2,
+                    game.config.height / 2,
+                    `Switched to ${keyboardLayout.toUpperCase()} layout`,
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '24px',
+                        color: '#ffffff',
+                        backgroundColor: '#333333',
+                        padding: { x: 10, y: 5 }
+                    }
+                ).setOrigin(0.5).setDepth(1000);
+
+                // Fade out
+                this.tweens.add({
+                    targets: confirmation,
+                    alpha: 0,
+                    y: confirmation.y - 30,
+                    duration: 2000,
+                    onComplete: function () { confirmation.destroy(); }
+                });
+
+                // Add another listener for additional toggles
+                this.input.keyboard.once('keydown-L', arguments.callee, this);
+            }, this);
         }
 
         function updateWASDKeys() {

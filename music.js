@@ -12,7 +12,7 @@ const MusicSystem = {
     silenceTimer: null,     // Timer for silence between tracks
 
     // Configuration
-    silenceDuration: 8000,  // 8 seconds of silence between tracks
+    silenceDuration: 4000,  // 4 seconds of silence between tracks
     fadeDuration: 4000,     // 4 seconds fade in/out
     volume: 0.7,            // Default maximum volume (0-1)
     musicEnabled: true,     // Music enabled/disabled flag
@@ -242,7 +242,7 @@ const MusicSystem = {
 
         // Re-apply boss fight effect if it was active
         if (this.isInBossFight) {
-            this.log("Re-applying boss fight effect to new track");
+            console.log("Re-applying boss fight effect to new track");
             this.applyBossFightEffect();
         }
 
@@ -545,14 +545,14 @@ const MusicSystem = {
 
     // Apply boss fight audio effect
     applyBossFightEffect: function () {
-        if (!this.currentTrack || !this.scene) return;
+        //if (!this.currentTrack || !this.scene) return;
 
-        this.log("Applying boss fight audio effect");
+        console.log("Applying boss fight audio effect");
 
         try {
             const audioContext = this.scene.sound.context;
             if (!audioContext) {
-                this.log("No audio context available");
+                console.log("No audio context available");
                 return;
             }
 
@@ -569,11 +569,11 @@ const MusicSystem = {
                 // 1. Create high-pass filter
                 this.bossFilterNode = audioContext.createBiquadFilter();
                 this.bossFilterNode.type = 'highpass';
-                this.bossFilterNode.frequency.value = 250; // Adjust as needed
+                this.bossFilterNode.frequency.value = 200; // Adjust as needed
                 this.bossFilterNode.Q.value = 1.0;
 
                 // 2. Create chorus effect with multiple delay nodes
-                const chorusCount = 3; // Number of chorus voices
+                const chorusCount = 8; // Number of chorus voices
                 this.chorusNodes = [];
 
                 for (let i = 0; i < chorusCount; i++) {
@@ -639,18 +639,18 @@ const MusicSystem = {
                 });
 
                 this.isInBossFight = true;
-                this.log("Boss fight audio effect applied");
+                console.log("Boss fight audio effect applied");
             }
         } catch (err) {
-            this.log("Error applying boss fight effect:", err);
+            console.log("Error applying boss fight effect:", err);
         }
     },
 
     // Remove boss fight audio effect
     removeBossFightEffect: function () {
-        if (!this.isInBossFight || !this.currentTrack) return;
+        //if (!this.isInBossFight || !this.currentTrack) return;
 
-        this.log("Removing boss fight audio effect");
+        console.log("Removing boss fight audio effect");
 
         try {
             if (this.originalAudioPath && this.originalAudioPath.source) {
@@ -676,10 +676,10 @@ const MusicSystem = {
                 // Reconnect source directly to destination
                 this.originalAudioPath.source.connect(this.originalAudioPath.destination);
 
-                this.log("Boss fight audio effect removed");
+                console.log("Boss fight audio effect removed");
             }
         } catch (err) {
-            this.log("Error removing boss fight effect:", err);
+            console.log("Error removing boss fight effect:", err);
         }
 
         // Reset state

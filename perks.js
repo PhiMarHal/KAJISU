@@ -45,7 +45,7 @@ const PERKS = {
         kana: "はなさく",
         romaji: "hanasaku",
         english: "Blooming Flower",
-        description: "Periodically spawns flowers that attack nearby enemies",
+        description: "This flower attacks nearby enemies",
         color: "#FF66AA", // Pink color
         hoverColor: 0xDD4488,
         onAcquire: function () {
@@ -109,7 +109,7 @@ const PERKS = {
         kana: "しゆび",
         romaji: "shiyubi",
         english: "Death Finger",
-        description: "Point and stare at their invisible demise",
+        description: "Those who stare death take damage",
         color: "#FF0000", // Red color
         hoverColor: 0xDD0000,
         onAcquire: function () {
@@ -174,7 +174,7 @@ const PERKS = {
         kana: "こはくこうちゅう",
         romaji: "kohakukouchuu",
         english: "Amber Beetle",
-        description: "Drops explosive mines that damage enemies",
+        description: "Drops landmines that damage enemies",
         color: "#ffbf00",
         hoverColor: 0xbb8c00,
         onAcquire: function () {
@@ -186,7 +186,7 @@ const PERKS = {
         kana: "そげきせい", // Changed from "ねらう" to "そげきせい"
         romaji: "sogeikisei", // Changed from "nerau" to "sogeikisei"
         english: "Sniper Fairy",
-        description: "Summons a fairy that fires powerful shots at random enemies",
+        description: "A fairy with slow but powerful long range shots",
         color: "#FF55AA",
         hoverColor: 0xDD3388,
         onAcquire: function () {
@@ -198,7 +198,7 @@ const PERKS = {
         kana: "のようせい",
         romaji: "noyousei",
         english: "Wild Fairy",
-        description: "Summons an erratic fairy that orbits you at high speed and damages enemies",
+        description: "This erratic fairy orbits at high speed and damages enemies",
         color: "#FF66CC", // Bright pink color
         hoverColor: 0xDD44AA,
         onAcquire: function () {
@@ -211,7 +211,7 @@ const PERKS = {
         kana: "てんみつ",
         romaji: "tenmitsu",
         english: "Angel Honey",
-        description: "Periodically spawns healing honey that restores your health",
+        description: "Periodically spawns honey for a full heal",
         color: "#00CC00", // Green color
         hoverColor: 0x00AA00,
         onAcquire: function () {
@@ -381,7 +381,7 @@ const PERKS = {
         kana: "みどりどく",
         romaji: "midoridoku",
         english: "Green Venom",
-        description: "Chance to fire poisonous projectiles that deal damage over time",
+        description: "Poisonous projectiles deal damage over time",
         color: "#2aad27",
         hoverColor: 0x1a8d17,
         onAcquire: function () {
@@ -392,7 +392,7 @@ const PERKS = {
         kana: "あおのまた",
         romaji: "aonomata",
         english: "Azure Fork",
-        description: "Projectiles have a chance to split in two when hitting enemies",
+        description: "Chance to split in two when hitting enemies",
         color: "#1E90FF",
         hoverColor: 0x0070DD,
         onAcquire: function () {
@@ -404,7 +404,7 @@ const PERKS = {
         kana: "どくばな",
         romaji: "dokubana",
         english: "Poison Flower",
-        description: "Creates flowers that release poison, damaging enemies over time",
+        description: "This flower pulses poison, damaging enemies over time",
         color: "#2aad27", // Green color matching the poison effect
         hoverColor: 0x1a8d17,
         onAcquire: function () {
@@ -416,7 +416,7 @@ const PERKS = {
         kana: "れいばな",
         romaji: "reibana",
         english: "Frost Flower",
-        description: "Creates flowers that slow nearby enemies",
+        description: "This flower slows down enemies",
         color: "#00ffff", // Cyan color matching the slow effect
         hoverColor: 0x00dddd,
         onAcquire: function () {
@@ -428,7 +428,7 @@ const PERKS = {
         kana: "こうそう",
         romaji: "kousou",
         english: "Bright Lance",
-        description: "Summons a glowing lance that follows your movement direction",
+        description: "A glowing lance that follows your movement direction",
         color: "#FFFF33", // Bright yellow color
         hoverColor: 0xDDDD00,
         onAcquire: function () {
@@ -440,7 +440,7 @@ const PERKS = {
         kana: "ようがんせい",
         romaji: "yougansei",
         english: "Lava Fairies",
-        description: "Summons lava fairies that orbit around you. When they expire, they drop magma that damages enemies.",
+        description: "On death, they drop magma that damages enemies",
         color: "#FF6600", // Orange-red color for lava
         hoverColor: 0xDD4400,
         onAcquire: function () {
@@ -468,7 +468,7 @@ const PERKS = {
         kana: "くちゆび",
         romaji: "kuchiyubi",
         english: "Finger of Decay",
-        description: "Point at entropy",
+        description: "Those pointed at get sick",
         color: "#88AA22", // Sickly greenish-yellow color
         hoverColor: 0x668800,
         onAcquire: function () {
@@ -504,7 +504,7 @@ const PERKS = {
         kana: "らいえん",
         romaji: "raien",
         english: "Storm Vengeance",
-        description: "Lightning strikes those who dare touch you",
+        description: "Lightning strikes back after a hit",
         color: "#FFAAFF", // Pinkish lightning color
         hoverColor: 0xDD88DD,
         onAcquire: function () {
@@ -517,7 +517,7 @@ const PERKS = {
         kana: "ひえん",
         romaji: "hien",
         english: "Scarlet Ember",
-        description: "Projectiles may leave fire that burns enemies over time",
+        description: "Fires burn enemies over time",
         color: "#FF4500",
         hoverColor: 0xCC3700,
         onAcquire: function () {
@@ -940,7 +940,7 @@ const PERKS = {
         kana: "しゅうえん",
         romaji: "shuuen",
         english: "Final Catastrophe",
-        description: "Unleashes an apocalyptic blast that devastates all enemies",
+        description: "Apocalyptic blast damages all enemies",
         color: "#FF3300", // Bright red-orange
         hoverColor: 0xCC2200,
         onAcquire: function () {
@@ -952,7 +952,7 @@ const PERKS = {
         kana: "むらさきこんとん",
         romaji: "murasakikonton",
         english: "Purple Chaos",
-        description: "Randomly rearranges all your stats\nThen +2 LUK",
+        description: "Randomly rearranges all your stats, then +2 LUK",
         color: "#9932cc",
         hoverColor: 0x8822bc,
         onAcquire: function () {
@@ -964,7 +964,7 @@ const PERKS = {
         kana: "いかりじょうしょう",
         romaji: "ikarijoushou",
         english: "Anger Rising",
-        description: "Get hit, be angry, deal more damage (+10%, up to +100%).",
+        description: "Get hit, deal more damage (+10%, up to +100%)",
         color: "#FF4500", // Orange-red
         hoverColor: 0xDD3300,
         onAcquire: function () {
@@ -1009,7 +1009,7 @@ const PERKS = {
         kana: "ひょうへん",
         romaji: "hyouhen",
         english: "Frost Shrapnel",
-        description: "Periodically drops ice shards that damage and slow enemies",
+        description: "Regularly drops ice shards that damage and slow enemies",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {
@@ -1268,7 +1268,7 @@ const PERKS = {
         kana: "ときのすな",
         romaji: "tokinosuna",
         english: "Alien Clock",
-        description: "Pick it up and time moves differently",
+        description: "Time moves differently on pickup",
         color: "#00ffff", // Cyan color like ALIEN_WORLD
         hoverColor: 0x00dddd,
         onAcquire: function () {

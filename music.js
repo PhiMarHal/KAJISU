@@ -1,15 +1,18 @@
 // Music System for Word Survivors
 // Handles background music with smooth transitions and shuffled playlists
+// Loads only one track at a time, when needed
 
 const MusicSystem = {
     // Music tracks and playback state
-    tracks: [],             // List of all available music tracks
-    playQueue: [],          // Current shuffled play order
+    tracks: [],             // List of available track IDs (not loaded yet)
+    playQueue: [],          // Shuffled play order
     currentTrackIndex: -1,  // Index of currently playing track in playQueue
     currentTrack: null,     // Reference to the currently playing Phaser Sound object
     fadeInTween: null,      // Reference to fade-in tween
     fadeOutTween: null,     // Reference to fade-out tween
     silenceTimer: null,     // Timer for silence between tracks
+    nextTrackToPlay: null,  // The next track we plan to play
+    isLoading: false,       // Flag to track if we're currently loading a track
 
     // Configuration
     silenceDuration: 4000,  // 4 seconds of silence between tracks
@@ -18,17 +21,15 @@ const MusicSystem = {
     musicEnabled: true,     // Music enabled/disabled flag
     currentRate: 1.0,       // Current playback rate (affected by time dilation)
 
-    // Low pass
+    // Boss fight effect settings
     pausedVolume: 0.3,      // Volume level when paused (30% of normal)
     savedVolume: null,      // Store the original volume during pause
     pausePulseTween: null,  // Reference to pulse effect tween
     lowPassFilter: null,    // Reference to Web Audio low-pass filter
-
-    // Boss time
-    bossFilterNode: null,      // High-pass filter for boss fights
-    chorusNodes: [],           // Array of delay nodes for chorus effect
-    isInBossFight: false,      // Track if boss fight mode is active
-    originalAudioPath: null,   // Store original audio routing
+    bossFilterNode: null,   // High-pass filter for boss fights
+    chorusNodes: [],        // Array of delay nodes for chorus effect
+    isInBossFight: false,   // Track if boss fight mode is active
+    originalAudioPath: null, // Store original audio routing
 
     // Initialize the music system
     initialize: function (scene) {
@@ -39,11 +40,287 @@ const MusicSystem = {
         this.playQueue = [];
         this.currentTrackIndex = -1;
         this.currentRate = 1.0;
+        this.nextTrackToPlay = null;
+        this.isLoading = false;
 
         // Store scene reference for later use
         this.scene = scene;
 
         return this;
+    },
+
+    // Preload just track metadata, not actual audio content
+    preload: function (scene) {
+        // Just build a list of track IDs without loading them
+        for (let i = 1; i <= 23; i++) {
+            const trackId = `track-${String(i).padStart(2, '0')}`;
+            this.tracks.push(trackId);
+        }
+
+        // Shuffle the tracks for initial play order
+        this.shuffleArray(this.tracks);
+
+        // Set up the play queue
+        this.playQueue = [...this.tracks];
+        this.currentTrackIndex = -1;
+
+        console.log("Music system ready (tracks will load as needed)");
+    },
+
+    // Helper to shuffle an array
+    shuffleArray: function (array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    },
+
+    // Called after preload to set up the system
+    create: function (scene) {
+        // Nothing to do here - we'll load tracks as needed
+        return this;
+    },
+
+    // Start playing music
+    start: function () {
+        if (!this.musicEnabled || !this.scene) return;
+
+        // If nothing playing, start
+        if (!this.currentTrack) {
+            this.playNextTrack();
+        }
+    },
+
+    // Load and play the next track
+    playNextTrack: function () {
+        if (!this.musicEnabled || !this.scene || this.isLoading) return;
+
+        // If we've reached the end of the queue, create a new shuffled queue
+        if (this.currentTrackIndex >= this.playQueue.length - 1) {
+            this.createNewPlayQueue();
+        }
+
+        // Move to next track
+        this.currentTrackIndex++;
+
+        // Get the next track ID
+        const nextTrackId = this.playQueue[this.currentTrackIndex];
+        this.nextTrackToPlay = nextTrackId;
+
+        console.log(`Preparing to play next track: ${nextTrackId}`);
+
+        // Start silence period - we'll load the track during this time
+        this.startSilencePeriod(nextTrackId);
+    },
+
+    // Start a silence period before playing the specified track
+    startSilencePeriod: function (trackId) {
+        console.log(`Starting silence period before track: ${trackId}`);
+
+        // Clear any existing silence timer
+        if (this.silenceTimer) {
+            if (typeof this.silenceTimer === 'number') {
+                clearTimeout(this.silenceTimer);
+            } else if (this.silenceTimer.remove) {
+                this.silenceTimer.remove();
+            }
+            this.silenceTimer = null;
+        }
+
+        // Start loading the track immediately
+        this.loadTrack(trackId);
+
+        // Schedule playback after the silence period
+        this.silenceTimer = setTimeout(() => {
+            // Check if track loaded successfully
+            if (this.scene.sound.get(trackId)) {
+                console.log("Silence period complete, starting track");
+                this.startTrackWithFadeIn(trackId);
+            } else {
+                // If track isn't loaded yet, wait a bit more or skip
+                console.log(`Track ${trackId} not loaded yet, waiting...`);
+                this.silenceTimer = setTimeout(() => {
+                    if (this.scene.sound.get(trackId)) {
+                        this.startTrackWithFadeIn(trackId);
+                    } else {
+                        console.log(`Giving up on track ${trackId}, skipping to next`);
+                        this.playNextTrack();
+                    }
+                }, 2000); // Wait 2 more seconds
+            }
+        }, this.silenceDuration);
+    },
+
+    // Load a track just-in-time
+    loadTrack: function (trackId) {
+        // Skip if already loaded
+        if (this.scene.sound.get(trackId)) {
+            console.log(`Track ${trackId} already loaded`);
+            return;
+        }
+
+        // Mark as loading
+        this.isLoading = true;
+        console.log(`Loading track: ${trackId}`);
+
+        const trackPath = `music/${trackId}.mp3`;
+
+        // Create a loader for just this track
+        const loader = new Phaser.Loader.LoaderPlugin(this.scene);
+
+        // Load the track
+        loader.audio(trackId, trackPath);
+
+        // Handle completion
+        loader.once('complete', () => {
+            console.log(`Finished loading track: ${trackId}`);
+
+            // Add to sound manager
+            this.scene.sound.add(trackId, {
+                loop: false,
+                volume: 0
+            });
+
+            this.isLoading = false;
+
+            // If this is the track we're waiting to play and we're in silence, 
+            // we can reduce the silence duration
+            if (trackId === this.nextTrackToPlay && this.silenceTimer) {
+                clearTimeout(this.silenceTimer);
+                this.silenceTimer = setTimeout(() => {
+                    this.startTrackWithFadeIn(trackId);
+                }, 500); // Just wait half a second
+            }
+        });
+
+        // Handle errors
+        loader.once('loaderror', (fileObj) => {
+            console.error(`Error loading track: ${trackId}`, fileObj);
+            this.isLoading = false;
+
+            // If this is the track we're waiting to play, skip to next
+            if (trackId === this.nextTrackToPlay) {
+                console.log("Skipping to next track due to load error");
+                this.playNextTrack();
+            }
+        });
+
+        // Start loading
+        loader.start();
+    },
+
+    // Start playing a track with fade-in
+    startTrackWithFadeIn: function (trackId) {
+        if (!this.musicEnabled || !this.scene) return;
+
+        // Get the sound object for this track
+        const track = this.scene.sound.get(trackId);
+        if (!track) {
+            console.error(`Track not found: ${trackId}`);
+            this.playNextTrack(); // Skip to next track
+            return;
+        }
+
+        // Stop any currently playing track with immediate fade out
+        if (this.currentTrack && this.currentTrack.isPlaying) {
+            // Cancel existing fade out if any
+            if (this.fadeOutTween) {
+                this.fadeOutTween.stop();
+                this.fadeOutTween = null;
+            }
+
+            // Create quick fade out (500ms)
+            this.fadeOutTween = this.scene.tweens.add({
+                targets: this.currentTrack,
+                volume: 0,
+                duration: 500,
+                ease: 'Linear',
+                onComplete: () => {
+                    // Stop the old track
+                    this.currentTrack.stop();
+                    this.fadeOutTween = null;
+                }
+            });
+        }
+
+        // Store reference to current track
+        this.currentTrack = track;
+
+        // Set the initial playback rate based on current time dilation
+        track.setRate(this.currentRate);
+
+        // Start playing at 0 volume
+        track.setVolume(0);
+        track.play();
+
+        // Re-apply boss fight effect if it was active
+        if (this.isInBossFight) {
+            console.log("Re-applying boss fight effect to new track");
+            this.applyBossFightEffect();
+        }
+
+        // Create fade-in tween
+        this.fadeInTween = this.scene.tweens.add({
+            targets: track,
+            volume: this.volume,
+            duration: this.fadeDuration,
+            ease: 'Linear',
+            onComplete: () => {
+                console.log("Fade-in complete");
+                this.fadeInTween = null;
+
+                // Calculate when to start fade-out
+                const trackDuration = track.totalDuration * 1000; // Convert to ms
+                const adjustedDuration = trackDuration / this.currentRate; // Adjust for time dilation
+                const fadeOutTime = Math.max(0, adjustedDuration - this.fadeDuration);
+
+                console.log(`Scheduling fade-out in ${fadeOutTime}ms (real time)`);
+
+                // Early load the next track when we're about 20 seconds from the end
+                if (fadeOutTime > 25000) {
+                    setTimeout(() => {
+                        const nextIdx = this.currentTrackIndex + 1;
+                        if (nextIdx < this.playQueue.length) {
+                            const nextTrackId = this.playQueue[nextIdx];
+                            this.loadTrack(nextTrackId);
+                        }
+                    }, fadeOutTime - 20000);
+                }
+
+                // Use JavaScript setTimeout instead of Phaser timer
+                // This continues to run even when game is paused
+                setTimeout(() => {
+                    console.log("Time to start fade-out (from real timer)");
+                    this.startFadeOut();
+                }, fadeOutTime);
+            }
+        });
+    },
+
+    // Create a new shuffled play queue
+    createNewPlayQueue: function () {
+        // Clone the tracks array
+        const newQueue = [...this.tracks];
+
+        // Shuffle using Fisher-Yates algorithm
+        this.shuffleArray(newQueue);
+
+        // If we already had a queue and it's not empty, make sure we don't repeat the last song
+        if (this.playQueue.length > 0 && this.currentTrackIndex >= 0) {
+            const lastPlayedTrack = this.playQueue[this.currentTrackIndex];
+
+            // If the first track in our new queue is the same as the last played track
+            if (newQueue[0] === lastPlayedTrack) {
+                // Swap with a random track that's not at index 0
+                const swapIndex = 1 + Math.floor(Math.random() * (newQueue.length - 1));
+                [newQueue[0], newQueue[swapIndex]] = [newQueue[swapIndex], newQueue[0]];
+            }
+        }
+
+        // Set the new queue
+        this.playQueue = newQueue;
+        this.currentTrackIndex = -1; // Reset to start of queue
     },
 
     // Apply time dilation to current music
@@ -56,38 +333,6 @@ const MusicSystem = {
 
         // Apply time scale to music - this will affect both speed and pitch
         this.currentTrack.setRate(timeScale);
-    },
-
-    // Preload music tracks
-    preload: function (scene) {
-        // Load all music tracks with the given pattern
-        // Example usage: scene.load.audio('track-01', 'assets/audio/track-01.mp3');
-
-        // Add tracks to the list as they're loaded
-        for (let i = 1; i <= 23; i++) {
-            const trackId = `track-${String(i).padStart(2, '0')}`;
-            const trackPath = `music/${trackId}.mp3`;
-
-            scene.load.audio(trackId, trackPath);
-            this.tracks.push(trackId);
-        }
-    },
-
-    // Called after preload to create sound objects
-    create: function (scene) {
-        // Create the actual sound objects once loading is complete
-        this.tracks.forEach(trackId => {
-            // Create with volume 0 - we'll control volume with tweens
-            scene.sound.add(trackId, {
-                loop: false,
-                volume: 0
-            });
-        });
-
-        // Create initial shuffled queue
-        this.createNewPlayQueue();
-
-        return this;
     },
 
     // Enable or disable music
@@ -124,16 +369,6 @@ const MusicSystem = {
         return this.volume;
     },
 
-    // Start playing music from the queue
-    start: function () {
-        if (!this.musicEnabled || !this.scene) return;
-
-        // If nothing playing, start
-        if (!this.currentTrack) {
-            this.playNextTrack();
-        }
-    },
-
     // Stop all music playback
     stop: function () {
         this.stopCurrentTrack();
@@ -147,130 +382,6 @@ const MusicSystem = {
             }
             this.silenceTimer = null;
         }
-    },
-
-    // Create a new shuffled play queue
-    createNewPlayQueue: function () {
-        // Clone the tracks array
-        const newQueue = [...this.tracks];
-
-        // Shuffle using Fisher-Yates algorithm
-        for (let i = newQueue.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newQueue[i], newQueue[j]] = [newQueue[j], newQueue[i]];
-        }
-
-        // If we already had a queue and it's not empty, make sure we don't repeat the last song
-        if (this.playQueue.length > 0 && this.currentTrackIndex >= 0) {
-            const lastPlayedTrack = this.playQueue[this.currentTrackIndex];
-
-            // If the first track in our new queue is the same as the last played track
-            if (newQueue[0] === lastPlayedTrack) {
-                // Swap with a random track that's not at index 0
-                const swapIndex = 1 + Math.floor(Math.random() * (newQueue.length - 1));
-                [newQueue[0], newQueue[swapIndex]] = [newQueue[swapIndex], newQueue[0]];
-            }
-        }
-
-        // Set the new queue
-        this.playQueue = newQueue;
-        this.currentTrackIndex = -1; // Reset to start of queue
-    },
-
-    // Play the next track in the queue
-    playNextTrack: function () {
-        if (!this.musicEnabled || !this.scene) return;
-
-        // If we've reached the end of the queue, create a new shuffled queue
-        if (this.currentTrackIndex >= this.playQueue.length - 1) {
-            this.createNewPlayQueue();
-        }
-
-        // Move to next track
-        this.currentTrackIndex++;
-
-        // Get the next track ID
-        const nextTrackId = this.playQueue[this.currentTrackIndex];
-
-        // Start a silence period before playing
-        this.startSilencePeriod(nextTrackId);
-    },
-
-    // Start a silence period before playing the specified track
-    startSilencePeriod: function (trackId) {
-        console.log(`Starting silence period before track: ${trackId}`);
-
-        // Clear any existing silence timer
-        if (this.silenceTimer) {
-            if (typeof this.silenceTimer === 'number') {
-                clearTimeout(this.silenceTimer);
-            } else if (this.silenceTimer.remove) {
-                this.silenceTimer.remove();
-            }
-            this.silenceTimer = null;
-        }
-
-        // Use JavaScript setTimeout instead of Phaser timer
-        // This continues to run even when game is paused
-        this.silenceTimer = setTimeout(() => {
-            console.log("Silence period complete, starting track");
-            this.startTrackWithFadeIn(trackId);
-        }, this.silenceDuration);
-    },
-
-    // Start playing a track with fade-in
-    startTrackWithFadeIn: function (trackId) {
-        if (!this.musicEnabled || !this.scene) return;
-
-        // Get the sound object for this track
-        const track = this.scene.sound.get(trackId);
-        if (!track) {
-            console.error(`Track not found: ${trackId}`);
-            this.playNextTrack(); // Skip to next track
-            return;
-        }
-
-        // Store reference to current track
-        this.currentTrack = track;
-
-        // Set the initial playback rate based on current time dilation
-        track.setRate(this.currentRate);
-
-        // Start playing at 0 volume
-        track.setVolume(0);
-        track.play();
-
-        // Re-apply boss fight effect if it was active
-        if (this.isInBossFight) {
-            console.log("Re-applying boss fight effect to new track");
-            this.applyBossFightEffect();
-        }
-
-        // Create fade-in tween
-        this.fadeInTween = this.scene.tweens.add({
-            targets: track,
-            volume: this.volume,
-            duration: this.fadeDuration,
-            ease: 'Linear',
-            onComplete: () => {
-                console.log("Fade-in complete");
-                this.fadeInTween = null;
-
-                // Calculate when to start fade-out
-                const trackDuration = track.totalDuration * 1000; // Convert to ms
-                const adjustedDuration = trackDuration / this.currentRate; // Adjust for time dilation
-                const fadeOutTime = Math.max(0, adjustedDuration - this.fadeDuration);
-
-                console.log(`Scheduling fade-out in ${fadeOutTime}ms (real time)`);
-
-                // Use JavaScript setTimeout instead of Phaser timer
-                // This continues to run even when game is paused
-                setTimeout(() => {
-                    console.log("Time to start fade-out (from real timer)");
-                    this.startFadeOut();
-                }, fadeOutTime);
-            }
-        });
     },
 
     // Start fading out the current track

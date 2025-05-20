@@ -141,7 +141,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
     count: 1,
     cooldown: function () {
         // Calculate cooldown based on Agi
-        return 4000 / playerFireRate;
+        return 1000 / (Math.sqrt(playerFireRate / BASE_STATS.AGI));
     },
     activationMethod: 'timer'
 });
@@ -180,7 +180,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
     count: 1,
     cooldown: function () {
         // Calculate cooldown based on Agi - same as TEAL_OCTOPUS
-        return 4000 / playerFireRate;
+        return 1000 / (Math.sqrt(playerFireRate / BASE_STATS.AGI));
     },
     activationMethod: 'timer'
 });

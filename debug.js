@@ -165,6 +165,20 @@ const DebugSystem = {
             // Toggle debug mode and stats visibility
             DebugSystem.toggleDebugMode(this);
         }, scene);
+
+        // Add debug key (M key for toggling music)
+        scene.input.keyboard.on('keydown-M', function () {
+            // Skip if debug keys are disabled
+            if (this.debugKeysDisabled) return;
+
+            // Toggle music if MusicSystem is available
+            if (window.MusicSystem) {
+                const musicEnabled = MusicSystem.setMusicEnabled(!MusicSystem.musicEnabled);
+                console.log(`Debug: Music ${musicEnabled ? 'enabled' : 'disabled'}`);
+            } else {
+                console.log("Debug: MusicSystem not available");
+            }
+        }, scene);
     },
 
     // Skip to the next enemy phase for testing

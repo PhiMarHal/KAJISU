@@ -21,11 +21,13 @@ const MusicSystem = {
     musicEnabled: true,     // Music enabled/disabled flag
     currentRate: 1.0,       // Current playback rate (affected by time dilation)
 
-    // Boss fight effect settings
+    // Pause settings
     pausedVolume: 0.3,      // Volume level when paused (30% of normal)
     savedVolume: null,      // Store the original volume during pause
     pausePulseTween: null,  // Reference to pulse effect tween
     lowPassFilter: null,    // Reference to Web Audio low-pass filter
+
+    // Boss fight effect settings
     bossFilterNode: null,   // High-pass filter for boss fights
     chorusNodes: [],        // Array of delay nodes for chorus effect
     isInBossFight: false,   // Track if boss fight mode is active
@@ -665,231 +667,17 @@ const MusicSystem = {
         }
     },
 
-    // Boss effect with multiband processing to preserve beat clarity
+    // We've tried various effects and none feel right. Maybe revisit later, leave it for now just in case
     applyBossFightEffect: function () {
-        if (!this.currentTrack || !this.scene) {
-            console.log("Cannot apply boss fight effect: missing currentTrack or scene");
-            return false;
-        }
-
-        console.log("Applying boss fight audio effect");
-
-        try {
-            const audioContext = this.scene.sound.context;
-            if (!audioContext) {
-                console.log("No audio context available");
-                return false;
-            }
-
-            // Store track's original source and destination
-            if (this.currentTrack.source) {
-                this.originalAudioPath = {
-                    source: this.currentTrack.source,
-                    destination: this.currentTrack.source.destination || audioContext.destination
-                };
-
-                // Disconnect the original path
-                this.currentTrack.source.disconnect();
-
-                // Master gain control to prevent volume increase
-                this.bossMasterGain = audioContext.createGain();
-                this.bossMasterGain.gain.value = 0.9; // Slight reduction to 90%
-
-                // MULTIBAND APPROACH:
-                // 1. Create three filters to split the frequency spectrum
-                // Low band: keeps drums/bass (below 200Hz) 
-                this.lowpassFilter = audioContext.createBiquadFilter();
-                this.lowpassFilter.type = 'lowpass';
-                this.lowpassFilter.frequency.value = 200;
-                this.lowpassFilter.Q.value = 0.7;
-
-                // Mid band: voices, most instruments (200Hz to 2000Hz)
-                this.bandpass1 = audioContext.createBiquadFilter();
-                this.bandpass1.type = 'bandpass';
-                this.bandpass1.frequency.value = 800; // Center frequency
-                this.bandpass1.Q.value = 0.5; // Wide band
-
-                // High band: cymbals, high harmonics (above 2000Hz)
-                this.highpassFilter = audioContext.createBiquadFilter();
-                this.highpassFilter.type = 'highpass';
-                this.highpassFilter.frequency.value = 2000;
-                this.highpassFilter.Q.value = 0.7;
-
-                // 2. Create chorus effect ONLY for the mid and high bands
-                const chorusCount = 4; // Just 4 chorus voices
-                this.chorusNodes = [];
-
-                for (let i = 0; i < chorusCount; i++) {
-                    // Create delay node for chorus
-                    const delayNode = audioContext.createDelay();
-
-                    // Slightly longer but subtle delays
-                    const delayTime = 0.04 + (i * 0.02);
-                    delayNode.delayTime.value = delayTime;
-
-                    // Create gain node with lower volume
-                    const gainNode = audioContext.createGain();
-                    gainNode.gain.value = 0.25; // 25% volume for chorus effect
-
-                    // Store both nodes as a pair
-                    this.chorusNodes.push({ delay: delayNode, gain: gainNode });
-                }
-
-                // 3. Create gain nodes to control each frequency band
-                this.lowBandGain = audioContext.createGain();
-                this.midBandGain = audioContext.createGain();
-                this.highBandGain = audioContext.createGain();
-
-                // Adjust levels of each band - preserve low end (beat), reduce mids slightly
-                this.lowBandGain.gain.value = 1.0;   // Keep low end at full volume
-                this.midBandGain.gain.value = 0.85;  // Slightly reduce mids
-                this.highBandGain.gain.value = 0.9;  // Slightly reduce highs
-
-                // 4. Connect everything together:
-                // First connect source to all three filters
-                this.currentTrack.source.connect(this.lowpassFilter);
-                this.currentTrack.source.connect(this.bandpass1);
-                this.currentTrack.source.connect(this.highpassFilter);
-
-                // Connect each filter to its band gain
-                this.lowpassFilter.connect(this.lowBandGain);
-                this.bandpass1.connect(this.midBandGain);
-                this.highpassFilter.connect(this.highBandGain);
-
-                // Connect the low band directly to master (no effects) to preserve beat clarity
-                this.lowBandGain.connect(this.bossMasterGain);
-
-                // Apply chorus effect ONLY to mid and high bands
-                // Mid band chorus
-                this.chorusNodes.forEach(chorusVoice => {
-                    // Connect mid band to delay
-                    this.midBandGain.connect(chorusVoice.delay);
-
-                    // Connect delay to gain
-                    chorusVoice.delay.connect(chorusVoice.gain);
-
-                    // Connect gain to master
-                    chorusVoice.gain.connect(this.bossMasterGain);
-                });
-
-                // Also connect mid band directly (dry signal)
-                this.midBandGain.connect(this.bossMasterGain);
-
-                // High band (just send direct to master, or optionally add to chorus)
-                this.highBandGain.connect(this.bossMasterGain);
-
-                // Add subtle chorus to high band (optional)
-                this.highChorusGain = audioContext.createGain();
-                this.highChorusGain.gain.value = 0.12; // Just 12% chorus for high frequencies
-
-                this.highBandGain.connect(this.chorusNodes[0].delay);
-                this.chorusNodes[0].delay.connect(this.highChorusGain);
-                this.highChorusGain.connect(this.bossMasterGain);
-
-                // Finally connect master gain to destination
-                this.bossMasterGain.connect(this.originalAudioPath.destination);
-
-                // 5. Add very gentle modulation to delay times
-                this.chorusNodes.forEach((voice, index) => {
-                    const oscillator = audioContext.createOscillator();
-                    const oscGain = audioContext.createGain();
-
-                    oscillator.type = 'sine';
-                    oscillator.frequency.value = 0.08 + (index * 0.04); // Slower modulation
-
-                    oscGain.gain.value = 0.0006; // Very subtle modulation amount
-
-                    oscillator.connect(oscGain);
-                    oscGain.connect(voice.delay.delayTime);
-
-                    oscillator.start();
-
-                    voice.oscillator = oscillator;
-                    voice.oscGain = oscGain;
-                });
-
-                this.isInBossFight = true;
-                console.log("Multiband boss fight audio effect applied");
-                return true;
-            } else {
-                console.log("No audio source available");
-                return false;
-            }
-        } catch (err) {
-            console.log("Error applying boss fight effect:", err);
-            return false;
-        }
+        // No boss music effect - just set the flag and return
+        this.isInBossFight = true;
+        return true;
     },
 
-    // Updated removeBossFightEffect to clean up all multiband nodes
     removeBossFightEffect: function () {
-        if (!this.isInBossFight || !this.currentTrack) {
-            console.log("Cannot remove boss fight effect: not in boss fight or no current track");
-            return false;
-        }
-
-        console.log("Removing boss fight audio effect");
-
-        try {
-            if (this.originalAudioPath && this.originalAudioPath.source) {
-                // Stop all oscillators
-                this.chorusNodes.forEach(voice => {
-                    if (voice.oscillator) {
-                        voice.oscillator.stop();
-                    }
-                });
-
-                // Disconnect everything
-                this.originalAudioPath.source.disconnect();
-
-                if (this.bossMasterGain) this.bossMasterGain.disconnect();
-
-                // Disconnect all frequency band filters
-                if (this.lowpassFilter) this.lowpassFilter.disconnect();
-                if (this.bandpass1) this.bandpass1.disconnect();
-                if (this.highpassFilter) this.highpassFilter.disconnect();
-
-                // Disconnect all band gain nodes
-                if (this.lowBandGain) this.lowBandGain.disconnect();
-                if (this.midBandGain) this.midBandGain.disconnect();
-                if (this.highBandGain) this.highBandGain.disconnect();
-
-                // Disconnect high chorus gain if it exists
-                if (this.highChorusGain) this.highChorusGain.disconnect();
-
-                // Disconnect all chorus nodes
-                this.chorusNodes.forEach(voice => {
-                    if (voice.delay) voice.delay.disconnect();
-                    if (voice.gain) voice.gain.disconnect();
-                });
-
-                // Reconnect source directly to destination
-                this.originalAudioPath.source.connect(this.originalAudioPath.destination);
-
-                console.log("Boss fight audio effect removed");
-
-                // Reset all state
-                this.bossMasterGain = null;
-                this.lowpassFilter = null;
-                this.bandpass1 = null;
-                this.highpassFilter = null;
-                this.lowBandGain = null;
-                this.midBandGain = null;
-                this.highBandGain = null;
-                this.highChorusGain = null;
-                this.chorusNodes = [];
-                this.isInBossFight = false;
-                this.originalAudioPath = null;
-
-                return true;
-            } else {
-                console.log("No original audio path available");
-                return false;
-            }
-        } catch (err) {
-            console.log("Error removing boss fight effect:", err);
-            return false;
-        }
+        // Just reset the flag and return
+        this.isInBossFight = false;
+        return true;
     }
 };
 

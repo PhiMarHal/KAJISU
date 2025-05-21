@@ -504,7 +504,7 @@ const EnemySystem = {
 
         // Spawn position (center of screen)
         const x = game.config.width / 2;
-        const y = -50;
+        const y = -250;
 
         // Create the boss with data-driven properties
         const boss = scene.add.text(x, y, bossType, {
@@ -519,10 +519,10 @@ const EnemySystem = {
 
         // Set physics properties
         boss.body.setSize(boss.width, boss.height);
-        boss.body.setCollideWorldBounds(true);
+        boss.body.setCollideWorldBounds(false);
         boss.body.setImmovable(false);
         boss.body.pushable = true;
-        boss.body.setMass(2);  // Make boss harder to push
+        boss.body.setMass(4);  // Make boss harder to push
         boss.body.setDrag(1);
         boss.body.setBounce(0.5);
 

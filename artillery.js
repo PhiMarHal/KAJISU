@@ -580,14 +580,10 @@ ProjectileComponentSystem.registerComponent('magmaDropEffect', {
     }
 });
 
-// Register component for multi-shot effect (Purple Owl)
 ProjectileComponentSystem.registerComponent('piercingEffect', {
     initialize: function (projectile) {
         // Mark the projectile as piercing
         projectile.piercing = true;
-
-        // Visual indicator for piercing projectiles
-        projectile.setColor('#00ff88');
     }
 });
 

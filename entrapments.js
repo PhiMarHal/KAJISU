@@ -62,7 +62,9 @@ DropperPerkRegistry.registerDropperPerk('AMBER_BEETLE', {
             behaviorType: 'projectile',
             damage: amberDamage,
             lifespan: null,
-            options: {}
+            options: {
+                visualEffect: 'createPulsing'
+            }
         };
     },
     cooldown: function () {

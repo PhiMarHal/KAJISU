@@ -174,7 +174,7 @@ const PERKS = {
         kana: "こはくこうちゅう",
         romaji: "kohakukouchuu",
         english: "Amber Beetle",
-        description: "Drops landmines that damage enemies",
+        description: "Drops projectiles that damage enemies",
         color: "#ffbf00",
         hoverColor: 0xbb8c00,
         onAcquire: function () {

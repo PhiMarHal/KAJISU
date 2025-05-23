@@ -33,6 +33,9 @@ const MusicSystem = {
     isInBossFight: false,   // Track if boss fight mode is active
     originalAudioPath: null, // Store original audio routing
 
+    // Phaser timer sidestepping our pause system
+    musicTimers: [],
+
     // Initialize the music system
     initialize: function (scene) {
         console.log("Initializing music system");
@@ -274,8 +277,8 @@ const MusicSystem = {
 
                 // Calculate when to start fade-out
                 const trackDuration = track.totalDuration * 1000; // Convert to ms
-                const adjustedDuration = trackDuration / this.currentRate; // Adjust for time dilation
-                const fadeOutTime = Math.max(0, adjustedDuration - this.fadeDuration);
+                const adjustedDuration = trackDuration;
+                const fadeOutTime = Math.max(0, adjustedDuration - (this.fadeDuration * 2)); // in and out = *2
 
                 console.log(`Scheduling fade-out in ${fadeOutTime}ms (real time)`);
 
@@ -290,12 +293,14 @@ const MusicSystem = {
                     }, fadeOutTime - 20000);
                 }
 
-                // Use JavaScript setTimeout instead of Phaser timer
-                // This continues to run even when game is paused
-                setTimeout(() => {
-                    console.log("Time to start fade-out (from real timer)");
+                // special timer
+                const fadeOutTimer = this.scene.time.delayedCall(fadeOutTime, () => {
+                    console.log("Time to start fade-out (from music timer)");
                     this.startFadeOut();
-                }, fadeOutTime);
+                });
+
+                // Store separately, don't register with main pause system
+                this.musicTimers.push(fadeOutTimer);
             }
         });
     },
@@ -426,6 +431,11 @@ const MusicSystem = {
         }
 
         this.currentTrack = null;
+
+        this.musicTimers.forEach(timer => {
+            if (timer && timer.remove) timer.remove();
+        });
+        this.musicTimers = [];
     },
 
     // Update method (call from scene's update)

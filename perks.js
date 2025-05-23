@@ -109,7 +109,7 @@ const PERKS = {
         kana: "しゆび",
         romaji: "shiyubi",
         english: "Death Finger",
-        description: "Those who stare death take damage",
+        description: "Point and deal damage",
         color: "#FF0000", // Red color
         hoverColor: 0xDD0000,
         onAcquire: function () {
@@ -452,7 +452,7 @@ const PERKS = {
         kana: "どくあと",
         romaji: "dokuato",
         english: "Toxic Trail",
-        description: "Your sickness poisons those who follow",
+        description: "A path of shared sickness",
         color: "#33cc33", // Green color for poison
         hoverColor: 0x22aa22, // Darker green for hover effect
         onAcquire: function () {
@@ -468,7 +468,7 @@ const PERKS = {
         kana: "くちゆび",
         romaji: "kuchiyubi",
         english: "Finger of Decay",
-        description: "Those pointed at get sick",
+        description: "Point and deal poison",
         color: "#88AA22", // Sickly greenish-yellow color
         hoverColor: 0x668800,
         onAcquire: function () {

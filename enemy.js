@@ -23,8 +23,8 @@ const rankEnemyStartTimes = {
 
 // Spawn delay configurations for each rank
 const rankSpawnDelays = {
-    1: { base: 3000, min: 400 },
-    2: { base: 6000, min: 800 },
+    1: { base: 4000, min: 400 },
+    2: { base: 8000, min: 800 },
     3: { base: 12000, min: 1200 },
     4: { base: 16000, min: 2000 },
     5: { base: 20000, min: 3000 },

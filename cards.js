@@ -390,7 +390,7 @@ function showMobileLevelUpScreen(scene) {
         // Use the enhanced showStatsDisplay from pause.js with custom options
         PauseSystem.showStatsDisplay(scene, {
             container: levelUpContainer,           // Add to our level up container instead
-            positionY: game.config.height * 0.32, // Position below subtitle
+            positionY: game.config.height * 0.28, // Position below subtitle
             storeInElements: false,                // Don't store in pause system's elements
             clearContainer: false,                 // Don't clear our level up container
             setVisible: false                      // We'll handle visibility via the container

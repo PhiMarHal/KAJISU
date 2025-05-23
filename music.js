@@ -388,8 +388,9 @@ const MusicSystem = {
 
     // Start fading out the current track
     startFadeOut: function () {
+        console.log("start fade out");
         if (!this.currentTrack || !this.currentTrack.isPlaying) return;
-
+        console.log("continue fade out");
         // Create fade-out tween
         this.fadeOutTween = this.scene.tweens.add({
             targets: this.currentTrack,

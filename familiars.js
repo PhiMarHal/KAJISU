@@ -209,7 +209,7 @@ const FamiliarBehaviors = {
 
     deathFinger: function (scene, orbital, time) {
         return FamiliarBehaviors.finger(scene, orbital, time, {
-            damage: playerDamage,
+            damage: playerDamage / 2,
             speed: 1000,
             color: '#FFFF00',
             symbol: '　',
@@ -220,7 +220,7 @@ const FamiliarBehaviors = {
     // Add a new decayFinger behavior that uses the generic finger
     decayFinger: function (scene, orbital, time) {
         return FamiliarBehaviors.finger(scene, orbital, time, {
-            damage: playerDamage * 0.5,
+            damage: playerDamage * 0.2,
             speed: 1000,
             color: '#FFFF00',
             symbol: '　',

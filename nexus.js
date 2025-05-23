@@ -673,7 +673,7 @@ window.activateDeathFinger = function () {
             scene,
             orbital,
             orbital.options.familiarType,
-            1000
+            500
         );
     }
 };
@@ -714,13 +714,13 @@ window.activateFingerOfDecay = function () {
     const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['FINGER_OF_DECAY'].getConfig();
     const orbital = OrbitalSystem.create(scene, orbitalConfig);
 
-    // Set up timer for the finger to fire (every 2000ms instead of 1000ms)
+    // Set up timer for the finger to fire
     if (orbital && orbital.options && orbital.options.isFamiliar) {
         orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
             scene,
             orbital,
             orbital.options.familiarType,
-            2000 // Fire every 2 seconds
+            500
         );
     }
 };

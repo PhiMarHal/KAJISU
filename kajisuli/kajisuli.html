@@ -2099,6 +2099,18 @@ function showMobileLevelUpScreen(scene) {
     levelUpContainer.add(levelUpTitle);
     levelUpContainer.add(subtitle);
 
+    // Show KAJISULI stats if in KAJISULI mode
+    if (KAJISULI_MODE) {
+        // Use the enhanced showStatsDisplay from pause.js with custom options
+        PauseSystem.showStatsDisplay(scene, {
+            container: levelUpContainer,           // Add to our level up container instead
+            positionY: game.config.height * 0.28, // Position below subtitle
+            storeInElements: false,                // Don't store in pause system's elements
+            clearContainer: false,                 // Don't clear our level up container
+            setVisible: false                      // We'll handle visibility via the container
+        });
+    }
+
     // Current perk index being displayed
     let currentPerkIndex = 0;
 
@@ -4173,7 +4185,7 @@ const rankEnemyStartTimes = {
 
 // Spawn delay configurations for each rank
 const rankSpawnDelays = {
-    1: { base: 2000, min: 400 },
+    1: { base: 3000, min: 400 },
     2: { base: 6000, min: 800 },
     3: { base: 12000, min: 1200 },
     4: { base: 16000, min: 2000 },
@@ -12352,7 +12364,8 @@ const PauseSystem = {
         paginationControls: [],
         activePerkCard: null,
         pausePerksContainer: null,
-        statsContainer: null // New element for kajisuli stats display
+        statsContainer: null,
+        statCircles: []
     },
 
     // State tracking
@@ -12641,13 +12654,22 @@ const PauseSystem = {
     },
 
     // Create and show stats display (for kajisuli mode)
-    showStatsDisplay: function (scene) {
-        // Clear any existing stats display
-        if (this.elements.statsContainer) {
-            this.elements.statsContainer.removeAll(true);
+    showStatsDisplay: function (scene, options = {}) {
+        // Default options that preserve original pause screen behavior
+        const config = {
+            container: options.container ?? this.elements.statsContainer,
+            positionY: options.positionY ?? game.config.height * 0.2,
+            storeInElements: options.storeInElements ?? true, // Original behavior stores in elements
+            clearContainer: options.clearContainer ?? true,
+            setVisible: options.setVisible ?? true
+        };
+
+        // Clear any existing stats display if requested (original behavior)
+        if (config.clearContainer && config.container) {
+            config.container.removeAll(true);
         }
 
-        // Define stat info with kanji and values
+        // Define stat info with kanji and values (same as original)
         const stats = [
             { symbol: UI.statDisplay.symbols.POW, value: getEffectiveDamage(), color: UI.statDisplay.symbolColors.POW },
             { symbol: UI.statDisplay.symbols.AGI, value: getEffectiveFireRate(), color: UI.statDisplay.symbolColors.AGI },
@@ -12658,21 +12680,28 @@ const PauseSystem = {
         // Get center X position
         const centerX = game.config.width / 2;
 
-        // Position stats below "GAME PAUSED" text
-        const statsY = game.config.height * 0.2;
+        // Use provided Y position
+        const statsY = config.positionY;
 
-        // Create stats container at the right position
-        this.elements.statsContainer.setPosition(0, 0);
-        this.elements.statsContainer.setVisible(true);
+        // Set container position and visibility if using the original container
+        if (config.container === this.elements.statsContainer) {
+            config.container.setPosition(0, 0);
+            if (config.setVisible) {
+                config.container.setVisible(true);
+            }
+        }
 
-        // Calculate spacing and box dimensions
+        // Calculate spacing and box dimensions (same as original)
         const boxWidth = game.config.width * 0.15;    // 15% of screen width per box
         const boxHeight = game.config.height * 0.05;  // 5% of screen height
         const spacing = game.config.width * 0.06;     // 6% of screen width between boxes
         const totalWidth = (boxWidth * stats.length) + (spacing * (stats.length - 1));
         const startX = centerX - (totalWidth / 2) + (boxWidth / 2);
 
-        // Add each stat in its own gold-bordered box
+        // Store created elements for return (new functionality)
+        const createdElements = [];
+
+        // Add each stat in its own gold-bordered box (same as original)
         stats.forEach((stat, index) => {
             // Calculate x position with even spacing
             const x = startX + (spacing + boxWidth) * index;
@@ -12703,9 +12732,18 @@ const PauseSystem = {
                 }
             ).setOrigin(0.5);
 
-            // Add all elements to the container
-            this.elements.statsContainer.add([border, background, statText]);
+            // Store elements for return
+            const statGroup = { border, background, statText };
+            createdElements.push(statGroup);
+
+            // Add all elements to the container (original behavior)
+            if (config.container) {
+                config.container.add([border, background, statText]);
+            }
         });
+
+        // Return created elements for external use (new functionality)
+        return createdElements;
     },
 
     // Update perks display in pause screen

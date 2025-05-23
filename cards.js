@@ -385,6 +385,18 @@ function showMobileLevelUpScreen(scene) {
     levelUpContainer.add(levelUpTitle);
     levelUpContainer.add(subtitle);
 
+    // Show KAJISULI stats if in KAJISULI mode
+    if (KAJISULI_MODE) {
+        // Use the enhanced showStatsDisplay from pause.js with custom options
+        PauseSystem.showStatsDisplay(scene, {
+            container: levelUpContainer,           // Add to our level up container instead
+            positionY: game.config.height * 0.32, // Position below subtitle
+            storeInElements: false,                // Don't store in pause system's elements
+            clearContainer: false,                 // Don't clear our level up container
+            setVisible: false                      // We'll handle visibility via the container
+        });
+    }
+
     // Current perk index being displayed
     let currentPerkIndex = 0;
 

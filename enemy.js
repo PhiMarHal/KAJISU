@@ -14,8 +14,8 @@ let bossSpawned = false;
 // Rank timing configurations
 const rankEnemyStartTimes = {
     1: 0,            // Rank 1 enemies start immediately
-    2: 10 * 60,      // Rank 2 enemies start after 10 minutes
-    3: 16 * 60,      // Rank 3 after 18 minutes
+    2: 8 * 60,      // Rank 2 enemies start after 10 minutes
+    3: 14 * 60,      // Rank 3 after 18 minutes
     4: 20 * 60,      // Rank 4 after 24 minutes
     5: 30 * 60,      // Rank 5 after 30 minutes
     6: 36 * 60       // Rank 6 after 36 minutes
@@ -23,8 +23,8 @@ const rankEnemyStartTimes = {
 
 // Spawn delay configurations for each rank
 const rankSpawnDelays = {
-    1: { base: 4000, min: 400 },
-    2: { base: 8000, min: 800 },
+    1: { base: 3000, min: 400 },
+    2: { base: 6000, min: 800 },
     3: { base: 12000, min: 1200 },
     4: { base: 16000, min: 2000 },
     5: { base: 20000, min: 3000 },

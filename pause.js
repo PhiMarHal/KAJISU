@@ -9,7 +9,8 @@ const PauseSystem = {
         paginationControls: [],
         activePerkCard: null,
         pausePerksContainer: null,
-        statsContainer: null // New element for kajisuli stats display
+        statsContainer: null,
+        statCircles: []
     },
 
     // State tracking
@@ -298,13 +299,22 @@ const PauseSystem = {
     },
 
     // Create and show stats display (for kajisuli mode)
-    showStatsDisplay: function (scene) {
-        // Clear any existing stats display
-        if (this.elements.statsContainer) {
-            this.elements.statsContainer.removeAll(true);
+    showStatsDisplay: function (scene, options = {}) {
+        // Default options that preserve original pause screen behavior
+        const config = {
+            container: options.container ?? this.elements.statsContainer,
+            positionY: options.positionY ?? game.config.height * 0.2,
+            storeInElements: options.storeInElements ?? true, // Original behavior stores in elements
+            clearContainer: options.clearContainer ?? true,
+            setVisible: options.setVisible ?? true
+        };
+
+        // Clear any existing stats display if requested (original behavior)
+        if (config.clearContainer && config.container) {
+            config.container.removeAll(true);
         }
 
-        // Define stat info with kanji and values
+        // Define stat info with kanji and values (same as original)
         const stats = [
             { symbol: UI.statDisplay.symbols.POW, value: getEffectiveDamage(), color: UI.statDisplay.symbolColors.POW },
             { symbol: UI.statDisplay.symbols.AGI, value: getEffectiveFireRate(), color: UI.statDisplay.symbolColors.AGI },
@@ -315,21 +325,28 @@ const PauseSystem = {
         // Get center X position
         const centerX = game.config.width / 2;
 
-        // Position stats below "GAME PAUSED" text
-        const statsY = game.config.height * 0.2;
+        // Use provided Y position
+        const statsY = config.positionY;
 
-        // Create stats container at the right position
-        this.elements.statsContainer.setPosition(0, 0);
-        this.elements.statsContainer.setVisible(true);
+        // Set container position and visibility if using the original container
+        if (config.container === this.elements.statsContainer) {
+            config.container.setPosition(0, 0);
+            if (config.setVisible) {
+                config.container.setVisible(true);
+            }
+        }
 
-        // Calculate spacing and box dimensions
+        // Calculate spacing and box dimensions (same as original)
         const boxWidth = game.config.width * 0.15;    // 15% of screen width per box
         const boxHeight = game.config.height * 0.05;  // 5% of screen height
         const spacing = game.config.width * 0.06;     // 6% of screen width between boxes
         const totalWidth = (boxWidth * stats.length) + (spacing * (stats.length - 1));
         const startX = centerX - (totalWidth / 2) + (boxWidth / 2);
 
-        // Add each stat in its own gold-bordered box
+        // Store created elements for return (new functionality)
+        const createdElements = [];
+
+        // Add each stat in its own gold-bordered box (same as original)
         stats.forEach((stat, index) => {
             // Calculate x position with even spacing
             const x = startX + (spacing + boxWidth) * index;
@@ -360,9 +377,18 @@ const PauseSystem = {
                 }
             ).setOrigin(0.5);
 
-            // Add all elements to the container
-            this.elements.statsContainer.add([border, background, statText]);
+            // Store elements for return
+            const statGroup = { border, background, statText };
+            createdElements.push(statGroup);
+
+            // Add all elements to the container (original behavior)
+            if (config.container) {
+                config.container.add([border, background, statText]);
+            }
         });
+
+        // Return created elements for external use (new functionality)
+        return createdElements;
     },
 
     // Update perks display in pause screen

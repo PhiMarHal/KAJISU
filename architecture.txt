@@ -121,3 +121,5 @@ This architecture enables:
 8. **UI Updates** (menu.js) reflect changes in player state
 9. **Perk Acquisition** (perks.js, cards.js, challenge.js) handles player progression
 10. **Special Systems** (life.js, pause.js, debug.js) provide additional functionality
+
+## Run Kajisuli with: live-server --open=kajisuli.min.html

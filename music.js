@@ -258,6 +258,12 @@ const MusicSystem = {
             this.applyBossFightEffect();
         }
 
+        // Avoid fighting pause for volume control
+        if (gamePaused) {
+            // Temporarily restore normal audio for proper fade-in
+            this.onGameResume();
+        }
+
         // Create fade-in tween
         this.fadeInTween = this.scene.tweens.add({
             targets: track,
@@ -461,6 +467,14 @@ const MusicSystem = {
 
         // Skip if no track is playing
         if (!this.currentTrack || (!this.currentTrack.isPlaying && !this.currentTrack.isPaused)) {
+            return;
+        }
+
+        // If fade-in is active, don't interfere with volume - just apply filter
+        if (this.fadeInTween && this.fadeInTween.isPlaying()) {
+            console.log("Fade-in active, skipping volume changes during pause");
+            // Only apply low-pass filter, no volume changes
+            this.applyLowPassFilter();
             return;
         }
 

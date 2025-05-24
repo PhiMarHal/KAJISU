@@ -199,6 +199,11 @@ function playerDeath(killerEnemy) {
     // Pause the game physics to stop all movement
     PauseSystem.pauseGame();
 
+    // Make sure music plays at normal timescale, if we were in time dilation
+    if (window.MusicSystem) {
+        window.MusicSystem.applyTimeDilation(1.0);
+    }
+
     // Resume music to normal if we were in boss mode
     MusicSystem.removeBossFightEffect();
 

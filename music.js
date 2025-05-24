@@ -188,15 +188,6 @@ const MusicSystem = {
             });
 
             this.isLoading = false;
-
-            // If this is the track we're waiting to play and we're in silence, 
-            // we can reduce the silence duration
-            if (trackId === this.nextTrackToPlay && this.silenceTimer) {
-                clearTimeout(this.silenceTimer);
-                this.silenceTimer = setTimeout(() => {
-                    this.startTrackWithFadeIn(trackId);
-                }, 500); // Just wait half a second
-            }
         });
 
         // Handle errors
@@ -217,8 +208,10 @@ const MusicSystem = {
 
     // Start playing a track with fade-in
     startTrackWithFadeIn: function (trackId) {
+        console.log("start track with fade in");
         if (!this.musicEnabled || !this.scene) return;
 
+        console.log("STWFI continues");
         // Get the sound object for this track
         const track = this.scene.sound.get(trackId);
         if (!track) {

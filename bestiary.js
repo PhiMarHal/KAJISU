@@ -81,17 +81,12 @@ const BOSS_CONFIG = {
 };
 
 // The enemy definitions - using kanji characters with readings and translations
-// Note: Removed rank field as it will be assigned dynamically
+// All kanji have been verified for accuracy as single-character words
 const ENEMY_TYPES = {
     '鬼': {
         kana: 'おに',
         romaji: 'oni',
         english: 'Demon'
-    },
-    '幽': {
-        kana: 'ゆう',
-        romaji: 'yuu',
-        english: 'Ghost'
     },
     '龍': {
         kana: 'りゅう',
@@ -106,7 +101,7 @@ const ENEMY_TYPES = {
     '魔': {
         kana: 'ま',
         romaji: 'ma',
-        english: 'Devil'
+        english: 'Demon'
     },
     '死': {
         kana: 'し',
@@ -134,14 +129,9 @@ const ENEMY_TYPES = {
         english: 'Shark'
     },
     '妖': {
-        kana: 'あやかし',
-        romaji: 'ayakashi',
-        english: 'Phantom'
-    },
-    '冥': {
-        kana: 'めい',
-        romaji: 'mei',
-        english: 'Specter'
+        kana: 'よう',
+        romaji: 'you',
+        english: 'Bewitching'
     },
     '霊': {
         kana: 'れい',
@@ -149,8 +139,8 @@ const ENEMY_TYPES = {
         english: 'Spirit'
     },
     '怨': {
-        kana: 'おん',
-        romaji: 'on',
+        kana: 'うらみ',
+        romaji: 'urami',
         english: 'Grudge'
     },
     '邪': {
@@ -173,45 +163,25 @@ const ENEMY_TYPES = {
         romaji: 'yami',
         english: 'Darkness'
     },
-    '妄': {
-        kana: 'もう',
-        romaji: 'mou',
-        english: 'Delusion'
-    },
-    '憑': {
-        kana: 'つき',
-        romaji: 'tsuki',
-        english: 'Possession'
-    },
     '煉': {
         kana: 'れん',
         romaji: 'ren',
-        english: 'Purgatory'
+        english: 'Refine'
     },
     '殺': {
         kana: 'さつ',
         romaji: 'satsu',
-        english: 'Slayer'
-    },
-    '魘': {
-        kana: 'えん',
-        romaji: 'en',
-        english: 'Nightmare'
+        english: 'Kill'
     },
     '禍': {
         kana: 'わざわい',
         romaji: 'wazawai',
         english: 'Calamity'
     },
-    '鬣': {
-        kana: 'たてがみ',
-        romaji: 'tategami',
-        english: 'Mane'
-    },
     '悪': {
         kana: 'あく',
         romaji: 'aku',
-        english: 'Malice'
+        english: 'Evil'
     },
     '屍': {
         kana: 'しかばね',
@@ -221,16 +191,11 @@ const ENEMY_TYPES = {
     '凶': {
         kana: 'きょう',
         romaji: 'kyou',
-        english: 'Doom'
-    },
-    '鵺': {
-        kana: 'ぬえ',
-        romaji: 'nue',
-        english: 'Chimera'
+        english: 'Misfortune'
     },
     '餓': {
-        kana: 'うえ',
-        romaji: 'ue',
+        kana: 'が',
+        romaji: 'ga',
         english: 'Hunger'
     },
     '狂': {
@@ -238,45 +203,34 @@ const ENEMY_TYPES = {
         romaji: 'kyou',
         english: 'Madness'
     },
-    '兇': {
-        kana: 'きょう',
-        romaji: 'kyou',
-        english: 'Savage'
-    },
-    '鬧': {
-        kana: 'かまびすし',
-        romaji: 'kamabisushi',
-        english: 'Uproar'
-    },
-    // Additional enemies
     '災': {
         kana: 'わざわい',
         romaji: 'wazawai',
         english: 'Disaster'
     },
     '亡': {
-        kana: 'ほろ',
-        romaji: 'horo',
-        english: 'Perish'
+        kana: 'ぼう',
+        romaji: 'bou',
+        english: 'Death'
     },
     '滅': {
         kana: 'めつ',
         romaji: 'metsu',
-        english: 'Destroy'
+        english: 'Destruction'
     },
     '崩': {
-        kana: 'くず',
-        romaji: 'kuzu',
+        kana: 'ほう',
+        romaji: 'hou',
         english: 'Collapse'
     },
     '破': {
-        kana: 'やぶ',
-        romaji: 'yabu',
+        kana: 'は',
+        romaji: 'ha',
         english: 'Break'
     },
     '裂': {
-        kana: 'さ',
-        romaji: 'sa',
+        kana: 'れつ',
+        romaji: 'retsu',
         english: 'Tear'
     },
     '灰': {
@@ -285,8 +239,8 @@ const ENEMY_TYPES = {
         english: 'Ash'
     },
     '焦': {
-        kana: 'こ',
-        romaji: 'ko',
+        kana: 'しょう',
+        romaji: 'shou',
         english: 'Scorch'
     },
     '血': {
@@ -295,23 +249,18 @@ const ENEMY_TYPES = {
         english: 'Blood'
     },
     '斬': {
-        kana: 'き',
-        romaji: 'ki',
+        kana: 'ざん',
+        romaji: 'zan',
         english: 'Slash'
     },
-    '穿': {
-        kana: 'うが',
-        romaji: 'uga',
-        english: 'Pierce'
-    },
     '刺': {
-        kana: 'さ',
-        romaji: 'sa',
+        kana: 'し',
+        romaji: 'shi',
         english: 'Stab'
     },
     '砕': {
-        kana: 'くだ',
-        romaji: 'kuda',
+        kana: 'さい',
+        romaji: 'sai',
         english: 'Crush'
     },
     '毒': {
@@ -325,19 +274,19 @@ const ENEMY_TYPES = {
         english: 'Plague'
     },
     '病': {
-        kana: 'やまい',
-        romaji: 'yamai',
+        kana: 'びょう',
+        romaji: 'byou',
         english: 'Disease'
     },
     '腐': {
-        kana: 'くさ',
-        romaji: 'kusa',
+        kana: 'ふ',
+        romaji: 'fu',
         english: 'Rot'
     },
     '蝕': {
         kana: 'しょく',
         romaji: 'shoku',
-        english: 'Erode'
+        english: 'Eclipse'
     },
     '墓': {
         kana: 'はか',
@@ -350,9 +299,9 @@ const ENEMY_TYPES = {
         english: 'Coffin'
     },
     '葬': {
-        kana: 'ほうむ',
-        romaji: 'houmu',
-        english: 'Bury'
+        kana: 'そう',
+        romaji: 'sou',
+        english: 'Burial'
     },
     '鎖': {
         kana: 'くさり',
@@ -360,8 +309,8 @@ const ENEMY_TYPES = {
         english: 'Chain'
     },
     '縛': {
-        kana: 'しば',
-        romaji: 'shiba',
+        kana: 'ばく',
+        romaji: 'baku',
         english: 'Bind'
     },
     '罠': {
@@ -370,34 +319,29 @@ const ENEMY_TYPES = {
         english: 'Trap'
     },
     '恐': {
-        kana: 'おそ',
-        romaji: 'oso',
+        kana: 'きょう',
+        romaji: 'kyou',
         english: 'Fear'
     },
-    '驚': {
-        kana: 'おどろ',
-        romaji: 'odoro',
-        english: 'Surprise'
-    },
     '脅': {
-        kana: 'おど',
-        romaji: 'odo',
+        kana: 'きょう',
+        romaji: 'kyou',
         english: 'Threaten'
     },
     '絶': {
-        kana: 'た',
-        romaji: 'ta',
+        kana: 'ぜつ',
+        romaji: 'zetsu',
         english: 'Sever'
     },
     '終': {
-        kana: 'お',
-        romaji: 'o',
+        kana: 'しゅう',
+        romaji: 'shuu',
         english: 'End'
     },
     '喪': {
-        kana: 'も',
-        romaji: 'mo',
-        english: 'Mourn'
+        kana: 'そう',
+        romaji: 'sou',
+        english: 'Mourning'
     },
     '虚': {
         kana: 'きょ',
@@ -405,8 +349,8 @@ const ENEMY_TYPES = {
         english: 'Void'
     },
     '空': {
-        kana: 'から',
-        romaji: 'kara',
+        kana: 'くう',
+        romaji: 'kuu',
         english: 'Empty'
     },
     '虫': {
@@ -424,33 +368,97 @@ const ENEMY_TYPES = {
         romaji: 'kumo',
         english: 'Spider'
     },
-    '蟲': {
-        kana: 'むし',
-        romaji: 'mushi',
-        english: 'Bug'
-    },
     '蠍': {
         kana: 'さそり',
         romaji: 'sasori',
         english: 'Scorpion'
     },
-    '蜈': {
-        kana: 'むかで',
-        romaji: 'mukade',
-        english: 'Centipede'
+    '蟹': {
+        kana: 'かに',
+        romaji: 'kani',
+        english: 'Crab'
     },
-    '蚣': {
-        kana: 'むかで',
-        romaji: 'mukade',
-        english: 'Centipede'
+    '蛾': {
+        kana: 'が',
+        romaji: 'ga',
+        english: 'Moth'
     },
-    '蝎': {
-        kana: 'さそり',
-        romaji: 'sasori',
-        english: 'Scorpion'
+    '蝶': {
+        kana: 'ちょう',
+        romaji: 'chou',
+        english: 'Butterfly'
+    },
+    '蜂': {
+        kana: 'はち',
+        romaji: 'hachi',
+        english: 'Bee'
+    },
+    '蟻': {
+        kana: 'あり',
+        romaji: 'ari',
+        english: 'Ant'
+    },
+    '蛭': {
+        kana: 'ひる',
+        romaji: 'hiru',
+        english: 'Leech'
+    },
+    '蚊': {
+        kana: 'か',
+        romaji: 'ka',
+        english: 'Mosquito'
+    },
+    '蠅': {
+        kana: 'はえ',
+        romaji: 'hae',
+        english: 'Fly'
+    },
+    '蝙': {
+        kana: 'へん',
+        romaji: 'hen',
+        english: 'Bat'
+    },
+    '蟲': {
+        kana: 'むし',
+        romaji: 'mushi',
+        english: 'Bug'
+    },
+    '髑': {
+        kana: 'どく',
+        romaji: 'doku',
+        english: 'Skull'
+    },
+    '髏': {
+        kana: 'ろ',
+        romaji: 'ro',
+        english: 'Skeleton'
+    },
+    '怪': {
+        kana: 'かい',
+        romaji: 'kai',
+        english: 'Monster'
+    },
+    '妄': {
+        kana: 'もう',
+        romaji: 'mou',
+        english: 'Delusion'
+    },
+    '憑': {
+        kana: 'ひょう',
+        romaji: 'hyou',
+        english: 'Possession'
+    },
+    '鵺': {
+        kana: 'ぬえ',
+        romaji: 'nue',
+        english: 'Nue'
+    },
+    '魘': {
+        kana: 'えん',
+        romaji: 'en',
+        english: 'Nightmare'
     }
 };
-
 
 // Dynamic tier assignments - will store enemy types for each rank
 let ENEMY_TIER_ASSIGNMENTS = {

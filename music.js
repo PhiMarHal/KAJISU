@@ -284,13 +284,14 @@ const MusicSystem = {
 
                 // Early load the next track when we're about 20 seconds from the end
                 if (fadeOutTime > 25000) {
-                    setTimeout(() => {
+                    const preloadTimer = this.scene.time.delayedCall(fadeOutTime - 20000, () => {
                         const nextIdx = this.currentTrackIndex + 1;
                         if (nextIdx < this.playQueue.length) {
                             const nextTrackId = this.playQueue[nextIdx];
                             this.loadTrack(nextTrackId);
                         }
-                    }, fadeOutTime - 20000);
+                    });
+                    this.musicTimers.push(preloadTimer);
                 }
 
                 // special timer
@@ -394,7 +395,11 @@ const MusicSystem = {
     // Start fading out the current track
     startFadeOut: function () {
         console.log("start fade out");
-        if (!this.currentTrack || !this.currentTrack.isPlaying) return;
+        if (!this.currentTrack || !this.currentTrack.isPlaying) {
+            console.log("No track playing during fade-out, starting next track");
+            this.playNextTrack(); // Restart the music cycle instead of breaking it
+            return;
+        }
         console.log("continue fade out");
         // Create fade-out tween
         this.fadeOutTween = this.scene.tweens.add({

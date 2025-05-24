@@ -136,7 +136,7 @@ const RomajiChallengeSystem = {
         scene.debugKeysDisabled = true;
 
         // No hardcoded key handling - just use the scene flag
-        console.log("Debug keys disabled for romaji challenge");
+        //console.log("Debug keys disabled for romaji challenge");
     },
 
     // Restore debug keys to their original state
@@ -153,7 +153,7 @@ const RomajiChallengeSystem = {
             scene.debugKeysDisabled = false;
         }
 
-        console.log("Debug keys restored after romaji challenge");
+        //console.log("Debug keys restored after romaji challenge");
     },
 
     // Create romaji input field
@@ -248,7 +248,7 @@ const RomajiChallengeSystem = {
 
     // Update the perk card display
     updatePerkCardDisplay: function (scene) {
-        console.log("Updating perk card display, cards: " + this.state.currentCards);
+        //console.log("Updating perk card display, cards: " + this.state.currentCards);
 
         // First, completely clear the container
         this.elements.perkCardContainer.removeAll(true); // true means destroy children
@@ -262,7 +262,7 @@ const RomajiChallengeSystem = {
         const centerX = game.config.width / 2;
         const startX = centerX - (totalWidth / 2) + (cardWidth / 2);
 
-        console.log("Creating " + cardCount + " cards");
+        //console.log("Creating " + cardCount + " cards");
 
         // Create each card
         for (let i = 0; i < cardCount; i++) {
@@ -274,7 +274,7 @@ const RomajiChallengeSystem = {
                 continue;
             }
 
-            console.log("Creating card for perk: " + perk.id + " at position " + i);
+            //console.log("Creating card for perk: " + perk.id + " at position " + i);
 
             // Determine what to show based on state
             const isCurrentChallenge = (i === this.state.currentCards - 1 &&
@@ -310,7 +310,7 @@ const RomajiChallengeSystem = {
         // Update input visibility based on challenge state
         this.updateInputVisibility();
 
-        console.log("Card display updated, now showing " + this.state.cardElements.length + " cards");
+        //console.log("Card display updated, now showing " + this.state.cardElements.length + " cards");
     },
 
     // Function to validate romaji input
@@ -399,10 +399,10 @@ const RomajiChallengeSystem = {
             const currentExp = heroExp;
 
             const xpReward = Math.ceil(xpForNextLevel(playerLevel) * 0.25);
-            console.log(`Level ${currentLevel}: Calculating reward as 25% of ${currentExpToLevel} = ${xpReward}`);
+            //console.log(`Level ${currentLevel}: Calculating reward as 25% of ${currentExpToLevel} = ${xpReward}`);
 
             heroExp += xpReward;
-            console.log(`XP before: ${currentExp}, after: ${heroExp}, needed: ${xpForNextLevel(playerLevel)}`);
+            //console.log(`XP before: ${currentExp}, after: ${heroExp}, needed: ${xpForNextLevel(playerLevel)}`);
 
             // After updating the XP bar, check if something unexpected happened
             setTimeout(() => {
@@ -456,7 +456,7 @@ const RomajiChallengeSystem = {
 
     // Function to handle incorrect romaji input
     handleWrongRomaji: function (scene) {
-        console.log("Wrong romaji input, attempts: " + this.state.attempts);
+        //console.log("Wrong romaji input, attempts: " + this.state.attempts);
 
         // Store a local reference to the input box to use in the tween callback
         const inputBox = this.elements.inputBox;
@@ -482,7 +482,7 @@ const RomajiChallengeSystem = {
 
         // Increment attempts
         this.state.attempts++;
-        console.log("Attempts increased to: " + this.state.attempts);
+        //console.log("Attempts increased to: " + this.state.attempts);
 
         const centerX = game.config.width / 2;
         const messageY = game.config.height * 0.8125; // 650/800 = 0.8125
@@ -527,7 +527,7 @@ const RomajiChallengeSystem = {
             this.elements.perkCardContainer.add(kanaText);
             this.state.cardElements[this.state.currentIndex].elements.push(kanaText);
 
-            console.log("Added kana hint:", currentPerk.kana);
+            //console.log("Added kana hint:", currentPerk.kana);
         } else {
             // Second wrong attempt - end input challenge
             const failText = scene.add.text(
@@ -560,7 +560,7 @@ const RomajiChallengeSystem = {
             this.elements.perkCardContainer.removeAll(true);
             this.updatePerkCardDisplay(scene);
 
-            console.log("Challenge ended after second failure");
+            //console.log("Challenge ended after second failure");
         }
     },
 
@@ -595,7 +595,7 @@ const RomajiChallengeSystem = {
 
     // Function to select a card and acquire the perk
     selectCard: function (scene, perkType) {
-        console.log("Card selected with perk: " + perkType);
+        //console.log("Card selected with perk: " + perkType);
 
         // Acquire the selected perk
         acquirePerk(scene, perkType);
@@ -653,7 +653,7 @@ const RomajiChallengeSystem = {
 
     // Function to close level up cards and clean up resources
     closeLevelUpCards: function (scene) {
-        console.log("Closing level up cards and cleaning up UI elements");
+        //console.log("Closing level up cards and cleaning up UI elements");
 
         // Clean up the window key handler
         if (this.handlers.keydownHandler) {

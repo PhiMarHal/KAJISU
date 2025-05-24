@@ -1,6 +1,5 @@
 - Need system to pick any kanji for hero
 - Improve performance (duh). Optimize update loop (duh). Can wait until much later
-- Add animated backgrounds. JS animations? Change color as time passes and/or with enemy stages?
 - Longterm: allow for arbitrary kanjis to be selected as enemies
 - Track kanjis killed by player
 - Track challenges completed successfully and failures. Possible improvement: roll frequent failures more often!
@@ -14,18 +13,18 @@ after 100 perks we need 1000 kills of a new kanji for a perk unlock. good for lo
 ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks and rotating in favor of new one.
 fixed at high value (perhaps 1k) would make more sense with that latter design
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
-- poison resets tween to base = cold+poison = back to base despite cold
-- no player damage visual post Oblivion, maybe caused by shield visual? testing, doesn't seem directly linked or alone
-- change all coordinates to be relative, not absolute
-- if player dies during the visual kanji intro of new rank, kanjis remain
-
-- amber nova might work despite piercing?
-- player tween gets stuck in grey state if hit while killing boss (?)
+- change all coordinates to be relative, not absolute -> in progress...
 - firerate resets to 3 rather than 4 (maybe roundup issue tied to archerMultiplier?)
+- get music to segue between tracks flawlessly
+- add pause and sound on/off buttons for mobile (bottom of screen?)
+- fix mobile kajisuli resolution, bottom edge is clipped in a normal browser (farcade should work. could also simply accept 500x900 rather than 500x1000)
 
-POSSIBLE FIX BUT NEEDS TESTING
+POSSIBLY FIXED BUT NEEDS TESTING
 - if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow <= possibly fixed by window.TimeDilationSystem.cleanup();, need testing
 - storm caller, divine beacon and alien beacon remain after BLOSSOM (didn't we fix this before, for divine?? maybe just restart...) -> possibly fixed
+- if player dies during the visual kanji intro of new rank, kanjis remain - was this fixed?
+- no player damage visual post Oblivion, maybe caused by shield visual? testing, doesn't seem directly linked or alone - was this fixed??
+- poison resets tween to base = cold+poison = back to base despite cold - probably fixed
 
 DONE
 - Game Over is ugly, make proper menu -> still ugly but at least proper ugly
@@ -49,3 +48,4 @@ DONE
 ^^^ am ok with this so far
 - Arrange timer, P.A.L.E.
 - add screen coloring on damage taken
+- Add animated backgrounds. JS animations? Change color as time passes and/or with enemy stages? -> done

@@ -84,7 +84,8 @@ function createPerkCardElements(perk, x, y, options = {}) {
         strokeWidth: 2,
         strokeColor: CARD_COLORS.STROKE,
         makeInteractive: false,
-        perkCallback: null
+        perkCallback: null,
+        fontSize: 1 // New fontSize scaling parameter
     };
 
     // Merge options with defaults
@@ -130,13 +131,16 @@ function createPerkCardElements(perk, x, y, options = {}) {
         elements.push(cardBg);
     }
 
-    // Fixed positions relative to card center
+    // Check if we're in KAJISULI mode for position adjustments
+    const isKajisuli = (typeof KAJISULI_MODE !== 'undefined') ? KAJISULI_MODE : false;
+
+    // Fixed positions relative to card center - adjusted for KAJISULI mode
     const positions = {
-        kanji: y - 60,      // Kanji position
-        kana: y - 15,       // Kana position 
-        romaji: y + 10,     // Romaji position
-        english: y + 40,    // English position
-        description: y + 85 // Description position - 145 from kanji
+        kanji: isKajisuli ? y - 90 : y - 60,        // Higher in KAJISULI mode
+        kana: isKajisuli ? y - 44 : y - 15,         // Higher, 2px less gap from kanji (80-38=42 vs 60-15=45)
+        romaji: isKajisuli ? y - 16 : y + 10,       // Higher but less so, more space from kana (38-15=23 vs 15+10=25)
+        english: y + 40,                            // Same spot in both modes
+        description: isKajisuli ? y + 120 : y + 85  // Lower in KAJISULI mode
     };
 
     // Always show kanji
@@ -146,7 +150,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
             perk.kanji,
             {
                 fontFamily: 'Arial',
-                fontSize: '36px',
+                fontSize: `${36 * settings.fontSize}px`, // Apply scaling
                 color: perk.color || '#ffffff',
                 fontStyle: 'bold',
                 stroke: '#000000',
@@ -165,7 +169,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
             const kanaText = scene.add.text(
                 x, positions.kana,
                 perk.kana || '',
-                { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff' }
+                { fontFamily: 'Arial', fontSize: `${18 * settings.fontSize}px`, color: '#ffffff' }
             ).setOrigin(0.5);
 
             if (settings.container && settings.container.add) {
@@ -180,7 +184,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
             const romajiText = scene.add.text(
                 x, positions.romaji,
                 perk.romaji || '',
-                { fontFamily: 'Arial', fontSize: '16px', color: '#dddddd', fontStyle: 'italic' }
+                { fontFamily: 'Arial', fontSize: `${16 * settings.fontSize}px`, color: '#dddddd', fontStyle: 'italic' }
             ).setOrigin(0.5);
 
             if (settings.container && settings.container.add) {
@@ -197,7 +201,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
                 perk.english || '',
                 {
                     fontFamily: 'Arial',
-                    fontSize: '20px',
+                    fontSize: `${20 * settings.fontSize}px`,
                     color: perk.color || '#ffffff',
                     fontStyle: 'bold'
                 }
@@ -217,7 +221,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
                 perk.description || '',
                 {
                     fontFamily: 'Arial',
-                    fontSize: '16px',
+                    fontSize: `${16 * settings.fontSize}px`,
                     color: '#ffffff',
                     align: 'center',
                     wordWrap: { width: settings.width - 20 }
@@ -356,11 +360,11 @@ function showMobileLevelUpScreen(scene) {
     // Create level up title with improved styling
     const levelUpTitle = scene.add.text(
         centerX,
-        game.config.height * 0.15,
+        game.config.height * (KAJISULI_MODE ? 0.12 : 0.15), // Higher in KAJISULI mode
         'LEVEL UP!',
         {
             fontFamily: 'Arial',
-            fontSize: '32px',
+            fontSize: KAJISULI_MODE ? '48px' : '32px', // 150% larger in KAJISULI mode
             color: '#ffffff',
             fontStyle: 'bold',
             stroke: '#000000',
@@ -371,11 +375,11 @@ function showMobileLevelUpScreen(scene) {
     // Create subtitle text
     const subtitle = scene.add.text(
         centerX,
-        game.config.height * 0.22,
+        game.config.height * (KAJISULI_MODE ? 0.18 : 0.22), // Higher in KAJISULI mode
         'Choose a perk to continue',
         {
             fontFamily: 'Arial',
-            fontSize: '18px',
+            fontSize: KAJISULI_MODE ? '27px' : '18px', // 150% larger in KAJISULI mode
             color: '#ffffff'
         }
     ).setOrigin(0.5);
@@ -389,11 +393,12 @@ function showMobileLevelUpScreen(scene) {
     if (KAJISULI_MODE) {
         // Use the enhanced showStatsDisplay from pause.js with custom options
         PauseSystem.showStatsDisplay(scene, {
-            container: levelUpContainer,           // Add to our level up container instead
-            positionY: game.config.height * 0.28, // Position below subtitle
-            storeInElements: false,                // Don't store in pause system's elements
-            clearContainer: false,                 // Don't clear our level up container
-            setVisible: false                      // We'll handle visibility via the container
+            container: levelUpContainer,
+            positionY: game.config.height * 0.26,
+            storeInElements: false,
+            clearContainer: false,
+            setVisible: false,
+            fontSize: '36px' // 150% larger font for kanji and numbers
         });
     }
 
@@ -425,8 +430,11 @@ function showMobileLevelUpScreen(scene) {
                     showRomaji: true,
                     showEnglish: true,
                     showDescription: true,
-                    width: Math.min(200, game.config.width * 0.6),
-                    height: 300
+                    width: KAJISULI_MODE ?
+                        Math.min(300, game.config.width * 0.9) : // 150% wider (200->300)
+                        Math.min(200, game.config.width * 0.6),
+                    height: KAJISULI_MODE ? 450 : 300, // 150% taller (300->450)
+                    fontSize: KAJISULI_MODE ? 1.5 : 1 // 150% font scaling
                 }
             );
 
@@ -456,7 +464,7 @@ function showMobileLevelUpScreen(scene) {
 
     // Create navigation arrows
     const arrowConfig = {
-        fontSize: '40px',
+        fontSize: '80px', // 200% larger than original 40px
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 4
@@ -464,7 +472,7 @@ function showMobileLevelUpScreen(scene) {
 
     // Left arrow - only shown if not on first card
     const leftArrow = scene.add.text(
-        centerX - (game.config.width * 0.25),
+        centerX - (game.config.width * 0.3), // 150 = half of 300px card width
         centerY,
         '◀',
         arrowConfig
@@ -478,7 +486,7 @@ function showMobileLevelUpScreen(scene) {
 
     // Right arrow - only shown if not on last card
     const rightArrow = scene.add.text(
-        centerX + (game.config.width * 0.25),
+        centerX + (game.config.width * 0.3),
         centerY,
         '▶',
         arrowConfig
@@ -497,11 +505,11 @@ function showMobileLevelUpScreen(scene) {
     // Add card counter text (e.g., "1/3")
     const counterText = scene.add.text(
         centerX,
-        centerY + 180, // Below the card
+        centerY + (game.config.height * 0.21), // Maintain distance from larger card (270/1280 ≈ 0.21)
         `${currentPerkIndex + 1}/${numPerkOptions}`,
         {
             fontFamily: 'Arial',
-            fontSize: '18px',
+            fontSize: '36px', // 200% larger (18px -> 36px)
             color: '#ffffff'
         }
     ).setOrigin(0.5);
@@ -528,16 +536,17 @@ function showMobileLevelUpScreen(scene) {
     }
 
     // Create a select button at the bottom
+    /* maybe better without it? avoid accidental taps
     const selectButton = scene.add.text(
         centerX,
         game.config.height * 0.8,
         'Select This Perk',
         {
             fontFamily: 'Arial',
-            fontSize: '20px',
+            fontSize: '40px', // 200% larger (20px -> 40px)
             color: '#ffffff',
             backgroundColor: '#008800',
-            padding: { left: 15, right: 15, top: 10, bottom: 10 }
+            padding: { left: 30, right: 30, top: 20, bottom: 20 } // 200% padding
         }
     ).setOrigin(0.5);
     selectButton.setInteractive({ useHandCursor: true });
@@ -559,7 +568,7 @@ function showMobileLevelUpScreen(scene) {
     });
 
     levelUpContainer.add(selectButton);
-
+    */
     // Function to handle perk selection
     function selectPerk(perkId) {
         // Acquire the selected perk

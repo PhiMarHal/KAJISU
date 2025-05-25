@@ -304,9 +304,10 @@ const PauseSystem = {
         const config = {
             container: options.container ?? this.elements.statsContainer,
             positionY: options.positionY ?? game.config.height * 0.2,
-            storeInElements: options.storeInElements ?? true, // Original behavior stores in elements
+            storeInElements: options.storeInElements ?? true,
             clearContainer: options.clearContainer ?? true,
-            setVisible: options.setVisible ?? true
+            setVisible: options.setVisible ?? true,
+            fontSize: options.fontSize ?? '24px' // New fontSize parameter with default
         };
 
         // Clear any existing stats display if requested (original behavior)
@@ -371,7 +372,7 @@ const PauseSystem = {
                 `${stat.symbol} ${Math.floor(stat.value)}`,
                 {
                     fontFamily: 'Arial',
-                    fontSize: '24px',
+                    fontSize: config.fontSize, // Use the configurable fontSize
                     color: stat.color,
                     fontStyle: 'bold'
                 }

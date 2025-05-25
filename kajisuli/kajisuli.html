@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>KAJISU</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
@@ -1806,7 +1806,8 @@ function createPerkCardElements(perk, x, y, options = {}) {
         strokeWidth: 2,
         strokeColor: CARD_COLORS.STROKE,
         makeInteractive: false,
-        perkCallback: null
+        perkCallback: null,
+        fontSize: 1 // New fontSize scaling parameter
     };
 
     // Merge options with defaults
@@ -1852,13 +1853,16 @@ function createPerkCardElements(perk, x, y, options = {}) {
         elements.push(cardBg);
     }
 
-    // Fixed positions relative to card center
+    // Check if we're in KAJISULI mode for position adjustments
+    const isKajisuli = (typeof KAJISULI_MODE !== 'undefined') ? KAJISULI_MODE : false;
+
+    // Fixed positions relative to card center - adjusted for KAJISULI mode
     const positions = {
-        kanji: y - 60,      // Kanji position
-        kana: y - 15,       // Kana position 
-        romaji: y + 10,     // Romaji position
-        english: y + 40,    // English position
-        description: y + 85 // Description position - 145 from kanji
+        kanji: isKajisuli ? y - 90 : y - 60,        // Higher in KAJISULI mode
+        kana: isKajisuli ? y - 44 : y - 15,         // Higher, 2px less gap from kanji (80-38=42 vs 60-15=45)
+        romaji: isKajisuli ? y - 16 : y + 10,       // Higher but less so, more space from kana (38-15=23 vs 15+10=25)
+        english: y + 40,                            // Same spot in both modes
+        description: isKajisuli ? y + 120 : y + 85  // Lower in KAJISULI mode
     };
 
     // Always show kanji
@@ -1868,7 +1872,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
             perk.kanji,
             {
                 fontFamily: 'Arial',
-                fontSize: '36px',
+                fontSize: `${36 * settings.fontSize}px`, // Apply scaling
                 color: perk.color || '#ffffff',
                 fontStyle: 'bold',
                 stroke: '#000000',
@@ -1887,7 +1891,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
             const kanaText = scene.add.text(
                 x, positions.kana,
                 perk.kana || '',
-                { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff' }
+                { fontFamily: 'Arial', fontSize: `${18 * settings.fontSize}px`, color: '#ffffff' }
             ).setOrigin(0.5);
 
             if (settings.container && settings.container.add) {
@@ -1902,7 +1906,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
             const romajiText = scene.add.text(
                 x, positions.romaji,
                 perk.romaji || '',
-                { fontFamily: 'Arial', fontSize: '16px', color: '#dddddd', fontStyle: 'italic' }
+                { fontFamily: 'Arial', fontSize: `${16 * settings.fontSize}px`, color: '#dddddd', fontStyle: 'italic' }
             ).setOrigin(0.5);
 
             if (settings.container && settings.container.add) {
@@ -1919,7 +1923,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
                 perk.english || '',
                 {
                     fontFamily: 'Arial',
-                    fontSize: '20px',
+                    fontSize: `${20 * settings.fontSize}px`,
                     color: perk.color || '#ffffff',
                     fontStyle: 'bold'
                 }
@@ -1939,7 +1943,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
                 perk.description || '',
                 {
                     fontFamily: 'Arial',
-                    fontSize: '16px',
+                    fontSize: `${16 * settings.fontSize}px`,
                     color: '#ffffff',
                     align: 'center',
                     wordWrap: { width: settings.width - 20 }
@@ -2078,11 +2082,11 @@ function showMobileLevelUpScreen(scene) {
     // Create level up title with improved styling
     const levelUpTitle = scene.add.text(
         centerX,
-        game.config.height * 0.15,
+        game.config.height * (KAJISULI_MODE ? 0.12 : 0.15), // Higher in KAJISULI mode
         'LEVEL UP!',
         {
             fontFamily: 'Arial',
-            fontSize: '32px',
+            fontSize: KAJISULI_MODE ? '48px' : '32px', // 150% larger in KAJISULI mode
             color: '#ffffff',
             fontStyle: 'bold',
             stroke: '#000000',
@@ -2093,11 +2097,11 @@ function showMobileLevelUpScreen(scene) {
     // Create subtitle text
     const subtitle = scene.add.text(
         centerX,
-        game.config.height * 0.22,
+        game.config.height * (KAJISULI_MODE ? 0.18 : 0.22), // Higher in KAJISULI mode
         'Choose a perk to continue',
         {
             fontFamily: 'Arial',
-            fontSize: '18px',
+            fontSize: KAJISULI_MODE ? '27px' : '18px', // 150% larger in KAJISULI mode
             color: '#ffffff'
         }
     ).setOrigin(0.5);
@@ -2111,11 +2115,12 @@ function showMobileLevelUpScreen(scene) {
     if (KAJISULI_MODE) {
         // Use the enhanced showStatsDisplay from pause.js with custom options
         PauseSystem.showStatsDisplay(scene, {
-            container: levelUpContainer,           // Add to our level up container instead
-            positionY: game.config.height * 0.28, // Position below subtitle
-            storeInElements: false,                // Don't store in pause system's elements
-            clearContainer: false,                 // Don't clear our level up container
-            setVisible: false                      // We'll handle visibility via the container
+            container: levelUpContainer,
+            positionY: game.config.height * 0.28,
+            storeInElements: false,
+            clearContainer: false,
+            setVisible: false,
+            fontSize: '36px' // 150% larger font for kanji and numbers
         });
     }
 
@@ -2147,8 +2152,11 @@ function showMobileLevelUpScreen(scene) {
                     showRomaji: true,
                     showEnglish: true,
                     showDescription: true,
-                    width: Math.min(200, game.config.width * 0.6),
-                    height: 300
+                    width: KAJISULI_MODE ?
+                        Math.min(300, game.config.width * 0.9) : // 150% wider (200->300)
+                        Math.min(200, game.config.width * 0.6),
+                    height: KAJISULI_MODE ? 450 : 300, // 150% taller (300->450)
+                    fontSize: KAJISULI_MODE ? 1.5 : 1 // 150% font scaling
                 }
             );
 
@@ -2178,7 +2186,7 @@ function showMobileLevelUpScreen(scene) {
 
     // Create navigation arrows
     const arrowConfig = {
-        fontSize: '40px',
+        fontSize: '80px', // 200% larger than original 40px
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 4
@@ -2186,7 +2194,7 @@ function showMobileLevelUpScreen(scene) {
 
     // Left arrow - only shown if not on first card
     const leftArrow = scene.add.text(
-        centerX - (game.config.width * 0.25),
+        centerX - (game.config.width * 0.3), // 150 = half of 300px card width
         centerY,
         '◀',
         arrowConfig
@@ -2200,7 +2208,7 @@ function showMobileLevelUpScreen(scene) {
 
     // Right arrow - only shown if not on last card
     const rightArrow = scene.add.text(
-        centerX + (game.config.width * 0.25),
+        centerX + (game.config.width * 0.3),
         centerY,
         '▶',
         arrowConfig
@@ -2219,11 +2227,11 @@ function showMobileLevelUpScreen(scene) {
     // Add card counter text (e.g., "1/3")
     const counterText = scene.add.text(
         centerX,
-        centerY + 180, // Below the card
+        centerY + (game.config.height * 0.21), // Maintain distance from larger card (270/1280 ≈ 0.21)
         `${currentPerkIndex + 1}/${numPerkOptions}`,
         {
             fontFamily: 'Arial',
-            fontSize: '18px',
+            fontSize: '36px', // 200% larger (18px -> 36px)
             color: '#ffffff'
         }
     ).setOrigin(0.5);
@@ -2256,10 +2264,10 @@ function showMobileLevelUpScreen(scene) {
         'Select This Perk',
         {
             fontFamily: 'Arial',
-            fontSize: '20px',
+            fontSize: '40px', // 200% larger (20px -> 40px)
             color: '#ffffff',
             backgroundColor: '#008800',
-            padding: { left: 15, right: 15, top: 10, bottom: 10 }
+            padding: { left: 30, right: 30, top: 20, bottom: 20 } // 200% padding
         }
     ).setOrigin(0.5);
     selectButton.setInteractive({ useHandCursor: true });
@@ -2511,7 +2519,7 @@ const RomajiChallengeSystem = {
         scene.debugKeysDisabled = true;
 
         // No hardcoded key handling - just use the scene flag
-        console.log("Debug keys disabled for romaji challenge");
+        //console.log("Debug keys disabled for romaji challenge");
     },
 
     // Restore debug keys to their original state
@@ -2528,7 +2536,7 @@ const RomajiChallengeSystem = {
             scene.debugKeysDisabled = false;
         }
 
-        console.log("Debug keys restored after romaji challenge");
+        //console.log("Debug keys restored after romaji challenge");
     },
 
     // Create romaji input field
@@ -2623,7 +2631,7 @@ const RomajiChallengeSystem = {
 
     // Update the perk card display
     updatePerkCardDisplay: function (scene) {
-        console.log("Updating perk card display, cards: " + this.state.currentCards);
+        //console.log("Updating perk card display, cards: " + this.state.currentCards);
 
         // First, completely clear the container
         this.elements.perkCardContainer.removeAll(true); // true means destroy children
@@ -2637,7 +2645,7 @@ const RomajiChallengeSystem = {
         const centerX = game.config.width / 2;
         const startX = centerX - (totalWidth / 2) + (cardWidth / 2);
 
-        console.log("Creating " + cardCount + " cards");
+        //console.log("Creating " + cardCount + " cards");
 
         // Create each card
         for (let i = 0; i < cardCount; i++) {
@@ -2649,7 +2657,7 @@ const RomajiChallengeSystem = {
                 continue;
             }
 
-            console.log("Creating card for perk: " + perk.id + " at position " + i);
+            //console.log("Creating card for perk: " + perk.id + " at position " + i);
 
             // Determine what to show based on state
             const isCurrentChallenge = (i === this.state.currentCards - 1 &&
@@ -2685,7 +2693,7 @@ const RomajiChallengeSystem = {
         // Update input visibility based on challenge state
         this.updateInputVisibility();
 
-        console.log("Card display updated, now showing " + this.state.cardElements.length + " cards");
+        //console.log("Card display updated, now showing " + this.state.cardElements.length + " cards");
     },
 
     // Function to validate romaji input
@@ -2774,10 +2782,10 @@ const RomajiChallengeSystem = {
             const currentExp = heroExp;
 
             const xpReward = Math.ceil(xpForNextLevel(playerLevel) * 0.25);
-            console.log(`Level ${currentLevel}: Calculating reward as 25% of ${currentExpToLevel} = ${xpReward}`);
+            //console.log(`Level ${currentLevel}: Calculating reward as 25% of ${currentExpToLevel} = ${xpReward}`);
 
             heroExp += xpReward;
-            console.log(`XP before: ${currentExp}, after: ${heroExp}, needed: ${xpForNextLevel(playerLevel)}`);
+            //console.log(`XP before: ${currentExp}, after: ${heroExp}, needed: ${xpForNextLevel(playerLevel)}`);
 
             // After updating the XP bar, check if something unexpected happened
             setTimeout(() => {
@@ -2831,7 +2839,7 @@ const RomajiChallengeSystem = {
 
     // Function to handle incorrect romaji input
     handleWrongRomaji: function (scene) {
-        console.log("Wrong romaji input, attempts: " + this.state.attempts);
+        //console.log("Wrong romaji input, attempts: " + this.state.attempts);
 
         // Store a local reference to the input box to use in the tween callback
         const inputBox = this.elements.inputBox;
@@ -2857,7 +2865,7 @@ const RomajiChallengeSystem = {
 
         // Increment attempts
         this.state.attempts++;
-        console.log("Attempts increased to: " + this.state.attempts);
+        //console.log("Attempts increased to: " + this.state.attempts);
 
         const centerX = game.config.width / 2;
         const messageY = game.config.height * 0.8125; // 650/800 = 0.8125
@@ -2902,7 +2910,7 @@ const RomajiChallengeSystem = {
             this.elements.perkCardContainer.add(kanaText);
             this.state.cardElements[this.state.currentIndex].elements.push(kanaText);
 
-            console.log("Added kana hint:", currentPerk.kana);
+            //console.log("Added kana hint:", currentPerk.kana);
         } else {
             // Second wrong attempt - end input challenge
             const failText = scene.add.text(
@@ -2935,7 +2943,7 @@ const RomajiChallengeSystem = {
             this.elements.perkCardContainer.removeAll(true);
             this.updatePerkCardDisplay(scene);
 
-            console.log("Challenge ended after second failure");
+            //console.log("Challenge ended after second failure");
         }
     },
 
@@ -2970,7 +2978,7 @@ const RomajiChallengeSystem = {
 
     // Function to select a card and acquire the perk
     selectCard: function (scene, perkType) {
-        console.log("Card selected with perk: " + perkType);
+        //console.log("Card selected with perk: " + perkType);
 
         // Acquire the selected perk
         acquirePerk(scene, perkType);
@@ -3028,7 +3036,7 @@ const RomajiChallengeSystem = {
 
     // Function to close level up cards and clean up resources
     closeLevelUpCards: function (scene) {
-        console.log("Closing level up cards and cleaning up UI elements");
+        //console.log("Closing level up cards and cleaning up UI elements");
 
         // Clean up the window key handler
         if (this.handlers.keydownHandler) {
@@ -5158,7 +5166,7 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             lifespan: null, // Indefinite lifespan until touched by enemy
             options: {
                 hasPeriodicEffect: true, // Generic flag for drops with periodic effects
-                periodicEffectCooldown: 4000, // Base cooldown for the effect
+                periodicEffectCooldown: 6000, // Base cooldown for the effect
                 fireImmediately: true, // Flag to indicate it should fire immediately on spawn
                 visualEffect: 'createPulsing' // Flag for visual pulsing effect
             }
@@ -5243,7 +5251,7 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
             damageInterval: 0, // Not used for area effects
             lifespan: null, // Permanent until touched by enemy
             options: {
-                areaEffectInterval: 8000, //
+                areaEffectInterval: 9000, //
                 areaEffectRadius: 320, // Base radius
                 pulseColor: 0x2aad27, // Green color for the pulse effect
                 visualEffect: 'createPulsing', // Add pulsing animation
@@ -9181,15 +9189,6 @@ const MusicSystem = {
             });
 
             this.isLoading = false;
-
-            // If this is the track we're waiting to play and we're in silence, 
-            // we can reduce the silence duration
-            if (trackId === this.nextTrackToPlay && this.silenceTimer) {
-                clearTimeout(this.silenceTimer);
-                this.silenceTimer = setTimeout(() => {
-                    this.startTrackWithFadeIn(trackId);
-                }, 500); // Just wait half a second
-            }
         });
 
         // Handle errors
@@ -9210,8 +9209,10 @@ const MusicSystem = {
 
     // Start playing a track with fade-in
     startTrackWithFadeIn: function (trackId) {
+        console.log("start track with fade in");
         if (!this.musicEnabled || !this.scene) return;
 
+        console.log("STWFI continues");
         // Get the sound object for this track
         const track = this.scene.sound.get(trackId);
         if (!track) {
@@ -9258,6 +9259,12 @@ const MusicSystem = {
             this.applyBossFightEffect();
         }
 
+        // Avoid fighting pause for volume control
+        if (gamePaused) {
+            // Temporarily restore normal audio for proper fade-in
+            this.onGameResume();
+        }
+
         // Create fade-in tween
         this.fadeInTween = this.scene.tweens.add({
             targets: track,
@@ -9277,13 +9284,14 @@ const MusicSystem = {
 
                 // Early load the next track when we're about 20 seconds from the end
                 if (fadeOutTime > 25000) {
-                    setTimeout(() => {
+                    const preloadTimer = this.scene.time.delayedCall(fadeOutTime - 20000, () => {
                         const nextIdx = this.currentTrackIndex + 1;
                         if (nextIdx < this.playQueue.length) {
                             const nextTrackId = this.playQueue[nextIdx];
                             this.loadTrack(nextTrackId);
                         }
-                    }, fadeOutTime - 20000);
+                    });
+                    this.musicTimers.push(preloadTimer);
                 }
 
                 // special timer
@@ -9387,7 +9395,11 @@ const MusicSystem = {
     // Start fading out the current track
     startFadeOut: function () {
         console.log("start fade out");
-        if (!this.currentTrack || !this.currentTrack.isPlaying) return;
+        if (!this.currentTrack || !this.currentTrack.isPlaying) {
+            console.log("No track playing during fade-out, starting next track");
+            this.playNextTrack(); // Restart the music cycle instead of breaking it
+            return;
+        }
         console.log("continue fade out");
         // Create fade-out tween
         this.fadeOutTween = this.scene.tweens.add({
@@ -9456,6 +9468,14 @@ const MusicSystem = {
 
         // Skip if no track is playing
         if (!this.currentTrack || (!this.currentTrack.isPlaying && !this.currentTrack.isPaused)) {
+            return;
+        }
+
+        // If fade-in is active, don't interfere with volume - just apply filter
+        if (this.fadeInTween && this.fadeInTween.isPlaying()) {
+            console.log("Fade-in active, skipping volume changes during pause");
+            // Only apply low-pass filter, no volume changes
+            this.applyLowPassFilter();
             return;
         }
 
@@ -12678,9 +12698,10 @@ const PauseSystem = {
         const config = {
             container: options.container ?? this.elements.statsContainer,
             positionY: options.positionY ?? game.config.height * 0.2,
-            storeInElements: options.storeInElements ?? true, // Original behavior stores in elements
+            storeInElements: options.storeInElements ?? true,
             clearContainer: options.clearContainer ?? true,
-            setVisible: options.setVisible ?? true
+            setVisible: options.setVisible ?? true,
+            fontSize: options.fontSize ?? '24px' // New fontSize parameter with default
         };
 
         // Clear any existing stats display if requested (original behavior)
@@ -12745,7 +12766,7 @@ const PauseSystem = {
                 `${stat.symbol} ${Math.floor(stat.value)}`,
                 {
                     fontFamily: 'Arial',
-                    fontSize: '24px',
+                    fontSize: config.fontSize, // Use the configurable fontSize
                     color: stat.color,
                     fontStyle: 'bold'
                 }
@@ -14792,6 +14813,11 @@ function playerDeath(killerEnemy) {
     // Pause the game physics to stop all movement
     PauseSystem.pauseGame();
 
+    // Make sure music plays at normal timescale, if we were in time dilation
+    if (window.MusicSystem) {
+        window.MusicSystem.applyTimeDilation(1.0);
+    }
+
     // Resume music to normal if we were in boss mode
     MusicSystem.removeBossFightEffect();
 
@@ -15644,32 +15670,40 @@ window.WeaponSystem = WeaponSystem;
 
 
 </script><style>
+        html,
         body {
             margin: 0;
             padding: 0;
             background-color: #1a1a1a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             height: 100vh;
+            height: 100dvh;
+            /* Dynamic viewport height for better mobile support */
             color: white;
             font-family: Arial, sans-serif;
             touch-action: none;
             overflow: hidden;
-            /* Prevent scrollbars */
+            position: fixed;
+            /* Fix to viewport */
+            width: 100%;
+            top: 0;
+            left: 0;
         }
 
         #game-container {
             width: 100%;
-            /* Change from fixed 1200px to 100% */
             height: 100vh;
-            /* Use viewport height instead of fixed 800px */
-            position: relative;
-            margin: 0 auto;
+            height: 100dvh;
+            /* Dynamic viewport height */
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            /* Change from center to flex-start */
             max-width: 1200px;
-            /* Optional: keep a maximum width */
             max-height: 800px;
-            /* Optional: keep a maximum height */
+            margin: 0 auto;
         }
 
         @media (max-width: 768px) {
@@ -15767,8 +15801,8 @@ window.WeaponSystem = WeaponSystem;
         // Game configuration
         const config = {
             type: Phaser.AUTO,
-            width: KAJISULI_MODE ? 500 : 1200,
-            height: KAJISULI_MODE ? 1000 : 800,
+            width: KAJISULI_MODE ? 720 : 1200,
+            height: KAJISULI_MODE ? 1280 : 800,
             parent: 'game-container',
             physics: {
                 default: 'arcade',
@@ -15784,9 +15818,9 @@ window.WeaponSystem = WeaponSystem;
             },
             scale: {
                 mode: Phaser.Scale.FIT,
-                autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: KAJISULI_MODE ? 500 : 1200,
-                height: KAJISULI_MODE ? 1000 : 800,
+                autoCenter: KAJISULI_MODE ? Phaser.Scale.CENTER_HORIZONTALLY : Phaser.Scale.CENTER_BOTH,
+                width: KAJISULI_MODE ? 720 : 1200,
+                height: KAJISULI_MODE ? 1280 : 800,
                 parent: 'game-container',
                 // This is important - it ensures the canvas actually resizes
                 // when the browser window changes
@@ -16280,6 +16314,7 @@ window.WeaponSystem = WeaponSystem;
             const isLocalEnvironment =
                 window.location.hostname === 'localhost' ||
                 window.location.hostname === '127.0.0.1' ||
+                window.location.hostname.startsWith('192.168.1.') ||
                 window.location.protocol === 'file:'; // For direct file access
 
             // Default to AZERTY for local development, QWERTY otherwise

@@ -14,18 +14,18 @@ ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks a
 fixed at high value (perhaps 1k) would make more sense with that latter design
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
 - change all coordinates to be relative, not absolute -> in progress...
-- firerate resets to 3 rather than 4 (maybe roundup issue tied to archerMultiplier?)
-- get music to segue between tracks flawlessly
+- firerate resets to 3 rather than 4 (maybe roundup issue tied to archerMultiplier?) -> is this still true? test a game with archer perks
 - add pause and sound on/off buttons for mobile (bottom of screen?)
 - fix mobile kajisuli resolution, bottom edge is clipped in a normal browser (farcade should work. could also simply accept 500x900 rather than 500x1000)
-- if player dies under time dilation, music slowdown persists through end screen and new game
 
 POSSIBLY FIXED BUT NEEDS TESTING
+- get music to segue between tracks flawlessly -> might be good!!
 - if OBLIVION BLOSSOM is selected during time slowdown, the player stays slow <= possibly fixed by window.TimeDilationSystem.cleanup();, need testing
 - storm caller, divine beacon and alien beacon remain after BLOSSOM (didn't we fix this before, for divine?? maybe just restart...) -> possibly fixed
 - if player dies during the visual kanji intro of new rank, kanjis remain - was this fixed?
 - no player damage visual post Oblivion, maybe caused by shield visual? testing, doesn't seem directly linked or alone - was this fixed??
 - poison resets tween to base = cold+poison = back to base despite cold - probably fixed
+- if player dies under time dilation, music slowdown persists through end screen and new game -> should be good
 
 DONE
 - Game Over is ugly, make proper menu -> still ugly but at least proper ugly

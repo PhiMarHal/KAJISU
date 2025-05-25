@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>KAJISU</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
@@ -37,32 +37,40 @@
     <script src="music.js"></script>
 
     <style>
+        html,
         body {
             margin: 0;
             padding: 0;
             background-color: #1a1a1a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             height: 100vh;
+            height: 100dvh;
+            /* Dynamic viewport height for better mobile support */
             color: white;
             font-family: Arial, sans-serif;
             touch-action: none;
             overflow: hidden;
-            /* Prevent scrollbars */
+            position: fixed;
+            /* Fix to viewport */
+            width: 100%;
+            top: 0;
+            left: 0;
         }
 
         #game-container {
             width: 100%;
-            /* Change from fixed 1200px to 100% */
             height: 100vh;
-            /* Use viewport height instead of fixed 800px */
-            position: relative;
-            margin: 0 auto;
+            height: 100dvh;
+            /* Dynamic viewport height */
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            /* Change from center to flex-start */
             max-width: 1200px;
-            /* Optional: keep a maximum width */
             max-height: 800px;
-            /* Optional: keep a maximum height */
+            margin: 0 auto;
         }
 
         @media (max-width: 768px) {
@@ -160,8 +168,8 @@
         // Game configuration
         const config = {
             type: Phaser.AUTO,
-            width: KAJISULI_MODE ? 500 : 1200,
-            height: KAJISULI_MODE ? 1000 : 800,
+            width: KAJISULI_MODE ? 720 : 1200,
+            height: KAJISULI_MODE ? 1280 : 800,
             parent: 'game-container',
             physics: {
                 default: 'arcade',
@@ -177,9 +185,9 @@
             },
             scale: {
                 mode: Phaser.Scale.FIT,
-                autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: KAJISULI_MODE ? 500 : 1200,
-                height: KAJISULI_MODE ? 1000 : 800,
+                autoCenter: KAJISULI_MODE ? Phaser.Scale.CENTER_HORIZONTALLY : Phaser.Scale.CENTER_BOTH,
+                width: KAJISULI_MODE ? 720 : 1200,
+                height: KAJISULI_MODE ? 1280 : 800,
                 parent: 'game-container',
                 // This is important - it ensures the canvas actually resizes
                 // when the browser window changes

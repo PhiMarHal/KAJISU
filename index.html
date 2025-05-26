@@ -163,7 +163,7 @@
     </div>
 
     <script>
-        const KAJISULI_MODE = false;
+        const KAJISULI_MODE = true;
 
         // Game configuration
         const config = {
@@ -506,24 +506,6 @@
             // Set up WASD keys for movement based on detected layout
             updateWASDKeys.call(this);
 
-            // Set up touch controls
-            this.input.on('pointerdown', (pointer) => {
-                touchInput.isActive = true;
-                touchInput.x = pointer.x;
-                touchInput.y = pointer.y;
-            });
-
-            this.input.on('pointermove', (pointer) => {
-                if (touchInput.isActive) {
-                    touchInput.x = pointer.x;
-                    touchInput.y = pointer.y;
-                }
-            });
-
-            this.input.on('pointerup', () => {
-                touchInput.isActive = false;
-            });
-
             // Create the game over screen (hidden initially)
             gameOverText = this.add.text(game.config.width / 2, game.config.height / 2,
                 'GAME OVER',
@@ -592,19 +574,11 @@
                 player.body.setVelocityY(playerSpeed * 50);
             }
 
-            // Player movement with touch
-            if (touchInput.isActive) {
-                // Calculate direction vector
-                const dx = touchInput.x - player.x;
-                const dy = touchInput.y - player.y;
-
-                // Normalize and scale
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance > 5) {  // Add a small threshold to prevent jitter
-                    player.body.setVelocityX((dx / distance) * playerSpeed * 50);
-                    player.body.setVelocityY((dy / distance) * playerSpeed * 50);
-                }
+            // Touch controls
+            const touchInput = InputSystem.getTouchInput();
+            if (Math.abs(touchInput.x) > 0 || Math.abs(touchInput.y) > 0) {
+                player.body.setVelocityX(touchInput.x * playerSpeed * 50);
+                player.body.setVelocityY(touchInput.y * playerSpeed * 50);
             }
 
             // Update enemies

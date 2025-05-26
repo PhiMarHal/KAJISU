@@ -11,7 +11,19 @@ const InputSystem = {
     isInitialized: false,
     isTabActive: true,     // Track if tab is active/visible
 
-    // Initialize the cursor hiding feature
+    // Directional touch control variables
+    touch: {
+        isActive: false,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0,
+        directionX: 0,  // Normalized direction (-1 to 1)
+        directionY: 0,  // Normalized direction (-1 to 1)
+        minDistance: 10 // Minimum distance before registering movement
+    },
+
+    // Initialize the input system
     setupCursorHiding: function (scene) {
         // Skip if already initialized
         if (this.isInitialized) return;
@@ -19,6 +31,23 @@ const InputSystem = {
         // Store reference to the scene
         this.scene = scene;
 
+        // Setup cursor hiding for desktop
+        this.initializeCursorHiding(scene);
+
+        // Setup directional touch control (works alongside keyboard)
+        this.initializeDirectionalTouch(scene);
+
+        // Common initialization
+        this.initializeCommonHandlers();
+
+        // Mark as initialized
+        this.isInitialized = true;
+
+        console.log("Enhanced input system initialized with cursor hiding and directional touch control");
+    },
+
+    // Initialize cursor hiding functionality for desktop
+    initializeCursorHiding: function (scene) {
         // Pointer move handler
         scene.input.on('pointermove', this.handlePointerMove, this);
 
@@ -28,23 +57,81 @@ const InputSystem = {
         // Always show cursor when leaving game area
         scene.game.canvas.addEventListener('mouseout', this.handleMouseOut.bind(this));
 
+        // Force cursor state reset on initialization
+        this.resetCursorState();
+    },
+
+    // Initialize directional touch control for mobile
+    initializeDirectionalTouch: function (scene) {
+        scene.input.on('pointerdown', (pointer) => {
+            this.touch.isActive = true;
+            this.touch.startX = pointer.x;
+            this.touch.startY = pointer.y;
+            this.touch.currentX = pointer.x;
+            this.touch.currentY = pointer.y;
+            this.updateTouchDirection();
+            console.log('Touch started at:', pointer.x, pointer.y);
+        });
+
+        scene.input.on('pointermove', (pointer) => {
+            if (this.touch.isActive) {
+                this.touch.currentX = pointer.x;
+                this.touch.currentY = pointer.y;
+                this.updateTouchDirection();
+            }
+        });
+
+        scene.input.on('pointerup', () => {
+            if (this.touch.isActive) {
+                console.log('Touch ended');
+                this.touch.isActive = false;
+                this.touch.directionX = 0;
+                this.touch.directionY = 0;
+            }
+        });
+    },
+
+    // Initialize common event handlers
+    initializeCommonHandlers: function () {
         // Handle tab visibility changes
         document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
 
         // Handle window focus/blur
         window.addEventListener('focus', this.handleWindowFocus.bind(this));
         window.addEventListener('blur', this.handleWindowBlur.bind(this));
-
-        // Force cursor state reset on initialization
-        this.resetCursorState();
-
-        // Mark as initialized
-        this.isInitialized = true;
-
-        console.log("Enhanced cursor hiding system initialized");
     },
 
-    // Handle pointer movement
+    // Update touch direction based on finger movement
+    updateTouchDirection: function () {
+        // Calculate vector from start to current position
+        const deltaX = this.touch.currentX - this.touch.startX;
+        const deltaY = this.touch.currentY - this.touch.startY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (distance < this.touch.minDistance) {
+            // Not enough movement, no direction
+            this.touch.directionX = 0;
+            this.touch.directionY = 0;
+        } else {
+            // Normalize direction vector
+            this.touch.directionX = deltaX / distance;
+            this.touch.directionY = deltaY / distance;
+        }
+    },
+
+    // Get current touch input values
+    getTouchInput: function () {
+        if (!this.touch.isActive) {
+            return { x: 0, y: 0 };
+        }
+
+        return {
+            x: this.touch.directionX,
+            y: this.touch.directionY
+        };
+    },
+
+    // Handle pointer movement (for cursor hiding)
     handlePointerMove: function (pointer) {
         // If the cursor position has changed
         if (pointer.x !== this.lastMouseX || pointer.y !== this.lastMouseY) {
@@ -63,8 +150,8 @@ const InputSystem = {
         }
     },
 
-    // Handle pointer button press
-    handlePointerDown: function () {
+    // Handle pointer button press (for cursor hiding)
+    handlePointerDown: function (pointer) {
         if (this.isCursorHidden) {
             document.body.style.cursor = 'auto';
             this.isCursorHidden = false;
@@ -78,7 +165,6 @@ const InputSystem = {
     handleMouseOut: function () {
         document.body.style.cursor = 'auto';
         this.isCursorHidden = false;
-
         this.clearCursorTimer();
     },
 
@@ -90,6 +176,10 @@ const InputSystem = {
             document.body.style.cursor = 'auto';
             this.isCursorHidden = false;
             this.clearCursorTimer();
+            // Stop touch input when tab is hidden
+            this.touch.isActive = false;
+            this.touch.directionX = 0;
+            this.touch.directionY = 0;
         } else {
             this.isTabActive = true;
             // Reset cursor timer when tab becomes visible
@@ -109,6 +199,10 @@ const InputSystem = {
         document.body.style.cursor = 'auto';
         this.isCursorHidden = false;
         this.clearCursorTimer();
+        // Stop touch input when window loses focus
+        this.touch.isActive = false;
+        this.touch.directionX = 0;
+        this.touch.directionY = 0;
     },
 
     // Helper function to reset the cursor hiding timer
@@ -191,6 +285,11 @@ const InputSystem = {
         // Reset cursor visibility
         document.body.style.cursor = 'auto';
         this.isCursorHidden = false;
+
+        // Reset touch state
+        this.touch.isActive = false;
+        this.touch.directionX = 0;
+        this.touch.directionY = 0;
 
         // Reset initialization flag
         this.isInitialized = false;

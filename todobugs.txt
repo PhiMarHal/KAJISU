@@ -16,7 +16,10 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - change all coordinates to be relative, not absolute -> in progress...
 - firerate resets to 3 rather than 4 (maybe roundup issue tied to archerMultiplier?) -> is this still true? test a game with archer perks
 - add pause and sound on/off buttons for mobile (bottom of screen?)
-- fix mobile kajisuli resolution, bottom edge is clipped in a normal browser (farcade should work. could also simply accept 500x900 rather than 500x1000)
+- victory text misaligned on mobile, escaped the loop escapes box, vanquishing too close to kanji
+- maybe rethink alien time on hit AND/OR change music slowdown to 80% rather than 50%!
+> problem for the latter, think of music timer, which currently uses physics = 50%
+- does music slowdown apply properly on several time dilations in a row?
 
 POSSIBLY FIXED BUT NEEDS TESTING
 - get music to segue between tracks flawlessly -> might be good!!
@@ -27,7 +30,9 @@ POSSIBLY FIXED BUT NEEDS TESTING
 - poison resets tween to base = cold+poison = back to base despite cold - probably fixed
 - if player dies under time dilation, music slowdown persists through end screen and new game -> should be good
 
-DONE
+DONE 
+- fix mobile kajisuli resolution, bottom edge is clipped in a normal browser (farcade should work. could also simply accept 500x900 rather than 500x1000)
+> farcade can take 720x1280? ok cool cool
 - Game Over is ugly, make proper menu -> still ugly but at least proper ugly
 - still possible to "beat" the game, want to rethink rank spawns -> we have bosses now
 - storm beacon does not spawn immediately -> ok with "apply" instead of "call" (why??) -> NOT ok anymore (why????)

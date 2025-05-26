@@ -14,13 +14,15 @@ const InputSystem = {
     // Directional touch control variables
     touch: {
         isActive: false,
-        startX: 0,
-        startY: 0,
         currentX: 0,
         currentY: 0,
         directionX: 0,  // Normalized direction (-1 to 1)
         directionY: 0,  // Normalized direction (-1 to 1)
-        minDistance: 10 // Minimum distance before registering movement
+        minDistance: 1, // Minimum distance before registering movement
+        // Sliding window for recent positions
+        positionHistory: [],
+        maxHistoryLength: 5, // Keep last 5 positions
+        historyTimeWindow: 20 // Use positions from last 150ms
     },
 
     // Initialize the input system
@@ -65,10 +67,14 @@ const InputSystem = {
     initializeDirectionalTouch: function (scene) {
         scene.input.on('pointerdown', (pointer) => {
             this.touch.isActive = true;
-            this.touch.startX = pointer.x;
-            this.touch.startY = pointer.y;
             this.touch.currentX = pointer.x;
             this.touch.currentY = pointer.y;
+            // Reset position history
+            this.touch.positionHistory = [{
+                x: pointer.x,
+                y: pointer.y,
+                timestamp: Date.now()
+            }];
             this.updateTouchDirection();
             console.log('Touch started at:', pointer.x, pointer.y);
         });
@@ -77,6 +83,19 @@ const InputSystem = {
             if (this.touch.isActive) {
                 this.touch.currentX = pointer.x;
                 this.touch.currentY = pointer.y;
+
+                // Add to position history
+                this.touch.positionHistory.push({
+                    x: pointer.x,
+                    y: pointer.y,
+                    timestamp: Date.now()
+                });
+
+                // Trim history to max length
+                if (this.touch.positionHistory.length > this.touch.maxHistoryLength) {
+                    this.touch.positionHistory.shift();
+                }
+
                 this.updateTouchDirection();
             }
         });
@@ -87,6 +106,7 @@ const InputSystem = {
                 this.touch.isActive = false;
                 this.touch.directionX = 0;
                 this.touch.directionY = 0;
+                this.touch.positionHistory = [];
             }
         });
     },
@@ -101,22 +121,53 @@ const InputSystem = {
         window.addEventListener('blur', this.handleWindowBlur.bind(this));
     },
 
-    // Update touch direction based on finger movement
+    // Update touch direction based on recent finger movement
     updateTouchDirection: function () {
-        // Calculate vector from start to current position
-        const deltaX = this.touch.currentX - this.touch.startX;
-        const deltaY = this.touch.currentY - this.touch.startY;
+        if (this.touch.positionHistory.length < 2) {
+            // Not enough history, no direction
+            this.touch.directionX = 0;
+            this.touch.directionY = 0;
+            return;
+        }
+
+        const currentTime = Date.now();
+
+        // Find the oldest position within our time window
+        let referencePosition = null;
+        for (let i = this.touch.positionHistory.length - 1; i >= 0; i--) {
+            const pos = this.touch.positionHistory[i];
+            if (currentTime - pos.timestamp <= this.touch.historyTimeWindow) {
+                referencePosition = pos;
+            } else {
+                break; // Positions are chronological, so we can stop here
+            }
+        }
+
+        // If no reference position found, use the second-to-last position
+        if (!referencePosition && this.touch.positionHistory.length >= 2) {
+            referencePosition = this.touch.positionHistory[this.touch.positionHistory.length - 2];
+        }
+
+        if (!referencePosition) {
+            this.touch.directionX = 0;
+            this.touch.directionY = 0;
+            return;
+        }
+
+        // Calculate vector from reference position to current position
+        const deltaX = this.touch.currentX - referencePosition.x;
+        const deltaY = this.touch.currentY - referencePosition.y;
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
         if (distance < this.touch.minDistance) {
-            // Not enough movement, no direction
-            this.touch.directionX = 0;
-            this.touch.directionY = 0;
-        } else {
-            // Normalize direction vector
-            this.touch.directionX = deltaX / distance;
-            this.touch.directionY = deltaY / distance;
+            // Not enough movement, keep previous direction or set to zero
+            // Don't change direction if movement is too small
+            return;
         }
+
+        // Update direction based on recent movement only
+        this.touch.directionX = deltaX / distance;
+        this.touch.directionY = deltaY / distance;
     },
 
     // Get current touch input values
@@ -180,6 +231,7 @@ const InputSystem = {
             this.touch.isActive = false;
             this.touch.directionX = 0;
             this.touch.directionY = 0;
+            this.touch.positionHistory = [];
         } else {
             this.isTabActive = true;
             // Reset cursor timer when tab becomes visible
@@ -203,6 +255,7 @@ const InputSystem = {
         this.touch.isActive = false;
         this.touch.directionX = 0;
         this.touch.directionY = 0;
+        this.touch.positionHistory = [];
     },
 
     // Helper function to reset the cursor hiding timer
@@ -290,6 +343,7 @@ const InputSystem = {
         this.touch.isActive = false;
         this.touch.directionX = 0;
         this.touch.directionY = 0;
+        this.touch.positionHistory = [];
 
         // Reset initialization flag
         this.isInitialized = false;

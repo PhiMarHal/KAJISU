@@ -18,22 +18,22 @@ const InputSystem = {
         currentY: 0,
         directionX: 0,  // Normalized direction (-1 to 1)
         directionY: 0,  // Normalized direction (-1 to 1)
-        minDistance: 10, // Minimum distance before registering movement
+        minDistance: 20, // Minimum distance before registering movement
         // Sliding window for recent positions
         positionHistory: [],
         maxHistoryLength: 5, // Keep last 5 positions
-        historyTimeWindow: 20, // Use positions from last 20ms
-        // 8-cardinal direction system
+        historyTimeWindow: 50, // Use positions from last 20ms
+        // 8-cardinal direction system with biased ranges
         useCardinalDirections: true,
-        cardinalDirections: [
-            { angle: 0, x: 1, y: 0 },  // East
-            { angle: 60, x: 1, y: 1 },  // Northeast (y negative = up in screen coordinates)
-            { angle: 90, x: 0, y: 1 },  // North
-            { angle: 150, x: -1, y: 1 },  // Northwest
-            { angle: 180, x: -1, y: 0 },  // West
-            { angle: 240, x: -1, y: -1 },  // Southwest
-            { angle: 270, x: 0, y: -1 },  // South
-            { angle: 330, x: 1, y: -1 }   // Southeast
+        cardinalRanges: [
+            { name: 'East', minAngle: 330, maxAngle: 30, x: 1, y: 0, wrapsAround: true },
+            { name: 'Northeast', minAngle: 30, maxAngle: 60, x: 1, y: 1 },
+            { name: 'North', minAngle: 60, maxAngle: 120, x: 0, y: 1 },
+            { name: 'Northwest', minAngle: 120, maxAngle: 150, x: -1, y: 1 },
+            { name: 'West', minAngle: 150, maxAngle: 210, x: -1, y: 0 },
+            { name: 'Southwest', minAngle: 210, maxAngle: 240, x: -1, y: -1 },
+            { name: 'South', minAngle: 240, maxAngle: 300, x: 0, y: -1 },
+            { name: 'Southeast', minAngle: 300, maxAngle: 330, x: 1, y: -1 }
         ]
     },
 
@@ -133,7 +133,7 @@ const InputSystem = {
         window.addEventListener('blur', this.handleWindowBlur.bind(this));
     },
 
-    // Snap angle to nearest cardinal direction
+    // Snap angle to nearest cardinal direction (with biased ranges)
     snapToCardinalDirection: function (rawDirectionX, rawDirectionY) {
         // Calculate angle from raw direction
         let angle = Math.atan2(rawDirectionY, rawDirectionX) * (180 / Math.PI);
@@ -141,31 +141,31 @@ const InputSystem = {
         // Normalize angle to 0-360 range
         if (angle < 0) angle += 360;
 
-        // Find the closest cardinal direction
-        let closestDirection = this.touch.cardinalDirections[0];
-        let smallestDifference = Math.abs(angle - closestDirection.angle);
-
-        for (let i = 1; i < this.touch.cardinalDirections.length; i++) {
-            const dir = this.touch.cardinalDirections[i];
-            let diff = Math.abs(angle - dir.angle);
-
-            // Handle wrap-around (e.g., 350° vs 10° should be 20° difference, not 340°)
-            if (diff > 180) {
-                diff = 360 - diff;
-            }
-
-            if (diff < smallestDifference) {
-                smallestDifference = diff;
-                closestDirection = dir;
+        // Find matching direction range
+        for (const range of this.touch.cardinalRanges) {
+            if (range.wrapsAround) {
+                // Handle wrap-around case (e.g., East: 330° to 30°)
+                if (angle >= range.minAngle || angle <= range.maxAngle) {
+                    const length = Math.sqrt(range.x * range.x + range.y * range.y);
+                    return {
+                        x: range.x / length,
+                        y: range.y / length
+                    };
+                }
+            } else {
+                // Normal case
+                if (angle > range.minAngle && angle <= range.maxAngle) {
+                    const length = Math.sqrt(range.x * range.x + range.y * range.y);
+                    return {
+                        x: range.x / length,
+                        y: range.y / length
+                    };
+                }
             }
         }
 
-        // Normalize the direction vector (though cardinal directions are already normalized)
-        const length = Math.sqrt(closestDirection.x * closestDirection.x + closestDirection.y * closestDirection.y);
-        return {
-            x: closestDirection.x / length,
-            y: closestDirection.y / length
-        };
+        // Fallback to East (shouldn't happen)
+        return { x: 1, y: 0 };
     },
 
     // Update touch direction based on recent finger movement

@@ -18,10 +18,10 @@ const InputSystem = {
         currentY: 0,
         directionX: 0,  // Normalized direction (-1 to 1)
         directionY: 0,  // Normalized direction (-1 to 1)
-        minDistance: 1, // Minimum distance before registering movement
+        minDistance: 10, // Minimum distance before registering movement
         // Sliding window for recent positions
         positionHistory: [],
-        maxHistoryLength: 5, // Keep last 5 positions
+        maxHistoryLength: 2, // Keep last 5 positions
         historyTimeWindow: 20 // Use positions from last 150ms
     },
 

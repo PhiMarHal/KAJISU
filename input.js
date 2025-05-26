@@ -18,11 +18,23 @@ const InputSystem = {
         currentY: 0,
         directionX: 0,  // Normalized direction (-1 to 1)
         directionY: 0,  // Normalized direction (-1 to 1)
-        minDistance: 1, // Minimum distance before registering movement
+        minDistance: 10, // Minimum distance before registering movement
         // Sliding window for recent positions
         positionHistory: [],
         maxHistoryLength: 5, // Keep last 5 positions
-        historyTimeWindow: 20 // Use positions from last 150ms
+        historyTimeWindow: 20, // Use positions from last 20ms
+        // 8-cardinal direction system
+        useCardinalDirections: true,
+        cardinalDirections: [
+            { angle: 0, x: 1, y: 0 },  // East
+            { angle: 60, x: 1, y: 1 },  // Northeast (y negative = up in screen coordinates)
+            { angle: 90, x: 0, y: 1 },  // North
+            { angle: 150, x: -1, y: 1 },  // Northwest
+            { angle: 180, x: -1, y: 0 },  // West
+            { angle: 240, x: -1, y: -1 },  // Southwest
+            { angle: 270, x: 0, y: -1 },  // South
+            { angle: 330, x: 1, y: -1 }   // Southeast
+        ]
     },
 
     // Initialize the input system
@@ -121,6 +133,41 @@ const InputSystem = {
         window.addEventListener('blur', this.handleWindowBlur.bind(this));
     },
 
+    // Snap angle to nearest cardinal direction
+    snapToCardinalDirection: function (rawDirectionX, rawDirectionY) {
+        // Calculate angle from raw direction
+        let angle = Math.atan2(rawDirectionY, rawDirectionX) * (180 / Math.PI);
+
+        // Normalize angle to 0-360 range
+        if (angle < 0) angle += 360;
+
+        // Find the closest cardinal direction
+        let closestDirection = this.touch.cardinalDirections[0];
+        let smallestDifference = Math.abs(angle - closestDirection.angle);
+
+        for (let i = 1; i < this.touch.cardinalDirections.length; i++) {
+            const dir = this.touch.cardinalDirections[i];
+            let diff = Math.abs(angle - dir.angle);
+
+            // Handle wrap-around (e.g., 350° vs 10° should be 20° difference, not 340°)
+            if (diff > 180) {
+                diff = 360 - diff;
+            }
+
+            if (diff < smallestDifference) {
+                smallestDifference = diff;
+                closestDirection = dir;
+            }
+        }
+
+        // Normalize the direction vector (though cardinal directions are already normalized)
+        const length = Math.sqrt(closestDirection.x * closestDirection.x + closestDirection.y * closestDirection.y);
+        return {
+            x: closestDirection.x / length,
+            y: closestDirection.y / length
+        };
+    },
+
     // Update touch direction based on recent finger movement
     updateTouchDirection: function () {
         if (this.touch.positionHistory.length < 2) {
@@ -165,9 +212,20 @@ const InputSystem = {
             return;
         }
 
-        // Update direction based on recent movement only
-        this.touch.directionX = deltaX / distance;
-        this.touch.directionY = deltaY / distance;
+        // Calculate raw direction
+        const rawDirectionX = deltaX / distance;
+        const rawDirectionY = deltaY / distance;
+
+        // Snap to cardinal direction if enabled
+        if (this.touch.useCardinalDirections) {
+            const snappedDirection = this.snapToCardinalDirection(rawDirectionX, rawDirectionY);
+            this.touch.directionX = snappedDirection.x;
+            this.touch.directionY = snappedDirection.y;
+        } else {
+            // Use raw direction
+            this.touch.directionX = rawDirectionX;
+            this.touch.directionY = rawDirectionY;
+        }
     },
 
     // Get current touch input values

@@ -18,23 +18,11 @@ const InputSystem = {
         currentY: 0,
         directionX: 0,  // Normalized direction (-1 to 1)
         directionY: 0,  // Normalized direction (-1 to 1)
-        minDistance: 20, // Minimum distance before registering movement
+        minDistance: 10, // Minimum distance before registering movement
         // Sliding window for recent positions
         positionHistory: [],
-        maxHistoryLength: 5, // Keep last 5 positions
-        historyTimeWindow: 50, // Use positions from last 20ms
-        // 8-cardinal direction system with biased ranges
-        useCardinalDirections: true,
-        cardinalRanges: [
-            { name: 'East', minAngle: 330, maxAngle: 30, x: 1, y: 0, wrapsAround: true },
-            { name: 'Northeast', minAngle: 30, maxAngle: 60, x: 1, y: 1 },
-            { name: 'North', minAngle: 60, maxAngle: 120, x: 0, y: 1 },
-            { name: 'Northwest', minAngle: 120, maxAngle: 150, x: -1, y: 1 },
-            { name: 'West', minAngle: 150, maxAngle: 210, x: -1, y: 0 },
-            { name: 'Southwest', minAngle: 210, maxAngle: 240, x: -1, y: -1 },
-            { name: 'South', minAngle: 240, maxAngle: 300, x: 0, y: -1 },
-            { name: 'Southeast', minAngle: 300, maxAngle: 330, x: 1, y: -1 }
-        ]
+        maxHistoryLength: 2, // Keep last 5 positions
+        historyTimeWindow: 20 // Use positions from last 150ms
     },
 
     // Initialize the input system

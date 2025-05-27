@@ -122,6 +122,59 @@ const UI = {
         }
     },
 
+    // Pause/Music buttons
+    buttons: {
+        // Pause button configuration
+        pause: {
+            symbol: "休", // Kanji for "rest/break" - perfect for pause
+            x: function () {
+                if (UI.kajisuli.enabled()) {
+                    // KAJISULI: Between timer and HP bar
+                    const timerEnd = UI.rel.x(6) + (UI.statusDisplay.timerWidth() * 1.4); // Right edge of timer
+                    const healthStart = UI.healthBar.centerX() - (UI.healthBar.width() * 1.5 / 2); // Left edge of HP bar
+                    return (timerEnd + healthStart) / 2;
+                } else {
+                    // Normal: Between kill counter and HP bar
+                    const killsEnd = UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth(); // Right edge of kills
+                    const healthStart = UI.healthBar.centerX() - (UI.healthBar.width() / 2); // Left edge of HP bar
+                    return (killsEnd + healthStart) / 2;
+                }
+            },
+            y: function () { return UI.statusDisplay.killsY() - UI.rel.height(0.3); }, // Slightly higher
+            fontSize: function () {
+                // Same size as kill counter box outer dimension
+                const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1;
+                return UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2) * kajisuliScale;
+            }
+        },
+
+        // Music button configuration  
+        music: {
+            symbol: "音", // Kanji for "sound/music"
+            mutedSymbol: "静", // Kanji for "quiet/silence"
+            x: function () {
+                if (UI.kajisuli.enabled()) {
+                    // KAJISULI: Between HP bar and kill count
+                    const healthEnd = UI.healthBar.centerX() + (UI.healthBar.width() * 1.5 / 2); // Right edge of HP bar
+                    const killsStart = UI.game.getWidth() - UI.rel.x(6) - (UI.statusDisplay.killsWidth() * 1.4); // Left edge of kills
+                    return (healthEnd + killsStart) / 2;
+                } else {
+                    // Normal: Between HP bar and first stat (POW)
+                    const healthEnd = UI.healthBar.centerX() + (UI.healthBar.width() / 2); // Right edge of HP bar
+                    const statsStart = UI.statDisplay.x(); // Left edge of stats
+                    return (healthEnd + statsStart) / 2;
+                }
+            },
+            y: function () { return UI.statusDisplay.killsY() - UI.rel.height(0.3); }, // Same as pause button
+            fontSize: function () {
+                // Same size as pause button
+                const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1;
+                return UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2) * kajisuliScale;
+            }
+        }
+    },
+
+
     // Color constants
     colors: {
         gold: 0xFFD700,
@@ -161,6 +214,127 @@ const UI = {
             size: function () { return `${UI.rel.fontSize(2.25)}px`; },
             family: 'Arial',
             color: '#FFFFFF'
+        }
+    }
+};
+
+// Button display functions
+const ButtonDisplay = {
+    create: function (scene) {
+        // Initialize relative dimensions
+        UI.game.init(scene);
+
+        // Clean up existing buttons
+        if (scene.pauseButton) scene.pauseButton.destroy();
+        if (scene.musicButton) scene.musicButton.destroy();
+
+        // Create pause button
+        const pauseConfig = UI.buttons.pause;
+        scene.pauseButton = scene.add.text(
+            pauseConfig.x(),
+            pauseConfig.y(),
+            pauseConfig.symbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: `${pauseConfig.fontSize()}px`,
+                color: '#ffffff',
+                fontStyle: 'bold',
+            }
+        ).setOrigin(0.5).setDepth(UI.depth.ui);
+        scene.pauseButton.setAlpha(0.8);
+
+        // Make pause button interactive
+        scene.pauseButton.setInteractive({ useHandCursor: true });
+
+        scene.pauseButton.on('pointerover', function () {
+            this.setColor('#ffff00'); // Yellow on hover
+            this.setScale(1.1);
+        });
+
+        scene.pauseButton.on('pointerout', function () {
+            this.setColor('#ffffff'); // White normally
+            this.setScale(1);
+        });
+
+        scene.pauseButton.on('pointerdown', function () {
+            if (!gameOver) {
+                if (gamePaused) {
+                    PauseSystem.resumeGame();
+                } else {
+                    PauseSystem.pauseGameWithOverlay();
+                }
+            }
+        });
+
+        // Create music button with creative monochrome forcing
+        const musicConfig = UI.buttons.music;
+        const initialSymbol = (window.MusicSystem && window.MusicSystem.musicEnabled) ?
+            musicConfig.symbol : musicConfig.mutedSymbol;
+
+        scene.musicButton = scene.add.text(
+            musicConfig.x(),
+            musicConfig.y(),
+            initialSymbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: `${musicConfig.fontSize()}px`,
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(UI.depth.ui);
+        scene.musicButton.setAlpha(0.8);
+
+        // Simple white text - no special effects needed with kanji
+        // (Remove all the emoji tinting approaches)
+
+        // Make music button interactive
+        scene.musicButton.setInteractive({ useHandCursor: true });
+
+        scene.musicButton.on('pointerover', function () {
+            this.setColor('#ffff00'); // Yellow on hover
+            this.setScale(1.1);
+        });
+
+        scene.musicButton.on('pointerout', function () {
+            this.setColor('#ffffff'); // White normally
+            this.setScale(1);
+        });
+
+        scene.musicButton.on('pointerdown', function () {
+            if (window.MusicSystem) {
+                // Toggle music state
+                const newState = !window.MusicSystem.musicEnabled;
+                window.MusicSystem.setMusicEnabled(newState);
+
+                // Update button symbol to show new state immediately
+                const symbol = newState ? musicConfig.symbol : musicConfig.mutedSymbol;
+                scene.musicButton.setText(symbol);
+
+                console.log(`Music ${newState ? 'enabled' : 'disabled'}`);
+            }
+        });
+
+        // Initial update
+        this.update(scene);
+    },
+
+    update: function (scene) {
+        // Update button positions if needed (for responsive design)
+        if (scene.pauseButton) {
+            const pauseConfig = UI.buttons.pause;
+            scene.pauseButton.setPosition(pauseConfig.x(), pauseConfig.y());
+        }
+
+        if (scene.musicButton) {
+            const musicConfig = UI.buttons.music;
+            scene.musicButton.setPosition(musicConfig.x(), musicConfig.y());
+
+            // Ensure music button shows correct state
+            if (window.MusicSystem) {
+                const symbol = window.MusicSystem.musicEnabled ?
+                    musicConfig.symbol : musicConfig.mutedSymbol;
+                scene.musicButton.setText(symbol);
+            }
         }
     }
 };
@@ -749,6 +923,7 @@ function createUI(scene) {
     ExpBar.create(scene);
     StatusDisplay.create(scene);
     StatDisplay.create(scene);
+    ButtonDisplay.create(scene);
 }
 
 // Method to update UI on window resize (to be called when game canvas is resized)
@@ -764,6 +939,7 @@ window.GameUI = {
     updateExpBar: ExpBar.update,
     updateStatusDisplay: StatusDisplay.update,
     updateStatCircles: StatDisplay.update,
+    updateButtons: ButtonDisplay.update,
     resize: resizeUI
 };
 

@@ -36,122 +36,154 @@
     <script src="backgrounds.js"></script>
     <script src="music.js"></script>
 
-    <style>
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #1a1a1a;
-            height: 100vh;
-            height: 100dvh;
-            /* Dynamic viewport height for better mobile support */
-            color: white;
-            font-family: Arial, sans-serif;
-            touch-action: none;
-            overflow: hidden;
-            position: fixed;
-            /* Fix to viewport */
-            width: 100%;
-            top: 0;
-            left: 0;
-        }
+    <!DOCTYPE html>
+    <html lang="en">
 
-        #game-container {
-            width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            /* Dynamic viewport height */
-            position: fixed;
-            top: 0;
-            left: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            /* Change from center to flex-start */
-            max-width: 1200px;
-            max-height: 800px;
-            margin: 0 auto;
-        }
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+        <title>KAJISU</title>
 
-        @media (max-width: 768px) {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
+
+        <!-- Include all your existing game scripts here -->
+        <script>
+            // Mock scripts for demo - replace with your actual includes
+            const BASE_STATS = { END: 100, POW: 10, LUK: 5, AGI: 3 };
+            const HERO_CHARACTER = '侍';
+            const HERO_KANA = 'さむらい';
+            const HERO_ROMAJI = 'samurai';
+            const HERO_ENGLISH = 'warrior';
+
+            // Mock functions - replace with your actual implementations
+            function preload() { }
+            function create() { }
+            function update() { }
+        </script>
+
+        <style>
+            /* Default desktop styling (restored from 3 weeks ago) */
             body {
-                padding: 0;
                 margin: 0;
+                padding: 0;
+                background-color: #1a1a1a;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                color: white;
+                font-family: Arial, sans-serif;
+                touch-action: none;
+                overflow: hidden;
             }
 
             #game-container {
                 width: 100%;
                 height: 100vh;
+                position: relative;
+                margin: 0 auto;
+                max-width: 1200px;
+                max-height: 800px;
+            }
+
+            /* KAJISULI mode overrides */
+            body.kajisuli-mode {
+                align-items: flex-start;
+                /* Top-align instead of center */
+                height: 100vh;
+                height: 100dvh;
+                /* Dynamic viewport height */
+            }
+
+            body.kajisuli-mode #game-container {
+                width: 100%;
+                height: 100vh;
+                height: 100dvh;
                 max-width: none;
-                /* Allow full width on mobile */
                 max-height: none;
-                /* Allow full height on mobile */
+                padding-top: env(safe-area-inset-top, 0);
             }
 
-            /* Adjust border decorations for smaller screens */
+            /* Hide decorations in KAJISULI mode */
+            body.kajisuli-mode .border-decoration {
+                display: none !important;
+            }
+
+            /* Mobile breakpoint styling */
+            @media (max-width: 768px) {
+                body {
+                    padding: 0;
+                    margin: 0;
+                }
+
+                #game-container {
+                    width: 100%;
+                    height: 100vh;
+                    max-width: none;
+                    max-height: none;
+                }
+
+                .border-decoration {
+                    display: none;
+                }
+            }
+
+            #game-ui {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                padding: 5px;
+                z-index: 10;
+                pointer-events: none;
+                font-size: 14px;
+            }
+
+            /* Game border decorations */
             .border-decoration {
-                display: none;
-                /* Optional: hide decorations on small screens */
+                position: absolute;
+                background-color: transparent;
+                border-style: solid;
+                border-color: #FFD700;
+                z-index: 5;
             }
-        }
 
-        #game-ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            padding: 5px;
-            z-index: 10;
-            pointer-events: none;
-            font-size: 14px;
-        }
+            /* Top-left L */
+            #border-top-left {
+                top: -8px;
+                left: -8px;
+                width: 200px;
+                height: 100px;
+                border-width: 8px 0 0 8px;
+            }
 
-        /* Game border decorations */
-        .border-decoration {
-            position: absolute;
-            background-color: transparent;
-            border-style: solid;
-            border-color: #FFD700;
-            /* Golden color */
-            z-index: 5;
-        }
+            /* Top-right L */
+            #border-top-right {
+                top: -8px;
+                right: -8px;
+                width: 100px;
+                height: 200px;
+                border-width: 8px 8px 0 0;
+            }
 
-        /* Top-left L */
-        #border-top-left {
-            top: -8px;
-            left: -8px;
-            width: 200px;
-            height: 100px;
-            border-width: 8px 0 0 8px;
-        }
+            /* Bottom-left L */
+            #border-bottom-left {
+                bottom: -8px;
+                left: -8px;
+                width: 100px;
+                height: 200px;
+                border-width: 0 0 8px 8px;
+            }
 
-        /* Top-right L */
-        #border-top-right {
-            top: -8px;
-            right: -8px;
-            width: 100px;
-            height: 200px;
-            border-width: 8px 8px 0 0;
-        }
-
-        /* Bottom-left L */
-        #border-bottom-left {
-            bottom: -8px;
-            left: -8px;
-            width: 100px;
-            height: 200px;
-            border-width: 0 0 8px 8px;
-        }
-
-        /* Bottom-right L */
-        #border-bottom-right {
-            bottom: -8px;
-            right: -8px;
-            width: 200px;
-            height: 100px;
-            border-width: 0 8px 8px 0;
-        }
-    </style>
-</head>
+            /* Bottom-right L */
+            #border-bottom-right {
+                bottom: -8px;
+                right: -8px;
+                width: 200px;
+                height: 100px;
+                border-width: 0 8px 8px 0;
+            }
+        </style>
+    </head>
 
 <body>
     <div id="game-container">
@@ -163,7 +195,13 @@
     </div>
 
     <script>
-        const KAJISULI_MODE = false;
+        // Set this manually as needed
+        const KAJISULI_MODE = true;
+
+        // Apply CSS class based on mode
+        if (KAJISULI_MODE) {
+            document.body.classList.add('kajisuli-mode');
+        }
 
         // Game configuration
         const config = {
@@ -185,12 +223,10 @@
             },
             scale: {
                 mode: Phaser.Scale.FIT,
-                autoCenter: KAJISULI_MODE ? Phaser.Scale.CENTER_HORIZONTALLY : Phaser.Scale.CENTER_BOTH,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
                 width: KAJISULI_MODE ? 720 : 1200,
                 height: KAJISULI_MODE ? 1280 : 800,
                 parent: 'game-container',
-                // This is important - it ensures the canvas actually resizes
-                // when the browser window changes
                 expandParent: false
             }
         };

@@ -87,7 +87,7 @@ const PauseSystem = {
         this.elements.pauseMessage.setVisible(false);
         this.elements.pauseMessage.setDepth(1001);
 
-        // Create resume button
+        // Create resume button (remove backgroundColor, we'll use border instead)
         this.elements.resumeButton = scene.add.text(
             centerX,
             game.config.height * 0.875, // 700/800 = 0.875
@@ -96,26 +96,44 @@ const PauseSystem = {
                 fontFamily: 'Arial',
                 fontSize: '36px',
                 color: '#ffffff',
-                backgroundColor: '#008800',
+                fontStyle: 'bold',
                 padding: { left: 15, right: 15, top: 10, bottom: 10 }
             }
         ).setOrigin(0.5);
         this.elements.resumeButton.setVisible(false);
-        this.elements.resumeButton.setDepth(1001);
+        this.elements.resumeButton.setDepth(1002); // Higher than border
         this.elements.resumeButton.setInteractive();
 
-        // Add resume button functionality - important! Use a direct function reference, not a method
+        // Create gold border for resume button
+        const buttonWidth = this.elements.resumeButton.width + 30; // Extra padding
+        const buttonHeight = this.elements.resumeButton.height + 20;
+
+        this.elements.resumeButtonBorder = scene.add.rectangle(
+            centerX,
+            game.config.height * 0.875,
+            buttonWidth,
+            buttonHeight
+        );
+        this.elements.resumeButtonBorder.setStrokeStyle(3, 0xFFD700); // Gold border
+        this.elements.resumeButtonBorder.setFillStyle(0x000000, 0.8); // Semi-transparent black background
+        this.elements.resumeButtonBorder.setVisible(false);
+        this.elements.resumeButtonBorder.setDepth(1001); // Behind text
+
+        // Add resume button functionality
         this.elements.resumeButton.on('pointerdown', function () {
-            // Call resumeGame directly using the PauseSystem namespace
             PauseSystem.resumeGame();
         });
 
         this.elements.resumeButton.on('pointerover', function () {
-            this.setStyle({ backgroundColor: '#00aa00' });
+            this.setColor('#FFD700'); // Gold text on hover
+            // Make border thicker on hover
+            PauseSystem.elements.resumeButtonBorder.setStrokeStyle(4, 0xFFD700);
         });
 
         this.elements.resumeButton.on('pointerout', function () {
-            this.setStyle({ backgroundColor: '#008800' });
+            this.setColor('#ffffff'); // White text normally
+            // Reset border thickness
+            PauseSystem.elements.resumeButtonBorder.setStrokeStyle(3, 0xFFD700);
         });
 
         // Create container for perks display
@@ -145,6 +163,7 @@ const PauseSystem = {
 
         console.log("Pause screen elements created successfully");
     },
+
 
     // Check if the system is properly initialized
     ensureInitialized: function () {
@@ -241,10 +260,11 @@ const PauseSystem = {
             return;
         }
 
-        // Hide pause screen elements
+        // Hide pause screen elements including the border
         this.elements.pauseScreen.setVisible(false);
         this.elements.pauseMessage.setVisible(false);
         this.elements.resumeButton.setVisible(false);
+        this.elements.resumeButtonBorder.setVisible(false); // Hide the border
 
         // Hide perks container
         if (this.elements.pausePerksContainer) {
@@ -278,10 +298,11 @@ const PauseSystem = {
         // Pause game systems
         this.pauseGame();
 
-        // Show pause screen elements
+        // Show pause screen elements including the border
         this.elements.pauseScreen.setVisible(true);
         this.elements.pauseMessage.setVisible(true);
         this.elements.resumeButton.setVisible(true);
+        this.elements.resumeButtonBorder.setVisible(true); // Show the border
 
         // Get the active scene
         const scene = game.scene.scenes[0];
@@ -298,6 +319,7 @@ const PauseSystem = {
         console.log("Game paused with overlay");
     },
 
+
     // Create and show stats display (for kajisuli mode)
     showStatsDisplay: function (scene, options = {}) {
         // Default options that preserve original pause screen behavior
@@ -307,7 +329,8 @@ const PauseSystem = {
             storeInElements: options.storeInElements ?? true,
             clearContainer: options.clearContainer ?? true,
             setVisible: options.setVisible ?? true,
-            fontSize: options.fontSize ?? '24px' // New fontSize parameter with default
+            // Match the 150% scaling from cards.js for KAJISULI mode
+            fontSize: options.fontSize ?? (KAJISULI_MODE ? '36px' : '24px')
         };
 
         // Clear any existing stats display if requested (original behavior)
@@ -372,7 +395,7 @@ const PauseSystem = {
                 `${stat.symbol} ${Math.floor(stat.value)}`,
                 {
                     fontFamily: 'Arial',
-                    fontSize: config.fontSize, // Use the configurable fontSize
+                    fontSize: config.fontSize, // Use the configurable fontSize (36px in KAJISULI mode)
                     color: stat.color,
                     fontStyle: 'bold'
                 }

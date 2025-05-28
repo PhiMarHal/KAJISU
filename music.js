@@ -407,9 +407,11 @@ const MusicSystem = {
             duration: this.fadeDuration,
             ease: 'Linear',
             onComplete: () => {
+                ("fade out completed, stopping track");
                 // Stop the track and clean up
                 this.stopCurrentTrack();
 
+                ("next track now");
                 // Play the next track
                 this.playNextTrack();
             }

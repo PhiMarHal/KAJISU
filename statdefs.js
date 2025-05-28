@@ -153,7 +153,7 @@ const StatTooltipSystem = {
     addStatHoverInteraction: function (scene, element, statKey, options = {}) {
         if (!element || !element.setInteractive) return;
 
-        console.log(`Adding hover interaction for stat: ${statKey}`);
+        //console.log(`Adding hover interaction for stat: ${statKey}`);
 
         // Make the element interactive
         element.setInteractive({ useHandCursor: true });
@@ -189,7 +189,7 @@ const StatTooltipSystem = {
         });
 
         // Debug: Check if events are properly attached
-        console.log(`Events attached to ${statKey}:`, element.eventNames());
+        //console.log(`Events attached to ${statKey}:`, element.eventNames());
     },
 
     // Clean up all tooltips

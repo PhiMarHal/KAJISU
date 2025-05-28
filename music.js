@@ -1,6 +1,6 @@
 // Music System for Word Survivors
 // Handles background music with smooth transitions and shuffled playlists
-// Loads only one track at a time, when needed
+// Uses dynamic position checking and proxy objects for reliable fading
 
 const MusicSystem = {
     // Music tracks and playback state
@@ -10,16 +10,21 @@ const MusicSystem = {
     currentTrack: null,     // Reference to the currently playing Phaser Sound object
     fadeInTween: null,      // Reference to fade-in tween
     fadeOutTween: null,     // Reference to fade-out tween
-    silenceTimer: null,     // Timer for silence between tracks
     nextTrackToPlay: null,  // The next track we plan to play
     isLoading: false,       // Flag to track if we're currently loading a track
+    isFadingOut: false,     // Flag to prevent multiple fade-outs
+    updateTimer: null,      // Timer for checking track position
 
     // Configuration
     silenceDuration: 4000,  // 4 seconds of silence between tracks
     fadeDuration: 4000,     // 4 seconds fade in/out
     volume: 0.7,            // Default maximum volume (0-1)
     musicEnabled: true,     // Music enabled/disabled flag
-    currentRate: 1.0,       // Current playback rate (affected by time dilation)
+
+    // Timing configuration
+    fadeOutBuffer: 8000,    // Start fade out 8 seconds before end (fade + silence)
+    preloadBuffer: 20000,   // Start preloading next track 20 seconds before end
+    updateInterval: 100,    // Check position every 100ms
 
     // Pause settings
     pausedVolume: 0.3,      // Volume level when paused (30% of normal)
@@ -28,13 +33,10 @@ const MusicSystem = {
     lowPassFilter: null,    // Reference to Web Audio low-pass filter
 
     // Boss fight effect settings
-    bossFilterNode: null,   // High-pass filter for boss fights
-    chorusNodes: [],        // Array of delay nodes for chorus effect
     isInBossFight: false,   // Track if boss fight mode is active
-    originalAudioPath: null, // Store original audio routing
 
-    // Phaser timer sidestepping our pause system
-    musicTimers: [],
+    // Separate timer tracking for music (not affected by game pause)
+    musicTimers: [],        // Store all music-specific timers
 
     // Initialize the music system
     initialize: function (scene) {
@@ -44,14 +46,44 @@ const MusicSystem = {
         this.tracks = [];
         this.playQueue = [];
         this.currentTrackIndex = -1;
-        this.currentRate = 1.0;
         this.nextTrackToPlay = null;
         this.isLoading = false;
+        this.isFadingOut = false;
 
         // Store scene reference for later use
         this.scene = scene;
 
+        // Clear any existing music timers
+        this.clearMusicTimers();
+
         return this;
+    },
+
+    // Helper to create a music-specific timer that ignores game pause
+    createMusicTimer: function (delay, callback) {
+        const timer = this.scene.time.addEvent({
+            delay: delay,
+            callback: callback,
+            callbackScope: this
+        });
+
+        this.musicTimers.push(timer);
+        return timer;
+    },
+
+    // Clear all music timers
+    clearMusicTimers: function () {
+        this.musicTimers.forEach(timer => {
+            if (timer && timer.remove) {
+                timer.remove();
+            }
+        });
+        this.musicTimers = [];
+
+        if (this.updateTimer) {
+            this.updateTimer.remove();
+            this.updateTimer = null;
+        }
     },
 
     // Preload just track metadata, not actual audio content
@@ -92,7 +124,7 @@ const MusicSystem = {
         if (!this.musicEnabled || !this.scene) return;
 
         // If nothing playing, start
-        if (!this.currentTrack) {
+        if (!this.currentTrack || !this.currentTrack.isPlaying) {
             this.playNextTrack();
         }
     },
@@ -100,6 +132,9 @@ const MusicSystem = {
     // Load and play the next track
     playNextTrack: function () {
         if (!this.musicEnabled || !this.scene || this.isLoading) return;
+
+        // Reset fade out flag
+        this.isFadingOut = false;
 
         // If we've reached the end of the queue, create a new shuffled queue
         if (this.currentTrackIndex >= this.playQueue.length - 1) {
@@ -115,53 +150,30 @@ const MusicSystem = {
 
         console.log(`Preparing to play next track: ${nextTrackId}`);
 
-        // Start silence period - we'll load the track during this time
-        this.startSilencePeriod(nextTrackId);
+        // Load the track if needed
+        this.loadTrack(nextTrackId, () => {
+            // Start silence period before playing
+            this.startSilencePeriod(nextTrackId);
+        });
     },
 
     // Start a silence period before playing the specified track
     startSilencePeriod: function (trackId) {
-        console.log(`Starting silence period before track: ${trackId}`);
+        console.log(`Starting ${this.silenceDuration}ms silence period before track: ${trackId}`);
 
-        // Clear any existing silence timer
-        if (this.silenceTimer) {
-            if (typeof this.silenceTimer === 'number') {
-                clearTimeout(this.silenceTimer);
-            } else if (this.silenceTimer.remove) {
-                this.silenceTimer.remove();
-            }
-            this.silenceTimer = null;
-        }
-
-        // Start loading the track immediately
-        this.loadTrack(trackId);
-
-        // Schedule playback after the silence period
-        this.silenceTimer = setTimeout(() => {
-            // Check if track loaded successfully
-            if (this.scene.sound.get(trackId)) {
-                console.log("Silence period complete, starting track");
-                this.startTrackWithFadeIn(trackId);
-            } else {
-                // If track isn't loaded yet, wait a bit more or skip
-                console.log(`Track ${trackId} not loaded yet, waiting...`);
-                this.silenceTimer = setTimeout(() => {
-                    if (this.scene.sound.get(trackId)) {
-                        this.startTrackWithFadeIn(trackId);
-                    } else {
-                        console.log(`Giving up on track ${trackId}, skipping to next`);
-                        this.playNextTrack();
-                    }
-                }, 2000); // Wait 2 more seconds
-            }
-        }, this.silenceDuration);
+        // Use music-specific timer
+        this.createMusicTimer(this.silenceDuration, () => {
+            console.log("Silence period complete, starting track");
+            this.startTrackWithFadeIn(trackId);
+        });
     },
 
-    // Load a track just-in-time
-    loadTrack: function (trackId) {
+    // Load a track just-in-time with callback
+    loadTrack: function (trackId, onComplete) {
         // Skip if already loaded
         if (this.scene.sound.get(trackId)) {
             console.log(`Track ${trackId} already loaded`);
+            if (onComplete) onComplete();
             return;
         }
 
@@ -188,6 +200,7 @@ const MusicSystem = {
             });
 
             this.isLoading = false;
+            if (onComplete) onComplete();
         });
 
         // Handle errors
@@ -195,11 +208,8 @@ const MusicSystem = {
             console.error(`Error loading track: ${trackId}`, fileObj);
             this.isLoading = false;
 
-            // If this is the track we're waiting to play, skip to next
-            if (trackId === this.nextTrackToPlay) {
-                console.log("Skipping to next track due to load error");
-                this.playNextTrack();
-            }
+            // Skip to next track on error
+            this.playNextTrack();
         });
 
         // Start loading
@@ -208,10 +218,8 @@ const MusicSystem = {
 
     // Start playing a track with fade-in
     startTrackWithFadeIn: function (trackId) {
-        console.log("start track with fade in");
         if (!this.musicEnabled || !this.scene) return;
 
-        console.log("STWFI continues");
         // Get the sound object for this track
         const track = this.scene.sound.get(trackId);
         if (!track) {
@@ -220,6 +228,7 @@ const MusicSystem = {
             return;
         }
 
+        /*
         // Stop any currently playing track with immediate fade out
         if (this.currentTrack && this.currentTrack.isPlaying) {
             // Cancel existing fade out if any
@@ -228,29 +237,48 @@ const MusicSystem = {
                 this.fadeOutTween = null;
             }
 
+            // Store reference to track we're fading out
+            const trackToStop = this.currentTrack;
+            const fadeData = {
+                progress: 0,
+                startVolume: trackToStop.volume
+            };
+
             // Create quick fade out (500ms)
             this.fadeOutTween = this.scene.tweens.add({
-                targets: this.currentTrack,
-                volume: 0,
+                targets: fadeData,
+                progress: 1,
                 duration: 500,
                 ease: 'Linear',
+                onUpdate: () => {
+                    // Apply volume based on progress
+                    if (trackToStop && trackToStop.isPlaying) {
+                        const newVolume = fadeData.startVolume * (1 - fadeData.progress);
+                        trackToStop.setVolume(newVolume);
+                    }
+                },
                 onComplete: () => {
                     // Stop the old track
-                    this.currentTrack.stop();
+                    if (trackToStop) {
+                        trackToStop.stop();
+                    }
                     this.fadeOutTween = null;
                 }
             });
         }
+        */
 
         // Store reference to current track
         this.currentTrack = track;
 
-        // Set the initial playback rate based on current time dilation
-        track.setRate(this.currentRate);
-
         // Start playing at 0 volume
         track.setVolume(0);
         track.play();
+
+        console.log(`Started playing: ${trackId}, duration: ${track.duration}s`);
+
+        // Start position monitoring
+        this.startPositionMonitoring();
 
         // Re-apply boss fight effect if it was active
         if (this.isInBossFight) {
@@ -258,51 +286,96 @@ const MusicSystem = {
             this.applyBossFightEffect();
         }
 
-        // Avoid fighting pause for volume control
-        if (gamePaused) {
-            // Temporarily restore normal audio for proper fade-in
-            this.onGameResume();
-        }
-
         // Create fade-in tween
+        const targetVolume = gamePaused ? this.pausedVolume : this.volume;
+        const fadeData = {
+            progress: 0,
+            targetVolume: targetVolume
+        };
+
+        console.log(`Fade in starting to volume: ${targetVolume}`);
+
         this.fadeInTween = this.scene.tweens.add({
-            targets: track,
-            volume: this.volume,
+            targets: fadeData,
+            progress: 1,
             duration: this.fadeDuration,
             ease: 'Linear',
+            onUpdate: (tween) => {
+                // Calculate and apply volume based on progress
+                if (track && track.isPlaying) {
+                    const newVolume = fadeData.targetVolume * fadeData.progress;
+                    track.setVolume(newVolume);
+
+                    // Log periodically to debug
+                    if (Math.floor(tween.progress * 10) !== Math.floor((tween.progress - 0.1) * 10)) {
+                        console.log(`Fade in progress: ${Math.floor(tween.progress * 100)}%, volume: ${newVolume.toFixed(3)}`);
+                    }
+                }
+            },
             onComplete: () => {
                 console.log("Fade-in complete");
                 this.fadeInTween = null;
 
-                // Calculate when to start fade-out
-                const trackDuration = track.totalDuration * 1000; // Convert to ms
-                const adjustedDuration = trackDuration;
-                const fadeOutTime = Math.max(0, adjustedDuration - (this.fadeDuration * 2)); // in and out = *2
-
-                console.log(`Scheduling fade-out in ${fadeOutTime}ms (real time)`);
-
-                // Early load the next track when we're about 20 seconds from the end
-                if (fadeOutTime > 25000) {
-                    const preloadTimer = this.scene.time.delayedCall(fadeOutTime - 20000, () => {
-                        const nextIdx = this.currentTrackIndex + 1;
-                        if (nextIdx < this.playQueue.length) {
-                            const nextTrackId = this.playQueue[nextIdx];
-                            this.loadTrack(nextTrackId);
-                        }
-                    });
-                    this.musicTimers.push(preloadTimer);
+                // Ensure we're at target volume
+                if (track && track.isPlaying) {
+                    track.setVolume(targetVolume);
                 }
 
-                // special timer
-                const fadeOutTimer = this.scene.time.delayedCall(fadeOutTime, () => {
-                    console.log("Time to start fade-out (from music timer)");
-                    this.startFadeOut();
-                });
-
-                // Store separately, don't register with main pause system
-                this.musicTimers.push(fadeOutTimer);
+                // Apply pause effect if game is paused
+                if (gamePaused) {
+                    this.onGamePause();
+                }
             }
         });
+    },
+
+    // Start monitoring track position for fade-out timing
+    startPositionMonitoring: function () {
+        // Clear any existing update timer
+        if (this.updateTimer) {
+            this.updateTimer.remove();
+            this.updateTimer = null;
+        }
+
+        let hasPreloaded = false;
+        let hasFadedOut = false;
+
+        // Create a repeating timer to check position
+        this.updateTimer = this.scene.time.addEvent({
+            delay: this.updateInterval,
+            callback: () => {
+                if (!this.currentTrack || !this.currentTrack.isPlaying || this.isFadingOut) {
+                    return;
+                }
+
+                const currentTime = this.currentTrack.seek;
+                const duration = this.currentTrack.duration;
+                const timeRemaining = (duration - currentTime) * 1000; // Convert to ms
+
+                // Preload next track when appropriate
+                if (!hasPreloaded && timeRemaining <= this.preloadBuffer) {
+                    hasPreloaded = true;
+                    const nextIdx = this.currentTrackIndex + 1;
+                    if (nextIdx < this.playQueue.length) {
+                        const nextTrackId = this.playQueue[nextIdx];
+                        console.log(`Preloading next track: ${nextTrackId}`);
+                        this.loadTrack(nextTrackId);
+                    }
+                }
+
+                // Start fade out when appropriate
+                if (!hasFadedOut && !this.isFadingOut && timeRemaining <= this.fadeOutBuffer) {
+                    hasFadedOut = true;
+                    console.log(`Starting fade out with ${timeRemaining}ms remaining`);
+                    this.startFadeOut();
+                }
+            },
+            loop: true,
+            callbackScope: this
+        });
+
+        // Keep this timer running during game pause
+        this.musicTimers.push(this.updateTimer);
     },
 
     // Create a new shuffled play queue
@@ -332,14 +405,97 @@ const MusicSystem = {
 
     // Apply time dilation to current music
     applyTimeDilation: function (timeScale) {
-        // Skip if no track is currently playing
-        if (!this.currentTrack || !this.currentTrack.isPlaying) return;
+        // No time dilation applied to music - keeping it at normal speed
+        return;
+    },
 
-        // Store the current rate for reference
-        this.currentRate = timeScale;
+    // Start fading out the current track
+    startFadeOut: function () {
+        if (!this.currentTrack || !this.currentTrack.isPlaying || this.isFadingOut) {
+            return;
+        }
 
-        // Apply time scale to music - this will affect both speed and pitch
-        this.currentTrack.setRate(timeScale);
+        console.log("Starting fade out");
+        this.isFadingOut = true;
+
+        // Stop position monitoring
+        if (this.updateTimer) {
+            this.updateTimer.remove();
+            this.updateTimer = null;
+        }
+
+        // Store initial volume and create fade progress tracker
+        const startVolume = this.currentTrack.volume;
+        const fadeData = {
+            progress: 0,
+            startVolume: startVolume
+        };
+
+        console.log(`Fade out starting from volume: ${startVolume}`);
+
+        // Create fade-out tween on the progress value
+        this.fadeOutTween = this.scene.tweens.add({
+            targets: fadeData,
+            progress: 1,
+            duration: this.fadeDuration,
+            ease: 'Linear',
+            onUpdate: (tween) => {
+                // Calculate and apply volume based on progress
+                if (this.currentTrack && this.currentTrack.isPlaying) {
+                    const newVolume = fadeData.startVolume * (1 - fadeData.progress);
+                    this.currentTrack.setVolume(newVolume);
+
+                    // Log periodically to debug
+                    if (Math.floor(tween.progress * 10) !== Math.floor((tween.progress - 0.1) * 10)) {
+                        console.log(`Fade progress: ${Math.floor(tween.progress * 100)}%, volume: ${newVolume.toFixed(3)}`);
+                    }
+                }
+            },
+            onComplete: () => {
+                console.log("Fade out complete");
+
+                // Stop the track
+                if (this.currentTrack) {
+                    this.currentTrack.stop();
+                }
+
+                // Clean up
+                this.fadeOutTween = null;
+                this.currentTrack = null;
+                this.isFadingOut = false;
+
+                // Play the next track
+                this.playNextTrack();
+            }
+        });
+    },
+
+    // Stop the current track and clean up
+    stopCurrentTrack: function () {
+        // Clean up tweens
+        if (this.fadeInTween) {
+            this.fadeInTween.stop();
+            this.fadeInTween = null;
+        }
+
+        if (this.fadeOutTween) {
+            this.fadeOutTween.stop();
+            this.fadeOutTween = null;
+        }
+
+        // Stop position monitoring
+        if (this.updateTimer) {
+            this.updateTimer.remove();
+            this.updateTimer = null;
+        }
+
+        // Stop the track
+        if (this.currentTrack && this.currentTrack.isPlaying) {
+            this.currentTrack.stop();
+        }
+
+        this.currentTrack = null;
+        this.isFadingOut = false;
     },
 
     // Enable or disable music
@@ -361,16 +517,9 @@ const MusicSystem = {
     setVolume: function (volume) {
         this.volume = Phaser.Math.Clamp(volume, 0, 1);
 
-        // Update volume of currently playing track during fade-in/fade-out
-        if (this.currentTrack && this.currentTrack.isPlaying) {
-            // For simplicity, we don't modify existing tweens, just cap their target value
-            if (this.fadeInTween && this.fadeInTween.isPlaying()) {
-                // Let the tween continue, but cap at new volume
-                this.fadeInTween.updateTo('volume', this.volume, true);
-            } else if (!this.fadeOutTween || !this.fadeOutTween.isPlaying()) {
-                // If not in a transition, set to current volume directly
-                this.currentTrack.setVolume(this.volume);
-            }
+        // Update volume of currently playing track
+        if (this.currentTrack && this.currentTrack.isPlaying && !gamePaused) {
+            this.currentTrack.setVolume(this.volume);
         }
 
         return this.volume;
@@ -379,104 +528,27 @@ const MusicSystem = {
     // Stop all music playback
     stop: function () {
         this.stopCurrentTrack();
-
-        // Also clear any pending timers
-        if (this.silenceTimer) {
-            if (typeof this.silenceTimer === 'number') {
-                clearTimeout(this.silenceTimer);
-            } else if (this.silenceTimer.remove) {
-                this.silenceTimer.remove();
-            }
-            this.silenceTimer = null;
-        }
-    },
-
-    // Start fading out the current track
-    startFadeOut: function () {
-        console.log("start fade out");
-        if (!this.currentTrack || !this.currentTrack.isPlaying) {
-            console.log("No track playing during fade-out, starting next track");
-            this.playNextTrack(); // Restart the music cycle instead of breaking it
-            return;
-        }
-        console.log("continue fade out");
-        // Create fade-out tween
-        this.fadeOutTween = this.scene.tweens.add({
-            targets: this.currentTrack,
-            volume: 0,
-            duration: this.fadeDuration,
-            ease: 'Linear',
-            onComplete: () => {
-                ("fade out completed, stopping track");
-                // Stop the track and clean up
-                this.stopCurrentTrack();
-
-                ("next track now");
-                // Play the next track
-                this.playNextTrack();
-            }
-        });
-    },
-
-    // Stop the current track and clean up
-    stopCurrentTrack: function () {
-        // Clean up tweens
-        if (this.fadeInTween) {
-            this.fadeInTween.stop();
-            this.fadeInTween = null;
-        }
-
-        if (this.fadeOutTween) {
-            this.fadeOutTween.stop();
-            this.fadeOutTween = null;
-        }
-
-        // Stop the track
-        if (this.currentTrack && this.currentTrack.isPlaying) {
-            this.currentTrack.stop();
-        }
-
-        this.currentTrack = null;
-
-        this.musicTimers.forEach(timer => {
-            if (timer && timer.remove) timer.remove();
-        });
-        this.musicTimers = [];
+        this.clearMusicTimers();
     },
 
     // Update method (call from scene's update)
     update: function (time, delta) {
-        // Nothing to update - tweens and timers are handled automatically
+        // Keep music timers running regardless of game pause state
+        // This is handled automatically by Phaser
     },
 
     // Clean up resources (call when changing scenes)
     cleanup: function () {
         this.stop();
-
-        // Clear any silence timer
-        if (this.silenceTimer) {
-            if (typeof this.silenceTimer === 'number') {
-                clearTimeout(this.silenceTimer);
-            } else if (this.silenceTimer.remove) {
-                this.silenceTimer.remove();
-            }
-            this.silenceTimer = null;
-        }
+        this.clearMusicTimers();
     },
 
+    // Pause effect for music
     onGamePause: function () {
         console.log("Game paused, applying muffled effect to music");
 
         // Skip if no track is playing
-        if (!this.currentTrack || (!this.currentTrack.isPlaying && !this.currentTrack.isPaused)) {
-            return;
-        }
-
-        // If fade-in is active, don't interfere with volume - just apply filter
-        if (this.fadeInTween && this.fadeInTween.isPlaying()) {
-            console.log("Fade-in active, skipping volume changes during pause");
-            // Only apply low-pass filter, no volume changes
-            this.applyLowPassFilter();
+        if (!this.currentTrack || !this.currentTrack.isPlaying) {
             return;
         }
 
@@ -485,7 +557,7 @@ const MusicSystem = {
             this.savedVolume = this.currentTrack.volume;
 
             // Apply volume reduction for muffled effect
-            this.currentTrack.setVolume(this.pausedVolume || 0.3);
+            this.currentTrack.setVolume(this.pausedVolume);
 
             // Try to apply low-pass filter (advanced effect)
             if (this.scene && this.scene.sound && this.scene.sound.context &&
@@ -511,19 +583,19 @@ const MusicSystem = {
             }
 
             // Create a simple volume pulse effect
-            const pulseData = { volume: this.pausedVolume || 0.3 };
+            const pulseData = { volume: this.pausedVolume };
 
             // Create a slow pulsing effect
             this.pausePulseTween = this.scene.tweens.add({
                 targets: pulseData,
-                volume: (this.pausedVolume || 0.3) * 0.7, // Pulse to 70% of pause volume
+                volume: this.pausedVolume * 0.7, // Pulse to 70% of pause volume
                 duration: 2000,
                 ease: 'Sine.easeInOut',
                 yoyo: true,
                 repeat: -1,
                 onUpdate: () => {
                     // Only modify volume if track still exists
-                    if (this.currentTrack) {
+                    if (this.currentTrack && gamePaused) {
                         this.currentTrack.setVolume(pulseData.volume);
                     }
                 }
@@ -550,9 +622,9 @@ const MusicSystem = {
             }
 
             // Restore volume
-            if (this.savedVolume !== undefined) {
+            if (this.savedVolume !== null && this.savedVolume !== undefined) {
                 this.currentTrack.setVolume(this.savedVolume);
-                this.savedVolume = undefined;
+                this.savedVolume = null;
             } else {
                 // Fallback to normal volume
                 this.currentTrack.setVolume(this.volume);
@@ -568,21 +640,16 @@ const MusicSystem = {
                     // Reconnect without the filter
                     this.currentTrack.source.disconnect();
                     this.currentTrack.source.connect(destination);
+                    this.lowPassFilter = null;
 
                     console.log("Removed low-pass filter from track");
-
-                    // If we're in boss fight mode, re-apply the boss fight effect
-                    if (this.isInBossFight) {
-                        console.log("Re-applying boss fight effect after pause");
-                        this.applyBossFightEffect();
-                    }
                 } catch (err) {
                     console.log("Error removing filter:", err);
                 }
-            } else if (this.isInBossFight) {
-                // If we didn't have a low-pass filter but we're in boss mode,
-                // make sure the boss effect is applied
-                console.log("Re-applying boss fight effect after pause (no low-pass filter)");
+            }
+
+            // Re-apply boss fight effect if needed
+            if (this.isInBossFight) {
                 this.applyBossFightEffect();
             }
         } catch (err) {
@@ -590,117 +657,13 @@ const MusicSystem = {
         }
     },
 
-    // Helper method to apply low-pass filter
-    applyLowPassFilter: function () {
-        // Only attempt if Web Audio API is available
-        if (!this.scene || !this.scene.sound || !this.scene.sound.context) {
-            return;
-        }
-
-        try {
-            const audioContext = this.scene.sound.context;
-
-            // Create a low-pass filter
-            if (!this.lowPassFilter) {
-                this.lowPassFilter = audioContext.createBiquadFilter();
-                this.lowPassFilter.type = 'lowpass';
-                this.lowPassFilter.frequency.value = 800; // Lower = more muffled
-                this.lowPassFilter.Q.value = 0.5;
-            }
-
-            // Only try to connect if we have access to the source
-            if (this.currentTrack.source &&
-                typeof this.currentTrack.source.disconnect === 'function' &&
-                typeof this.currentTrack.source.connect === 'function') {
-
-                // Get the current destination
-                const destination = this.currentTrack.source.destination || audioContext.destination;
-
-                // Connect through the filter
-                this.currentTrack.source.disconnect();
-                this.currentTrack.source.connect(this.lowPassFilter);
-                this.lowPassFilter.connect(destination);
-
-                console.log("Applied low-pass filter");
-            }
-        } catch (err) {
-            console.log("Low-pass filter not supported:", err);
-        }
-    },
-
-    // Helper method to create volume pulse effect
-    createPauseVolumeEffect: function () {
-        // Skip if we don't have a scene or the track isn't playing
-        if (!this.scene || !this.currentTrack) {
-            return;
-        }
-
-        // Clean up any existing pulse effect
-        if (this.pausePulseTween) {
-            this.pausePulseTween.stop();
-            this.pausePulseTween = null;
-        }
-
-        // Create a simple data object to tween
-        const pulseData = { volume: this.pausedVolume };
-
-        try {
-            // Create a slow pulsing effect
-            this.pausePulseTween = this.scene.tweens.add({
-                targets: pulseData,
-                volume: this.pausedVolume * 0.7, // Pulse to 70% of pause volume
-                duration: 2000,
-                ease: 'Sine.easeInOut',
-                yoyo: true,
-                repeat: -1,
-                onUpdate: () => {
-                    // Only modify volume if track still exists
-                    if (this.currentTrack) {
-                        this.currentTrack.setVolume(pulseData.volume);
-                    }
-                }
-            });
-
-            console.log("Created pause pulse effect");
-        } catch (err) {
-            console.log("Error creating pulse effect:", err);
-        }
-    },
-
-    // Helper to remove low-pass filter
-    removeLowPassFilter: function () {
-        if (!this.lowPassFilter || !this.currentTrack || !this.currentTrack.source) {
-            return;
-        }
-
-        try {
-            // Only attempt if we have the necessary methods
-            if (typeof this.currentTrack.source.disconnect === 'function' &&
-                typeof this.currentTrack.source.connect === 'function') {
-
-                const audioContext = this.scene.sound.context;
-                const destination = this.currentTrack.source.destination || audioContext.destination;
-
-                // Reconnect without the filter
-                this.currentTrack.source.disconnect();
-                this.currentTrack.source.connect(destination);
-
-                console.log("Removed low-pass filter");
-            }
-        } catch (err) {
-            console.log("Error removing filter:", err);
-        }
-    },
-
-    // We've tried various effects and none feel right. Maybe revisit later, leave it for now just in case
+    // Boss fight effects (placeholder for now)
     applyBossFightEffect: function () {
-        // No boss music effect - just set the flag and return
         this.isInBossFight = true;
         return true;
     },
 
     removeBossFightEffect: function () {
-        // Just reset the flag and return
         this.isInBossFight = false;
         return true;
     }

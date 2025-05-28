@@ -169,7 +169,7 @@ const WeaponSystem = {
             // Process component updates
             if (projectile.components && Object.keys(projectile.components).length > 0) {
                 if (projectile.components.boomerangEffect) {
-                    console.log("Processing boomerang update"); // Debug log
+                    //console.log("Processing boomerang update"); // Debug log
                 }
                 ProjectileComponentSystem.processEvent(projectile, 'update');
             }

@@ -876,6 +876,21 @@ const StatDisplay = {
                 symbolText: symbolText,
                 valueText: valueText
             };
+
+            // Add hover interaction for tooltips if StatTooltipSystem is available
+            if (window.StatTooltipSystem) {
+                // Make the background rectangle interactive for hover
+                StatTooltipSystem.addStatHoverInteraction(scene, rectBg, stat, {
+                    onHover: (element) => {
+                        // Highlight border on hover
+                        element.setStrokeStyle(UI.statDisplay.borderWidth * 2, UI.colors.gold);
+                    },
+                    onHoverOut: (element) => {
+                        // Reset border
+                        element.setStrokeStyle(UI.statDisplay.borderWidth, UI.colors.gold);
+                    }
+                });
+            }
         });
 
         // Initial update

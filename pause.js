@@ -409,6 +409,24 @@ const PauseSystem = {
             if (config.container) {
                 config.container.add([border, background, statText]);
             }
+
+            // Add hover interaction for tooltips if StatTooltipSystem is available
+            if (window.StatTooltipSystem && scene) {
+                StatTooltipSystem.addStatHoverInteraction(scene, border, stats[index].stat ?? ['POW', 'AGI', 'LUK', 'END'][index], {
+                    container: config.container,
+                    isKajisuli: true,  // Add this flag
+                    onHover: (element) => {
+                        // Highlight border on hover
+                        element.setStrokeStyle(4, UI.colors.gold);
+                        statText.setScale(1.1);
+                    },
+                    onHoverOut: (element) => {
+                        // Reset border and text
+                        element.setStrokeStyle(2, UI.colors.gold);
+                        statText.setScale(1);
+                    }
+                });
+            }
         });
 
         // Return created elements for external use (new functionality)
@@ -701,7 +719,8 @@ const PauseSystem = {
             strokeWidth: 3,
             strokeColor: 0xeeeeee,
             // Adjust card size for kajisuli mode
-            scale: KAJISULI_MODE ? 0.85 : 1 // Slightly smaller in kajisuli mode
+            scale: KAJISULI_MODE ? 0.85 : 1, // Slightly smaller in kajisuli 
+            fontSize: KAJISULI_MODE ? 1.2 : 1 // 120% size in kajisuli mode
         });
     },
 

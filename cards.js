@@ -396,7 +396,7 @@ function showMobileLevelUpScreen(scene) {
     // Show KAJISULI stats if in KAJISULI mode
     if (KAJISULI_MODE) {
         // Use the enhanced showStatsDisplay from pause.js with custom options
-        PauseSystem.showStatsDisplay(scene, {
+        const statsElements = PauseSystem.showStatsDisplay(scene, {
             container: levelUpContainer,
             positionY: game.config.height * 0.26,
             storeInElements: false,
@@ -404,6 +404,33 @@ function showMobileLevelUpScreen(scene) {
             setVisible: false,
             fontSize: '36px' // 150% larger font for kanji and numbers
         });
+
+        // Add hover interactions to the stats if StatTooltipSystem is available
+        if (window.StatTooltipSystem && statsElements) {
+            const statKeys = ['POW', 'AGI', 'LUK', 'END'];
+            statsElements.forEach((statGroup, index) => {
+                if (statGroup.border && statKeys[index]) {
+                    StatTooltipSystem.addStatHoverInteraction(scene, statGroup.border, statKeys[index], {
+                        container: levelUpContainer,
+                        isKajisuli: true,  // Add this flag
+                        onHover: (element) => {
+                            // Highlight border on hover
+                            element.setStrokeStyle(4, UI.colors.gold);
+                            if (statGroup.statText) {
+                                statGroup.statText.setScale(1.1);
+                            }
+                        },
+                        onHoverOut: (element) => {
+                            // Reset border and text
+                            element.setStrokeStyle(2, UI.colors.gold);
+                            if (statGroup.statText) {
+                                statGroup.statText.setScale(1);
+                            }
+                        }
+                    });
+                }
+            });
+        }
     }
 
     // Current perk index being displayed

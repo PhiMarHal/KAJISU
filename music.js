@@ -538,18 +538,18 @@ const MusicSystem = {
 
         return this.musicEnabled;
     },
-
-    // Set music volume (affects maximum volume during playback)
-    setVolume: function (volume) {
-        this.volume = Phaser.Math.Clamp(volume, 0, 1);
-
-        // Update volume of currently playing track
-        if (this.currentTrack && this.currentTrack.isPlaying && !gamePaused) {
-            this.currentTrack.setVolume(this.volume);
-        }
-
-        return this.volume;
-    },
+    /*
+        // Set music volume (affects maximum volume during playback)
+        setVolume: function (volume) {
+            this.volume = Phaser.Math.Clamp(volume, 0, 1);
+    
+            // Update volume of currently playing track
+            //if (this.currentTrack && this.currentTrack.isPlaying && !gamePaused) {
+                this.currentTrack.setVolume(this.volume);
+            //}
+    
+            return this.volume;
+        },*/
 
     // Stop all music playback
     stop: function () {
@@ -589,14 +589,14 @@ const MusicSystem = {
             this.savedVolume = this.currentTrack.volume;
 
             // Apply volume reduction for muffled effect
-            currentTrack.setVolume(this.pausedVolume);
+            this.currentTrack.setVolume(this.pausedVolume);
 
             // DIAGNOSTIC: Verify volume was set
             console.log(`Volume after setVolume: ${this.currentTrack.volume}`);
             if (Math.abs(this.currentTrack.volume - this.pausedVolume) > 0.01) {
                 console.error(`PAUSE VOLUME NOT SET! Expected ${this.pausedVolume}, got ${this.currentTrack.volume}`);
             }
-
+            /*
             // Try to apply low-pass filter (advanced effect)
             if (this.scene && this.scene.sound && this.scene.sound.context &&
                 this.currentTrack.source && this.currentTrack.source.disconnect) {
@@ -619,7 +619,7 @@ const MusicSystem = {
 
                 console.log("Applied low-pass filter");
             }
-
+            */
             // Create a simple volume pulse effect
             const pulseData = { volume: this.pausedVolume };
 

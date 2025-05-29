@@ -228,7 +228,13 @@ const MusicSystem = {
             return;
         }
 
-        /*
+        // DIAGNOSTIC: Log sound manager state
+        console.log('=== DIAGNOSTIC: Before playing new track ===');
+        console.log(`Sound manager volume: ${this.scene.sound.volume}`);
+        console.log(`Sound manager mute: ${this.scene.sound.mute}`);
+        console.log(`Using Web Audio: ${this.scene.sound.usingWebAudio}`);
+        console.log(`Number of sounds in manager: ${this.scene.sound.sounds.length}`);
+
         // Stop any currently playing track with immediate fade out
         if (this.currentTrack && this.currentTrack.isPlaying) {
             // Cancel existing fade out if any
@@ -266,7 +272,6 @@ const MusicSystem = {
                 }
             });
         }
-        */
 
         // Store reference to current track
         this.currentTrack = track;
@@ -275,7 +280,18 @@ const MusicSystem = {
         track.setVolume(0);
         track.play();
 
+        // DIAGNOSTIC: Verify the track is the one we think it is
         console.log(`Started playing: ${trackId}, duration: ${track.duration}s`);
+        console.log(`Track object ID: ${track.key}`);
+        console.log(`Track initial volume: ${track.volume}`);
+        console.log(`Is same object: ${track === this.currentTrack}`);
+
+        // DIAGNOSTIC: Check all playing sounds
+        const playingSounds = this.scene.sound.sounds.filter(s => s.isPlaying);
+        console.log(`Total playing sounds: ${playingSounds.length}`);
+        playingSounds.forEach((s, i) => {
+            console.log(`  Sound ${i}: ${s.key}, volume: ${s.volume}, mute: ${s.mute}`);
+        });
 
         // Start position monitoring
         this.startPositionMonitoring();
@@ -306,9 +322,19 @@ const MusicSystem = {
                     const newVolume = fadeData.targetVolume * fadeData.progress;
                     track.setVolume(newVolume);
 
-                    // Log periodically to debug
+                    // DIAGNOSTIC: Log actual vs expected
                     if (Math.floor(tween.progress * 10) !== Math.floor((tween.progress - 0.1) * 10)) {
-                        console.log(`Fade in progress: ${Math.floor(tween.progress * 100)}%, volume: ${newVolume.toFixed(3)}`);
+                        const actualVolume = track.volume;
+                        console.log(`Fade in ${Math.floor(tween.progress * 100)}% - Set: ${newVolume.toFixed(3)}, Actual: ${actualVolume.toFixed(3)}`);
+
+                        // Check if volume is being overridden
+                        if (Math.abs(actualVolume - newVolume) > 0.01) {
+                            console.warn(`VOLUME MISMATCH! Expected ${newVolume}, got ${actualVolume}`);
+
+                            // Check sound manager
+                            console.log(`Sound manager volume: ${this.scene.sound.volume}`);
+                            console.log(`Track mute: ${track.mute}`);
+                        }
                     }
                 }
             },
@@ -552,12 +578,24 @@ const MusicSystem = {
             return;
         }
 
+        // DIAGNOSTIC: Log pause state
+        console.log('=== DIAGNOSTIC: Pause effect ===');
+        console.log(`Current track volume before pause: ${this.currentTrack.volume}`);
+        console.log(`Pause volume target: ${this.pausedVolume}`);
+        console.log(`Sound manager volume: ${this.scene.sound.volume}`);
+
         try {
             // Save the current volume
             this.savedVolume = this.currentTrack.volume;
 
             // Apply volume reduction for muffled effect
-            this.currentTrack.setVolume(this.pausedVolume);
+            currentTrack.setVolume(this.pausedVolume);
+
+            // DIAGNOSTIC: Verify volume was set
+            console.log(`Volume after setVolume: ${this.currentTrack.volume}`);
+            if (Math.abs(this.currentTrack.volume - this.pausedVolume) > 0.01) {
+                console.error(`PAUSE VOLUME NOT SET! Expected ${this.pausedVolume}, got ${this.currentTrack.volume}`);
+            }
 
             // Try to apply low-pass filter (advanced effect)
             if (this.scene && this.scene.sound && this.scene.sound.context &&
@@ -666,6 +704,47 @@ const MusicSystem = {
     removeBossFightEffect: function () {
         this.isInBossFight = false;
         return true;
+    },
+
+    // DIAGNOSTIC: Function to check current music state
+    diagnose: function () {
+        console.log('=== MUSIC SYSTEM DIAGNOSTIC ===');
+        console.log(`Music enabled: ${this.musicEnabled}`);
+        console.log(`Current track exists: ${!!this.currentTrack}`);
+
+        if (this.currentTrack) {
+            console.log(`Track key: ${this.currentTrack.key}`);
+            console.log(`Track volume: ${this.currentTrack.volume}`);
+            console.log(`Track mute: ${this.currentTrack.mute}`);
+            console.log(`Track isPlaying: ${this.currentTrack.isPlaying}`);
+            console.log(`Track isPaused: ${this.currentTrack.isPaused}`);
+        }
+
+        console.log(`Scene exists: ${!!this.scene}`);
+        if (this.scene && this.scene.sound) {
+            console.log(`Sound manager volume: ${this.scene.sound.volume}`);
+            console.log(`Sound manager mute: ${this.scene.sound.mute}`);
+            console.log(`Using Web Audio: ${this.scene.sound.usingWebAudio}`);
+            console.log(`Total sounds: ${this.scene.sound.sounds.length}`);
+
+            const playingSounds = this.scene.sound.sounds.filter(s => s.isPlaying);
+            console.log(`Playing sounds: ${playingSounds.length}`);
+            playingSounds.forEach((s, i) => {
+                console.log(`  ${i}: ${s.key} - vol: ${s.volume}, mute: ${s.mute}`);
+            });
+        }
+
+        console.log(`Is fading out: ${this.isFadingOut}`);
+        console.log(`Configured volume: ${this.volume}`);
+        console.log(`Configured pause volume: ${this.pausedVolume}`);
+
+        // Try a direct volume test
+        if (this.currentTrack && this.currentTrack.isPlaying) {
+            const testVol = 0.1;
+            console.log(`\nTesting setVolume(${testVol})...`);
+            this.currentTrack.setVolume(testVol);
+            console.log(`Result: ${this.currentTrack.volume}`);
+        }
     }
 };
 

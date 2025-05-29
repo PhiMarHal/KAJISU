@@ -7,7 +7,7 @@ const STAT_DEFINITIONS = {
         kana: 'ちから',
         romaji: 'chikara',
         english: 'Power',
-        description: 'Increases damage dealt by all attacks',
+        description: 'Damage on all powers',
         color: '#cc0000'
     },
     AGI: {
@@ -15,7 +15,7 @@ const STAT_DEFINITIONS = {
         kana: 'はやさ',
         romaji: 'hayasa',
         english: 'Agility',
-        description: 'Increases attack speed and firing rate',
+        description: 'Firing rate and distance',
         color: '#0088ff'
     },
     LUK: {
@@ -23,7 +23,7 @@ const STAT_DEFINITIONS = {
         kana: 'うん',
         romaji: 'un',
         english: 'Luck',
-        description: 'Increases chance of special effects',
+        description: 'Chance for effects, cooldowns',
         color: '#aa55cc'
     },
     END: {
@@ -31,7 +31,7 @@ const STAT_DEFINITIONS = {
         kana: 'たいきゅう',
         romaji: 'taikyuu',
         english: 'Endurance',
-        description: 'Increases maximum health points',
+        description: 'Health and regeneration',
         color: '#00aa00'
     }
 };
@@ -160,7 +160,7 @@ const StatTooltipSystem = {
 
         // Hover in - show tooltip
         element.on('pointerover', () => {
-            console.log(`Hover over ${statKey}`);
+            //console.log(`Hover over ${statKey}`);
             const bounds = element.getBounds();
             this.showTooltip(
                 scene,
@@ -179,7 +179,7 @@ const StatTooltipSystem = {
 
         // Hover out - hide tooltip
         element.on('pointerout', () => {
-            console.log(`Hover out ${statKey}`);
+            //console.log(`Hover out ${statKey}`);
             this.hideTooltip();
 
             // Reset visual feedback

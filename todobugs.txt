@@ -15,11 +15,7 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
 - change all coordinates to be relative, not absolute -> in progress...
 - firerate resets to 3 rather than 4 (maybe roundup issue tied to archerMultiplier?) -> is this still true? test a game with archer perks
-- add pause and sound on/off buttons for mobile (bottom of screen?)
-- victory text misaligned on mobile, escaped the loop escapes box, vanquishing too close to kanji
-- maybe rethink alien time on hit AND/OR change music slowdown to 80% rather than 50%!
-> problem for the latter, think of music timer, which currently uses physics = 50%
-- does music slowdown apply properly on several time dilations in a row?
+- bright lance should settle on player position
 
 POSSIBLY FIXED BUT NEEDS TESTING
 - get music to segue between tracks flawlessly -> might be good!!
@@ -55,3 +51,6 @@ DONE
 - Arrange timer, P.A.L.E.
 - add screen coloring on damage taken
 - Add animated backgrounds. JS animations? Change color as time passes and/or with enemy stages? -> done
+- maybe rethink alien time on hit AND/OR change music slowdown to 80% rather than 50%!
+> problem for the latter, think of music timer, which currently uses physics = 50%
+>> tried, it still does not feel right, time to accept the idea is flawed

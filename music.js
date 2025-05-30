@@ -363,7 +363,7 @@ const MusicSystem = {
         });
     },
 
-    // Helper to create a music-specific timer that ignores game pause
+    // CONSERVATIVE: Replace only the tween creation with timer-based fades
     createMusicTimer: function (delay, callback) {
         const timer = this.scene.time.addEvent({
             delay: delay,
@@ -376,28 +376,61 @@ const MusicSystem = {
         return timer;
     },
 
-    // UPDATED: Helper to create pause-immune tweens for music fades
-    createMusicTween: function (config) {
-        // Create the tween normally
-        const tween = this.scene.tweens.add(config);
+    // FIXED: Create a timer-based fade (corrected timer logic)
+    createTimerFade: function (startVolume, endVolume, duration, onUpdate, onComplete) {
+        const steps = Math.ceil(duration / 50); // Update every 50ms
+        const volumeStep = (endVolume - startVolume) / steps;
+        let currentStep = 0;
 
-        // Store reference to this music tween so we can resume it after pauseAll()
-        this.musicTimers.push(tween);
+        console.log(`Creating timer fade: ${startVolume} → ${endVolume} over ${duration}ms (${steps} steps)`);
 
-        console.log('Created music tween (will be resumed after pauseAll)');
-        return tween;
-    },
+        // Create a repeating timer that calls our fade function
+        const fadeTimer = this.scene.time.addEvent({
+            delay: 50,
+            callback: () => {
+                currentStep++;
+                const progress = currentStep / steps;
+                const currentVolume = startVolume + (volumeStep * currentStep);
 
-    // NEW: Resume music tweens after game pause (call this after pauseAll())
-    resumeMusicTweens: function () {
-        this.musicTimers.forEach(item => {
-            // Check if it's a tween (has play/pause methods) and is currently paused
-            if (item && typeof item.play === 'function' && item.paused) {
-                item.play();
-                console.log('Resumed music tween during game pause');
-            }
+                console.log(`Fade step ${currentStep}/${steps}: volume ${currentVolume.toFixed(3)}, progress ${(progress * 100).toFixed(1)}%`);
+
+                // Call update callback
+                if (onUpdate) {
+                    onUpdate(currentVolume, progress);
+                }
+
+                // Check if complete
+                if (currentStep >= steps) {
+                    console.log(`Fade complete! Removing timer.`);
+                    fadeTimer.remove();
+                    if (onComplete) {
+                        onComplete();
+                    }
+                }
+            },
+            callbackScope: this,
+            repeat: steps - 1, // Repeat for the total number of steps
+            paused: false  // Keep running during game pause
         });
+
+        // Add to our music timers for tracking
+        this.musicTimers.push(fadeTimer);
+
+        return {
+            stop: () => {
+                if (fadeTimer) {
+                    fadeTimer.remove();
+                }
+            },
+            remove: () => {
+                if (fadeTimer) {
+                    fadeTimer.remove();
+                }
+            }
+        };
     },
+
+    // Remove the resumeMusicTweens method since we don't need it anymore
 
     // UPDATED: Centralized volume setting with robust approach
     setTrackVolume: function (track, volume) {
@@ -519,27 +552,25 @@ const MusicSystem = {
                 startVolume: trackToStop.volume
             };
 
-            // Create quick fade out (500ms) - PAUSE-IMMUNE
-            this.fadeOutTween = this.createMusicTween({
-                targets: fadeData,
-                progress: 1,
-                duration: 500,
-                ease: 'Linear',
-                onUpdate: () => {
-                    // Apply volume based on progress
+            // CONSERVATIVE: Replace just the tween with timer fade
+            this.fadeOutTween = this.createTimerFade(
+                fadeData.startVolume, // start
+                0, // end  
+                500, // duration
+                (volume) => {
+                    // onUpdate - keep same logic as before
                     if (trackToStop && trackToStop.isPlaying) {
-                        const newVolume = fadeData.startVolume * (1 - fadeData.progress);
-                        this.setTrackVolume(trackToStop, newVolume);
+                        this.setTrackVolume(trackToStop, volume);
                     }
                 },
-                onComplete: () => {
-                    // Stop the old track
+                () => {
+                    // onComplete - keep same logic as before
                     if (trackToStop) {
                         trackToStop.stop();
                     }
                     this.fadeOutTween = null;
                 }
-            });
+            );
         }
 
         // Store reference to current track
@@ -575,37 +606,33 @@ const MusicSystem = {
             targetVolume: targetVolume
         };
 
-        console.log(`Fade in starting to volume: ${targetVolume}`);
-
-        // Create fade-in tween - PAUSE-IMMUNE
-        this.fadeInTween = this.createMusicTween({
-            targets: fadeData,
-            progress: 1,
-            duration: this.fadeDuration,
-            ease: 'Linear',
-            onUpdate: (tween) => {
-                // Calculate and apply volume based on progress
+        // CONSERVATIVE: Replace just the tween with timer fade  
+        this.fadeInTween = this.createTimerFade(
+            0, // start
+            targetVolume, // end
+            this.fadeDuration, // duration
+            (volume, progress) => {
+                // onUpdate - keep same logic as before
                 if (track && track.isPlaying) {
-                    const newVolume = fadeData.targetVolume * fadeData.progress;
-                    this.setTrackVolume(track, newVolume);
+                    this.setTrackVolume(track, volume);
 
-                    // Log periodically for debugging
-                    if (Math.floor(tween.progress * 10) !== Math.floor((tween.progress - 0.1) * 10)) {
+                    // Keep the same logging as before
+                    if (Math.floor(progress * 10) !== Math.floor((progress - 0.1) * 10)) {
                         const actualVolume = track.volume;
-                        console.log(`Fade in ${Math.floor(tween.progress * 100)}% - Set: ${newVolume.toFixed(3)}, Actual: ${actualVolume.toFixed(3)}`);
+                        console.log(`Fade in ${Math.floor(progress * 100)}% - Set: ${volume.toFixed(3)}, Actual: ${actualVolume.toFixed(3)}`);
                     }
                 }
             },
-            onComplete: () => {
+            () => {
+                // onComplete - keep same logic as before
                 console.log("Fade-in complete");
                 this.fadeInTween = null;
 
-                // Ensure we're at target volume
                 if (track && track.isPlaying) {
                     this.setTrackVolume(track, targetVolume);
                 }
             }
-        });
+        );
     },
 
     // Start monitoring track position for fade-out timing
@@ -710,48 +737,42 @@ const MusicSystem = {
             startVolume: startVolume
         };
 
-        console.log(`Fade out starting from volume: ${startVolume}`);
-
-        // Create fade-out tween - PAUSE-IMMUNE
-        this.fadeOutTween = this.createMusicTween({
-            targets: fadeData,
-            progress: 1,
-            duration: this.fadeDuration,
-            ease: 'Linear',
-            onUpdate: (tween) => {
-                // Calculate and apply volume based on progress
+        // CONSERVATIVE: Replace just the tween with timer fade
+        this.fadeOutTween = this.createTimerFade(
+            startVolume, // start
+            0, // end
+            this.fadeDuration, // duration
+            (volume, progress) => {
+                // onUpdate - keep same logic as before
                 if (this.currentTrack && this.currentTrack.isPlaying) {
-                    const newVolume = fadeData.startVolume * (1 - fadeData.progress);
-                    this.setTrackVolume(this.currentTrack, newVolume);
+                    this.setTrackVolume(this.currentTrack, volume);
 
-                    // Log periodically to debug
-                    if (Math.floor(tween.progress * 10) !== Math.floor((tween.progress - 0.1) * 10)) {
-                        console.log(`Fade progress: ${Math.floor(tween.progress * 100)}%, volume: ${newVolume.toFixed(3)}`);
+                    // Keep the same logging as before
+                    if (Math.floor(progress * 10) !== Math.floor((progress - 0.1) * 10)) {
+                        console.log(`Fade progress: ${Math.floor(progress * 100)}%, volume: ${volume.toFixed(3)}`);
                     }
                 }
             },
-            onComplete: () => {
+            () => {
+                // onComplete - keep same logic as before
                 console.log("Fade out complete");
 
-                // Stop the track
                 if (this.currentTrack) {
                     this.currentTrack.stop();
                 }
 
-                // Clean up
                 this.fadeOutTween = null;
                 this.currentTrack = null;
                 this.isFadingOut = false;
 
-                // Play the next track
                 this.playNextTrack();
             }
-        });
+        );
     },
 
     // Stop the current track and clean up
     stopCurrentTrack: function () {
-        // Clean up tweens
+        // Clean up fade timers (no longer tweens)
         if (this.fadeInTween) {
             this.fadeInTween.stop();
             this.fadeInTween = null;
@@ -826,51 +847,36 @@ const MusicSystem = {
         this.cleanupCustomVolumeControl();
     },
 
-    // UPDATED: Pause effect for music with fixed volume control
+    // CONSERVATIVE: Remove the complex tween resume logic since we're using timers now
     onGamePause: function () {
         console.log("Game paused, applying muffled effect to music");
 
-        // Skip if no track is playing
         if (!this.currentTrack || !this.currentTrack.isPlaying) {
             return;
         }
 
-        // Store the current volume before applying pause effects
         this.savedVolume = this.currentTrack.volume;
         console.log(`Saved current volume: ${this.savedVolume}`);
 
-        // IMPORTANT: Resume music tweens after pauseAll() has been called
-        // This ensures fade-in/out continue during game pause
-        this.resumeMusicTweens();
-
         try {
-            // Apply low-pass filter using our custom volume control approach
             if (this.isUsingWebAudio() && this.currentTrack) {
                 const audioContext = this.scene.sound.context || this.forcedAudioContext;
 
-                // Create a low-pass filter
                 this.lowPassFilter = audioContext.createBiquadFilter();
                 this.lowPassFilter.type = 'lowpass';
-                this.lowPassFilter.frequency.value = 800; // Lower = more muffled
+                this.lowPassFilter.frequency.value = 800;
                 this.lowPassFilter.Q.value = 0.5;
 
-                // Get the destination
                 const destination = this.scene.sound.destination || audioContext.destination;
 
                 if (this.customVolumeGainNode) {
-                    // Insert filter between our gain node and destination
-                    // Current: customVolumeGainNode -> destination
-                    // New: customVolumeGainNode -> lowPassFilter -> destination
                     this.customVolumeGainNode.disconnect();
                     this.customVolumeGainNode.connect(this.lowPassFilter);
                     this.lowPassFilter.connect(destination);
-
                     console.log("Applied low-pass filter with existing custom volume control");
                 } else {
-                    // Fallback: try to connect directly to source (shouldn't happen with our setup)
                     console.warn("No custom volume control found, using fallback filter connection");
                     if (this.currentTrack.source && this.currentTrack.source.disconnect) {
-                        // Create a pause gain node for volume control
                         this.pauseGainNode = audioContext.createGain();
                         this.pauseGainNode.gain.value = this.currentTrack.volume;
 

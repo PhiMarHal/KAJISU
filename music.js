@@ -17,13 +17,13 @@ const MusicSystem = {
     updateTimer: null,      // Timer for checking track position
 
     // Configuration
-    silenceDuration: 1000,  // 1 second of silence between tracks
-    fadeDuration: 40000,    // 40 seconds fade in/out
+    silenceDuration: 4000,  // 1 second of silence between tracks
+    fadeDuration: 4000,    // 40 seconds fade in/out
     volume: 0.7,            // Default maximum volume (0-1)
     musicEnabled: true,     // Music enabled/disabled flag
 
     // Timing configuration
-    fadeOutBuffer: 48000,    // Start fade out 8 seconds before end (fade + silence)
+    fadeOutBuffer: 8000,    // Start fade out 8 seconds before end (fade + silence)
     preloadBuffer: 20000,   // Start preloading next track 20 seconds before end
     updateInterval: 100,    // Check position every 100ms
 
@@ -279,6 +279,9 @@ const MusicSystem = {
         this.musicTimers.forEach(timer => {
             if (timer && timer.remove) {
                 timer.remove();
+            } else if (timer && timer.stop) {
+                // Handle tweens that were added to musicTimers
+                timer.stop();
             }
         });
         this.musicTimers = [];
@@ -365,11 +368,35 @@ const MusicSystem = {
         const timer = this.scene.time.addEvent({
             delay: delay,
             callback: callback,
-            callbackScope: this
+            callbackScope: this,
+            paused: false  // Keep music timers running during game pause
         });
 
         this.musicTimers.push(timer);
         return timer;
+    },
+
+    // UPDATED: Helper to create pause-immune tweens for music fades
+    createMusicTween: function (config) {
+        // Create the tween normally
+        const tween = this.scene.tweens.add(config);
+
+        // Store reference to this music tween so we can resume it after pauseAll()
+        this.musicTimers.push(tween);
+
+        console.log('Created music tween (will be resumed after pauseAll)');
+        return tween;
+    },
+
+    // NEW: Resume music tweens after game pause (call this after pauseAll())
+    resumeMusicTweens: function () {
+        this.musicTimers.forEach(item => {
+            // Check if it's a tween (has play/pause methods) and is currently paused
+            if (item && typeof item.play === 'function' && item.paused) {
+                item.play();
+                console.log('Resumed music tween during game pause');
+            }
+        });
     },
 
     // UPDATED: Centralized volume setting with robust approach
@@ -492,8 +519,8 @@ const MusicSystem = {
                 startVolume: trackToStop.volume
             };
 
-            // Create quick fade out (500ms)
-            this.fadeOutTween = this.scene.tweens.add({
+            // Create quick fade out (500ms) - PAUSE-IMMUNE
+            this.fadeOutTween = this.createMusicTween({
                 targets: fadeData,
                 progress: 1,
                 duration: 500,
@@ -550,7 +577,8 @@ const MusicSystem = {
 
         console.log(`Fade in starting to volume: ${targetVolume}`);
 
-        this.fadeInTween = this.scene.tweens.add({
+        // Create fade-in tween - PAUSE-IMMUNE
+        this.fadeInTween = this.createMusicTween({
             targets: fadeData,
             progress: 1,
             duration: this.fadeDuration,
@@ -684,8 +712,8 @@ const MusicSystem = {
 
         console.log(`Fade out starting from volume: ${startVolume}`);
 
-        // Create fade-out tween on the progress value
-        this.fadeOutTween = this.scene.tweens.add({
+        // Create fade-out tween - PAUSE-IMMUNE
+        this.fadeOutTween = this.createMusicTween({
             targets: fadeData,
             progress: 1,
             duration: this.fadeDuration,
@@ -810,6 +838,10 @@ const MusicSystem = {
         // Store the current volume before applying pause effects
         this.savedVolume = this.currentTrack.volume;
         console.log(`Saved current volume: ${this.savedVolume}`);
+
+        // IMPORTANT: Resume music tweens after pauseAll() has been called
+        // This ensures fade-in/out continue during game pause
+        this.resumeMusicTweens();
 
         try {
             // Apply low-pass filter using our custom volume control approach

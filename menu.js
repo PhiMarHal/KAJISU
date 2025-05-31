@@ -958,34 +958,16 @@ window.GameUI = {
     resize: resizeUI
 };
 
-// Adding to the existing UI namespace in menu.js
-UI.gameEndScreen = {
-    width: function () { return UI.rel.width(50); },     // 50% of screen width
-    height: function () { return UI.rel.height(60); },   // 60% of screen height
-    y: function () { return UI.rel.y(50); },             // Center of screen vertically
-    x: function () { return UI.rel.x(50); },             // Center of screen horizontally
-    borderWidth: 4,
-    innerPadding: function () { return UI.rel.width(2); }, // 2% padding inside
-    fontSizes: {
-        title: function () { return `${UI.rel.fontSize(4)}px`; },     // 4% of screen height
-        subtitle: function () { return `${UI.rel.fontSize(3)}px`; },  // 3% of screen height
-        stats: function () { return `${UI.rel.fontSize(2.5)}px`; },   // 2.5% of screen height
-        button: function () { return `${UI.rel.fontSize(3)}px`; }     // 3% of screen height
-    }
-};
-
 // Game End Menu System for Word Survivors
 // Manages both victory and defeat end screens
 
-// Adding to the existing UI namespace in menu.js
-// Modified gameEndScreen to support minimum width for small screens
 UI.gameEndScreen = {
     // Width with minimum size to prevent squashing on small screens
     width: function () {
         const calculatedWidth = UI.rel.width(50); // Original 50% of screen width
-        return Math.max(calculatedWidth, 480); // Minimum 480px width
+        return Math.max(calculatedWidth, 600); // Minimum 480px width
     },
-    height: function () { return UI.rel.height(60); },   // 60% of screen height
+    height: function () { return UI.rel.height(64); },   // 60% of screen height
     y: function () { return UI.rel.y(50); },             // Center of screen vertically
     x: function () { return UI.rel.x(50); },             // Center of screen horizontally
     borderWidth: 4,
@@ -1005,6 +987,10 @@ UI.gameEndScreen = {
             // Scale the font size by the scale factor
             return `${UI.rel.fontSize(4) * UI.gameEndScreen.scaleFactor()}px`;
         },
+        kanjiLarge: function () {
+            // 50% larger than title for hero and boss kanji
+            return `${UI.rel.fontSize(6) * UI.gameEndScreen.scaleFactor()}px`;
+        },
         subtitle: function () {
             return `${UI.rel.fontSize(3) * UI.gameEndScreen.scaleFactor()}px`;
         },
@@ -1017,7 +1003,7 @@ UI.gameEndScreen = {
     }
 };
 
-// Game End Menu component - modified for better small screen support
+// Game End Menu component - modified for vertical centered layout
 const GameEndMenu = {
     // UI elements
     elements: {
@@ -1026,8 +1012,8 @@ const GameEndMenu = {
         borderRect: null,        // Golden border
         heroKanji: null,         // Hero kanji (white)
         titleText: null,         // Main title text (gold)
-        enemyKanji: null,        // Enemy kanji (enemy color)
         subtitleText: null,      // Subtitle text (gold)
+        enemyKanji: null,        // Enemy kanji (enemy color)
         statsText: null,         // Time and kills (gold)
         restartButton: null,     // Restart button
         restartButtonBorder: null // Button border
@@ -1094,53 +1080,43 @@ const GameEndMenu = {
         // Default options
         const defaults = {
             isVictory: false,           // Victory or defeat
-            heroKanjiOffset: -200,      // X offset for hero kanji
-            titleTextOffset: -150,      // X offset for title text
             titleText: "",              // Main title text
             subtitleText: "",           // Subtitle text
-            subtitleCentered: false,    // Whether subtitle should be centered
-            subtitleTextOffset: 0,      // X offset for subtitle
             enemyKanji: "敵",           // Kanji to show for enemy
-            enemyKanjiOffset: 200,      // X offset for enemy kanji
             statsTemplate: ""           // Template for stats text
         };
 
         // Merge with provided options
         const config = { ...defaults, ...options };
         const centerX = UI.gameEndScreen.x();
-        const titleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 3;
-        const subtitleY = UI.gameEndScreen.y() - UI.gameEndScreen.height() / 6;
-        const scaleFactor = UI.gameEndScreen.scaleFactor();
+        const centerY = UI.gameEndScreen.y();
 
-        // Calculate positions with proper scaling
-        const heroKanjiX = centerX + (config.heroKanjiOffset * scaleFactor);
-        const titleTextX = centerX + (config.titleTextOffset * scaleFactor);
+        // Calculate vertical spacing for 4 lines plus stats
+        const lineSpacing = UI.gameEndScreen.height() / 8; // Dividing into 8 sections for better spacing
 
-        // Subtitle position
-        const subtitleTextX = config.subtitleCentered ?
-            centerX :
-            centerX + (config.subtitleTextOffset * scaleFactor);
+        // Positions for each line (centered vertically around the panel center)
+        const heroKanjiY = centerY - lineSpacing * 3;
+        const titleY = centerY - lineSpacing * 2;
+        const subtitleY = centerY - lineSpacing;
+        const enemyKanjiY = centerY;
 
-        // Enemy position
-        const enemyKanjiX = centerX + (config.enemyKanjiOffset * scaleFactor);
-
-        // Create hero kanji in WHITE
+        // Create hero kanji in WHITE (centered, larger)
         this.elements.heroKanji = scene.add.text(
-            heroKanjiX,
-            titleY,
+            centerX,
+            heroKanjiY,
             HERO_CHARACTER,
             {
                 fontFamily: 'Arial',
-                fontSize: UI.gameEndScreen.fontSizes.title(),
+                fontSize: UI.gameEndScreen.fontSizes.kanjiLarge(),
                 color: '#FFFFFF', // White for hero
                 fontStyle: 'bold'
             }
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.heroKanji);
 
-        // Create title text in GOLD
+        // Create title text in GOLD (centered)
         this.elements.titleText = scene.add.text(
-            titleTextX,
+            centerX,
             titleY,
             config.titleText,
             {
@@ -1149,42 +1125,41 @@ const GameEndMenu = {
                 color: '#FFD700', // Gold color
                 fontStyle: 'bold'
             }
-        ).setOrigin(0, 0.5); // Left aligned
+        ).setOrigin(0.5);
         this.elements.container.add(this.elements.titleText);
 
-        // Create subtitle text in GOLD
-        const subtitleOrigin = config.subtitleCentered ? 0.5 : 0.5;
+        // Create subtitle text in GOLD (centered)
         this.elements.subtitleText = scene.add.text(
-            subtitleTextX,
+            centerX,
             subtitleY,
             config.subtitleText,
             {
                 fontFamily: 'Arial',
-                fontSize: UI.gameEndScreen.fontSizes.title(),
+                fontSize: UI.gameEndScreen.fontSizes.subtitle(),
                 color: '#FFD700', // Gold color
                 fontStyle: 'bold'
             }
-        ).setOrigin(subtitleOrigin);
+        ).setOrigin(0.5);
         this.elements.container.add(this.elements.subtitleText);
 
-        // Create enemy kanji
+        // Create enemy kanji (centered, larger)
         this.elements.enemyKanji = scene.add.text(
-            enemyKanjiX,
-            subtitleY,
+            centerX,
+            enemyKanjiY,
             config.enemyKanji,
             {
                 fontFamily: 'Arial',
-                fontSize: UI.gameEndScreen.fontSizes.title(),
+                fontSize: UI.gameEndScreen.fontSizes.kanjiLarge(),
                 color: '#FF5555', // Red color for enemy
                 fontStyle: 'bold'
             }
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.enemyKanji);
 
-        // Create stats line
+        // Create stats line (below the main content)
         this.elements.statsText = scene.add.text(
             centerX,
-            UI.gameEndScreen.y() + UI.gameEndScreen.height() / 10,
+            centerY + lineSpacing * 1.5,
             config.statsTemplate,
             {
                 fontFamily: 'Arial',
@@ -1213,18 +1188,12 @@ const GameEndMenu = {
         // Create victory screen content
         this.createEndGameContent(scene, {
             isVictory: true,
-            heroKanjiOffset: -200,
-            titleTextOffset: -150,
             titleText: 'ESCAPED THE LOOP',
             subtitleText: 'VANQUISHING',
-            subtitleCentered: true,
-            subtitleTextOffset: 0,
             enemyKanji: bossSymbol,
-            enemyKanjiOffset: 180,
             statsTemplate: `IN ${formatTime(elapsedTime)}          FREED ${score}`
         });
     },
-
 
     // Create content for defeat screen
     createDefeatContent: function (scene, enemyKanji) {
@@ -1234,21 +1203,16 @@ const GameEndMenu = {
         // Create defeat screen content
         this.createEndGameContent(scene, {
             isVictory: false,
-            heroKanjiOffset: -220,
-            titleTextOffset: -160,
             titleText: 'FOUND THEIR DEMISE',
             subtitleText: 'AT THE HANDS OF',
-            subtitleCentered: false,
-            subtitleTextOffset: -60,
             enemyKanji: enemySymbol,
-            enemyKanjiOffset: 180,
             statsTemplate: `SURVIVED ${formatTime(elapsedTime)}          DEFEATED ${score}`
         });
     },
 
     // Create restart button for both screens
     createRestartButton: function (scene) {
-        const buttonY = UI.gameEndScreen.y() + UI.gameEndScreen.height() / 3;
+        const buttonY = UI.gameEndScreen.y() + UI.gameEndScreen.height() / 2.5;
         const buttonX = UI.gameEndScreen.x();
         const buttonPadding = 20;
 

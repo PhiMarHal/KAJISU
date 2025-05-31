@@ -12,12 +12,12 @@ const BASE_STATS = {
     END: 4,
 };
 
-// Perk cooldowns in milliseconds
+// Perk cooldowns in milliseconds - divide by 4 for real base time
 const shieldBaseCd = 80000;
 const godHammerBaseCd = 120000;
 const divineBeaconBaseCd = 120000;
 const fatedShieldBaseCd = 60000;
-const angelHoneyBaseCd = 180000;
+const angelHoneyBaseCd = 80000;
 
 // Player Status Component System for Word Survivors
 // This system manages special behaviors and status effects for the player
@@ -1084,8 +1084,8 @@ PlayerComponentSystem.registerComponent('angelHoneyAbility', {
             // Mark as collected to prevent multiple triggers
             honey.collected = true;
 
-            // Use the global fullHeal function
-            window.fullHeal();
+            // Use the global regen function
+            window.regenerateHealth();
 
             // Visual effect for collection
             this.tweens.add({

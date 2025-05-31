@@ -28,8 +28,8 @@ const MusicSystem = {
     updateInterval: 100,    // Check position every 100ms
 
     // Pause settings
-    pausedVolume: 0.3,      // Volume level when paused (30% of normal)
-    savedVolume: null,      // Store the original volume during pause
+    //pausedVolume: 0.3,      // Volume level when paused (30% of normal)
+    //savedVolume: null,      // Store the original volume during pause
     pausePulseTween: null,  // Reference to pulse effect tween
     lowPassFilter: null,    // Reference to Web Audio low-pass filter
     pauseGainNode: null,    // Reference to gain node for volume control with filter
@@ -854,10 +854,10 @@ const MusicSystem = {
         if (!this.currentTrack || !this.currentTrack.isPlaying) {
             return;
         }
-
+        /*
         this.savedVolume = this.currentTrack.volume;
         console.log(`Saved current volume: ${this.savedVolume}`);
-
+        */
         try {
             if (this.isUsingWebAudio() && this.currentTrack) {
                 const audioContext = this.scene.sound.context || this.forcedAudioContext;
@@ -935,13 +935,13 @@ const MusicSystem = {
                 }
 
                 console.log("Removed low-pass filter from track");
-
+                /*
                 // Restore the saved volume
                 if (this.savedVolume !== null) {
                     console.log(`Restoring volume to: ${this.savedVolume}`);
                     this.setTrackVolume(this.currentTrack, this.savedVolume);
                     this.savedVolume = null;
-                }
+                }*/
             }
 
             // Re-apply boss fight effect if needed
@@ -995,7 +995,7 @@ const MusicSystem = {
 
         console.log(`Is fading out: ${this.isFadingOut}`);
         console.log(`Configured volume: ${this.volume}`);
-        console.log(`Configured pause volume: ${this.pausedVolume}`);
+        //console.log(`Configured pause volume: ${this.pausedVolume}`);
 
         // Custom volume control diagnostic
         console.log(`Custom volume gain node: ${!!this.customVolumeGainNode}`);

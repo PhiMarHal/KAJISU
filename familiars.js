@@ -140,9 +140,10 @@ const FamiliarBehaviors = {
         const damage = playerDamage * 0.5; // Half player damage
         const projectileColor = '#00ff00'; // Light green color
         const projectileSymbol = '癒'; // Healing kanji
+        const speed = 100; // very slow speed for a projectile, to let the player try to catch the heal
 
         // Find the closest enemy
-        const target = findClosestVisibleEnemy(scene);
+        const target = findRandomVisibleEnemy(scene);
 
         // If a target was found, fire at it
         if (target) {
@@ -150,7 +151,8 @@ const FamiliarBehaviors = {
             const projectile = fireFamiliarProjectile(scene, orbital, target, {
                 damage: damage,
                 color: projectileColor,
-                symbol: projectileSymbol
+                symbol: projectileSymbol,
+                speed: speed
             });
 
             // Add healing effect component to the projectile

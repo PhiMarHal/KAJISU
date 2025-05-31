@@ -769,20 +769,20 @@ OrbitalPerkRegistry.registerPerkOrbital('HEALING_FAIRY', {
             radius: 100, // Medium orbit radius
             speed: 0.01, // Moderate speed
             pattern: 'oscillating', // More dynamic movement pattern
-            collisionType: 'projectile', // Dies when hit by enemies
+            collisionType: 'persistent', //
             damage: playerDamage * 0.1, // Very low contact damage
             damageInterval: 500, // Half second between damage ticks
-            lifespan: 20000, // 20 seconds lifespan
+            lifespan: null, //
             options: {
                 isFamiliar: true,
                 familiarType: 'healer',
-                wobbleFrequency: 3, // Control oscillation frequency
+                wobbleFrequency: 4, // Control oscillation frequency
                 wobbleAmplitude: 20 // Control oscillation amplitude
             }
         };
     },
-    cooldown: 20000, // Fixed 20 second cooldown
-    activationMethod: 'timer' // Create periodically on a timer
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
 });
 
 // Simplified activateHealingFairy function in nexus.js
@@ -800,12 +800,9 @@ window.activateHealingFairy = function () {
             scene,
             orbital,
             orbital.options.familiarType,
-            4000 // 4 seconds cooldown base (will scale with luck)
+            10000 // 10 seconds cooldown base (will scale with luck)
         );
     }
-
-    // Apply the perk to set up automatic respawning through the registry system
-    OrbitalPerkRegistry.applyPerkOrbital(scene, 'HEALING_FAIRY');
 }
 
 // Add this to nexus.js

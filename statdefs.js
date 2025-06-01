@@ -85,7 +85,7 @@ const StatTooltipSystem = {
     },
 
     // Show tooltip for a stat
-    showTooltip: function (scene, statKey, x, y, container = null, isKajisuli = false) {
+    showTooltip: function (scene, statKey, x, y, container = null, isKajisuli = false, isLevelUp = false) {
         // Hide any existing tooltip
         this.hideTooltip();
 
@@ -109,8 +109,14 @@ const StatTooltipSystem = {
         // Position below the stats with more clearance
         let tooltipY;
         if (isKajisuli) {
-            // In KAJISULI mode, position further down to avoid overlap
-            tooltipY = y + 196; // 6 more pixels added
+            // Check if this is level-up context (where stats are at bottom)
+            if (isLevelUp) {
+                // Level-up mode - position ABOVE the stats with 20px gap
+                tooltipY = y - 140; // Show above instead of below
+            } else {
+                // Pause mode - position below as before
+                tooltipY = y + 196;
+            }
         } else {
             // Desktop mode - position below stats
             tooltipY = y + 150;
@@ -160,7 +166,6 @@ const StatTooltipSystem = {
 
         // Hover in - show tooltip
         element.on('pointerover', () => {
-            //console.log(`Hover over ${statKey}`);
             const bounds = element.getBounds();
             this.showTooltip(
                 scene,
@@ -168,7 +173,8 @@ const StatTooltipSystem = {
                 bounds.centerX,
                 bounds.centerY,
                 options.container,
-                options.isKajisuli ?? false
+                options.isKajisuli ?? false,
+                options.isLevelUp ?? false
             );
 
             // Visual feedback on the element

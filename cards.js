@@ -410,7 +410,8 @@ function showMobileLevelUpScreen(scene) {
                 if (statGroup.border && statKeys[index]) {
                     StatTooltipSystem.addStatHoverInteraction(scene, statGroup.border, statKeys[index], {
                         container: levelUpContainer,
-                        isKajisuli: true,  // Add this flag
+                        isKajisuli: true,
+                        isLevelUp: true,
                         onHover: (element) => {
                             // Highlight border on hover
                             element.setStrokeStyle(4, UI.colors.gold);

@@ -526,6 +526,10 @@
                 }, 100);
             });
 
+            // Restore session by refreshing on WebGL context loss to avoid black screen (mobile)
+            game.canvas.addEventListener('webglcontextlost', (e) => e.preventDefault());
+            game.canvas.addEventListener('webglcontextrestored', () => window.location.reload());
+
             // Initialize perk system first
             initializePerks();
 

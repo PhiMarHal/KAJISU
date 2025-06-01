@@ -378,7 +378,7 @@ function showMobileLevelUpScreen(scene) {
     const subtitle = scene.add.text(
         centerX,
         game.config.height * 0.82,
-        'Browse all 4 perks',
+        'Tap arrows to see perks',
         {
             fontFamily: 'Arial',
             fontSize: '36px',
@@ -410,8 +410,7 @@ function showMobileLevelUpScreen(scene) {
                 if (statGroup.border && statKeys[index]) {
                     StatTooltipSystem.addStatHoverInteraction(scene, statGroup.border, statKeys[index], {
                         container: levelUpContainer,
-                        isKajisuli: true,
-                        isLevelUp: true,
+                        isKajisuli: true,  // Add this flag
                         onHover: (element) => {
                             // Highlight border on hover
                             element.setStrokeStyle(4, UI.colors.gold);
@@ -561,7 +560,7 @@ function showMobileLevelUpScreen(scene) {
         arrowPulseTweens.push(
             scene.tweens.add({
                 targets: [leftArrow, rightArrow],
-                scale: 1.2,
+                scale: 1.1,
                 duration: 1000,
                 yoyo: true,
                 repeat: -1,
@@ -649,8 +648,8 @@ function showMobileLevelUpScreen(scene) {
         const originalY = subtitle.y;
         scene.tweens.add({
             targets: subtitle,
-            y: originalY - 4,
-            duration: 60,
+            y: originalY - 3,
+            duration: 50,
             yoyo: true,
             repeat: 3,
             ease: 'Power2',
@@ -660,10 +659,24 @@ function showMobileLevelUpScreen(scene) {
         });
     }
 
+    // Function to trigger arrow gold blink effect
+    function triggerArrowBlink() {
+        // Turn arrows gold
+        leftArrow.setColor('#FFD700');
+        rightArrow.setColor('#FFD700');
+
+        // Return to white after 1 second
+        setTimeout(() => {
+            leftArrow.setColor('#ffffff');
+            rightArrow.setColor('#ffffff');
+        }, 500);
+    }
+
     // Function to handle perk selection
     function selectPerk(perkId) {
         if (!hasViewedAllPerks) {
             triggerSubtitleShake();
+            triggerArrowBlink();
             return;
         }
 

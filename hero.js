@@ -1084,8 +1084,8 @@ PlayerComponentSystem.registerComponent('angelHoneyAbility', {
             // Mark as collected to prevent multiple triggers
             honey.collected = true;
 
-            // Use the global regen function
-            LifeSystem.regenerateHealth();
+            // Use the heal function for +1 HP
+            LifeSystem.heal(1);
 
             // Visual effect for collection
             this.tweens.add({

@@ -44,28 +44,37 @@ const LifeSystem = {
         console.log(`Health regeneration timer set: +1 HP every ${regenDelay / 1000} seconds`);
     },
 
-    // Regenerate health
+    // Regenerate health (used by timer)
     regenerateHealth: function () {
         // This function is called with scene as context (via callbackScope)
         if (gameOver || gamePaused) return;
 
-        // Only regenerate if health is below max
-        if (playerHealth < maxPlayerHealth) {
-            // Add 1 HP
-            playerHealth = Math.min(playerHealth + 1, maxPlayerHealth);
+        // Use the heal function for +1 HP
+        LifeSystem.heal(1);
+    },
 
-            // Update health bar and text
-            GameUI.updateHealthBar(this);
+    // Heal the player by a specific amount
+    heal: function (hp) {
+        // Get the active scene
+        const scene = game.scene.scenes[0];
 
-            // Show visual effect
-            LifeSystem.showRegenEffect(this);
-        }
+        // Add HP (capped at max)
+        playerHealth = Math.min(playerHealth + hp, maxPlayerHealth);
+
+        // Update health bar
+        GameUI.updateHealthBar(scene);
+
+        // Show visual effect using the same function as regeneration
+        this.showRegenEffect(scene);
     },
 
     // Show visual effect for health regeneration
     showRegenEffect: function (scene) {
-        // Create a healing indicator
-        const healEffect = scene.add.text(player.x, player.y - 20, '+1', {
+        // Ensure we have a valid scene and player
+        if (!scene || !scene.add || !player || !player.active) return;
+
+        // Create a healing indicator using the kanji for "heal"
+        const healEffect = scene.add.text(player.x, player.y - 20, '癒', {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#00ff00'
@@ -85,32 +94,7 @@ const LifeSystem = {
 
     // Fully heal the player
     fullHeal: function () {
-        // Set health to maximum
-        playerHealth = maxPlayerHealth;
-
-        // Update the health bar (get active scene)
-        const scene = game.scene.scenes[0];
-        if (scene) {
-            GameUI.updateHealthBar(scene);
-
-            // Show healing particles or effect
-            const healEffect = scene.add.text(player.x, player.y - 40, '+HEAL', {
-                fontFamily: 'Arial',
-                fontSize: '18px',
-                color: '#00ff00'
-            }).setOrigin(0.5);
-
-            // Animate the effect
-            scene.tweens.add({
-                targets: healEffect,
-                y: healEffect.y - 30,
-                alpha: 0,
-                duration: 1000,
-                onComplete: function () {
-                    healEffect.destroy();
-                }
-            });
-        }
+        LifeSystem.heal(maxPlayerHealth);
     },
 
     // Reset the life system (call during game restart)

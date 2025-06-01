@@ -172,7 +172,7 @@
 
     <script>
         // Set this manually as needed
-        const KAJISULI_MODE = true;
+        const KAJISULI_MODE = false;
 
         // Apply CSS class based on mode
         if (KAJISULI_MODE) {
@@ -226,6 +226,9 @@
 
         // Store all game timers in a central array
         let gameTimers = [];
+
+        // Check if game was built (if user did anything)
+        let gameStarted = false;
 
         // Register a timer with the central system
         function registerTimer(timer) {
@@ -426,6 +429,83 @@
         }
 
         function create() {
+            // Store reference to this scene
+            const scene = this;
+
+            // Add flag to prevent multiple game starts
+            let gameInitialized = false;
+
+            // Create a black background
+            const background = scene.add.rectangle(
+                game.config.width / 2,
+                game.config.height / 2,
+                game.config.width,
+                game.config.height,
+                0x000000
+            ).setDepth(0);
+
+            // Create the start button text
+            const startButton = scene.add.text(
+                game.config.width / 2,
+                game.config.height / 2,
+                'START GAME',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '48px',
+                    color: '#FFD700', // Gold color
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5).setDepth(10);
+
+            // Create button border
+            const buttonPadding = 30;
+            const buttonBorder = scene.add.rectangle(
+                game.config.width / 2,
+                game.config.height / 2,
+                startButton.width + buttonPadding * 2,
+                startButton.height + buttonPadding * 2
+            ).setStrokeStyle(4, 0xFFD700).setDepth(5); // Gold border
+
+            // Function to start the game and clean up
+            function startTheGame() {
+                // Prevent multiple calls
+                if (gameInitialized) return;
+                gameInitialized = true;
+
+                // Clean up start screen elements
+                background.destroy();
+                startButton.destroy();
+                buttonBorder.destroy();
+
+                // Start the actual game
+                buildGame.call(scene);
+            }
+
+            // Make button interactive
+            startButton.setInteractive({ useHandCursor: true });
+
+            // Add hover effects
+            startButton.on('pointerover', function () {
+                this.setColor('#FFFFFF'); // White on hover
+                buttonBorder.setStrokeStyle(6, 0xFFD700); // Thicker border
+            });
+
+            startButton.on('pointerout', function () {
+                this.setColor('#FFD700'); // Back to gold
+                buttonBorder.setStrokeStyle(4, 0xFFD700); // Normal border
+            });
+
+            // Start game on button click
+            startButton.on('pointerdown', startTheGame);
+
+            // Also allow any key press to start
+            scene.input.keyboard.once('keydown', startTheGame);
+
+            // IMPORTANT: Do not add any global pointerdown listeners here!
+            // The canvas click issue was caused by global listeners conflicting with button listeners
+        }
+
+        function buildGame() {
             // Listen for the Phaser-specific resize event which is more reliable
             this.scale.on('resize', (gameSize, baseSize, displaySize, resolution) => {
                 console.log(`Game resized: ${displaySize.width}x${displaySize.height}`);
@@ -544,12 +624,16 @@
             }
             ).setOrigin(0.5).setDepth(100); // Ensure it displays above other elements
 
+            gameStarted = true;
+
             // Start the game by calling startGame (replaces the need for duplicate initialization)
             startGame.call(this);
+
         }
 
         // Add this to your update function
         function update(time, delta) {
+            if (!gameStarted) return; // Exit early if game hasn't started yet
             if (gameOver) return;
             if (gamePaused) return; // Skip updates when game is paused for level up
 

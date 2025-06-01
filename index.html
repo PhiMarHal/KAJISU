@@ -172,7 +172,7 @@
 
     <script>
         // Set this manually as needed
-        const KAJISULI_MODE = false;
+        const KAJISULI_MODE = true;
 
         // Apply CSS class based on mode
         if (KAJISULI_MODE) {
@@ -180,8 +180,8 @@
         }
 
         // Set up a cache for music
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('serviceWorker.js');
+        if ('serviceworker' in navigator) {
+            navigator.serviceworker.register('serviceworker.js');
         }
 
         // Game configuration

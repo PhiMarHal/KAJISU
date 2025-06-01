@@ -1,4 +1,4 @@
-// serviceWorker.js - Service Worker for KAJISU game music caching
+// serviceworker.js - Service Worker for KAJISU game music caching
 
 const CACHE_NAME = 'kajisu-music-cache-v1';
 const MUSIC_CACHE_DURATION = 365 * 24 * 60 * 60 * 1000; // 365 days in milliseconds

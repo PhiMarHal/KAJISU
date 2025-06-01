@@ -1085,7 +1085,7 @@ PlayerComponentSystem.registerComponent('angelHoneyAbility', {
             honey.collected = true;
 
             // Use the global regen function
-            window.regenerateHealth();
+            LifeSystem.regenerateHealth();
 
             // Visual effect for collection
             this.tweens.add({

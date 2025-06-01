@@ -179,6 +179,11 @@
             document.body.classList.add('kajisuli-mode');
         }
 
+        // Set up a cache for music
+        if ('serviceworker' in navigator) {
+            navigator.serviceworker.register('serviceworker.js');
+        }
+
         // Game configuration
         const config = {
             type: Phaser.AUTO,

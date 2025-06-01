@@ -1,7 +1,32 @@
 // Music System for Word Survivors
 // Handles background music with smooth transitions and shuffled playlists
 // Uses dynamic position checking and proxy objects for reliable fading
-// FIXED VERSION: Implements custom volume control system for consistent Web Audio behavior
+
+function detectMusicUrl() {
+    const hostname = window.location.hostname;
+
+    console.log(`Detecting music URL for hostname: ${hostname}`);
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
+        // Local development
+        console.log('Local development detected, using relative paths');
+        return 'music/';
+    } else if (hostname.includes('github.io') || hostname.includes('loiyaa.com')) {
+        // GitHub Pages or your custom domain - music is local
+        console.log('GitHub Pages or custom domain detected, using relative paths');
+        return 'music/';
+    } else {
+        // External hosting (any other platform) - use GitHub Pages for music
+        const githubMusicUrl = 'https://phimarhal.github.io/KAJISU/music/';
+        console.log(`External hosting detected, using GitHub Pages: ${githubMusicUrl}`);
+        return githubMusicUrl;
+    }
+}
+
+// Dynamic configuration
+const MUSIC_CONFIG = {
+    baseUrl: detectMusicUrl()
+};
 
 const MusicSystem = {
     // Music tracks and playback state
@@ -487,7 +512,7 @@ const MusicSystem = {
         this.isLoading = true;
         console.log(`Loading track: ${trackId}`);
 
-        const trackPath = `music/${trackId}.mp3`;
+        const trackPath = `${MUSIC_CONFIG.baseUrl}${trackId}.mp3`;
 
         // Create a loader for just this track
         const loader = new Phaser.Loader.LoaderPlugin(this.scene);

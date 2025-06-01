@@ -378,7 +378,7 @@ function showMobileLevelUpScreen(scene) {
     const subtitle = scene.add.text(
         centerX,
         game.config.height * 0.82,
-        'Browse all 4 perks',
+        'Tap arrows to see perks',
         {
             fontFamily: 'Arial',
             fontSize: '36px',

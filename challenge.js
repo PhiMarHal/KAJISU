@@ -620,34 +620,22 @@ const RomajiChallengeSystem = {
         // Close the cards and resume the game
         this.closeLevelUpCards(scene);
 
-        // Flash the hero when completing level up
-        scene.tweens.add({
-            targets: player,
-            alpha: 0.2,
-            scale: 1.5,
-            duration: 200,
-            yoyo: true,
-            repeat: 1,
-            onComplete: function () {
-                player.setScale(1);
-                player.alpha = 1;
+        // Reset the level up lock
+        window.levelUpInProgress = false;
 
-                // Reset the level up lock
-                window.levelUpInProgress = false;
+        // Give temp invincibility so player has time to get their bearings
+        PlayerHitSystem.makePlayerInvincible(scene);
 
-                // Check if we have enough XP for another level up
-                if (heroExp >= xpForNextLevel(playerLevel)) {
-                    // Use the scene parameter passed to selectCard instead of looking up game.scene
-                    setTimeout(() => {
-                        if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
-                            window.levelUpInProgress = true;
-                            levelUp.call(scene);
-                        }
-                    }, 100);
+        // Check if we have enough XP for another level up
+        if (heroExp >= xpForNextLevel(playerLevel)) {
+            // Use the scene parameter passed to selectCard instead of looking up game.scene
+            setTimeout(() => {
+                if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
+                    window.levelUpInProgress = true;
+                    levelUp.call(scene);
                 }
-            }
-        });
-
+            }, 100);
+        }
         console.log("Level up complete, game resumed");
     },
 

@@ -132,17 +132,12 @@ function cleanupDamageEffects() {
     }
 }
 
-// Main function called when player is hit by an enemy
-function playerIsHit(player, enemy) {
-    const scene = this;
-
-    // Check if player is already invincible from a recent hit
-    if (playerInvincible) return;
-
-    // Make the player invincible to damage while flashing
+// Make player invincible with visual effects
+function makePlayerInvincible(scene) {
+    // Always grant invincibility, regardless of current state
     playerInvincible = true;
 
-    // Flash the player when hit (visual feedback)
+    // Flash the player (visual feedback)
     scene.tweens.add({
         targets: player,
         alpha: 0.5,
@@ -167,6 +162,17 @@ function playerIsHit(player, enemy) {
             player.scale = 1;
         }
     });
+}
+
+// Main function called when player is hit by an enemy
+function playerIsHit(player, enemy) {
+    const scene = this;
+
+    // Check if player is already invincible from a recent hit
+    if (playerInvincible) return;
+
+    // Apply invincibility with visual effects
+    makePlayerInvincible(scene);
 
     // Handle hit effects including shield check
     // If hit was absorbed by shield, skip damage application
@@ -238,5 +244,6 @@ window.PlayerHitSystem = {
     init: initPlayerHitSystem,
     playerIsHit: playerIsHit,
     playerDeath: playerDeath,
-    reset: resetPlayerHitSystem
+    reset: resetPlayerHitSystem,
+    makePlayerInvincible: makePlayerInvincible
 };

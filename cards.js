@@ -684,28 +684,17 @@ function showMobileLevelUpScreen(scene) {
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
 
-        scene.tweens.add({
-            targets: player,
-            alpha: 0.2,
-            scale: 1.5,
-            duration: 200,
-            yoyo: true,
-            repeat: 1,
-            onComplete: function () {
-                player.setScale(1);
-                player.alpha = 1;
-                window.levelUpInProgress = false;
+        window.levelUpInProgress = false;
+        PlayerHitSystem.makePlayerInvincible(scene);
 
-                if (heroExp >= xpForNextLevel(playerLevel)) {
-                    setTimeout(() => {
-                        if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
-                            window.levelUpInProgress = true;
-                            levelUp.call(scene);
-                        }
-                    }, 100);
+        if (heroExp >= xpForNextLevel(playerLevel)) {
+            setTimeout(() => {
+                if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
+                    window.levelUpInProgress = true;
+                    levelUp.call(scene);
                 }
-            }
-        });
+            }, 100);
+        }
 
         levelUpContainer.destroy();
         levelUpCards = [];

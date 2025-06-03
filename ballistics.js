@@ -122,9 +122,3 @@ ProjectilePerkRegistry.registerPerkEffect('YELLOW_BOOMERANG', {
     chanceMultiplier: 0.5,
     applyChance: true, // Apply based on chance
 });
-
-ProjectilePerkRegistry.registerPerkEffect('HEALING_ARROW', {
-    componentName: 'healingAuraEffect',
-    chanceMultiplier: 0.25,
-    applyChance: true
-});

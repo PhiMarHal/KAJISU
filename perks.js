@@ -140,18 +140,6 @@ const PERKS = {
             window.activateWreckingBall();
         }
     },
-    "HEALING_ARROW": {
-        kanji: "癒矢",
-        kana: "いやし",
-        romaji: "iyashi",
-        english: "Healing Arrow",
-        description: "Chance to create healing aura on hit",
-        color: "#00ff88",
-        hoverColor: 0x00cc66,
-        onAcquire: function () {
-            //
-        }
-    },
     "GOLD_FORTRESS": {
         kanji: "金城",
         kana: "きんじょう",

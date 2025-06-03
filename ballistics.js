@@ -117,10 +117,14 @@ ProjectilePerkRegistry.registerPerkEffect('PIERCING_SHOTS', {
     applyChance: true,  // Use standard chance calculation based on luck
 });
 
-
-// Register the Yellow Boomerang perk effect
 ProjectilePerkRegistry.registerPerkEffect('YELLOW_BOOMERANG', {
     componentName: 'boomerangEffect',
     chanceMultiplier: 0.5,
     applyChance: true, // Apply based on chance
+});
+
+ProjectilePerkRegistry.registerPerkEffect('HEALING_ARROW', {
+    componentName: 'healingAuraEffect',
+    chanceMultiplier: 0.25,
+    applyChance: true
 });

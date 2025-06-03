@@ -858,11 +858,11 @@ OrbitalPerkRegistry.registerPerkOrbital('WRECKING_BALL', {
             direction: 'clockwise',
             pattern: 'figureEight', //
             collisionType: 'explosive', // Use the explosive collision behavior
-            damage: playerDamage * 2,
+            damage: playerDamage * 4,
             damageInterval: 0, // Not used for explosive behavior
             lifespan: null, // Permanent until hit
             options: {
-                blastRadius: 128 //
+                blastRadius: 192 //
             }
         };
     },

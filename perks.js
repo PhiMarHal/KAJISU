@@ -121,7 +121,7 @@ const PERKS = {
         kana: "いやせい",
         romaji: "iyasei",
         english: "Healing Fairy",
-        description: "Protect her and stay close",
+        description: "Stay close to her target",
         color: "#7FFF7F", // Light green color
         hoverColor: 0x5FDF5F,
         onAcquire: function () {
@@ -138,6 +138,18 @@ const PERKS = {
         hoverColor: 0x555555,
         onAcquire: function () {
             window.activateWreckingBall();
+        }
+    },
+    "HEALING_ARROW": {
+        kanji: "癒矢",
+        kana: "いやし",
+        romaji: "iyashi",
+        english: "Healing Arrow",
+        description: "Chance to create healing aura on hit",
+        color: "#00ff88",
+        hoverColor: 0x00cc66,
+        onAcquire: function () {
+            //
         }
     },
     "GOLD_FORTRESS": {

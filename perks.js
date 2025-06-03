@@ -1251,6 +1251,66 @@ const PERKS = {
             // logic in index.html
         }
     },
+    "DOG_PYRAMID": {
+        kanji: "犬金字塔",
+        kana: "いぬきんじとう",
+        romaji: "inukinjitou",
+        english: "Dog Pyramid",
+        description: "+2 POW / -4 AGI / +2 LUK / +2 END",
+        color: "#FFD700",
+        hoverColor: 0xB8860B,
+        onAcquire: function () {
+            window.modifyStat('damage', 2);
+            window.modifyStat('fireRate', -4);
+            window.modifyStat('luck', 2);
+            window.modifyStat('health', 2);
+        }
+    },
+    "CAT_PYRAMID": {
+        kanji: "猫金字塔",
+        kana: "ねこきんじとう",
+        romaji: "nekokinjitou",
+        english: "Cat Pyramid",
+        description: "+2 POW / +2 AGI / +2 LUK / -4 END",
+        color: "#FFD700",
+        hoverColor: 0xB8860B,
+        onAcquire: function () {
+            window.modifyStat('damage', 2);
+            window.modifyStat('fireRate', 2);
+            window.modifyStat('luck', 2);
+            window.modifyStat('health', -4);
+        }
+    },
+    "BIRD_PYRAMID": {
+        kanji: "鳥金字塔",
+        kana: "とりきんじとう",
+        romaji: "torikinjitou",
+        english: "Bird Pyramid",
+        description: "-4 POW / +2 AGI / +2 LUK / +2 END",
+        color: "#FFD700",
+        hoverColor: 0xB8860B,
+        onAcquire: function () {
+            window.modifyStat('damage', -4);
+            window.modifyStat('fireRate', 2);
+            window.modifyStat('luck', 2);
+            window.modifyStat('health', 2);
+        }
+    },
+    "FISH_PYRAMID": {
+        kanji: "魚金字塔",
+        kana: "さかなきんじとう",
+        romaji: "sakanakinjitou",
+        english: "Fish Pyramid",
+        description: "+2 POW / +2 AGI / -4 LUK / +2 END",
+        color: "#FFD700",
+        hoverColor: 0xB8860B,
+        onAcquire: function () {
+            window.modifyStat('damage', 2);
+            window.modifyStat('fireRate', 2);
+            window.modifyStat('luck', -4);
+            window.modifyStat('health', 2);
+        }
+    },
     "ALIEN_WORLD": {
         kanji: "異世界",
         kana: "いせかい",

@@ -25,7 +25,8 @@ function detectMusicUrl() {
 
 // Dynamic configuration
 const MUSIC_CONFIG = {
-    baseUrl: detectMusicUrl()
+    baseUrl: detectMusicUrl(),
+    trackCount: 23
 };
 
 const MusicSystem = {
@@ -320,7 +321,7 @@ const MusicSystem = {
     // Preload just track metadata, not actual audio content
     preload: function (scene) {
         // Just build a list of track IDs without loading them
-        for (let i = 1; i <= 23; i++) {
+        for (let i = 1; i <= MUSIC_CONFIG.trackCount; i++) {
             const trackId = `track-${String(i).padStart(2, '0')}`;
             this.tracks.push(trackId);
         }

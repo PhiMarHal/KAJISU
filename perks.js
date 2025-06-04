@@ -155,6 +155,18 @@ const PERKS = {
             window.modifyStat('health', 5);     // +5 END
         }
     },
+    "LASER_CANNON": {
+        kanji: "光線砲",
+        kana: "こうせんほう",
+        romaji: "kousenpou",
+        english: "Laser Cannon",
+        description: "Charges up and fires a devastating laser beam",
+        color: "#00FFFF",
+        hoverColor: 0x00DDDD,
+        onAcquire: function () {
+            window.activateLaserBlast();
+        }
+    },
     "DENIAL_OF_FATE": {
         kanji: "運命否定",
         kana: "うんめいひてい",

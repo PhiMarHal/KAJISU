@@ -887,5 +887,102 @@ window.activateWreckingBall = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'WRECKING_BALL');
 };
 
+// Register the Laser Blast perk
+OrbitalPerkRegistry.registerPerkOrbital('LASER_BLAST', {
+    getConfig: function () {
+        return {
+            symbol: '光線'.repeat(32),
+            color: '#00FFFF',
+            fontSize: 32,
+            radius: 1024,
+            angle: 0, // Will be set by executeLaserSequence
+            speed: 0,
+            pattern: 'directionFollowing',
+            collisionType: 'persistent',
+            damage: playerDamage,
+            damageInterval: 100,
+            lifespan: 2000,
+            options: {
+                oscillationSpeed: 0,
+                oscillationAmount: 0,
+                disableSpawnTween: true // Disable the spawn animation
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate'
+});
+
+// Execute laser sequence
+function executeLaserSequence() {
+    const scene = game.scene.scenes[0];
+    if (!scene || !player?.active) return;
+
+    let lastKnownAngle = 0; // Default facing right
+
+    VisualEffects.createChargingEffect(scene);
+
+    // Track player movement every 100ms during charging
+    const angleTracker = scene.time.addEvent({
+        delay: 100,
+        repeat: 39, // 40 total checks over 4 seconds
+        callback: () => {
+            if (!player?.body?.velocity) return;
+
+            const { x, y } = player.body.velocity;
+            if (Math.sqrt(x * x + y * y) > 10) {
+                lastKnownAngle = Math.atan2(y, x);
+            }
+        }
+    });
+
+    scene.time.delayedCall(4000, () => {
+        if (!player?.active) return;
+
+        // Stop tracking and fire laser
+        angleTracker.remove();
+
+        const config = {
+            symbol: '光線'.repeat(32),
+            color: '#00FFFF',
+            fontSize: 32,
+            radius: 1024,
+            angle: lastKnownAngle,
+            speed: 0,
+            pattern: 'directionFollowing',
+            collisionType: 'persistent',
+            damage: playerDamage,
+            damageInterval: 100,
+            lifespan: 2000,
+            options: {
+                oscillationSpeed: 0,
+                oscillationAmount: 0,
+                disableSpawnTween: true
+            }
+        };
+
+        OrbitalSystem.create(scene, config);
+    });
+}
+
+// Activate the perk
+window.activateLaserBlast = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Fire immediately when perk is acquired
+    executeLaserSequence();
+
+    // Then set up regular timer
+    CooldownManager.createTimer({
+        baseCooldown: 60000,
+        statName: 'luck',
+        formula: 'sqrt',
+        callback: executeLaserSequence,
+        callbackScope: scene,
+        loop: true
+    });
+};
+
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

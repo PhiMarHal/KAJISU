@@ -176,6 +176,49 @@ const VisualEffects = {
         return lightning;
     },
 
+    createChargingEffect: function (scene, options = {}) {
+        // Default options
+        const symbol = options.symbol ?? '充';
+        const fontSize = options.fontSize ?? '16px';
+        const color = options.color ?? '#FFFF00';
+        const offsetY = options.offsetY ?? -50;
+        const pulseCount = options.pulseCount ?? 8;
+        const pulseDuration = options.pulseDuration ?? 250;
+
+        const text = scene.add.text(player.x, player.y + offsetY, symbol, {
+            fontFamily: 'Arial',
+            fontSize: fontSize,
+            color: color,
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100);
+
+        let pulses = 0;
+
+        function pulse() {
+            if (pulses >= pulseCount || !text?.active) {
+                text?.destroy();
+                return;
+            }
+
+            text.setPosition(player.x, player.y + offsetY);
+
+            scene.tweens.add({
+                targets: text,
+                alpha: { from: 0, to: 1 },
+                scale: { from: 0.8, to: 1.2 },
+                duration: pulseDuration,
+                yoyo: true,
+                onComplete: () => {
+                    pulses++;
+                    pulse();
+                }
+            });
+        }
+
+        pulse();
+        return text;
+    },
+
     convertToColorValue: function (color) {
         // If it's already a number, return it directly
         if (typeof color === 'number') {

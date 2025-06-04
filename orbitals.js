@@ -399,13 +399,15 @@ const OrbitalSystem = {
             collisionBehavior(scene, orbital, enemy);
         }, null, scene);
 
-        // Visual effect when spawning
-        scene.tweens.add({
-            targets: entity,
-            scale: { from: 0, to: 1 },
-            duration: 500,
-            ease: 'Back.out'
-        });
+        // Visual effect when spawning (optional)
+        if (!orbitalConfig.options.disableSpawnTween) {
+            scene.tweens.add({
+                targets: entity,
+                scale: { from: 0, to: 1 },
+                duration: 500,
+                ease: 'Back.out'
+            });
+        }
 
         // Set up auto-destruction timer if lifespan is specified
         if (orbital.lifespan !== null) {

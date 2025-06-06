@@ -188,7 +188,7 @@ const CollisionBehaviors = {
             orbital.entity,
             enemy,
             orbital.entity.damage,
-            orbital.damageInterval
+            orbital.entity.damageInterval
         );
     },
 
@@ -344,8 +344,9 @@ const OrbitalSystem = {
         // Store unique ID for damage source (used for cooldown tracking)
         entity.damageSourceId = `orbital_${Date.now()}_${Math.random()}`;
 
-        // Store damage value on the entity
+        // Store damage value and interval on the entity
         entity.damage = orbitalConfig.damage;
+        entity.damageInterval = orbitalConfig.damageInterval;
 
         // Initialize components object if components are specified
         if (orbitalConfig.options && orbitalConfig.options.components) {

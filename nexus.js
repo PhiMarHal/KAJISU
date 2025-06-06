@@ -101,7 +101,7 @@ OrbitalPerkRegistry.registerPerkOrbital('WILD_FAIRY', {
             pattern: 'oscillating', // Erratic wobbling pattern
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage * 0.5, // Half player damage as requested
-            damageInterval: 200, // 200ms between damage ticks as requested
+            damageInterval: 500,
             lifespan: null, // Permanent
             options: {
                 wobbleFrequency: 6,  // Higher frequency for more erratic movement
@@ -307,7 +307,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage,
-            damageInterval: 500, // Half second cooldown between damage applications
+            damageInterval: 500,
             lifespan: null, // Permanent
             options: {}
         };
@@ -329,7 +329,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_HEAD', {
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage,
-            damageInterval: 500, // Half second cooldown between damage applications
+            damageInterval: 500,
             lifespan: null, // Permanent
             options: {}
         };
@@ -739,7 +739,7 @@ OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
             pattern: 'directionFollowing', // Use our custom pattern
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage * 1, //
-            damageInterval: 400, //
+            damageInterval: 500, //
             lifespan: null, // Permanent
             options: {
                 oscillationSpeed: 0.004, // Speed of the breathing effect

@@ -905,7 +905,7 @@ OrbitalPerkRegistry.registerPerkOrbital('LASER_BLAST', {
             options: {
                 oscillationSpeed: 0,
                 oscillationAmount: 0,
-                disableSpawnTween: true // Disable the spawn animation
+                disableSpawnTween: true
             }
         };
     },
@@ -922,10 +922,11 @@ function executeLaserSequence() {
 
     VisualEffects.createChargingEffect(scene);
 
-    // Track player movement every 100ms during charging
-    const angleTracker = scene.time.addEvent({
-        delay: 100,
-        repeat: 39, // 40 total checks over 4 seconds
+    // Use CooldownManager for the angle tracking timer
+    const angleTracker = CooldownManager.createTimer({
+        baseCooldown: 100,
+        statName: null, // No stat scaling needed
+        formula: 'none',
         callback: () => {
             if (!player?.body?.velocity) return;
 
@@ -933,35 +934,57 @@ function executeLaserSequence() {
             if (Math.sqrt(x * x + y * y) > 10) {
                 lastKnownAngle = Math.atan2(y, x);
             }
-        }
+        },
+        callbackScope: scene,
+        loop: true
     });
 
-    scene.time.delayedCall(4000, () => {
-        if (!player?.active) return;
+    // Use CooldownManager for the delayed laser firing
+    const fireTimer = CooldownManager.createTimer({
+        baseCooldown: 4000,
+        statName: null, // No stat scaling needed
+        formula: 'none',
+        callback: () => {
+            if (!player?.active) return;
 
-        // Stop tracking and fire laser
-        angleTracker.remove();
+            // Stop tracking and fire laser
+            CooldownManager.removeTimer(angleTracker);
 
-        const config = {
-            symbol: '光線'.repeat(32),
-            color: '#00FFFF',
-            fontSize: 32,
-            radius: 1024,
-            angle: lastKnownAngle,
-            speed: 0,
-            pattern: 'directionFollowing',
-            collisionType: 'persistent',
-            damage: playerDamage,
-            damageInterval: 100,
-            lifespan: 2000,
-            options: {
-                oscillationSpeed: 0,
-                oscillationAmount: 0,
-                disableSpawnTween: true
-            }
-        };
+            const config = {
+                symbol: '光線'.repeat(32),
+                color: '#00FFFF',
+                fontSize: 32,
+                radius: 1024,
+                angle: lastKnownAngle,
+                speed: 0,
+                pattern: 'directionFollowing',
+                collisionType: 'persistent',
+                damage: playerDamage,
+                damageInterval: 100,
+                lifespan: 2000,
+                options: {
+                    oscillationSpeed: 0,
+                    oscillationAmount: 0,
+                    disableSpawnTween: true
+                }
+            };
 
-        OrbitalSystem.create(scene, config);
+            OrbitalSystem.create(scene, config);
+        },
+        callbackScope: scene,
+        loop: false
+    });
+
+    // Clean up the angle tracker after 3.9 seconds (just before firing)
+    CooldownManager.createTimer({
+        baseCooldown: 3900,
+        statName: null,
+        formula: 'none',
+        callback: () => {
+            CooldownManager.removeTimer(angleTracker);
+        },
+        callbackScope: scene,
+        loop: false
     });
 }
 

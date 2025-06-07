@@ -128,8 +128,8 @@ BeamPerkRegistry.registerPerkBeam('EYE_BEAM', {
             color: '#FF0000',         // Bright red color
             fontSize: 16,             // Thin beam - smaller font size
             damage: playerDamage * 4, // 4x player damage
-            damageInterval: 1001,     // Single damage tick (slightly over 1s to avoid double-tick)
-            duration: 1000,           // 1 second beam duration
+            damageInterval: 201,     // Single damage tick (slightly over 1s to avoid double-tick)
+            duration: 200,           // 1 second beam duration
             beamWidth: 16,            // 16px beam width (thin)
             followPlayer: false,      // Static beam - stays where fired
             chargeTime: 2000,         // 2 second charge time (faster than laser cannon)

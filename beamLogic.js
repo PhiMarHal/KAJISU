@@ -190,6 +190,26 @@ const BeamSystem = {
             destroyed: false
         };
 
+        // Add visual components if specified
+        if (config.visualComponents && Array.isArray(config.visualComponents)) {
+            beamVisual.components = {};
+            config.visualComponents.forEach(componentName => {
+                if (ProjectileComponentSystem.componentTypes[componentName]) {
+                    ProjectileComponentSystem.addComponent(beamVisual, componentName);
+                }
+            });
+        }
+
+        // Add physics components if specified  
+        if (config.physicsComponents && Array.isArray(config.physicsComponents)) {
+            beamPhysics.components = {};
+            config.physicsComponents.forEach(componentName => {
+                if (ProjectileComponentSystem.componentTypes[componentName]) {
+                    ProjectileComponentSystem.addComponent(beamPhysics, componentName);
+                }
+            });
+        }
+
         // Add to active beams list
         activeBeams.push(beam);
 

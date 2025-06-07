@@ -179,44 +179,63 @@ const VisualEffects = {
     createChargingEffect: function (scene, options = {}) {
         // Default options
         const symbol = options.symbol ?? '充';
-        const fontSize = options.fontSize ?? '16px';
+        const fontSize = options.fontSize ?? '12px';
         const color = options.color ?? '#FFFF00';
-        const offsetY = options.offsetY ?? -50;
-        const pulseCount = options.pulseCount ?? 8;
-        const pulseDuration = options.pulseDuration ?? 250;
+        const duration = options.duration ?? 4000;
+        const maxRadius = options.maxRadius ?? 32;
 
-        const text = scene.add.text(player.x, player.y + offsetY, symbol, {
-            fontFamily: 'Arial',
-            fontSize: fontSize,
-            color: color,
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(100);
+        const startInterval = 400; // Start with 200ms between spawns
+        const endInterval = 60;    // End with 50ms between spawns
+        let currentInterval = startInterval;
+        let elapsed = 0;
 
-        let pulses = 0;
+        function spawnChargeKanji() {
+            if (elapsed >= duration) return;
 
-        function pulse() {
-            if (pulses >= pulseCount || !text?.active) {
-                text?.destroy();
-                return;
-            }
+            // Random position within radius around player
+            const angle = Math.random() * Math.PI * 2;
+            const radius = maxRadius;
+            const x = player.x + Math.cos(angle) * radius;
+            const y = player.y + Math.sin(angle) * radius;
 
-            text.setPosition(player.x, player.y + offsetY);
+            const text = scene.add.text(x, y, symbol, {
+                fontFamily: 'Arial',
+                fontSize: fontSize,
+                color: color,
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(100);
 
+            // Fade in and scale up, then fade out
             scene.tweens.add({
                 targets: text,
-                alpha: { from: 0, to: 1 },
+                alpha: { from: 0, to: 0.8 },
                 scale: { from: 0.8, to: 1.2 },
-                duration: pulseDuration,
-                yoyo: true,
+                duration: 600,
+                ease: 'Quad.easeOut',
                 onComplete: () => {
-                    pulses++;
-                    pulse();
+                    scene.tweens.add({
+                        targets: text,
+                        alpha: 0,
+                        scale: 1.4,
+                        duration: 200,
+                        onComplete: () => text.destroy()
+                    });
                 }
             });
+
+            // Update timing for next spawn (gets faster over time)
+            elapsed += currentInterval;
+            const progress = elapsed / duration;
+            currentInterval = startInterval + (endInterval - startInterval) * progress;
+
+            // Schedule next spawn
+            if (elapsed < duration) {
+                scene.time.delayedCall(currentInterval, spawnChargeKanji);
+            }
         }
 
-        pulse();
-        return text;
+        // Start the spawning sequence
+        spawnChargeKanji();
     },
 
     convertToColorValue: function (color) {

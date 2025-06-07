@@ -200,11 +200,18 @@ const BeamSystem = {
 
         // Register for cleanup
         window.registerEffect('entity', beamVisual);
+        window.registerEffect('entity', beamPhysics); // Register physics body for cleanup too
 
         // Set up collision with enemies
-        scene.physics.add.overlap(beamPhysics, EnemySystem.enemiesGroup, function (beamBody, enemy) {
+        const overlapCollider = scene.physics.add.overlap(beamPhysics, EnemySystem.enemiesGroup, function (beamBody, enemy) {
             BeamSystem.handleBeamHit(beam, enemy, scene);
         }, null, scene);
+
+        // Register the overlap collider for cleanup using the same pattern
+        window.registerEffect('entity', overlapCollider);
+
+        // Store reference for manual cleanup too
+        beam.overlapCollider = overlapCollider;
 
         // Call beam start callback if provided
         if (config.onBeamStart) {
@@ -218,7 +225,24 @@ const BeamSystem = {
                 // Stop the beam from dealing damage immediately
                 beam.destroyed = true;
 
-                // Start fade out effect
+                // Destroy physics body immediately (don't wait for fade)
+                if (beam.physics && beam.physics.active) {
+                    // Remove overlap collider first
+                    if (beam.overlapCollider) {
+                        beam.overlapCollider.destroy();
+                        beam.overlapCollider = null;
+                    }
+
+                    // Disable and remove physics body immediately
+                    beam.physics.body.enable = false;
+                    if (beam.physics.body.world) {
+                        beam.physics.body.world.remove(beam.physics.body);
+                    }
+                    beam.physics.destroy();
+                    beam.physics = null;
+                }
+
+                // Start fade out effect for visual only
                 scene.tweens.add({
                     targets: beam.visual,
                     alpha: 0,
@@ -353,6 +377,12 @@ const BeamSystem = {
         // Mark as destroyed first to prevent multiple calls
         beam.destroyed = true;
 
+        // Remove overlap collider first
+        if (beam.overlapCollider) {
+            beam.overlapCollider.destroy();
+            beam.overlapCollider = null;
+        }
+
         // Clean up all timers
         if (beam._directionTracker && beam._directionTracker.active) {
             beam._directionTracker.remove();
@@ -364,9 +394,15 @@ const BeamSystem = {
             beam._durationTimer.remove();
         }
 
-        // Destroy physics body first (this was the lingering issue)
+        // Destroy physics body properly
         if (beam.physics && beam.physics.active) {
-            beam.physics.body.enable = false; // Disable physics body
+            // Disable physics body first
+            beam.physics.body.enable = false;
+            // Remove from any groups
+            if (beam.physics.body.world) {
+                beam.physics.body.world.remove(beam.physics.body);
+            }
+            // Destroy the game object
             beam.physics.destroy();
             beam.physics = null;
         }

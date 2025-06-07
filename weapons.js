@@ -188,11 +188,11 @@ const WeaponSystem = {
                 player.x, player.y,
                 closestEnemy.x, closestEnemy.y
             );
-            /*
-                        // Fire projectile based on active weapon type
-                        if (this.activeWeaponType === 'BASIC_PROJECTILE') {
-                            this.fireBasicProjectile(scene, angle);
-                        }*/
+
+            // Fire projectile based on active weapon type
+            if (this.activeWeaponType === 'BASIC_PROJECTILE') {
+                this.fireBasicProjectile(scene, angle);
+            }
         }
     },
 

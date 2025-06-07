@@ -89,16 +89,14 @@ BeamPerkRegistry.registerPerkBeam('LASER_CANNON', {
             followPlayer: true,      // Beam stays where it was fired
             chargeTime: 4000,         // 4 second charge time
             onChargeStart: function (scene) {
-                // Simple charge effect without screen shake
-                console.log("Laser cannon charging...");
+                VisualEffects.createChargingEffect(scene, {
+                    color: '#00FFFF',     // Bright red to match beam
+                    duration: 4000       // Match charge time
+                });
             },
             onBeamStart: function (scene, beam) {
-                // Simple beam start effect without screen shake
-                console.log("LASER CANNON FIRED!");
             },
             onBeamEnd: function (scene, beam) {
-                // Simple beam end effect
-                console.log("Laser cannon beam ended.");
             }
         };
     },
@@ -122,31 +120,50 @@ window.activateLaserBlast = function () {
     BeamPerkRegistry.applyPerkBeam(scene, 'LASER_CANNON');
 };
 
-// Register a simpler test beam for debugging/comparison
-BeamPerkRegistry.registerPerkBeam('SIMPLE_BEAM', {
+// Register the EYE_BEAM perk
+BeamPerkRegistry.registerPerkBeam('EYE_BEAM', {
     getConfig: function () {
         return {
-            symbol: '一',             // Simple horizontal line kanji
-            color: '#FFFF00',         // Yellow color
-            fontSize: 32,             // Large size
-            damage: playerDamage,     // Normal damage
-            damageInterval: 200,      // 5 ticks per second
-            duration: 1500,           // 1.5 second duration
-            beamWidth: 32,            // Narrow beam
-            followPlayer: true,       // Follows player movement
-            chargeTime: 1000          // Quick 1 second charge
+            symbol: '眼光',           // "Eye light" in kanji
+            color: '#FF0000',         // Bright red color
+            fontSize: 16,             // Thin beam - smaller font size
+            damage: playerDamage * 4, // 4x player damage
+            damageInterval: 1001,     // Single damage tick (slightly over 1s to avoid double-tick)
+            duration: 1000,           // 1 second beam duration
+            beamWidth: 16,            // 16px beam width (thin)
+            followPlayer: false,      // Static beam - stays where fired
+            chargeTime: 2000,         // 2 second charge time (faster than laser cannon)
+            onChargeStart: function (scene) {
+                // Red charging effect to distinguish from laser cannon
+                VisualEffects.createChargingEffect(scene, {
+                    color: '#FF0000',     // Bright red to match beam
+                    duration: 2000       // Match charge time
+                });
+            },
+            onBeamStart: function (scene, beam) {
+            },
+            onBeamEnd: function (scene, beam) {
+            }
         };
     },
-    cooldown: 10000, // 10 second cooldown for testing
+    cooldown: function () {
+        // 12 second base cooldown
+        return 12000;
+    },
     activationMethod: 'timer'
 });
 
-// Function to activate the simple test beam
-window.activateSimpleBeam = function () {
+// Function to activate the EYE_BEAM perk
+window.activateEyeBeam = function () {
     const scene = game.scene.scenes[0];
     if (!scene) return;
 
-    BeamPerkRegistry.applyPerkBeam(scene, 'SIMPLE_BEAM');
+    // Fire the first beam immediately
+    const beamConfig = BeamPerkRegistry.perkBeamConfigs['EYE_BEAM'].getConfig();
+    BeamSystem.create(scene, beamConfig);
+
+    // Set up the timer system for future beams
+    BeamPerkRegistry.applyPerkBeam(scene, 'EYE_BEAM');
 };
 
 // Export the registry for use in other files

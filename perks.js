@@ -167,6 +167,18 @@ const PERKS = {
             window.activateLaserBlast();
         }
     },
+    "EYE_BEAM": {
+        kanji: "眼光線",
+        kana: "がんこうせん",
+        romaji: "gankousen",
+        english: "Eye Beam",
+        description: "Fast charging precision beam with devastating single strike",
+        color: "#FF0000",
+        hoverColor: 0xCC0000,
+        onAcquire: function () {
+            window.activateEyeBeam();
+        }
+    },
     "DENIAL_OF_FATE": {
         kanji: "運命否定",
         kana: "うんめいひてい",

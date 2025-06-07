@@ -119,9 +119,6 @@ const BeamSystem = {
             config.onChargeStart(scene);
         }
 
-        // Create visual charging effect
-        VisualEffects.createChargingEffect(scene);
-
         // Track player movement during charge to determine direction
         const directionTracker = registerTimer(scene.time.addEvent({
             delay: 100, // Check every 100ms

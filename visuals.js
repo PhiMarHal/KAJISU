@@ -184,8 +184,8 @@ const VisualEffects = {
         const duration = options.duration ?? 4000;
         const maxRadius = options.maxRadius ?? 32;
 
-        const startInterval = 400; // Start with 200ms between spawns
-        const endInterval = 60;    // End with 50ms between spawns
+        const startInterval = 400; // between spawns
+        const endInterval = 60;    // 
         let currentInterval = startInterval;
         let elapsed = 0;
 

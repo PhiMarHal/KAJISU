@@ -217,6 +217,10 @@ async function mergeFiles() {
     htmlTemplate = htmlTemplate.replace(/const KAJISULI_MODE = [^;]+;/g, 'const KAJISULI_MODE = true;');
     console.log('Set KAJISULI_MODE to true');
 
+    // Set DEBUG_MODE to false in the template
+    htmlTemplate = htmlTemplate.replace(/const DEBUG_MODE = [^;]+;/g, 'const DEBUG_MODE = false;');
+    console.log('Set DEBUG_MODE to false');
+
     // Merge all JS files
     const mergedJs = mergeJsFiles();
 

@@ -28,18 +28,6 @@ const PauseSystem = {
         // Create pause overlay elements (initially hidden)
         this.createPauseScreen(scene);
 
-        // Setup pause key (P)
-        const pauseKeyP = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
-        pauseKeyP.on('down', function () {
-            if (!gameOver) {
-                if (gamePaused) {
-                    PauseSystem.resumeGame();
-                } else {
-                    PauseSystem.pauseGameWithOverlay();
-                }
-            }
-        });
-
         // Setup visibility change detection
         document.addEventListener('visibilitychange', function () {
             if (document.hidden && !gameOver && !gamePaused) {

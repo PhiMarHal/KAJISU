@@ -13,10 +13,16 @@ const DebugSystem = {
         // Create stats text display (initially hidden)
         this.setupPerformanceMonitor(scene);
 
-        // Setup debug keyboard shortcuts
-        this.setupDebugKeys(scene);
+        // Always setup normal keys (P for pause, M for music)
+        this.setupNormalKeys(scene);
 
-        console.log("Debug system initialized (press O to toggle)");
+        // Only setup debug/cheat keys if DEBUG_MODE is enabled
+        if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE) {
+            this.setupDebugKeys(scene);
+            console.log("Debug system initialized with cheat keys enabled (O = stats, T = spawn 1 enemy, K = skip to next phase, R = levelup");
+        } else {
+            console.log("Debug system initialized in normal mode (no cheat keys)");
+        }
     },
 
     // Toggle debug mode and stats visibility
@@ -115,7 +121,35 @@ const DebugSystem = {
         }
     },
 
-    // Setup debug keyboard shortcuts
+    // Setup normal keys available in all modes (P for pause, M for music)
+    setupNormalKeys: function (scene) {
+        // Add pause key (P key)
+        scene.input.keyboard.on('keydown-P', function () {
+            if (!gameOver) {
+                if (gamePaused) {
+                    PauseSystem.resumeGame();
+                } else {
+                    PauseSystem.pauseGameWithOverlay();
+                }
+            }
+        }, scene);
+
+        // Add music toggle key (M key)
+        scene.input.keyboard.on('keydown-M', function () {
+            // Skip if debug keys are disabled
+            if (this.debugKeysDisabled) return;
+
+            // Toggle music if MusicSystem is available
+            if (window.MusicSystem) {
+                const musicEnabled = MusicSystem.setMusicEnabled(!MusicSystem.musicEnabled);
+                console.log(`Music ${musicEnabled ? 'enabled' : 'disabled'}`);
+            } else {
+                console.log("MusicSystem not available");
+            }
+        }, scene);
+    },
+
+    // Setup debug/cheat keys (only available when DEBUG_MODE is true)
     setupDebugKeys: function (scene) {
         // Add debug key (R key for instant level up)
         scene.input.keyboard.on('keydown-R', function () {
@@ -164,20 +198,6 @@ const DebugSystem = {
 
             // Toggle debug mode and stats visibility
             DebugSystem.toggleDebugMode(this);
-        }, scene);
-
-        // Add debug key (M key for toggling music)
-        scene.input.keyboard.on('keydown-M', function () {
-            // Skip if debug keys are disabled
-            if (this.debugKeysDisabled) return;
-
-            // Toggle music if MusicSystem is available
-            if (window.MusicSystem) {
-                const musicEnabled = MusicSystem.setMusicEnabled(!MusicSystem.musicEnabled);
-                console.log(`Debug: Music ${musicEnabled ? 'enabled' : 'disabled'}`);
-            } else {
-                console.log("Debug: MusicSystem not available");
-            }
         }, scene);
     },
 

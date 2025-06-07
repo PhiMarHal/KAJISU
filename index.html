@@ -720,10 +720,10 @@
             GameUI.updateHealthBar(this);
             GameUI.updateExpBar(this);
 
-
-            // Update orbitals
+            // Update orbitals, droppers, beams
             OrbitalSystem.update(this, time);
             DropperSystem.update(this, time);
+            BeamSystem.update(this, time);
 
             if (window.MusicSystem) {
                 MusicSystem.update(time, delta);

@@ -40,40 +40,38 @@ function calculateBeamGeometry(direction, originX, originY, beamWidth) {
     const gameWidth = game.config.width;
     const gameHeight = game.config.height;
 
-    let beamLength, beamX, beamY, physicsWidth, physicsHeight;
+    // Use fixed beam length that extends well beyond screen in all directions
+    const fixedBeamLength = Math.max(gameWidth, gameHeight) + 200;
+    let beamX, beamY, physicsWidth, physicsHeight;
 
     switch (direction.name) {
         case 'north':
-            beamLength = originY + 100; // Extend beyond screen top
             beamX = originX;
-            beamY = originY - beamLength / 2;
+            beamY = originY - fixedBeamLength / 2; // Physics center is half the beam length north of player
             physicsWidth = beamWidth;
-            physicsHeight = beamLength;
+            physicsHeight = fixedBeamLength;
             break;
         case 'south':
-            beamLength = gameHeight - originY + 100; // Extend beyond screen bottom
             beamX = originX;
-            beamY = originY + beamLength / 2;
+            beamY = originY + fixedBeamLength / 2; // Physics center is half the beam length south of player
             physicsWidth = beamWidth;
-            physicsHeight = beamLength;
+            physicsHeight = fixedBeamLength;
             break;
         case 'east':
-            beamLength = gameWidth - originX + 100; // Extend beyond screen right
-            beamX = originX + beamLength / 2;
+            beamX = originX + fixedBeamLength / 2; // Physics center is half the beam length east of player
             beamY = originY;
-            physicsWidth = beamLength;
+            physicsWidth = fixedBeamLength;
             physicsHeight = beamWidth;
             break;
         case 'west':
-            beamLength = originX + 100; // Extend beyond screen left
-            beamX = originX - beamLength / 2;
+            beamX = originX - fixedBeamLength / 2; // Physics center is half the beam length west of player
             beamY = originY;
-            physicsWidth = beamLength;
+            physicsWidth = fixedBeamLength;
             physicsHeight = beamWidth;
             break;
     }
 
-    return { beamLength, beamX, beamY, physicsWidth, physicsHeight };
+    return { beamLength: fixedBeamLength, beamX, beamY, physicsWidth, physicsHeight };
 }
 
 // Main Beam System
@@ -356,16 +354,18 @@ const BeamSystem = {
 
             // Update beam position if it follows the player
             if (beam.followPlayer && player) {
-                const deltaX = player.x - beam.originX;
-                const deltaY = player.y - beam.originY;
+                console.log(`Updating beam position from (${beam.visual.x}, ${beam.visual.y}) to (${player.x}, ${player.y})`);
 
-                // Update visual position
-                beam.visual.x = beam.geometry.beamX + deltaX;
-                beam.visual.y = beam.geometry.beamY + deltaY;
+                // Update visual position to current player position
+                beam.visual.x = player.x;
+                beam.visual.y = player.y;
 
-                // Update physics position
-                beam.physics.x = beam.geometry.beamX + deltaX;
-                beam.physics.y = beam.geometry.beamY + deltaY;
+                // Update physics position - recalculate geometry for current player position
+                const newGeometry = calculateBeamGeometry(beam.direction, player.x, player.y, beam.config.beamWidth);
+                beam.physics.x = newGeometry.beamX;
+                beam.physics.y = newGeometry.beamY;
+
+                console.log(`Physics updated to (${beam.physics.x}, ${beam.physics.y})`);
             }
         }
     },

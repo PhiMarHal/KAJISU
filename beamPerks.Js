@@ -86,7 +86,7 @@ BeamPerkRegistry.registerPerkBeam('LASER_CANNON_TWO', {
             damageInterval: 100,       // Very fast damage ticks (10 per second)
             duration: 2000,           // 2 second beam duration
             beamWidth: 32,            // 32px beam width as requested
-            followPlayer: false,      // Beam stays where it was fired
+            followPlayer: true,      // Beam stays where it was fired
             chargeTime: 4000,         // 4 second charge time
             onChargeStart: function (scene) {
                 // Simple charge effect without screen shake

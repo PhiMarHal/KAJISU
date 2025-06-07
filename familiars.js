@@ -190,6 +190,7 @@ const FamiliarBehaviors = {
             damage: config.damage,
             color: config.color,
             symbol: config.symbol,
+            piercing: true,
             speed: config.speed,
             // Override the angle calculation since we're not targeting an enemy
             overrideAngle: angle
@@ -227,6 +228,21 @@ const FamiliarBehaviors = {
             color: '#FFFF00',
             symbol: '　',
             componentName: 'poisonEffect'
+        });
+    },
+
+    laserFinger: function (scene, orbital, time) {
+        // Use the fixed angle stored in options
+        const angle = orbital.options.fixedAngle ?? orbital.angle;
+
+        return FamiliarBehaviors.finger(scene, orbital, time, {
+            damage: playerDamage,
+            speed: 4000,
+            color: '#00FFFF',
+            symbol: 'O',
+            componentName: null,
+            piercing: true, // Laser should pierce through enemies
+            overrideAngle: angle
         });
     },
 };
@@ -290,6 +306,7 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
         speed: 400,
         color: '#ffff00',
         symbol: '★',
+        piercing: false, // Add piercing option with default false
         ...options
     };
 
@@ -314,6 +331,26 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
         fontSize: familiarProjectileSize,
         skipComponents: true // Skip components for familiar projectiles, apply them manually if needed
     });
+
+    // Store the original velocity before any group changes
+    const originalVelocityX = projectile.body.velocity.x;
+    const originalVelocityY = projectile.body.velocity.y;
+
+    // If piercing is requested, add piercing component and fix physics group
+    if (config.piercing) {
+        ProjectileComponentSystem.addComponent(projectile, 'piercingEffect');
+
+        // Move to piercing group since it's now piercing
+        if (projectile.piercing) {
+            // Remove from regular group
+            WeaponSystem.projectilesGroup.remove(projectile);
+            // Add to piercing group  
+            WeaponSystem.piercingProjectilesGroup.add(projectile);
+
+            // Restore velocity after group change
+            projectile.body.setVelocity(originalVelocityX, originalVelocityY);
+        }
+    }
 
     // Add visual effect for the shot
     scene.tweens.add({

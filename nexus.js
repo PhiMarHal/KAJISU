@@ -887,125 +887,168 @@ window.activateWreckingBall = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'WRECKING_BALL');
 };
 
-// Register the Laser Blast perk
-OrbitalPerkRegistry.registerPerkOrbital('LASER_BLAST', {
+// Register the visual laser beam (appears 4s into each 6s cycle)
+OrbitalPerkRegistry.registerPerkOrbital('LASER_CANNON', {
     getConfig: function () {
+        // Get the last known direction from our tracker
+        const angle = window.laserCannonTracker?.lastKnownAngle ?? 0;
+
         return {
             symbol: '光線'.repeat(32),
             color: '#00FFFF',
             fontSize: 32,
             radius: 1024,
-            angle: 0, // Will be set by executeLaserSequence
+            angle: angle,
             speed: 0,
-            pattern: 'directionFollowing',
+            pattern: 'directionFollowing', // This gives us the visual rotation
             collisionType: 'persistent',
-            damage: playerDamage,
-            damageInterval: 100,
-            lifespan: 2000,
+            damage: 0, // No damage - purely visual
+            damageInterval: 0,
+            lifespan: 2000, // 2 seconds visual duration
             options: {
-                oscillationSpeed: 0,
-                oscillationAmount: 0,
                 disableSpawnTween: true
             }
         };
     },
-    count: 1,
-    activationMethod: 'immediate'
+    cooldown: 6000, // 6 second cycle
+    activationMethod: 'timer'
 });
 
-// Execute laser sequence
+// Create the invisible damage-dealing orbital
+function createLaserDamageDealer(scene, angle) {
+    const damageConfig = {
+        symbol: '　', // Invisible
+        color: '#00FFFF',
+        fontSize: 1,
+        radius: 0, // At player position
+        angle: angle,
+        speed: 0,
+        pattern: 'standard',
+        collisionType: 'persistent',
+        damage: 0, // No contact damage
+        damageInterval: 0,
+        lifespan: 2000, // 2 seconds of shooting
+        options: {
+            isFamiliar: true,
+            familiarType: 'laserFinger',
+            disableSpawnTween: true,
+            fixedAngle: angle
+        }
+    };
+
+    const damageOrbital = OrbitalSystem.create(scene, damageConfig);
+
+    // Set up rapid firing
+    if (damageOrbital && damageOrbital.options && damageOrbital.options.isFamiliar) {
+        damageOrbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
+            scene,
+            damageOrbital,
+            'laserFinger',
+            100 // Fire every 100ms
+        );
+    }
+
+    return damageOrbital;
+}
+
+// Global tracker for laser cannon state
+window.laserCannonTracker = {
+    lastKnownAngle: 0,
+    chargingTimer: null,
+    damageTimer: null,
+    angleTracker: null
+};
+
+// Laser sequence execution
 function executeLaserSequence() {
     const scene = game.scene.scenes[0];
     if (!scene || !player?.active) return;
 
-    let lastKnownAngle = 0; // Default facing right
+    const tracker = window.laserCannonTracker;
 
-    VisualEffects.createChargingEffect(scene);
+    // Angle tracking - continuous
+    if (tracker.angleTracker) {
+        CooldownManager.removeTimer(tracker.angleTracker);
+    }
 
-    // Use CooldownManager for the angle tracking timer
-    const angleTracker = CooldownManager.createTimer({
+    tracker.angleTracker = CooldownManager.createTimer({
         baseCooldown: 100,
-        statName: null, // No stat scaling needed
+        statName: null,
         formula: 'none',
-        callback: () => {
+        callback: function () {
             if (!player?.body?.velocity) return;
 
             const { x, y } = player.body.velocity;
-            if (Math.sqrt(x * x + y * y) > 10) {
-                lastKnownAngle = Math.atan2(y, x);
+            const speed = Math.sqrt(x * x + y * y);
+
+            if (speed > 10) {
+                tracker.lastKnownAngle = Math.atan2(y, x);
             }
         },
         callbackScope: scene,
         loop: true
     });
 
-    // Use CooldownManager for the delayed laser firing
-    const fireTimer = CooldownManager.createTimer({
-        baseCooldown: 4000,
-        statName: null, // No stat scaling needed
-        formula: 'none',
-        callback: () => {
-            if (!player?.active) return;
+    // Charging effect timer (every 6s, immediate)
+    if (tracker.chargingTimer) {
+        CooldownManager.removeTimer(tracker.chargingTimer);
+    }
 
-            // Stop tracking and fire laser
-            CooldownManager.removeTimer(angleTracker);
-
-            const config = {
-                symbol: '光線'.repeat(32),
-                color: '#00FFFF',
-                fontSize: 32,
-                radius: 1024,
-                angle: lastKnownAngle,
-                speed: 0,
-                pattern: 'directionFollowing',
-                collisionType: 'persistent',
-                damage: playerDamage,
-                damageInterval: 100,
-                lifespan: 2000,
-                options: {
-                    oscillationSpeed: 0,
-                    oscillationAmount: 0,
-                    disableSpawnTween: true
-                }
-            };
-
-            OrbitalSystem.create(scene, config);
+    tracker.chargingTimer = CooldownManager.createTimer({
+        baseCooldown: 6000,
+        statName: 'luck',
+        formula: 'sqrt',
+        callback: function () {
+            VisualEffects.createChargingEffect(scene);
         },
         callbackScope: scene,
-        loop: false
+        loop: true
     });
 
-    // Clean up the angle tracker after 3.9 seconds (just before firing)
-    CooldownManager.createTimer({
-        baseCooldown: 3900,
-        statName: null,
-        formula: 'none',
-        callback: () => {
-            CooldownManager.removeTimer(angleTracker);
+    // Damage timer (every 6s, with 4s delay)
+    if (tracker.damageTimer) {
+        CooldownManager.removeTimer(tracker.damageTimer);
+    }
+
+    tracker.damageTimer = CooldownManager.createTimer({
+        baseCooldown: 6000,
+        statName: 'luck',
+        formula: 'sqrt',
+        callback: function () {
+            // 4 second delay, then create damage dealer
+            scene.time.delayedCall(4000, function () {
+                if (!player?.active) return;
+                createLaserDamageDealer(scene, tracker.lastKnownAngle);
+            });
         },
         callbackScope: scene,
-        loop: false
+        loop: true
+    });
+
+    // Start charging effect immediately
+    VisualEffects.createChargingEffect(scene);
+
+    // Start first damage dealer with 4s delay
+    scene.time.delayedCall(4000, function () {
+        if (!player?.active) return;
+        createLaserDamageDealer(scene, tracker.lastKnownAngle);
     });
 }
 
-// Activate the perk
+// Updated activation function
 window.activateLaserBlast = function () {
     const scene = game.scene.scenes[0];
     if (!scene) return;
 
-    // Fire immediately when perk is acquired
+    // Start the sequence
     executeLaserSequence();
 
-    // Then set up regular timer
-    CooldownManager.createTimer({
-        baseCooldown: 60000,
-        statName: 'luck',
-        formula: 'sqrt',
-        callback: executeLaserSequence,
-        callbackScope: scene,
-        loop: true
+    // Start the visual orbital timer with 4s delay to sync with damage
+    scene.time.delayedCall(4000, function () {
+        OrbitalPerkRegistry.applyPerkOrbital(scene, 'LASER_CANNON');
     });
 };
+
 
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

@@ -167,18 +167,6 @@ const PERKS = {
             window.activateLaserBlast();
         }
     },
-    "LASER_CANNON_TWO": {
-        kanji: "新光線砲",
-        kana: "しんこうせんほう",
-        romaji: "shinkousenpou",
-        english: "New Laser Cannon",
-        description: "Charges up and fires a devastating directional laser beam",
-        color: "#00FFFF",
-        hoverColor: 0x00BBBB,
-        onAcquire: function () {
-            window.activateLaserCannonTwo();
-        }
-    },
     "DENIAL_OF_FATE": {
         kanji: "運命否定",
         kana: "うんめいひてい",

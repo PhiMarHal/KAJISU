@@ -230,21 +230,6 @@ const FamiliarBehaviors = {
             componentName: 'poisonEffect'
         });
     },
-
-    laserFinger: function (scene, orbital, time) {
-        // Use the fixed angle stored in options
-        const angle = orbital.options.fixedAngle ?? orbital.angle;
-
-        return FamiliarBehaviors.finger(scene, orbital, time, {
-            damage: playerDamage,
-            speed: 4000,
-            color: '#00FFFF',
-            symbol: 'O',
-            componentName: null,
-            piercing: true, // Laser should pierce through enemies
-            overrideAngle: angle
-        });
-    },
 };
 
 // Helper function to find a random visible enemy within a maximum distance

@@ -75,8 +75,8 @@ const BeamPerkRegistry = {
     }
 };
 
-// Register the LASER_CANNON_TWO perk
-BeamPerkRegistry.registerPerkBeam('LASER_CANNON_TWO', {
+// Register the LASER_CANNON perk
+BeamPerkRegistry.registerPerkBeam('LASER_CANNON', {
     getConfig: function () {
         return {
             symbol: '光線',           // "Light beam" in kanji
@@ -109,17 +109,17 @@ BeamPerkRegistry.registerPerkBeam('LASER_CANNON_TWO', {
     activationMethod: 'timer'
 });
 
-// Function to activate the LASER_CANNON_TWO perk
-window.activateLaserCannonTwo = function () {
+// Function to activate the LASER_CANNON perk
+window.activateLaserBlast = function () {
     const scene = game.scene.scenes[0];
     if (!scene) return;
 
     // Fire the first beam immediately
-    const beamConfig = BeamPerkRegistry.perkBeamConfigs['LASER_CANNON_TWO'].getConfig();
+    const beamConfig = BeamPerkRegistry.perkBeamConfigs['LASER_CANNON'].getConfig();
     BeamSystem.create(scene, beamConfig);
 
     // Set up the timer system for future beams
-    BeamPerkRegistry.applyPerkBeam(scene, 'LASER_CANNON_TWO');
+    BeamPerkRegistry.applyPerkBeam(scene, 'LASER_CANNON');
 };
 
 // Register a simpler test beam for debugging/comparison

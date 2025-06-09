@@ -1,16 +1,15 @@
 // merge-minify.js
 // Script to merge all game files into a single index.html file and minify the result
+// Enhanced with Farcade SDK integration - fixed score calculation
 const fs = require('fs');
 const path = require('path');
 
 // Try to require Terser from global location
 let minify;
 try {
-    // First try normal require
     minify = require('terser').minify;
 } catch (err) {
     try {
-        // If that fails, try finding it in the global npm directory
         const { execSync } = require('child_process');
         const globalPath = execSync('npm root -g', { encoding: 'utf8' }).trim();
         const terserPath = path.join(globalPath, 'terser');
@@ -22,24 +21,16 @@ try {
     }
 }
 
-// Configuration (customize these paths as needed)
+// Configuration
 const config = {
-    // Base directory where your files are stored (one level up from this script)
     baseDir: '../',
-
-    // The main HTML template file
     indexTemplate: 'index.html',
-
-    // Output files (will be created in the same folder as this script)
     outputFile: 'kajisuli.html',
     outputMinified: '../kajisuli.min.html',
-
-    // Minification options
+    outputFarcade: '../kajisuli.min.farcade.html',
     minify: true,
-    useAdvancedMinify: true, // Set to false to force simple minification
-    removeConsoleLog: false, // Set to true to remove console.log statements
-
-    // Terser options (used if Terser is available)
+    useAdvancedMinify: true,
+    removeConsoleLog: false,
     terserOptions: {
         compress: {
             dead_code: true,
@@ -55,12 +46,12 @@ const config = {
             comments: false
         }
     },
-
-    // List of JS files (alphabetically ordered for easy checking)
     jsFiles: [
         'artillery.js',
         'backgrounds.js',
         'ballistics.js',
+        'beamLogic.js',
+        'beamPerks.js',
         'bestiary.js',
         'cards.js',
         'challenge.js',
@@ -83,14 +74,13 @@ const config = {
         'perks.js',
         'playerhit.js',
         'score.js',
+        'statdefs.js',
         'visuals.js',
         'weapons.js'
     ],
-
-    // No external dependencies needed for simple minification
+    serviceWorkerFile: 'serviceworker.js',
 };
 
-// Function to read file contents
 function readFile(filePath) {
     try {
         return fs.readFileSync(path.join(config.baseDir, filePath), 'utf8');
@@ -100,26 +90,329 @@ function readFile(filePath) {
     }
 }
 
-// Function to merge JS files into a single script block
 function mergeJsFiles() {
     console.log('Merging JS files...');
-
     let mergedJs = '';
-
-    // Read each file and append its content
     config.jsFiles.forEach(file => {
         const content = readFile(file);
         if (content) {
-            // Fix relative paths to music files for build subfolder
             const fixedContent = content.replace(/music\//g, '../music/');
             mergedJs += `// ======= ${file} =======\n${fixedContent}\n\n`;
         }
     });
-
     return mergedJs;
 }
 
-// Advanced minification using Terser (if available)
+function handleServiceWorkerForFarcade(mergedJs) {
+    console.log('Handling service worker for Farcade deployment...');
+    let modifiedJs = mergedJs;
+
+    const serviceWorkerPattern = /(if\s*\(\s*['"`]serviceworker['"`]\s+in\s+navigator\s*\)\s*\{[\s\S]*?navigator\.serviceworker\.register\([^)]*\);[\s\S]*?\})/gi;
+
+    modifiedJs = modifiedJs.replace(serviceWorkerPattern, (match) => {
+        console.log('Found service worker registration, commenting out for Farcade');
+        return `// Service worker disabled for Farcade single-file deployment
+        // ${match.replace(/\n/g, '\n        // ')}`;
+    });
+
+    const specificPattern = /(\/\/ Set up a cache for music\s+if\s*\(\s*['"`]serviceworker['"`]\s+in\s+navigator\s*\)\s*\{[\s\S]*?\})/gi;
+
+    modifiedJs = modifiedJs.replace(specificPattern, (match) => {
+        console.log('Found specific music cache service worker, commenting out for Farcade');
+        return `// Service worker for music cache disabled for Farcade single-file deployment
+        // ${match.replace(/\n/g, '\n        // ')}`;
+    });
+
+    console.log('✓ Service worker registration disabled for Farcade deployment');
+
+    // ADD THIS NEW SECTION HERE:
+    // Disable music system entirely for Farcade to prevent bandwidth abuse
+    modifiedJs = modifiedJs.replace(
+        /(MusicSystem\.initialize\([^)]*\);)/g,
+        '// $1 // Disabled for Farcade'
+    );
+    modifiedJs = modifiedJs.replace(
+        /(MusicSystem\.start\(\);)/g,
+        '// $1 // Disabled for Farcade'
+    );
+    modifiedJs = modifiedJs.replace(
+        /(MusicSystem\.preload\([^)]*\);)/g,
+        '// $1 // Disabled for Farcade'
+    );
+    console.log('✓ Music system disabled for Farcade deployment');
+
+    return modifiedJs;
+}
+
+// NEW: Function to inject Farcade SDK integrations into BOTH HTML and merged JS
+function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
+    console.log('Injecting Farcade SDK integrations...');
+
+    let modifiedJs = mergedJs;
+    let modifiedHtml = htmlTemplate;
+
+    // First, handle service worker for Farcade deployment
+    modifiedJs = handleServiceWorkerForFarcade(modifiedJs);
+
+    // DEBUG: Search for patterns in both HTML and JS
+    console.log('\n=== SEARCHING HTML TEMPLATE ===');
+    if (modifiedHtml.includes('function create()')) {
+        console.log('✓ Found function create() in HTML template');
+    } else if (modifiedHtml.includes('create:')) {
+        console.log('✓ Found create: in HTML template');
+    } else {
+        console.log('❌ No create function found in HTML template');
+    }
+
+    if (modifiedHtml.includes('new Phaser.Game')) {
+        console.log('✓ Found new Phaser.Game in HTML template');
+    } else {
+        console.log('❌ No Phaser.Game found in HTML template');
+    }
+
+    console.log('\n=== SEARCHING MERGED JS ===');
+    if (modifiedJs.includes('showVictoryScreen')) {
+        console.log('✓ Found showVictoryScreen in merged JS');
+    }
+    if (modifiedJs.includes('showDefeatScreen')) {
+        console.log('✓ Found showDefeatScreen in merged JS');
+    }
+    if (modifiedJs.includes('ScoreSystem.calculateScore')) {
+        console.log('✓ Found ScoreSystem.calculateScore in merged JS');
+    }
+    if (modifiedJs.includes('gameOver = true')) {
+        console.log('✓ Found gameOver = true in merged JS');
+    }
+
+    // 1. INJECT READY() CALL IN HTML TEMPLATE
+    let createPatternFound = false;
+
+    // Pattern 1: function create() { ... buildGame.call(scene); }
+    const createFuncPattern = /(function create\(\) \{[\s\S]*?buildGame\.call\(scene\);)/;
+    const createFuncMatch = modifiedHtml.match(createFuncPattern);
+
+    if (createFuncMatch) {
+        const originalFunction = createFuncMatch[0];
+        const modifiedFunction = originalFunction + `
+            
+            // Farcade SDK: Signal that game is ready
+            if (window.FarcadeSDK) {
+                window.FarcadeSDK.singlePlayer.actions.ready();
+                console.log('Farcade SDK: Game ready signal sent');
+            }`;
+
+        modifiedHtml = modifiedHtml.replace(originalFunction, modifiedFunction);
+        console.log('✓ Injected Farcade ready() call in HTML create function');
+        createPatternFound = true;
+    } else {
+        // Pattern 2: scene config object with create: function
+        const sceneCreatePattern = /(create\s*:\s*function\s*\([^)]*\)\s*\{[\s\S]*?)(\s*\},?\s*update)/;
+        const sceneCreateMatch = modifiedHtml.match(sceneCreatePattern);
+
+        if (sceneCreateMatch) {
+            const originalCreate = sceneCreateMatch[1];
+            const remainder = sceneCreateMatch[2];
+
+            const modifiedCreate = originalCreate + `
+            
+            // Farcade SDK: Signal that game is ready
+            if (window.FarcadeSDK) {
+                window.FarcadeSDK.singlePlayer.actions.ready();
+                console.log('Farcade SDK: Game ready signal sent');
+            }
+            ` + remainder;
+
+            modifiedHtml = modifiedHtml.replace(sceneCreateMatch[0], modifiedCreate);
+            console.log('✓ Injected Farcade ready() call in HTML scene create function');
+            createPatternFound = true;
+        }
+    }
+
+    if (!createPatternFound) {
+        console.warn('Could not find create() function in HTML template to inject ready() call');
+    }
+
+    // 2. INJECT GAME OVER CALLS WITH PROPER SCORE CALCULATION
+    // Pattern for createVictoryContent function (where actual score is calculated)
+    const victoryContentPattern = /(createVictoryContent:\s*function\s*\([^)]*\)\s*\{)/;
+    const victoryContentMatch = modifiedJs.match(victoryContentPattern);
+
+    if (victoryContentMatch) {
+        const originalVictory = victoryContentMatch[0];
+        const modifiedVictory = originalVictory + `
+        
+        // Farcade SDK: Calculate and send proper score for victory
+        if (window.FarcadeSDK && window.ScoreSystem) {
+            const farcadeScore = ScoreSystem.calculateScore(true);
+            window.FarcadeSDK.singlePlayer.actions.gameOver({ score: farcadeScore });
+            console.log('Farcade SDK: Victory game over signal sent with calculated score:', farcadeScore);
+        }`;
+
+        modifiedJs = modifiedJs.replace(originalVictory, modifiedVictory);
+        console.log('✓ Injected Farcade gameOver() call in createVictoryContent with proper score');
+    } else {
+        // Fallback: look for showVictoryScreen function
+        const victoryPattern = /(showVictoryScreen:\s*function\s*\([^)]*\)\s*\{)/;
+        const victoryMatch = modifiedJs.match(victoryPattern);
+
+        if (victoryMatch) {
+            const originalVictory = victoryMatch[0];
+            const modifiedVictory = originalVictory + `
+            
+            // Farcade SDK: Calculate and send proper score for victory
+            if (window.FarcadeSDK && window.ScoreSystem) {
+                const farcadeScore = ScoreSystem.calculateScore(true);
+                window.FarcadeSDK.singlePlayer.actions.gameOver({ score: farcadeScore });
+                console.log('Farcade SDK: Victory game over signal sent with calculated score:', farcadeScore);
+            }`;
+
+            modifiedJs = modifiedJs.replace(originalVictory, modifiedVictory);
+            console.log('✓ Injected Farcade gameOver() call in showVictoryScreen with proper score');
+        } else {
+            console.warn('Could not find victory screen function to inject gameOver() call');
+        }
+    }
+
+    // Pattern for createDefeatContent function (where actual score is calculated)
+    const defeatContentPattern = /(createDefeatContent:\s*function\s*\([^)]*\)\s*\{)/;
+    const defeatContentMatch = modifiedJs.match(defeatContentPattern);
+
+    if (defeatContentMatch) {
+        const originalDefeat = defeatContentMatch[0];
+        const modifiedDefeat = originalDefeat + `
+        
+        // Farcade SDK: Calculate and send proper score for defeat
+        if (window.FarcadeSDK && window.ScoreSystem) {
+            const farcadeScore = ScoreSystem.calculateScore(false);
+            window.FarcadeSDK.singlePlayer.actions.gameOver({ score: farcadeScore });
+            console.log('Farcade SDK: Defeat game over signal sent with calculated score:', farcadeScore);
+        }`;
+
+        modifiedJs = modifiedJs.replace(originalDefeat, modifiedDefeat);
+        console.log('✓ Injected Farcade gameOver() call in createDefeatContent with proper score');
+    } else {
+        // Fallback: look for showDefeatScreen function
+        const defeatPattern = /(showDefeatScreen:\s*function\s*\([^)]*\)\s*\{)/;
+        const defeatMatch = modifiedJs.match(defeatPattern);
+
+        if (defeatMatch) {
+            const originalDefeat = defeatMatch[0];
+            const modifiedDefeat = originalDefeat + `
+            
+            // Farcade SDK: Calculate and send proper score for defeat
+            if (window.FarcadeSDK && window.ScoreSystem) {
+                const farcadeScore = ScoreSystem.calculateScore(false);
+                window.FarcadeSDK.singlePlayer.actions.gameOver({ score: farcadeScore });
+                console.log('Farcade SDK: Defeat game over signal sent with calculated score:', farcadeScore);
+            }`;
+
+            modifiedJs = modifiedJs.replace(originalDefeat, modifiedDefeat);
+            console.log('✓ Injected Farcade gameOver() call in showDefeatScreen with proper score');
+        } else {
+            console.warn('Could not find defeat screen function to inject gameOver() call');
+        }
+    }
+
+    // 3. INJECT ADDITIONAL GAME OVER CALLS (fallback with calculated score)
+    let gameOverCount = 0;
+    modifiedJs = modifiedJs.replace(/(gameOver = true;)/g, (match) => {
+        gameOverCount++;
+        return match + `
+            
+            // Farcade SDK: Signal game over with calculated score (fallback)
+            if (window.FarcadeSDK && window.ScoreSystem) {
+                const farcadeScore = ScoreSystem.calculateScore(false); // Assume defeat for fallback
+                window.FarcadeSDK.singlePlayer.actions.gameOver({ score: farcadeScore });
+                console.log('Farcade SDK: Fallback game over signal sent with calculated score:', farcadeScore);
+            }`;
+    });
+
+    if (gameOverCount > 0) {
+        console.log(`✓ Injected Farcade gameOver() fallback calls in ${gameOverCount} locations`);
+    } else {
+        console.warn('Could not find gameOver = true assignments');
+    }
+
+    // 4. INJECT PLAY_AGAIN EVENT HANDLER IN HTML TEMPLATE
+    let gameCreatePatternFound = false;
+
+    const gameVarPatterns = [
+        /(const\s+game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/,
+        /(var\s+game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/,
+        /(let\s+game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/
+    ];
+
+    for (const pattern of gameVarPatterns) {
+        const match = modifiedHtml.match(pattern);
+        if (match) {
+            const originalCreate = match[0];
+            const modifiedCreate = originalCreate + `
+
+        // Farcade SDK: Handle play again requests
+        if (window.FarcadeSDK) {
+            window.FarcadeSDK.on('play_again', () => {
+                console.log('Farcade SDK: Play again requested');
+                const activeScene = game.scene.scenes[0];
+                if (activeScene && typeof startGame === 'function') {
+                    startGame.call(activeScene);
+                } else {
+                    console.warn('Could not restart game: no active scene or startGame function');
+                }
+            });
+            console.log('Farcade SDK: Play again handler registered');
+            
+            // Farcade SDK: Handle mute toggle requests
+            window.FarcadeSDK.on('toggle_mute', (data) => {
+                console.log('Farcade SDK: Mute toggle requested, isMuted:', data.isMuted);
+                if (window.MusicSystem) {
+                    MusicSystem.setMusicEnabled(!data.isMuted);
+                    console.log('Music system updated, enabled:', !data.isMuted);
+                } else {
+                    console.warn('MusicSystem not available for mute toggle');
+                }
+            });
+            console.log('Farcade SDK: Mute toggle handler registered');
+        }`;
+
+            modifiedHtml = modifiedHtml.replace(originalCreate, modifiedCreate);
+            console.log('✓ Injected Farcade play_again and toggle_mute event handlers in HTML');
+            gameCreatePatternFound = true;
+            break;
+        }
+    }
+
+    if (!gameCreatePatternFound) {
+        console.warn('Could not find Phaser.Game creation in HTML to inject play_again handler');
+    }
+
+    console.log('=== FARCADE INTEGRATION COMPLETE ===\n');
+
+    return { modifiedHtml, modifiedJs };
+}
+
+function injectFarcadeSDK(html) {
+    console.log('Injecting Farcade SDK script tag...');
+
+    const headPattern = /(<head>[\s\S]*?)(<script)/;
+    const headMatch = html.match(headPattern);
+
+    if (headMatch) {
+        const beforeScripts = headMatch[1];
+        const firstScript = headMatch[2];
+
+        const farcadeScript = `    <script src="https://cdn.jsdelivr.net/npm/@farcade/game-sdk@latest/dist/index.min.js"></script>\n\n    `;
+
+        const modifiedHead = beforeScripts + farcadeScript + firstScript;
+        const modifiedHtml = html.replace(headPattern, modifiedHead);
+
+        console.log('✓ Injected Farcade SDK script tag in head');
+        return modifiedHtml;
+    } else {
+        console.warn('Could not find head section to inject Farcade SDK');
+        return html;
+    }
+}
+
 async function advancedMinify(code) {
     if (!config.minify || !config.useAdvancedMinify || !minify) {
         return simpleMinify(code);
@@ -136,37 +429,28 @@ async function advancedMinify(code) {
     }
 }
 
-// Simple minification using regex (fallback)
 function simpleMinify(code) {
     if (!config.minify) {
         return code;
     }
 
     console.log('Using simple minification...');
-
     let minified = code;
 
-    // Remove single-line comments (but preserve URLs and regex patterns)
     minified = minified.replace(/(?<!:)\/\/(?![\/\s]*@).*$/gm, '');
-
-    // Remove multi-line comments (/* ... */)
     minified = minified.replace(/\/\*[\s\S]*?\*\//g, '');
 
-    // Remove console.log statements if requested
     if (config.removeConsoleLog) {
         minified = minified.replace(/console\.log\s*\([^)]*\)\s*;?/g, '');
     }
 
-    // Remove extra whitespace and newlines
-    minified = minified.replace(/\s+/g, ' '); // Multiple spaces to single space
-    minified = minified.replace(/\s*;\s*/g, ';'); // Clean up semicolons
-    minified = minified.replace(/\s*\{\s*/g, '{'); // Clean up opening braces
-    minified = minified.replace(/\s*\}\s*/g, '}'); // Clean up closing braces
-    minified = minified.replace(/\s*,\s*/g, ','); // Clean up commas
-    minified = minified.replace(/\s*\(\s*/g, '('); // Clean up opening parentheses
-    minified = minified.replace(/\s*\)\s*/g, ')'); // Clean up closing parentheses
-
-    // Remove leading/trailing whitespace
+    minified = minified.replace(/\s+/g, ' ');
+    minified = minified.replace(/\s*;\s*/g, ';');
+    minified = minified.replace(/\s*\{\s*/g, '{');
+    minified = minified.replace(/\s*\}\s*/g, '}');
+    minified = minified.replace(/\s*,\s*/g, ',');
+    minified = minified.replace(/\s*\(\s*/g, '(');
+    minified = minified.replace(/\s*\)\s*/g, ')');
     minified = minified.trim();
 
     const reduction = Math.round((1 - minified.length / code.length) * 100);
@@ -175,60 +459,44 @@ function simpleMinify(code) {
     return minified;
 }
 
-// Function to inject script into the HTML template
 function injectScript(html, script) {
-    // Find where to inject the script - look for the first script tag that loads a game file
-    // or if no match is found, insert before the closing body tag
-
-    // Look for any external script tags loading JS files from our list
     const scriptPattern = new RegExp(`<script src=["'](?:./|/)?(${config.jsFiles.join('|')})["'].*?>\\s*</script>`, 'i');
     const match = html.match(scriptPattern);
 
     if (match) {
-        // Replace the first script tag with our merged content
         console.log(`Injecting at location of script: ${match[1]}`);
         return html.replace(match[0], `<script>\n${script}\n</script>`);
     } else {
-        // If no specific script tag is found, insert before closing body
         console.log('No specific script tag found, injecting before </body>');
         return html.replace('</body>', `<script>\n${script}\n</script>\n</body>`);
     }
 }
 
-// Function to clean up remaining script tags
 function removeRemainingScripts(html) {
-    // Create a pattern to match any remaining script tags that load our JS files
     const scriptPattern = new RegExp(`\\s*<script src=["'](?:./|/)?(${config.jsFiles.join('|')})["'].*?>\\s*</script>\\s*`, 'gi');
     return html.replace(scriptPattern, '');
 }
 
-// Main function to merge all files
 async function mergeFiles() {
     console.log('Starting merge process...');
 
-    // Read the HTML template
     let htmlTemplate = readFile(config.indexTemplate);
     if (!htmlTemplate) {
         console.error('Could not read HTML template. Aborting.');
         return;
     }
 
-    // Set KAJISULI_MODE to true in the template
     htmlTemplate = htmlTemplate.replace(/const KAJISULI_MODE = [^;]+;/g, 'const KAJISULI_MODE = true;');
     console.log('Set KAJISULI_MODE to true');
 
-    // Set DEBUG_MODE to false in the template
     htmlTemplate = htmlTemplate.replace(/const DEBUG_MODE = [^;]+;/g, 'const DEBUG_MODE = false;');
     console.log('Set DEBUG_MODE to false');
 
-    // Merge all JS files
     const mergedJs = mergeJsFiles();
 
-    // Inject merged JS into HTML (unminified version)
     let mergedHtml = injectScript(htmlTemplate, mergedJs);
     mergedHtml = removeRemainingScripts(mergedHtml);
 
-    // Write the unminified merged file
     try {
         fs.writeFileSync(config.outputFile, mergedHtml);
         console.log(`Successfully created merged file: ${config.outputFile}`);
@@ -236,24 +504,43 @@ async function mergeFiles() {
         console.error('Error writing merged file:', error.message);
     }
 
-    // Create minified version if requested
     if (config.minify) {
-        // Try advanced minification first, fall back to simple if needed
         const minifiedJs = await advancedMinify(mergedJs);
 
-        // Inject minified JS into HTML
         let minifiedHtml = injectScript(htmlTemplate, minifiedJs);
         minifiedHtml = removeRemainingScripts(minifiedHtml);
 
-        // Write the minified merged file
         try {
             fs.writeFileSync(config.outputMinified, minifiedHtml);
             console.log(`Successfully created minified file: ${config.outputMinified}`);
         } catch (error) {
             console.error('Error writing minified file:', error.message);
         }
+
+        // NEW: Create Farcade version with SDK integrations
+        console.log('\n=== Creating Farcade SDK Version ===');
+
+        // Apply Farcade integrations to BOTH HTML template and merged JS (before minification)
+        const { modifiedHtml: farcadeHtml, modifiedJs: farcadeJs } = injectFarcadeIntegrations(htmlTemplate, mergedJs);
+
+        // Now minify the Farcade-integrated JS
+        const minifiedFarcadeJs = await advancedMinify(farcadeJs);
+
+        // Inject minified Farcade JS into the modified HTML
+        let finalFarcadeHtml = injectScript(farcadeHtml, minifiedFarcadeJs);
+        finalFarcadeHtml = removeRemainingScripts(finalFarcadeHtml);
+
+        // Inject Farcade SDK script tag
+        finalFarcadeHtml = injectFarcadeSDK(finalFarcadeHtml);
+
+        try {
+            fs.writeFileSync(config.outputFarcade, finalFarcadeHtml);
+            console.log(`Successfully created Farcade version: ${config.outputFarcade}`);
+            console.log('✓ Farcade SDK integration complete!');
+        } catch (error) {
+            console.error('Error writing Farcade file:', error.message);
+        }
     }
 }
 
-// Execute the merge
 mergeFiles();

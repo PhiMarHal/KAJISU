@@ -125,22 +125,6 @@ function handleServiceWorkerForFarcade(mergedJs) {
 
     console.log('✓ Service worker registration disabled for Farcade deployment');
 
-    // ADD THIS NEW SECTION HERE:
-    // Disable music system entirely for Farcade to prevent bandwidth abuse
-    modifiedJs = modifiedJs.replace(
-        /(MusicSystem\.initialize\([^)]*\);)/g,
-        '// $1 // Disabled for Farcade'
-    );
-    modifiedJs = modifiedJs.replace(
-        /(MusicSystem\.start\(\);)/g,
-        '// $1 // Disabled for Farcade'
-    );
-    modifiedJs = modifiedJs.replace(
-        /(MusicSystem\.preload\([^)]*\);)/g,
-        '// $1 // Disabled for Farcade'
-    );
-    console.log('✓ Music system disabled for Farcade deployment');
-
     return modifiedJs;
 }
 

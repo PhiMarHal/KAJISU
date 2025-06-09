@@ -11,15 +11,11 @@ function detectMusicUrl() {
         // Local development
         console.log('Local development detected, using relative paths');
         return 'music/';
-    } else if (hostname.includes('github.io') || hostname.includes('loiyaa.com')) {
-        // GitHub Pages or your custom domain - music is local
-        console.log('GitHub Pages or custom domain detected, using relative paths');
-        return 'music/';
     } else {
-        // External hosting (any other platform) - use GitHub Pages for music
-        const githubMusicUrl = 'https://phimarhal.github.io/KAJISU/music/';
-        console.log(`External hosting detected, using GitHub Pages: ${githubMusicUrl}`);
-        return githubMusicUrl;
+        // External hosting (any other platform) - use Cloudflare R2 for music
+        const cloudflareR2Url = 'https://kajisumu.loiyaa.com/music/';
+        console.log(`External hosting detected, using Cloudflare R2: ${cloudflareR2Url}`);
+        return cloudflareR2Url;
     }
 }
 

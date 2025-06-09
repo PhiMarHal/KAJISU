@@ -124,27 +124,33 @@ const UI = {
 
     // Pause/Music buttons
     buttons: {
+        // Common button styling configuration
+        common: {
+            size: function () { return UI.rel.height(5); }, //
+            borderWidth: 2,
+            // Calculate margin based on longest dimension for even spacing
+            margin: function () {
+                const longestDimension = Math.max(UI.game.getWidth(), UI.game.getHeight());
+                return longestDimension * 0.02; // 2% of longest dimension
+            },
+            fontSize: function () {
+                return UI.buttons.common.size() * 0.6; // 60% of button size
+            }
+        },
+
         // Pause button configuration
         pause: {
             symbol: "休", // Kanji for "rest/break" - perfect for pause
             x: function () {
-                if (UI.kajisuli.enabled()) {
-                    // KAJISULI: Between timer and HP bar
-                    const timerEnd = UI.rel.x(6) + (UI.statusDisplay.timerWidth() * 1.4); // Right edge of timer
-                    const healthStart = UI.healthBar.centerX() - (UI.healthBar.width() * 1.5 / 2); // Left edge of HP bar
-                    return (timerEnd + healthStart) / 2;
-                } else {
-                    // Normal: Between kill counter and HP bar
-                    const killsEnd = UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth(); // Right edge of kills
-                    const healthStart = UI.healthBar.centerX() - (UI.healthBar.width() / 2); // Left edge of HP bar
-                    return (killsEnd + healthStart) / 2;
-                }
+                // Bottom left positioning using longest dimension for margin
+                return UI.buttons.common.margin() + (UI.buttons.common.size() / 2);
             },
-            y: function () { return UI.statusDisplay.killsY() - UI.rel.height(0.3); }, // Slightly higher
+            y: function () {
+                // Bottom positioning using longest dimension for margin
+                return UI.game.getHeight() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
+            },
             fontSize: function () {
-                // Same size as kill counter box outer dimension
-                const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1;
-                return UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2) * kajisuliScale;
+                return UI.buttons.common.fontSize();
             }
         },
 
@@ -153,26 +159,19 @@ const UI = {
             symbol: "音", // Kanji for "sound/music"
             mutedSymbol: "静", // Kanji for "quiet/silence"
             x: function () {
-                if (UI.kajisuli.enabled()) {
-                    // KAJISULI: Between HP bar and kill count
-                    const healthEnd = UI.healthBar.centerX() + (UI.healthBar.width() * 1.5 / 2); // Right edge of HP bar
-                    const killsStart = UI.game.getWidth() - UI.rel.x(6) - (UI.statusDisplay.killsWidth() * 1.4); // Left edge of kills
-                    return (healthEnd + killsStart) / 2;
-                } else {
-                    // Normal: Between HP bar and first stat (POW)
-                    const healthEnd = UI.healthBar.centerX() + (UI.healthBar.width() / 2); // Right edge of HP bar
-                    const statsStart = UI.statDisplay.x(); // Left edge of stats
-                    return (healthEnd + statsStart) / 2;
-                }
+                // Bottom right positioning using longest dimension for margin
+                return UI.game.getWidth() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
             },
-            y: function () { return UI.statusDisplay.killsY() - UI.rel.height(0.3); }, // Same as pause button
+            y: function () {
+                // Bottom positioning using longest dimension for margin
+                return UI.game.getHeight() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
+            },
             fontSize: function () {
-                // Same size as pause button
-                const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1;
-                return UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2) * kajisuliScale;
+                return UI.buttons.common.fontSize();
             }
         }
     },
+
 
 
     // Color constants
@@ -224,12 +223,37 @@ const ButtonDisplay = {
         // Initialize relative dimensions
         UI.game.init(scene);
 
-        // Clean up existing buttons
+        // Clean up existing buttons and backgrounds
         if (scene.pauseButton) scene.pauseButton.destroy();
+        if (scene.pauseButtonBg) scene.pauseButtonBg.destroy();
+        if (scene.pauseButtonBorder) scene.pauseButtonBorder.destroy();
         if (scene.musicButton) scene.musicButton.destroy();
+        if (scene.musicButtonBg) scene.musicButtonBg.destroy();
+        if (scene.musicButtonBorder) scene.musicButtonBorder.destroy();
+
+        // Get button configurations
+        const pauseConfig = UI.buttons.pause;
+        const musicConfig = UI.buttons.music;
+        const commonConfig = UI.buttons.common;
+
+        // Create pause button background and border
+        scene.pauseButtonBorder = scene.add.rectangle(
+            pauseConfig.x(),
+            pauseConfig.y(),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(UI.depth.ui);
+
+        scene.pauseButtonBg = scene.add.rectangle(
+            pauseConfig.x(),
+            pauseConfig.y(),
+            commonConfig.size(),
+            commonConfig.size(),
+            UI.colors.black
+        ).setDepth(UI.depth.ui);
 
         // Create pause button
-        const pauseConfig = UI.buttons.pause;
         scene.pauseButton = scene.add.text(
             pauseConfig.x(),
             pauseConfig.y(),
@@ -241,7 +265,7 @@ const ButtonDisplay = {
                 fontStyle: 'bold',
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
-        scene.pauseButton.setAlpha(0.8);
+        scene.pauseButton.setAlpha(1);
 
         // Make pause button interactive
         scene.pauseButton.setInteractive({ useHandCursor: true });
@@ -266,8 +290,24 @@ const ButtonDisplay = {
             }
         });
 
-        // Create music button with creative monochrome forcing
-        const musicConfig = UI.buttons.music;
+        // Create music button background and border
+        scene.musicButtonBorder = scene.add.rectangle(
+            musicConfig.x(),
+            musicConfig.y(),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(UI.depth.ui);
+
+        scene.musicButtonBg = scene.add.rectangle(
+            musicConfig.x(),
+            musicConfig.y(),
+            commonConfig.size(),
+            commonConfig.size(),
+            UI.colors.black
+        ).setDepth(UI.depth.ui);
+
+        // Create music button
         const initialSymbol = (window.MusicSystem && window.MusicSystem.musicEnabled) ?
             musicConfig.symbol : musicConfig.mutedSymbol;
 
@@ -282,10 +322,7 @@ const ButtonDisplay = {
                 fontStyle: 'bold'
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
-        scene.musicButton.setAlpha(0.8);
-
-        // Simple white text - no special effects needed with kanji
-        // (Remove all the emoji tinting approaches)
+        scene.musicButton.setAlpha(1);
 
         // Make music button interactive
         scene.musicButton.setInteractive({ useHandCursor: true });
@@ -319,15 +356,22 @@ const ButtonDisplay = {
     },
 
     update: function (scene) {
-        // Update button positions if needed (for responsive design)
-        if (scene.pauseButton) {
-            const pauseConfig = UI.buttons.pause;
+        // Get configurations
+        const pauseConfig = UI.buttons.pause;
+        const musicConfig = UI.buttons.music;
+
+        // Update pause button positions if needed (for responsive design)
+        if (scene.pauseButton && scene.pauseButtonBg && scene.pauseButtonBorder) {
             scene.pauseButton.setPosition(pauseConfig.x(), pauseConfig.y());
+            scene.pauseButtonBg.setPosition(pauseConfig.x(), pauseConfig.y());
+            scene.pauseButtonBorder.setPosition(pauseConfig.x(), pauseConfig.y());
         }
 
-        if (scene.musicButton) {
-            const musicConfig = UI.buttons.music;
+        // Update music button positions if needed
+        if (scene.musicButton && scene.musicButtonBg && scene.musicButtonBorder) {
             scene.musicButton.setPosition(musicConfig.x(), musicConfig.y());
+            scene.musicButtonBg.setPosition(musicConfig.x(), musicConfig.y());
+            scene.musicButtonBorder.setPosition(musicConfig.x(), musicConfig.y());
 
             // Ensure music button shows correct state
             if (window.MusicSystem) {

@@ -125,6 +125,16 @@ function handleServiceWorkerForFarcade(mergedJs) {
 
     console.log('✓ Service worker registration disabled for Farcade deployment');
 
+    // Hide the in-game music button since Farcade provides its own mute control
+    modifiedJs = modifiedJs.replace(
+        /(scene\.musicButton = scene\.add\.text\([\s\S]*?\)\.setOrigin\(0\.5\)\.setDepth\(UI\.depth\.ui\);)/,
+        `$1
+    
+    // Hide music button on Farcade - platform provides its own mute control
+    scene.musicButton.setVisible(false);
+    console.log('Music button hidden for Farcade deployment');`
+    );
+
     return modifiedJs;
 }
 

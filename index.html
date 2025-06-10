@@ -39,6 +39,7 @@
     <script src="statdefs.js"></script>
     <script src="beamLogic.js"></script>
     <script src="beamPerks.js"></script>
+    <script src="canvasTexture.js"></script>
 
     <style>
         body {
@@ -553,6 +554,8 @@
             InputSystem.setupCursorHiding(this);
             BackgroundAnimationSystem.init(this);
 
+
+
             // Initialize music system
             if (window.MusicSystem) {
                 MusicSystem.initialize(this);
@@ -902,6 +905,9 @@
             if (window.GameEndMenu) {
                 window.GameEndMenu.destroy();
             }
+
+            window.cleanupKanjiOptimization();
+            window.initKanjiOptimization(this);
 
             // Reset player status components
             resetPlayerStatus();

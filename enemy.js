@@ -42,6 +42,10 @@ const EnemySystem = {
     // Reference to the active scene
     scene: null,
 
+    // Batching updates
+    updateFrameCounter: 0,
+    enemyUpdateInterval: 4,
+
     // Initialize the enemy system
     initialize: function (scene) {
         // Store scene reference
@@ -419,38 +423,45 @@ const EnemySystem = {
         // Skip if game is over or paused
         if (gameOver || gamePaused) return;
 
-        // Get all active enemies
+        // Increment frame counter
+        this.updateFrameCounter++;
+
+        // Only update enemies every N frames
+        if (this.updateFrameCounter % this.enemyUpdateInterval !== 0) {
+            return; // Skip this frame
+        }
+
+        // Get all active enemies (same as before)
         const activeEnemies = this.enemiesGroup.getChildren();
 
-        // Update each enemy
+        // Update each enemy (same logic as before, just less frequent)
         activeEnemies.forEach(enemy => {
             // Ensure enemy and its body are valid and active
             if (enemy && enemy.active && enemy.body) {
-                // Target position (player)
+                // Target position (player) - same as before
                 const targetX = player.x;
                 const targetY = player.y;
 
-                // Vector from enemy to player
+                // Vector from enemy to player - same as before
                 const dx = targetX - enemy.x;
                 const dy = targetY - enemy.y;
 
-                // Distance to player
+                // Distance to player - same as before
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                // Define the maximum speed the enemy should reach.
-                // Use the 'speed' property we assigned during spawn.
+                // Define the maximum speed - same as before
                 const maxSpeed = enemy.speed * enemySpeedFactor;
 
-                // Define the acceleration rate
+                // Define the acceleration rate - same as before
                 const accelerationRate = maxSpeed * 8;
 
-                // Avoid division by zero and applying acceleration if already very close
-                if (distance > 1) { // Small threshold (1 pixel)
+                // Avoid division by zero - same as before
+                if (distance > 1) {
                     // Normalize the direction vector
                     const dirX = dx / distance;
                     const dirY = dy / distance;
 
-                    // Calculate acceleration components based on direction and rate
+                    // Calculate acceleration components
                     const accelX = dirX * accelerationRate;
                     const accelY = dirY * accelerationRate;
 
@@ -461,16 +472,13 @@ const EnemySystem = {
                     enemy.body.setAcceleration(0, 0);
                 }
 
-                // Manually cap speed
+                // Manually cap speed - same as before
                 const velocity = enemy.body.velocity;
-                const currentSpeedSq = velocity.lengthSq(); // Use squared length for efficiency
+                const currentSpeedSq = velocity.lengthSq();
 
                 if (currentSpeedSq > maxSpeed * maxSpeed) {
-                    // If current speed squared exceeds max speed squared, scale velocity back
                     const currentSpeed = Math.sqrt(currentSpeedSq);
                     const scale = maxSpeed / currentSpeed;
-
-                    // Apply the scale factor to the velocity components
                     enemy.body.setVelocity(velocity.x * scale, velocity.y * scale);
                 }
             }
@@ -747,6 +755,8 @@ const EnemySystem = {
         // Reset backgrounds
         if (window.BackgroundAnimationSystem) BackgroundAnimationSystem.setBossMode(false);
 
+        // Reset frame counter (batching)
+        this.updateFrameCounter = 0;
 
         // Clean up any boss UI elements
         const scene = this.scene;

@@ -93,7 +93,6 @@ const EnemySystem = {
             fontFamily: 'Arial',
             fontSize: `${enemyData.size}px`,
             color: enemyData.color,
-            fontStyle: 'bold'
         }).setOrigin(0.5);
 
         // Add to physics group
@@ -511,7 +510,6 @@ const EnemySystem = {
             fontFamily: 'Arial',
             fontSize: `${enemyData.size}px`,
             color: enemyData.color,
-            fontStyle: 'bold'
         }).setOrigin(0.5);
 
         // Add to physics group

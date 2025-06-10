@@ -45,7 +45,7 @@ const PERKS = {
         kana: "はなさく",
         romaji: "hanasaku",
         english: "Blooming Flower",
-        description: "This flower attacks nearby enemies",
+        description: "Flower attacks nearby enemies",
         color: "#FF66AA", // Pink color
         hoverColor: 0xDD4488,
         onAcquire: function () {
@@ -69,7 +69,7 @@ const PERKS = {
         kana: "ぎゃくたこ",
         romaji: "gyakutako",
         english: "Inverted Octopus",
-        description: "More orbiting projectiles",
+        description: "selitcejorp gnitibro niaG",
         color: "#FF55FF", // Pink color
         hoverColor: 0xDD33DD,
         onAcquire: function () {
@@ -93,7 +93,7 @@ const PERKS = {
         kana: "がらすほう",
         romaji: "garasuhou",
         english: "Glass Cannon",
-        description: "+5 POW / END reduced to 1",
+        description: "+5 POW. Reduces END to 1",
         color: "#FF0000",
         hoverColor: 0xDD0000,
         onAcquire: function () {
@@ -222,7 +222,7 @@ const PERKS = {
         kana: "のようせい",
         romaji: "noyousei",
         english: "Wild Fairy",
-        description: "This erratic fairy orbits at high speed and damages enemies",
+        description: "Erratic fairy orbits at high speed and damages enemies",
         color: "#FF66CC", // Bright pink color
         hoverColor: 0xDD44AA,
         onAcquire: function () {
@@ -428,7 +428,7 @@ const PERKS = {
         kana: "どくばな",
         romaji: "dokubana",
         english: "Poison Flower",
-        description: "This flower pulses poison, damaging enemies over time",
+        description: "Flower pulses poison, damaging enemies over time",
         color: "#2aad27", // Green color matching the poison effect
         hoverColor: 0x1a8d17,
         onAcquire: function () {
@@ -440,7 +440,7 @@ const PERKS = {
         kana: "れいばな",
         romaji: "reibana",
         english: "Frost Flower",
-        description: "This flower slows down enemies",
+        description: "Flower slows down enemies",
         color: "#00ffff", // Cyan color matching the slow effect
         hoverColor: 0x00dddd,
         onAcquire: function () {
@@ -953,7 +953,7 @@ const PERKS = {
         kana: "きかい",
         romaji: "kikai",
         english: "Yellow Boomerang",
-        description: "Return with benefits",
+        description: "What goes around comes around",
         color: "#FFA500", // Orange color
         hoverColor: 0xDD8800,
         onAcquire: function () {
@@ -964,7 +964,7 @@ const PERKS = {
         kana: "しゅうえん",
         romaji: "shuuen",
         english: "Final Catastrophe",
-        description: "Apocalyptic blast damages all enemies",
+        description: "One-time massive damage to all enemies",
         color: "#FF3300", // Bright red-orange
         hoverColor: 0xCC2200,
         onAcquire: function () {
@@ -1105,7 +1105,7 @@ const PERKS = {
         kana: "かんぺき",
         romaji: "kanpeki",
         english: "Flawless Fight",
-        description: "+POW/+AGI as long as you avoid hits",
+        description: "+POW/+AGI while not hit (+5%, up to +50%)",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {

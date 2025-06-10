@@ -350,6 +350,15 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
                 console.log('Farcade SDK: Mute toggle requested, isMuted:', data.isMuted);
                 if (window.MusicSystem) {
                     MusicSystem.setMusicEnabled(!data.isMuted);
+                    
+                    // Also update the in-game music button to match Farcade's state
+                    const activeScene = game.scene.scenes[0];
+                    if (activeScene && activeScene.musicButton) {
+                        const musicConfig = UI.buttons.music;
+                        const symbol = data.isMuted ? musicConfig.mutedSymbol : musicConfig.symbol;
+                        activeScene.musicButton.setText(symbol);
+                    }
+                    
                     console.log('Music system updated, enabled:', !data.isMuted);
                 } else {
                     console.warn('MusicSystem not available for mute toggle');

@@ -65,7 +65,7 @@ const EnemySystem = {
         return this;
     },
 
-    // Function to spawn enemy of specific rank
+    // Function to spawn enemy of specific rank - UPDATED for native sprite support
     spawnEnemyOfRank: function (rank) {
         // Skip if game is over
         if (gameOver) return null;
@@ -76,9 +76,6 @@ const EnemySystem = {
 
         // Get a random enemy type of this rank
         const enemyType = getRandomEnemyTypeByRank(rank);
-
-        // Get the enemy data with rank defaults applied
-        const enemyData = getEnemyData(enemyType);
 
         // Choose a random spawn position outside the screen
         let x, y;
@@ -92,40 +89,20 @@ const EnemySystem = {
             y = Math.random() < 0.5 ? -50 : game.config.height + 50;
         }
 
-        // Create the enemy with data-driven properties
-        const enemy = scene.add.text(x, y, enemyType, {
-            fontFamily: 'Arial',
-            fontSize: `${enemyData.size}px`,
-            color: enemyData.color,
-        }).setOrigin(0.5);
+        // Create enemy using optimized sprite system
+        const enemy = KanjiTextureSystem.createEnemySprite(scene, enemyType, x, y);
 
         // Add to physics group
         this.enemiesGroup.add(enemy);
 
-        // Set enemy properties
-        enemy.body.setSize(enemy.width, enemy.height);
+        // Set enemy physics properties
+        enemy.body.setSize(enemy.actualWidth, enemy.actualHeight);
         enemy.body.setCollideWorldBounds(false);
         enemy.body.setImmovable(false);
         enemy.body.pushable = true;
         enemy.body.setMass(1);
         enemy.body.setDrag(1);
         enemy.body.setBounce(0.5);
-
-        // Set enemy health based on data and current scaling
-        enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
-
-        // Set enemy speed based on data
-        enemy.speed = Phaser.Math.Between(enemyData.speedMin, enemyData.speedMax);
-
-        // Store additional properties from data
-        enemy.damage = enemyData.damage;
-        enemy.rank = enemyData.rank;
-        enemy.expValue = enemyData.expValue || 1;
-
-        // Store all language and educational properties
-        enemy.kana = enemyData.kana;
-        enemy.romaji = enemyData.romaji;
-        enemy.english = enemyData.english;
 
         return enemy;
     },

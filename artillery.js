@@ -100,44 +100,25 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
 // Register component for slow effect
 ProjectileComponentSystem.registerComponent('slowEffect', {
     initialize: function (projectile) {
-        // Safety check for projectile
-        if (!projectile || !projectile.active) return;
-
-        // Visual indicator
-        try {
-            projectile.setColor('#00ffff');
-        } catch (e) {
-            console.log("Error setting projectile color in slowEffect:", e);
-        }
+        // Apply cyan color to projectile to indicate slow effect
+        SpriteEffectHelpers.applyEffectColor(projectile, '#00ffff');
     },
 
     onHit: function (projectile, enemy, scene) {
-        // Safety check for enemy
         if (!enemy || !enemy.active || enemy.health <= 0) return;
-
-        // Check if enemy is already slowed (to avoid redundant processing)
-        if (enemy.isSlowed) return;
+        if (enemy.isSlowed) return; // Avoid stacking slow effects
 
         // Mark enemy as slowed
         enemy.isSlowed = true;
+        enemy.originalSpeed = enemy.speed || 50;
 
-        // Store original speed for recovery later
-        enemy.originalSpeed = enemy.speed || 50; // Default value if speed is undefined
+        // Reduce enemy speed
+        enemy.speed = Math.max(10, enemy.speed * 0.5);
 
-        // Slow the enemy by half with safety check
-        try {
-            enemy.speed = Math.max(10, enemy.speed * 0.5);
+        // Apply cyan tint to enemy to show slow effect
+        SpriteEffectHelpers.applyEffectColor(enemy, '#00ffff');
 
-            // Store original color
-            enemy.originalColor = enemy.style && enemy.style.color ? enemy.style.color : '#ff5555';
-
-            // Visual indication of slowed enemy
-            if (typeof enemy.setColor === 'function') {
-                enemy.setColor('#00ffff');
-            }
-        } catch (e) {
-            console.log("Error in slowEffect onHit:", e);
-        }
+        console.log(`Enemy slowed: ${enemy.text || enemy.kanjiCharacter}`);
     }
 });
 
@@ -226,58 +207,44 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
 });
 
 function applyPoisonEffect(scene, enemy, baseDamage) {
-    if (enemy.health <= 0) return;
+    if (!enemy || enemy.health <= 0) return;
 
-    // Store original color to reset after poison
-    enemy.originalColor = enemy.style.color || '#ff5555';
+    // Apply green tint to show poison effect
+    SpriteEffectHelpers.applyEffectColor(enemy, '#2aad27');
 
-    // Set enemy color to indicate poison
-    enemy.setColor('#2aad27');
-
-    // Calculate poison tick damage
     const tickDamage = baseDamage * 0.5;
-
-    // Track completed ticks (for timer completion detection)
     let completedTicks = 0;
     const totalTicks = 4;
 
-    // Create unique damage source ID for this poison instance
     const poisonSourceId = `poison_${Date.now()}_${Math.random()}`;
 
-    // Create and register the poison timer
     const poisonTimer = registerTimer(scene.time.addEvent({
-        delay: 1000, // 1 second between ticks
+        delay: 1000,
         callback: function () {
-            // Skip if enemy is destroyed
-            if (!enemy || !enemy.active) {
-                return;
-            }
+            if (!enemy || !enemy.active) return;
 
-            // Apply poison damage using the contact damage system
-            applyContactDamage.call(scene,
+            // Apply poison damage using EnemySystem
+            EnemySystem.applyDamage(
                 {
                     damageSourceId: poisonSourceId,
-                    damage: tickDamage,
                     active: true
                 },
                 enemy,
                 tickDamage,
-                0 // No cooldown needed as timer already provides spacing
+                0 // No cooldown for poison ticks
             );
 
-            // Count this tick
             completedTicks++;
 
-            // Reset color if this is the last tick and enemy still alive
+            // Reset color after poison ends
             if (completedTicks === totalTicks && enemy.active) {
-                enemy.setColor(enemy.originalColor);
+                SpriteEffectHelpers.resetEffectColor(enemy);
             }
         },
         callbackScope: scene,
-        repeat: totalTicks - 1 // 4 ticks total (first run + 3 repeats)
+        repeat: totalTicks - 1
     }));
 
-    // Register the timer for proper cleanup
     window.registerEffect('timer', poisonTimer);
 }
 

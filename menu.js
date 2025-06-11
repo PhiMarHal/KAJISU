@@ -268,19 +268,19 @@ const ButtonDisplay = {
         scene.pauseButton.setAlpha(1);
 
         // Make pause button interactive
-        scene.pauseButton.setInteractive({ useHandCursor: true });
+        scene.pauseButtonBorder.setInteractive({ useHandCursor: true });
 
-        scene.pauseButton.on('pointerover', function () {
-            this.setColor('#ffff00'); // Yellow on hover
-            this.setScale(1.1);
+        scene.pauseButtonBorder.on('pointerover', function () {
+            scene.pauseButton.setColor('#ffff00'); // Yellow on hover
+            scene.pauseButton.setScale(1.1);
         });
 
-        scene.pauseButton.on('pointerout', function () {
-            this.setColor('#ffffff'); // White normally
-            this.setScale(1);
+        scene.pauseButtonBorder.on('pointerout', function () {
+            scene.pauseButton.setColor('#ffffff'); // White normally
+            scene.pauseButton.setScale(1);
         });
 
-        scene.pauseButton.on('pointerdown', function () {
+        scene.pauseButtonBorder.on('pointerdown', function () {
             if (!gameOver) {
                 if (gamePaused) {
                     PauseSystem.resumeGame();
@@ -289,6 +289,7 @@ const ButtonDisplay = {
                 }
             }
         });
+
 
         // Create music button background and border
         scene.musicButtonBorder = scene.add.rectangle(
@@ -325,19 +326,19 @@ const ButtonDisplay = {
         scene.musicButton.setAlpha(1);
 
         // Make music button interactive
-        scene.musicButton.setInteractive({ useHandCursor: true });
+        scene.musicButtonBorder.setInteractive({ useHandCursor: true });
 
-        scene.musicButton.on('pointerover', function () {
-            this.setColor('#ffff00'); // Yellow on hover
-            this.setScale(1.1);
+        scene.musicButtonBorder.on('pointerover', function () {
+            scene.musicButton.setColor('#ffff00'); // Yellow on hover
+            scene.musicButton.setScale(1.1);
         });
 
-        scene.musicButton.on('pointerout', function () {
-            this.setColor('#ffffff'); // White normally
-            this.setScale(1);
+        scene.musicButtonBorder.on('pointerout', function () {
+            scene.musicButton.setColor('#ffffff'); // White normally
+            scene.musicButton.setScale(1);
         });
 
-        scene.musicButton.on('pointerdown', function () {
+        scene.musicButtonBorder.on('pointerdown', function () {
             if (window.MusicSystem) {
                 // Toggle music state
                 const newState = !window.MusicSystem.musicEnabled;
@@ -1288,15 +1289,12 @@ const GameEndMenu = {
         this.elements.container.add(this.elements.restartButton);
 
         // Make button interactive - use the text element for interaction
-        this.elements.restartButton.setInteractive({ useHandCursor: true });
+        this.elements.restartButtonBorder.setInteractive({ useHandCursor: true });
 
-        // Add hover effect - white text and thicker border
-        this.elements.restartButton.on('pointerover', () => {
-            // Change text to white
+        // Add hover effect to border instead of text
+        this.elements.restartButtonBorder.on('pointerover', () => {
             this.elements.restartButton.setColor('#FFFFFF');
-            // Make border thicker
             this.elements.restartButtonBorder.setStrokeStyle(3, 0xFFD700);
-            // Scale up slightly
             scene.tweens.add({
                 targets: [this.elements.restartButton, this.elements.restartButtonBorder],
                 scale: 1.05,
@@ -1304,13 +1302,9 @@ const GameEndMenu = {
             });
         });
 
-        // Reset on pointer out
-        this.elements.restartButton.on('pointerout', () => {
-            // Change text back to gold
+        this.elements.restartButtonBorder.on('pointerout', () => {
             this.elements.restartButton.setColor('#FFD700');
-            // Reset border thickness
             this.elements.restartButtonBorder.setStrokeStyle(2, 0xFFD700);
-            // Scale back to normal
             scene.tweens.add({
                 targets: [this.elements.restartButton, this.elements.restartButtonBorder],
                 scale: 1,
@@ -1318,11 +1312,8 @@ const GameEndMenu = {
             });
         });
 
-        this.elements.restartButton.on('pointerdown', function () {
-            // Try to skip any active animation, with delay if successful
+        this.elements.restartButtonBorder.on('pointerdown', function () {
             const animationSkipped = window.ScoreSystem?.skipToFinalScore?.(scene) || false;
-
-            // Restart immediately or with delay based on whether animation was skipped
             if (animationSkipped) {
                 scene.time.delayedCall(250, () => startGame.call(scene));
             } else {
@@ -1391,3 +1382,20 @@ const GameEndMenu = {
 
 // Export the menu system for use in other files
 window.GameEndMenu = GameEndMenu;
+
+// Function to create start screen buttons (called from create() in index.html)
+const StartButtonsDisplay = {
+    create: function (scene) {
+        // Initialize the UI system with the scene so we get proper dimensions
+        UI.game.init(scene);
+
+        // Now we can safely create the help button with correct positioning and sizing
+        if (window.HelpButtonManager) {
+            window.HelpButtonManager.createHelpButton(scene);
+            window.HelpButtonManager.showHelpButton(scene);
+        }
+    }
+};
+
+// Export the start buttons system
+window.StartButtonsDisplay = StartButtonsDisplay;

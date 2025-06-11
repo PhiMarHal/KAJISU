@@ -40,6 +40,7 @@
     <script src="beamLogic.js"></script>
     <script src="beamPerks.js"></script>
     <script src="canvasTexture.js"></script>
+    <script src="help.js"></script>
 
     <style>
         body {
@@ -178,6 +179,7 @@
         // Set this manually as needed
         const KAJISULI_MODE = true;
         const DEBUG_MODE = true;
+        const FARCADE_MODE = false;
 
         // Apply CSS class based on mode
         if (KAJISULI_MODE) {
@@ -445,6 +447,11 @@
             // Add flag to prevent multiple game starts
             let gameInitialized = false;
 
+            // Create help button for the start screen with proper UI initialization
+            if (window.StartButtonsDisplay) {
+                window.StartButtonsDisplay.create(this);
+            }
+
             // Create a black background
             const background = scene.add.rectangle(
                 game.config.width / 2,
@@ -491,22 +498,21 @@
                 buildGame.call(scene);
             }
 
-            // Make button interactive
-            startButton.setInteractive({ useHandCursor: true });
+            buttonBorder.setInteractive({ useHandCursor: true });
 
-            // Add hover effects
-            startButton.on('pointerover', function () {
-                this.setColor('#FFFFFF'); // White on hover
-                buttonBorder.setStrokeStyle(6, 0xFFD700); // Thicker border
+            // Add hover effects to border instead of text
+            buttonBorder.on('pointerover', function () {
+                startButton.setColor('#FFFFFF'); // White on hover
+                this.setStrokeStyle(6, 0xFFD700); // Thicker border
             });
 
-            startButton.on('pointerout', function () {
-                this.setColor('#FFD700'); // Back to gold
-                buttonBorder.setStrokeStyle(4, 0xFFD700); // Normal border
+            buttonBorder.on('pointerout', function () {
+                startButton.setColor('#FFD700'); // Back to gold
+                this.setStrokeStyle(4, 0xFFD700); // Normal border
             });
 
-            // Start game on button click
-            startButton.on('pointerdown', startTheGame);
+            // Start game on border click
+            buttonBorder.on('pointerdown', startTheGame);
 
             // Also allow any key press to start
             scene.input.keyboard.once('keydown', startTheGame);
@@ -588,6 +594,10 @@
             player.body.setCollideWorldBounds(true);
 
             GameUI.createUI(this);
+            // Switch from help to pause button now that UI is created
+            if (window.ButtonStateManager) {
+                window.ButtonStateManager.onGameStart(this);
+            }
             OrbitalSystem.init();
 
             // Create shield visual (initially invisible)

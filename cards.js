@@ -700,6 +700,10 @@ function showMobileLevelUpScreen(scene) {
         levelUpContainer.destroy();
         levelUpCards = [];
         PauseSystem.resumeGame();
+
+        if (window.ButtonStateManager) {
+            window.ButtonStateManager.onGameResume(scene);
+        }
     }
 
     // Initial display setup
@@ -714,6 +718,9 @@ function showMobileLevelUpScreen(scene) {
  * @param {Phaser.Scene} scene - The active game scene
  */
 function showLevelUpScreen(scene) {
+    if (window.ButtonStateManager) {
+        window.ButtonStateManager.onGamePause(scene);
+    }
     // Check if we're in kajisuli mode (mobile)
     const isMobileMode = typeof KAJISULI_MODE !== 'undefined' ? KAJISULI_MODE : false;
 

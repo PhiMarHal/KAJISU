@@ -90,7 +90,6 @@ const PauseSystem = {
         ).setOrigin(0.5);
         this.elements.resumeButton.setVisible(false);
         this.elements.resumeButton.setDepth(1002); // Higher than border
-        this.elements.resumeButton.setInteractive();
 
         // Create gold border for resume button
         const buttonWidth = this.elements.resumeButton.width + 30; // Extra padding
@@ -108,22 +107,23 @@ const PauseSystem = {
         this.elements.resumeButtonBorder.setDepth(1001); // Behind text
 
         // Add resume button functionality
-        this.elements.resumeButton.on('pointerdown', function () {
+        this.elements.resumeButtonBorder.setInteractive({ useHandCursor: true });
+
+        this.elements.resumeButtonBorder.on('pointerdown', function () {
             PauseSystem.resumeGame();
         });
 
-        this.elements.resumeButton.on('pointerover', function () {
-            this.setColor('#FFD700'); // Gold text on hover
+        this.elements.resumeButtonBorder.on('pointerover', function () {
+            PauseSystem.elements.resumeButton.setColor('#FFD700'); // Gold text on hover
             // Make border thicker on hover
-            PauseSystem.elements.resumeButtonBorder.setStrokeStyle(4, 0xFFD700);
+            this.setStrokeStyle(4, 0xFFD700);
         });
 
-        this.elements.resumeButton.on('pointerout', function () {
-            this.setColor('#ffffff'); // White text normally
+        this.elements.resumeButtonBorder.on('pointerout', function () {
+            PauseSystem.elements.resumeButton.setColor('#ffffff'); // White text normally
             // Reset border thickness
-            PauseSystem.elements.resumeButtonBorder.setStrokeStyle(3, 0xFFD700);
+            this.setStrokeStyle(3, 0xFFD700);
         });
-
         // Create container for perks display
         this.elements.pausePerksContainer = scene.add.container(0, 0);
         this.elements.pausePerksContainer.setDepth(1001);
@@ -264,6 +264,10 @@ const PauseSystem = {
             this.elements.statsContainer.setVisible(false);
         }
 
+        if (window.ButtonStateManager) {
+            window.ButtonStateManager.onGameResume(this.scene || activeScene);
+        }
+
         console.log("Game resumed");
     },
 
@@ -302,6 +306,10 @@ const PauseSystem = {
 
             // Update and show perks
             this.updatePauseScreenPerks(scene);
+        }
+
+        if (window.ButtonStateManager) {
+            window.ButtonStateManager.onGamePause(this.scene || scene);
         }
 
         console.log("Game paused with overlay");

@@ -116,7 +116,7 @@ ProjectileComponentSystem.registerComponent('slowEffect', {
         enemy.speed = Math.max(10, enemy.speed * 0.5);
 
         // Apply cyan tint to enemy to show slow effect
-        SpriteEffectHelpers.applyEffectColor(enemy, '#00ffff');
+        SpriteEffectHelpers.applyEffectColorTexture(enemy, '#00ffff', scene);
 
         console.log(`Enemy slowed: ${enemy.text || enemy.kanjiCharacter}`);
     }
@@ -210,7 +210,7 @@ function applyPoisonEffect(scene, enemy, baseDamage) {
     if (!enemy || enemy.health <= 0) return;
 
     // Apply green tint to show poison effect
-    SpriteEffectHelpers.applyEffectColor(enemy, '#2aad27');
+    SpriteEffectHelpers.applyEffectColorTexture(enemy, '#2aad27', scene);
 
     const tickDamage = baseDamage * 0.5;
     let completedTicks = 0;

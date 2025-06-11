@@ -142,16 +142,62 @@ const KanjiTextureSystem = {
 
 // Helper functions for sprite effect compatibility
 const SpriteEffectHelpers = {
-    // Apply color effect to sprite (using tint) or text (using color)
-    applyEffectColor: function (enemy, color) {
+    applyEffectColorTexture: function (enemy, color, scene) {
         if (enemy.enemyType === 'sprite') {
-            if (enemy.originalTint === undefined) {
-                enemy.originalTint = enemy.tint || 0xffffff;
+            // Store original texture
+            if (!enemy.originalTexture) {
+                enemy.originalTexture = enemy.texture.key;
             }
-            const tintValue = this.hexToTint(color);
-            enemy.setTint(tintValue);
+
+            // Create a new tinted texture key
+            const tintedKey = `${enemy.originalTexture}_${color.replace('#', '')}`;
+
+            // Check if we already have this tinted texture
+            if (!scene.textures.exists(tintedKey)) {
+                // Get the original kanji character from the texture key
+                const kanjiMatch = enemy.originalTexture.match(/kanji_(.+)_\d+_/);
+                if (kanjiMatch) {
+                    const kanji = kanjiMatch[1];
+                    const sizeMatch = enemy.originalTexture.match(/_(\d+)_/);
+                    const fontSize = sizeMatch ? parseInt(sizeMatch[1]) : 32;
+
+                    // Create new colored texture directly using the kanji rendering system
+                    const canvas = scene.textures.createCanvas(tintedKey,
+                        Math.max(KanjiTextureSystem.config.textureSize, fontSize * 2),
+                        Math.max(KanjiTextureSystem.config.textureSize, fontSize * 2)
+                    );
+                    const context = canvas.getContext();
+
+                    // Configure text rendering with the new color
+                    context.font = `${fontSize}px Arial`;
+                    context.fillStyle = color;
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+
+                    if (KanjiTextureSystem.config.antiAlias) {
+                        context.imageSmoothingEnabled = true;
+                        context.imageSmoothingQuality = 'high';
+                    }
+
+                    // Clear and draw
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const baselineAdjustment = fontSize * 0.05;
+                    const adjustedY = centerY + baselineAdjustment;
+
+                    context.fillText(kanji, centerX, adjustedY);
+                    canvas.refresh();
+
+                    // Track this texture for cleanup
+                    KanjiTextureSystem.sessionTextures.add(tintedKey);
+                }
+            }
+
+            // Switch to the tinted texture
+            enemy.setTexture(tintedKey);
         } else {
-            // Fallback for any remaining text enemies
+            // Fallback for text enemies
             if (!enemy.originalColor) {
                 enemy.originalColor = enemy.style.color || '#ffffff';
             }
@@ -159,10 +205,26 @@ const SpriteEffectHelpers = {
         }
     },
 
-    // Reset to original color
+    // Reset to original appearance
     resetEffectColor: function (enemy) {
-        if (enemy.enemyType === 'sprite' && enemy.originalTint !== undefined) {
-            enemy.setTint(enemy.originalTint);
+        if (enemy.enemyType === 'sprite') {
+            // Reset blend mode method
+            if (enemy.originalBlendMode !== undefined) {
+                enemy.setBlendMode(enemy.originalBlendMode);
+                enemy.setTint(enemy.originalTint);
+            }
+
+            // Reset overlay method
+            if (enemy.colorOverlay) {
+                enemy.colorOverlay.destroy();
+                enemy.colorOverlay = null;
+                enemy.updateOverlay = null;
+            }
+
+            // Reset texture method
+            if (enemy.originalTexture) {
+                enemy.setTexture(enemy.originalTexture);
+            }
         } else if (enemy.originalColor) {
             enemy.setColor(enemy.originalColor);
         }

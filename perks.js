@@ -235,7 +235,7 @@ const PERKS = {
         kana: "てんみつ",
         romaji: "tenmitsu",
         english: "Angel Honey",
-        description: "Periodically spawns honey for a full heal",
+        description: "Periodically spawns honey for a heal",
         color: "#00CC00", // Green color
         hoverColor: 0x00AA00,
         onAcquire: function () {

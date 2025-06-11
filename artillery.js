@@ -101,7 +101,7 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
 ProjectileComponentSystem.registerComponent('slowEffect', {
     initialize: function (projectile) {
         // Apply cyan color to projectile to indicate slow effect
-        SpriteEffectHelpers.applyEffectColor(projectile, '#00ffff');
+        projectile.setColor('#00ffff');
     },
 
     onHit: function (projectile, enemy, scene) {

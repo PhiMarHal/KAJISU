@@ -1,7 +1,6 @@
 // enemy.js - Enemy management system for Word Survivors
 
 // Enemy-related global variables
-let enemyCountScaleFactor = 1.25;     // How quickly enemy count increases over time
 let enemySpeedFactor = 1.0;           // Global modifier for enemy speed
 let currentEnemyRank = 1;             // Current highest enemy rank
 let currentEnemyHealth = 40;          // Current base enemy health value
@@ -14,21 +13,51 @@ let bossSpawned = false;
 // Rank timing configurations
 const rankEnemyStartTimes = {
     1: 0,            // Rank 1 enemies start immediately
-    2: 8 * 60,      // Rank 2 enemies start after 10 minutes
-    3: 14 * 60,      // Rank 3 after 18 minutes
-    4: 20 * 60,      // Rank 4 after 24 minutes
+    2: 8 * 60,      // Rank 2 enemies start after 8 minutes
+    3: 14 * 60,      // Rank 3 after 14 minutes
+    4: 20 * 60,      // Rank 4 after 20 minutes
     5: 30 * 60,      // Rank 5 after 30 minutes
     6: 36 * 60       // Rank 6 after 36 minutes
 };
 
-// Spawn delay configurations for each rank
-const rankSpawnDelays = {
-    1: { base: 4000, min: 400 },
-    2: { base: 8000, min: 800 },
-    3: { base: 12000, min: 1200 },
-    4: { base: 16000, min: 2000 },
-    5: { base: 20000, min: 3000 },
-    6: { base: 24000, min: 4000 }
+// Soft cap and spawn configurations for each rank
+const rankConfigs = {
+    1: {
+        targetCap: 4,        // 4/1 = 4 enemies target per minute initially
+        fastTimer: 1000,     // 1000ms * 1 = 1000ms when under cap
+        slowTimer: 4000,     // 4000ms * 1 = 4000ms when at/over cap
+        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+    },
+    2: {
+        targetCap: 2,        // 4/2 = 2 enemies target per minute initially
+        fastTimer: 2000,     // 1000ms * 2 = 2000ms when under cap
+        slowTimer: 8000,     // 4000ms * 2 = 8000ms when at/over cap
+        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+    },
+    3: {
+        targetCap: 1.33,     // 4/3 = 1.33 enemies target per minute initially
+        fastTimer: 3000,     // 1000ms * 3 = 3000ms when under cap
+        slowTimer: 12000,    // 4000ms * 3 = 12000ms when at/over cap
+        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+    },
+    4: {
+        targetCap: 1,        // 4/4 = 1 enemy target per minute initially
+        fastTimer: 4000,     // 1000ms * 4 = 4000ms when under cap
+        slowTimer: 16000,    // 4000ms * 4 = 16000ms when at/over cap
+        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+    },
+    5: {
+        targetCap: 0.8,      // 4/5 = 0.8 enemies target per minute initially
+        fastTimer: 5000,     // 1000ms * 5 = 5000ms when under cap
+        slowTimer: 20000,    // 4000ms * 5 = 20000ms when at/over cap
+        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+    },
+    6: {
+        targetCap: 0.67,     // 4/6 = 0.67 enemies target per minute initially
+        fastTimer: 6000,     // 1000ms * 6 = 6000ms when under cap
+        slowTimer: 24000,    // 4000ms * 6 = 24000ms when at/over cap
+        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+    }
 };
 
 // Enemy System namespace
@@ -46,6 +75,9 @@ const EnemySystem = {
     updateFrameCounter: 0,
     enemyUpdateInterval: 4,
 
+    // Track enemy counts by rank for cap enforcement
+    enemyCountsByRank: {},
+
     // Initialize the enemy system
     initialize: function (scene) {
         // Store scene reference
@@ -60,12 +92,52 @@ const EnemySystem = {
         // Initialize enemy tier assignments
         initializeEnemyTiers();
 
+        // Initialize enemy counts tracking
+        this.enemyCountsByRank = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+
         console.log("Enemy system initialized");
 
         return this;
     },
 
-    // Function to spawn enemy of specific rank - UPDATED for native sprite support
+    // Calculate current target cap for a rank based on elapsed time
+    getCurrentTargetCap: function (rank) {
+        const config = rankConfigs[rank];
+        if (!config) return 0;
+
+        const startTime = rankEnemyStartTimes[rank];
+        if (elapsedTime < startTime) return 0;
+
+        // Calculate minutes since this rank became active
+        const minutesActive = (elapsedTime - startTime) / 60;
+
+        // First minute is "minute 0" - cap is 0, meaning slow spawning
+        if (minutesActive < 1) {
+            return 0;
+        }
+
+        // After first minute, scale from targetCap to targetCap * maxMultiplier over 8 minutes
+        // Adjust minutes to account for the grace period (subtract 1 minute)
+        const scalingMinutes = minutesActive - 1;
+        const scalingProgress = Math.min(1, scalingMinutes / 8);
+        const currentCap = config.targetCap * (1 + scalingProgress * (config.maxMultiplier - 1));
+
+        return Math.ceil(currentCap);
+    },
+
+    // Determine appropriate spawn delay based on whether we're over the soft cap
+    getSpawnDelay: function (rank) {
+        const config = rankConfigs[rank];
+        if (!config) return 10000; // Default high delay
+
+        const currentCount = this.getEnemyCountByRank(rank);
+        const targetCap = this.getCurrentTargetCap(rank);
+
+        // Use fast timer when under cap, slow timer when at/over cap
+        return currentCount < targetCap ? config.fastTimer : config.slowTimer;
+    },
+
+    // Function to spawn enemy of specific rank - UPDATED for soft caps
     spawnEnemyOfRank: function (rank) {
         // Skip if game is over
         if (gameOver) return null;
@@ -95,6 +167,9 @@ const EnemySystem = {
         // Add to physics group
         this.enemiesGroup.add(enemy);
 
+        // Update count tracking
+        this.enemyCountsByRank[rank] = (this.enemyCountsByRank[rank] || 0) + 1;
+
         // Set enemy physics properties
         enemy.body.setSize(enemy.actualWidth, enemy.actualHeight);
         enemy.body.setCollideWorldBounds(false);
@@ -123,7 +198,6 @@ const EnemySystem = {
         if (!enemy.lastContactDamage[sourceKey] || (currentTime - enemy.lastContactDamage[sourceKey] > cooldownMs)) {
             // Apply damage to enemy
             enemy.health -= damage;
-            //console.log(enemy.health);
             enemy.lastContactDamage[sourceKey] = currentTime;
 
             // Show visual damage effect
@@ -148,6 +222,11 @@ const EnemySystem = {
 
     // Handle enemy defeat
     defeatEnemy: function (enemy) {
+        // Update count tracking when enemy is defeated
+        if (enemy.rank && this.enemyCountsByRank[enemy.rank]) {
+            this.enemyCountsByRank[enemy.rank]--;
+        }
+
         // Check if this is the boss
         if (enemy.isBoss) {
             // Handle boss defeat before calling the original method
@@ -195,7 +274,7 @@ const EnemySystem = {
         VisualEffects.createDamageFlash(this.scene, enemy);
     },
 
-    // Update the enemy spawners
+    // Update the enemy spawners with new cap-aware logic
     updateEnemySpawners: function () {
         // Skip if game is over or paused
         if (gameOver || gamePaused) return;
@@ -229,15 +308,18 @@ const EnemySystem = {
             }
 
             const startTime = rankEnemyStartTimes[rank];
-            const rankConfig = rankSpawnDelays[rank];
+            const rankConfig = rankConfigs[rank];
 
             // Check if this rank's enemies should start spawning yet
             if (elapsedTime >= startTime) {
                 // Create a spawner if it doesn't exist
                 if (!this.enemySpawners[rank]) {
-                    // Create the spawner with initial delay using a single unified spawn function
+                    // Get initial delay based on soft cap logic
+                    const initialDelay = this.getSpawnDelay(rankNum);
+
+                    // Create the spawner with initial delay
                     this.enemySpawners[rank] = registerTimer(this.scene.time.addEvent({
-                        delay: rankConfig.base,
+                        delay: initialDelay,
                         callback: () => { this.spawnEnemyOfRank(rankNum); },
                         callbackScope: this,
                         loop: true
@@ -248,20 +330,10 @@ const EnemySystem = {
                         this.showRankIntroduction(rankNum);
                     }
                 } else {
-                    // Update existing spawner's delay based on elapsed time
-                    // Calculate time since this rank started
-                    const rankMinutesActive = (elapsedTime - startTime) / 60;
+                    // Update existing spawner's delay based on soft cap logic
+                    const newSpawnDelay = this.getSpawnDelay(rankNum);
 
-                    // Only scale up to 12 minutes of active time for this rank
-                    const scalingMinutes = Math.min(12, rankMinutesActive);
-
-                    // Calculate new delay with minimum floor
-                    const newSpawnDelay = Math.max(
-                        rankConfig.min,
-                        rankConfig.base / Math.pow(enemyCountScaleFactor, scalingMinutes)
-                    );
-
-                    // Update the timer if needed
+                    // Update the timer if delay has changed significantly
                     if (Math.abs(this.enemySpawners[rank].delay - newSpawnDelay) > (this.enemySpawners[rank].delay * 0.1)) {
                         this.enemySpawners[rank].delay = newSpawnDelay;
                         this.enemySpawners[rank].reset({
@@ -407,31 +479,39 @@ const EnemySystem = {
             return; // Skip this frame
         }
 
-        // Get all active enemies (same as before)
+        // Get all active enemies
         const activeEnemies = this.enemiesGroup.getChildren();
 
-        // Update each enemy (same logic as before, just less frequent)
+        // Update enemy counts by rank
+        this.enemyCountsByRank = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+        activeEnemies.forEach(enemy => {
+            if (enemy && enemy.active && enemy.rank) {
+                this.enemyCountsByRank[enemy.rank] = (this.enemyCountsByRank[enemy.rank] || 0) + 1;
+            }
+        });
+
+        // Update each enemy
         activeEnemies.forEach(enemy => {
             // Ensure enemy and its body are valid and active
             if (enemy && enemy.active && enemy.body) {
-                // Target position (player) - same as before
+                // Target position (player)
                 const targetX = player.x;
                 const targetY = player.y;
 
-                // Vector from enemy to player - same as before
+                // Vector from enemy to player
                 const dx = targetX - enemy.x;
                 const dy = targetY - enemy.y;
 
-                // Distance to player - same as before
+                // Distance to player
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                // Define the maximum speed - same as before
+                // Define the maximum speed
                 const maxSpeed = enemy.speed * enemySpeedFactor;
 
-                // Define the acceleration rate - same as before
+                // Define the acceleration rate
                 const accelerationRate = maxSpeed * 8;
 
-                // Avoid division by zero - same as before
+                // Avoid division by zero
                 if (distance > 1) {
                     // Normalize the direction vector
                     const dirX = dx / distance;
@@ -448,7 +528,7 @@ const EnemySystem = {
                     enemy.body.setAcceleration(0, 0);
                 }
 
-                // Manually cap speed - same as before
+                // Manually cap speed
                 const velocity = enemy.body.velocity;
                 const currentSpeedSq = velocity.lengthSq();
 
@@ -466,6 +546,11 @@ const EnemySystem = {
         return this.enemiesGroup.getChildren().filter(enemy =>
             enemy && enemy.active && enemy.rank === rank
         ).length;
+    },
+
+    // Get enemy count by rank (using cached counts)
+    getEnemyCountByRank: function (rank) {
+        return this.enemyCountsByRank[rank] || 0;
     },
 
     // Get total enemy count
@@ -588,7 +673,7 @@ const EnemySystem = {
         const borderWidth = UI.healthBar.borderWidth;
         const innerMargin = UI.healthBar.innerMargin;
         const centerX = UI.healthBar.centerX();
-        const y = game.config.height * 0.9125; // 730/800 = 0.9125 -- Position near the bottom for boss health bar
+        const y = game.config.height * 0.9125; // Position near the bottom for boss health bar
 
         // Create gold border with black background (like the player health bar)
         scene.bossHealthBarBorder = scene.add.rectangle(
@@ -733,6 +818,9 @@ const EnemySystem = {
         // Reset frame counter (batching)
         this.updateFrameCounter = 0;
 
+        // Reset enemy counts tracking
+        this.enemyCountsByRank = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+
         // Clean up any boss UI elements
         const scene = this.scene;
         if (scene) {
@@ -753,12 +841,10 @@ const EnemySystem = {
 window.EnemySystem = EnemySystem;
 
 // Export the enemy-related variables for global access
-window.enemyCountScaleFactor = enemyCountScaleFactor;
 window.enemySpeedFactor = enemySpeedFactor;
 window.currentEnemyRank = currentEnemyRank;
 window.currentEnemyHealth = currentEnemyHealth;
 window.rankEnemyStartTimes = rankEnemyStartTimes;
-window.rankSpawnDelays = rankSpawnDelays;
 
 // Make boss variables accessible globally
 window.bossMode = bossMode;
@@ -767,11 +853,6 @@ window.bossSpawned = bossSpawned;
 window.BOSS_CONFIG = BOSS_CONFIG;
 
 // Setter functions to modify variables
-EnemySystem.setEnemyCountScaleFactor = function (value) {
-    enemyCountScaleFactor = value;
-    window.enemyCountScaleFactor = value;
-};
-
 EnemySystem.setEnemySpeedFactor = function (value) {
     enemySpeedFactor = value;
     window.enemySpeedFactor = value;

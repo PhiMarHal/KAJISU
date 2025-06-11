@@ -395,7 +395,12 @@ const HelpButtonManager = {
         });
 
         scene.helpButtonBorder.on('pointerdown', function () {
-            HelpSystem.show(scene);
+            // Toggle the help screen
+            if (HelpSystem.elements.container && HelpSystem.elements.container.visible) {
+                HelpSystem.hide();
+            } else {
+                HelpSystem.show(scene);
+            }
         });
     },
 

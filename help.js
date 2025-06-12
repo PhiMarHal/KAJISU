@@ -2,69 +2,101 @@
 
 const HELP_PAGES = [
     {
-        title: "WELCOME TO KAJISU",
+        title: "THE YEAR IS 2077",
         content: [
-            "You are the hero 人 (hito) - person",
+            "HUMANITY TOOK TO THE STARS",
             "",
-            "Survive waves of kanji enemies",
-            "Learn Japanese while you fight",
+            "YOU ARE   " + HERO_CHARACTER,
             "",
-            "Move with WASD or arrow keys",
-            "Touch controls work on mobile"
+            "YOU TRAVEL THROUGH SPACE",
+            "",
+            "SURVIVAL IS YOUR GOAL"
         ]
     },
     {
-        title: "COMBAT SYSTEM",
+        title: "TO LEARN IS TO ERR",
         content: [
-            "Your hero shoots automatically",
-            "Enemies get stronger over time",
+            "DO NOT READ ANY FURTHER",
             "",
-            "Defeat enemies to gain experience",
-            "Level up to choose new perks",
+            "THERE IS STILL TIME TO STOP",
             "",
-            "Each enemy teaches you kanji:",
-            "鬼 (oni) - demon, 龍 (ryuu) - dragon"
+            "CLICK ELSEWHERE TO CLOSE THIS",
+            "",
+            "IGNORANCE IS BLISS"
         ]
     },
     {
-        title: "STATS & PROGRESSION",
+        title: "THEY ARE COMING",
         content: [
-            "Four core stats affect gameplay:",
+            "YOUR ENEMIES ARE MANY",
             "",
-            "力 (POW) - Attack damage",
-            "速 (AGI) - Attack speed",
-            "運 (LUK) - Proc chances",
-            "耐 (END) - Health points",
+            "KNOWLEDGE WILL HARASS YOU",
             "",
-            "Perks modify these stats and more"
+            "DO NOT LET THEM TOUCH YOU",
+            "",
+            "DO NOT MAKE THEM TEACH YOU"
         ]
     },
     {
-        title: "ENEMY RANKS",
+        title: "FLY, " + HERO_CHARACTER,
         content: [
-            "Enemies appear in ranks over time:",
+            "SLIDE THEN HOLD TO MOVE",
             "",
-            "壱 (1st) - Basic enemies",
-            "弐 (2nd) - Stronger foes",
-            "参 (3rd) - Tougher opponents",
-            "肆 (4th) - Powerful enemies",
+            "SHIFT DIRECTION AT WILL",
             "",
-            "Survive long enough to face the boss!"
+            "RELEASE TO STOP",
+            "",
+            "DO NOT EVER STOP"
         ]
     },
     {
-        title: "VICTORY CONDITION",
+        title: "FIGHT, " + HERO_CHARACTER,
         content: [
-            "Defeat the final boss to escape",
-            "the endless loop of combat",
+            "IGNORANCE IS YOUR STRENGTH",
             "",
-            "The boss appears after surviving",
-            "the fourth rank of enemies",
+            "YOU WILL FIRE ON YOUR OWN",
             "",
-            "Good luck, 人 (hito)!",
-            "May your kanji knowledge grow strong"
+            "YOUR MIND TARGETS CLOSE",
+            "",
+            "USE MOVEMENT TO AIM"
         ]
-    }
+    },
+    {
+        title: "GROW, " + HERO_CHARACTER,
+        content: [
+            "THE CARDS HOLD THE TRUTH",
+            "",
+            "VICTORIES WILL REVEAL THEM",
+            "",
+            "ONLY ONE CAN BE PICKED",
+            "",
+            "EVERY CHOICE MATTERS"
+        ]
+    },
+    {
+        title: "THE FOUR PILLARS",
+        content: [
+            STAT_DEFINITIONS.POW.kanji + " = MORE DAMAGE",
+            "",
+            STAT_DEFINITIONS.AGI.kanji + " = FASTER SHOTS",
+            "",
+            STAT_DEFINITIONS.LUK.kanji + " = SPECIAL EFFECTS",
+            "",
+            STAT_DEFINITIONS.END.kanji + " = GREATER LIFE",
+        ]
+    },
+    {
+        title: "TIME IS FLEETING",
+        content: [
+            "TO WIN THE GAME",
+            "",
+            "SHOOT AT YOUR ENEMIES",
+            "",
+            "NOTHING ELSE MATTERS",
+            "",
+            "GOOD LUCK,   " + HERO_CHARACTER,
+        ]
+    },
 ];
 
 const HelpSystem = {
@@ -84,6 +116,10 @@ const HelpSystem = {
     // Current page tracking
     currentPage: 0,
     isOpen: false,
+
+    // Store panel dimensions for relative positioning
+    panelWidth: 0,
+    panelHeight: 0,
 
     // Create the help screen
     show: function (scene) {
@@ -112,15 +148,16 @@ const HelpSystem = {
         }
 
         // Use fixed dimensions instead of relative positioning for consistency
-        const panelWidth = Math.max(600, game.config.width * 0.5); // 50% of screen width, min 600px
-        const panelHeight = Math.max(480, game.config.height * 0.6); // 60% of screen height, min 480px
+        this.panelWidth = Math.max(600, game.config.width * 0.5); // 50% of screen width, min 600px
+        const heightPercent = (typeof KAJISULI_MODE !== 'undefined' && KAJISULI_MODE) ? 0.6 : 0.8;
+        this.panelHeight = Math.max(480, game.config.height * heightPercent);
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
 
         // Create panel black background
         this.elements.background = scene.add.rectangle(
             centerX, centerY,
-            panelWidth, panelHeight,
+            this.panelWidth, this.panelHeight,
             0x000000
         );
         this.elements.container.add(this.elements.background);
@@ -128,7 +165,7 @@ const HelpSystem = {
         // Create golden border
         this.elements.borderRect = scene.add.rectangle(
             centerX, centerY,
-            panelWidth, panelHeight
+            this.panelWidth, this.panelHeight
         );
         this.elements.borderRect.setStrokeStyle(4, 0xFFD700);
         this.elements.container.add(this.elements.borderRect);
@@ -141,8 +178,8 @@ const HelpSystem = {
             strokeThickness: 3
         };
 
-        const arrowY = centerY + panelHeight * 0.4; // Bottom area
-        const arrowSpacing = panelWidth * 0.2; // Distance from center
+        const arrowY = centerY + this.panelHeight * 0.4; // Bottom area
+        const arrowSpacing = this.panelWidth * 0.2; // Distance from center
 
         this.elements.leftArrow = scene.add.text(
             centerX - arrowSpacing,
@@ -224,6 +261,9 @@ const HelpSystem = {
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
 
+        // Use stored panel dimensions, with fallback
+        const panelHeight = this.panelHeight || Math.max(480, game.config.height * 0.6);
+
         // Clear existing content - safely handle null arrays
         if (this.elements.contentLines && Array.isArray(this.elements.contentLines)) {
             this.elements.contentLines.forEach(line => {
@@ -237,10 +277,10 @@ const HelpSystem = {
             this.elements.titleText = null;
         }
 
-        // Create title
+        // Create title - position relative to panel
         this.elements.titleText = scene.add.text(
             centerX,
-            centerY - UI.rel.height(25),
+            centerY - panelHeight * 0.35, // 35% up from center of panel
             page.title,
             {
                 fontFamily: 'Arial',
@@ -251,9 +291,9 @@ const HelpSystem = {
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.titleText);
 
-        // Create content lines
-        const lineHeight = 32;
-        const startY = centerY - UI.rel.height(8);
+        // Create content lines - position relative to panel
+        const lineHeight = 40;
+        const startY = centerY - panelHeight * 0.15; // 15% up from center of panel
 
         page.content.forEach((line, index) => {
             const contentLine = scene.add.text(
@@ -262,7 +302,7 @@ const HelpSystem = {
                 line,
                 {
                     fontFamily: 'Arial',
-                    fontSize: '24px',
+                    fontSize: '32px',
                     color: '#ffffff',
                     align: 'center'
                 }
@@ -496,4 +536,3 @@ const ButtonStateManager = {
 
 // Export button state manager
 window.ButtonStateManager = ButtonStateManager;
-

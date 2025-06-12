@@ -24,36 +24,36 @@ const rankEnemyStartTimes = {
 const rankConfigs = {
     1: {
         targetCap: 4,        // 4/1 = 4 enemies target per minute initially
-        fastTimer: 1000,     // 1000ms * 1 = 1000ms when under cap
+        fastTimer: 400,     // 1000ms * 1 = 1000ms when under cap
         slowTimer: 4000,     // 4000ms * 1 = 4000ms when at/over cap
         maxMultiplier: 8     // Can scale up to 8x over 8 minutes
     },
     2: {
         targetCap: 2,        // 4/2 = 2 enemies target per minute initially
-        fastTimer: 2000,     // 1000ms * 2 = 2000ms when under cap
+        fastTimer: 800,     // 1000ms * 2 = 2000ms when under cap
         slowTimer: 8000,     // 4000ms * 2 = 8000ms when at/over cap
         maxMultiplier: 8     // Can scale up to 8x over 8 minutes
     },
     3: {
-        targetCap: 1.33,     // 4/3 = 1.33 enemies target per minute initially
-        fastTimer: 3000,     // 1000ms * 3 = 3000ms when under cap
-        slowTimer: 12000,    // 4000ms * 3 = 12000ms when at/over cap
+        targetCap: 1,     // 4/3 = 1.33 enemies target per minute initially
+        fastTimer: 1600,     // 1000ms * 3 = 3000ms when under cap
+        slowTimer: 16000,    // 4000ms * 3 = 12000ms when at/over cap
         maxMultiplier: 8     // Can scale up to 8x over 8 minutes
     },
     4: {
-        targetCap: 1,        // 4/4 = 1 enemy target per minute initially
+        targetCap: 0.5,        // 4/4 = 1 enemy target per minute initially
         fastTimer: 4000,     // 1000ms * 4 = 4000ms when under cap
         slowTimer: 16000,    // 4000ms * 4 = 16000ms when at/over cap
         maxMultiplier: 8     // Can scale up to 8x over 8 minutes
     },
     5: {
-        targetCap: 0.8,      // 4/5 = 0.8 enemies target per minute initially
+        targetCap: 0.25,      // 4/5 = 0.8 enemies target per minute initially
         fastTimer: 5000,     // 1000ms * 5 = 5000ms when under cap
         slowTimer: 20000,    // 4000ms * 5 = 20000ms when at/over cap
         maxMultiplier: 8     // Can scale up to 8x over 8 minutes
     },
     6: {
-        targetCap: 0.67,     // 4/6 = 0.67 enemies target per minute initially
+        targetCap: 0.125,     // 4/6 = 0.67 enemies target per minute initially
         fastTimer: 6000,     // 1000ms * 6 = 6000ms when under cap
         slowTimer: 24000,    // 4000ms * 6 = 24000ms when at/over cap
         maxMultiplier: 8     // Can scale up to 8x over 8 minutes

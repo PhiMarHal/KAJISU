@@ -6,7 +6,7 @@ const ScoreSystem = {
     // Calculate final score based on game outcome (victory or defeat)
     calculateScore: function (isVictory) {
         // Get boss spawn time from global configuration
-        const bossSpawnTime = rankEnemyStartTimes[BOSS_CONFIG.max_rank] || 1200; // Default to 20 minutes (1200 seconds)
+        const bossSpawnTime = rankConfigs[BOSS_CONFIG.max_rank]?.startTime || 1200; // Default to 20 minutes (1200 seconds)
         const maximumScoreTime = bossSpawnTime * 2; // Cap at twice the boss spawn time
 
         let finalScore;

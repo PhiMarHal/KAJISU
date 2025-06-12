@@ -42,7 +42,7 @@ const HELP_PAGES = [
         content: [
             "SLIDE THEN HOLD TO MOVE",
             "",
-            "SHIFT DIRECTION AT WILL",
+            "CHANGE VECTOR AT WILL",
             "",
             "RELEASE TO STOP",
             "",
@@ -185,7 +185,7 @@ const HelpSystem = {
         this.elements.borderRect.setStrokeStyle(4, 0xFFD700);
         this.elements.container.add(this.elements.borderRect);
 
-        // Create navigation arrows at the bottom
+        // Create navigation arrows at the bottom with larger tap areas
         const arrowConfig = {
             fontSize: '60px',
             color: '#ffffff',
@@ -195,6 +195,19 @@ const HelpSystem = {
 
         const arrowY = centerY + this.panelHeight * 0.4; // Bottom area
         const arrowSpacing = this.panelWidth * 0.2; // Distance from center
+        const arrowTapSize = 100; // Larger tap area around arrows
+
+        // Create invisible tap area for left arrow
+        const leftArrowTapArea = scene.add.rectangle(
+            centerX - arrowSpacing,
+            arrowY,
+            arrowTapSize,
+            arrowTapSize,
+            0x000000, 0 // Transparent
+        );
+        leftArrowTapArea.setInteractive({ useHandCursor: true });
+        leftArrowTapArea.on('pointerdown', () => this.previousPage(scene));
+        this.elements.container.add(leftArrowTapArea);
 
         this.elements.leftArrow = scene.add.text(
             centerX - arrowSpacing,
@@ -202,9 +215,19 @@ const HelpSystem = {
             '◀',
             arrowConfig
         ).setOrigin(0.5);
-        this.elements.leftArrow.setInteractive({ useHandCursor: true });
-        this.elements.leftArrow.on('pointerdown', () => this.previousPage(scene));
         this.elements.container.add(this.elements.leftArrow);
+
+        // Create invisible tap area for right arrow
+        const rightArrowTapArea = scene.add.rectangle(
+            centerX + arrowSpacing,
+            arrowY,
+            arrowTapSize,
+            arrowTapSize,
+            0x000000, 0 // Transparent
+        );
+        rightArrowTapArea.setInteractive({ useHandCursor: true });
+        rightArrowTapArea.on('pointerdown', () => this.nextPage(scene));
+        this.elements.container.add(rightArrowTapArea);
 
         this.elements.rightArrow = scene.add.text(
             centerX + arrowSpacing,
@@ -212,8 +235,6 @@ const HelpSystem = {
             '▶',
             arrowConfig
         ).setOrigin(0.5);
-        this.elements.rightArrow.setInteractive({ useHandCursor: true });
-        this.elements.rightArrow.on('pointerdown', () => this.nextPage(scene));
         this.elements.container.add(this.elements.rightArrow);
 
         // Create page indicator between the arrows
@@ -229,11 +250,27 @@ const HelpSystem = {
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.pageIndicator);
 
-        // Make clicking outside close the help screen
+        // Make clicking outside the panel (but inside the background) close the help screen
         const fullscreenBg = this.elements.container.list.find(obj => obj.width === game.config.width);
         if (fullscreenBg) {
             fullscreenBg.setInteractive();
-            fullscreenBg.on('pointerdown', () => this.hide());
+            fullscreenBg.on('pointerdown', (pointer, localX, localY) => {
+                // Calculate if click was outside the panel
+                const clickX = pointer.x;
+                const clickY = pointer.y;
+
+                // Panel boundaries
+                const panelLeft = centerX - this.panelWidth / 2;
+                const panelRight = centerX + this.panelWidth / 2;
+                const panelTop = centerY - this.panelHeight / 2;
+                const panelBottom = centerY + this.panelHeight / 2;
+
+                // Only close if click was outside the panel
+                if (clickX < panelLeft || clickX > panelRight ||
+                    clickY < panelTop || clickY > panelBottom) {
+                    this.hide();
+                }
+            });
         }
 
         // Set up keyboard handler for escape key

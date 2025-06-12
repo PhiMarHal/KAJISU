@@ -206,9 +206,9 @@ const DebugSystem = {
         // Get the current minutes elapsed
         const currentMinutes = elapsedTime / 60;
 
-        // Find the next phase timing based on rankEnemyStartTimes
+        // Find the next phase timing based on rankConfigs
         // Convert the start times from seconds to minutes
-        const phaseTimings = Object.values(rankEnemyStartTimes).map(time => time / 60);
+        const phaseTimings = Object.values(rankConfigs).map(config => config.startTime / 60);
 
         // Sort the phase timings to ensure they're in ascending order
         phaseTimings.sort((a, b) => a - b);

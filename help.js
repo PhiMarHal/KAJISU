@@ -121,13 +121,28 @@ const HelpSystem = {
     panelWidth: 0,
     panelHeight: 0,
 
+    // Track if we paused the game when opening help
+    pausedGameForHelp: false,
+
     // Create the help screen
     show: function (scene) {
         if (this.isOpen) return;
-        this.isOpen = true;
 
         // Clean up any existing help screen first
         this.hide();
+
+        // Check if game is currently running (not paused and not game over)
+        const gameIsRunning = !gamePaused && !gameOver && gameStarted;
+
+        // If game is running, pause it and remember that we did
+        if (gameIsRunning && window.PauseSystem) {
+            this.pausedGameForHelp = true;
+            window.PauseSystem.pauseGame();
+        } else {
+            this.pausedGameForHelp = false;
+        }
+
+        this.isOpen = true;
 
         // Create a container with very high depth for all elements
         this.elements.container = scene.add.container(0, 0);
@@ -233,6 +248,12 @@ const HelpSystem = {
         this.isOpen = false;
         this.cleanupKeyboardHandler();
 
+        // If we paused the game when opening help, resume it now
+        if (this.pausedGameForHelp && window.PauseSystem) {
+            this.pausedGameForHelp = false;
+            window.PauseSystem.resumeGame();
+        }
+
         if (this.elements.container) {
             this.elements.container.destroy();
         }
@@ -292,7 +313,7 @@ const HelpSystem = {
         this.elements.container.add(this.elements.titleText);
 
         // Create content lines - position relative to panel
-        const lineHeight = 40;
+        const lineHeight = 48;
         const startY = centerY - panelHeight * 0.15; // 15% up from center of panel
 
         page.content.forEach((line, index) => {

@@ -10,55 +10,55 @@ let bossMode = false;
 let activeBoss = null;
 let bossSpawned = false;
 
-// Rank timing configurations
-const rankEnemyStartTimes = {
-    1: 0,            // Rank 1 enemies start immediately
-    2: 8 * 60,      // Rank 2 enemies start after 8 minutes
-    3: 14 * 60,      // Rank 3 after 14 minutes
-    4: 20 * 60,      // Rank 4 after 20 minutes
-    5: 30 * 60,      // Rank 5 after 30 minutes
-    6: 36 * 60       // Rank 6 after 36 minutes
-};
-
-// Soft cap and spawn configurations for each rank
+// Consolidated rank configurations
 const rankConfigs = {
     1: {
-        targetCap: 4,        // 4/1 = 4 enemies target per minute initially
-        fastTimer: 400,     // 1000ms * 1 = 1000ms when under cap
-        slowTimer: 4000,     // 4000ms * 1 = 4000ms when at/over cap
-        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+        startTime: 0,           // Start immediately
+        baseDelay: 4000,        // Base spawn delay in ms
+        minDelay: 400,          // Minimum spawn delay in ms
+        scaleMinutes: 16         // Scale over 8 minutes
     },
     2: {
-        targetCap: 2,        // 4/2 = 2 enemies target per minute initially
-        fastTimer: 800,     // 1000ms * 2 = 2000ms when under cap
-        slowTimer: 8000,     // 4000ms * 2 = 8000ms when at/over cap
-        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+        startTime: 8 * 60,      // Start after 8 minutes
+        baseDelay: 8000,        // Base spawn delay in ms
+        minDelay: 800,          // Minimum spawn delay in ms
+        scaleMinutes: 16         // Scale over 8 minutes
     },
     3: {
-        targetCap: 1,     // 4/3 = 1.33 enemies target per minute initially
-        fastTimer: 1600,     // 1000ms * 3 = 3000ms when under cap
-        slowTimer: 16000,    // 4000ms * 3 = 12000ms when at/over cap
-        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+        startTime: 14 * 60,     // Start after 14 minutes
+        baseDelay: 16000,       // Base spawn delay in ms
+        minDelay: 1600,         // Minimum spawn delay in ms
+        scaleMinutes: 16         // Scale over 8 minutes
     },
     4: {
-        targetCap: 0.5,        // 4/4 = 1 enemy target per minute initially
-        fastTimer: 4000,     // 1000ms * 4 = 4000ms when under cap
-        slowTimer: 16000,    // 4000ms * 4 = 16000ms when at/over cap
-        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+        startTime: 20 * 60,     // Start after 20 minutes
+        baseDelay: 16000,       // Base spawn delay in ms
+        minDelay: 2000,         // Minimum spawn delay in ms
+        scaleMinutes: 8         // Scale over 8 minutes
     },
     5: {
-        targetCap: 0.25,      // 4/5 = 0.8 enemies target per minute initially
-        fastTimer: 5000,     // 1000ms * 5 = 5000ms when under cap
-        slowTimer: 20000,    // 4000ms * 5 = 20000ms when at/over cap
-        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+        startTime: 30 * 60,     // Start after 30 minutes
+        baseDelay: 20000,       // Base spawn delay in ms
+        minDelay: 3000,         // Minimum spawn delay in ms
+        scaleMinutes: 8         // Scale over 8 minutes
     },
     6: {
-        targetCap: 0.125,     // 4/6 = 0.67 enemies target per minute initially
-        fastTimer: 6000,     // 1000ms * 6 = 6000ms when under cap
-        slowTimer: 24000,    // 4000ms * 6 = 24000ms when at/over cap
-        maxMultiplier: 8     // Can scale up to 8x over 8 minutes
+        startTime: 36 * 60,     // Start after 36 minutes
+        baseDelay: 24000,       // Base spawn delay in ms
+        minDelay: 4000,         // Minimum spawn delay in ms
+        scaleMinutes: 8         // Scale over 8 minutes
     }
 };
+
+// Calculate dynamic scale factor for each rank
+function getRankScaleFactor(rank) {
+    const config = rankConfigs[rank];
+    if (!config) return 1;
+
+    // Calculate the scale factor needed to go from baseDelay to minDelay over scaleMinutes
+    const targetRatio = config.baseDelay / config.minDelay;
+    return Math.pow(targetRatio, 1 / config.scaleMinutes);
+}
 
 // Enemy System namespace
 const EnemySystem = {
@@ -75,9 +75,6 @@ const EnemySystem = {
     updateFrameCounter: 0,
     enemyUpdateInterval: 4,
 
-    // Track enemy counts by rank for cap enforcement
-    enemyCountsByRank: {},
-
     // Initialize the enemy system
     initialize: function (scene) {
         // Store scene reference
@@ -92,52 +89,12 @@ const EnemySystem = {
         // Initialize enemy tier assignments
         initializeEnemyTiers();
 
-        // Initialize enemy counts tracking
-        this.enemyCountsByRank = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-
         console.log("Enemy system initialized");
 
         return this;
     },
 
-    // Calculate current target cap for a rank based on elapsed time
-    getCurrentTargetCap: function (rank) {
-        const config = rankConfigs[rank];
-        if (!config) return 0;
-
-        const startTime = rankEnemyStartTimes[rank];
-        if (elapsedTime < startTime) return 0;
-
-        // Calculate minutes since this rank became active
-        const minutesActive = (elapsedTime - startTime) / 60;
-
-        // First minute is "minute 0" - cap is 0, meaning slow spawning
-        if (minutesActive < 1) {
-            return 0;
-        }
-
-        // After first minute, scale from targetCap to targetCap * maxMultiplier over 8 minutes
-        // Adjust minutes to account for the grace period (subtract 1 minute)
-        const scalingMinutes = minutesActive - 1;
-        const scalingProgress = Math.min(1, scalingMinutes / 8);
-        const currentCap = config.targetCap * (1 + scalingProgress * (config.maxMultiplier - 1));
-
-        return Math.ceil(currentCap);
-    },
-
-    // Determine appropriate spawn delay based on whether we're over the soft cap
-    getSpawnDelay: function (rank) {
-        const config = rankConfigs[rank];
-        if (!config) return 10000; // Default high delay
-
-        const currentCount = this.getEnemyCountByRank(rank);
-        const targetCap = this.getCurrentTargetCap(rank);
-
-        // Use fast timer when under cap, slow timer when at/over cap
-        return currentCount < targetCap ? config.fastTimer : config.slowTimer;
-    },
-
-    // Function to spawn enemy of specific rank - UPDATED for soft caps
+    // Function to spawn enemy of specific rank
     spawnEnemyOfRank: function (rank) {
         // Skip if game is over
         if (gameOver) return null;
@@ -166,9 +123,6 @@ const EnemySystem = {
 
         // Add to physics group
         this.enemiesGroup.add(enemy);
-
-        // Update count tracking
-        this.enemyCountsByRank[rank] = (this.enemyCountsByRank[rank] || 0) + 1;
 
         // Set enemy physics properties
         enemy.body.setSize(enemy.actualWidth, enemy.actualHeight);
@@ -222,11 +176,6 @@ const EnemySystem = {
 
     // Handle enemy defeat
     defeatEnemy: function (enemy) {
-        // Update count tracking when enemy is defeated
-        if (enemy.rank && this.enemyCountsByRank[enemy.rank]) {
-            this.enemyCountsByRank[enemy.rank]--;
-        }
-
         // Check if this is the boss
         if (enemy.isBoss) {
             // Handle boss defeat before calling the original method
@@ -235,9 +184,6 @@ const EnemySystem = {
 
         // Only show learning feedback for enemies of the current (highest) rank
         if (this.scene.learningFeedback && enemy.rank === currentEnemyRank) {
-            // Set white color for this text
-            const textColor = '#ffffff';
-
             // Update the text
             this.scene.learningFeedback.setText(
                 `${enemy.text} (${enemy.kana}) [${enemy.romaji}] - ${enemy.english}`
@@ -274,13 +220,13 @@ const EnemySystem = {
         VisualEffects.createDamageFlash(this.scene, enemy);
     },
 
-    // Update the enemy spawners with new cap-aware logic
+    // Update the enemy spawners with dynamic scaling
     updateEnemySpawners: function () {
         // Skip if game is over or paused
         if (gameOver || gamePaused) return;
 
         // Check if it's time to spawn the boss (based on elapsed time reaching the boss rank's start time)
-        if (!bossSpawned && elapsedTime >= rankEnemyStartTimes[BOSS_CONFIG.max_rank]) {
+        if (!bossSpawned && elapsedTime >= rankConfigs[BOSS_CONFIG.max_rank].startTime) {
             console.log("Boss spawn condition met - spawning boss!");
             bossSpawned = true;
             this.spawnBoss();
@@ -299,46 +245,53 @@ const EnemySystem = {
         }
 
         // Process each rank for spawner updates
-        Object.keys(rankEnemyStartTimes).forEach(rank => {
-            const rankNum = parseInt(rank);
+        Object.keys(rankConfigs).forEach(rankStr => {
+            const rank = parseInt(rankStr);
 
             // Skip ranks at or above max_rank if boss has spawned
-            if (bossSpawned && rankNum >= BOSS_CONFIG.max_rank) {
+            if (bossSpawned && rank >= BOSS_CONFIG.max_rank) {
                 return;
             }
 
-            const startTime = rankEnemyStartTimes[rank];
-            const rankConfig = rankConfigs[rank];
+            const config = rankConfigs[rank];
 
             // Check if this rank's enemies should start spawning yet
-            if (elapsedTime >= startTime) {
+            if (elapsedTime >= config.startTime) {
                 // Create a spawner if it doesn't exist
                 if (!this.enemySpawners[rank]) {
-                    // Get initial delay based on soft cap logic
-                    const initialDelay = this.getSpawnDelay(rankNum);
-
                     // Create the spawner with initial delay
                     this.enemySpawners[rank] = registerTimer(this.scene.time.addEvent({
-                        delay: initialDelay,
-                        callback: () => { this.spawnEnemyOfRank(rankNum); },
+                        delay: config.baseDelay,
+                        callback: () => { this.spawnEnemyOfRank(rank); },
                         callbackScope: this,
                         loop: true
                     }));
 
                     // If it's not rank 1, show an introduction and update current enemy rank
-                    if (rankNum > 1) {
-                        this.showRankIntroduction(rankNum);
+                    if (rank > 1) {
+                        this.showRankIntroduction(rank);
                     }
                 } else {
-                    // Update existing spawner's delay based on soft cap logic
-                    const newSpawnDelay = this.getSpawnDelay(rankNum);
+                    // Update existing spawner's delay based on elapsed time
+                    // Calculate time since this rank started
+                    const rankMinutesActive = (elapsedTime - config.startTime) / 60;
 
-                    // Update the timer if delay has changed significantly
+                    // Use dynamic scale factor for this specific rank
+                    const scaleFactor = getRankScaleFactor(rank);
+                    const scalingMinutes = Math.min(config.scaleMinutes, rankMinutesActive);
+
+                    // Calculate new delay
+                    const newSpawnDelay = Math.max(
+                        config.minDelay,
+                        config.baseDelay / Math.pow(scaleFactor, scalingMinutes)
+                    );
+
+                    // Update the timer if needed (with some threshold to avoid constant updates)
                     if (Math.abs(this.enemySpawners[rank].delay - newSpawnDelay) > (this.enemySpawners[rank].delay * 0.1)) {
                         this.enemySpawners[rank].delay = newSpawnDelay;
                         this.enemySpawners[rank].reset({
                             delay: newSpawnDelay,
-                            callback: () => { this.spawnEnemyOfRank(rankNum); },
+                            callback: () => { this.spawnEnemyOfRank(rank); },
                             callbackScope: this,
                             loop: true
                         });
@@ -482,14 +435,6 @@ const EnemySystem = {
         // Get all active enemies
         const activeEnemies = this.enemiesGroup.getChildren();
 
-        // Update enemy counts by rank
-        this.enemyCountsByRank = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-        activeEnemies.forEach(enemy => {
-            if (enemy && enemy.active && enemy.rank) {
-                this.enemyCountsByRank[enemy.rank] = (this.enemyCountsByRank[enemy.rank] || 0) + 1;
-            }
-        });
-
         // Update each enemy
         activeEnemies.forEach(enemy => {
             // Ensure enemy and its body are valid and active
@@ -546,11 +491,6 @@ const EnemySystem = {
         return this.enemiesGroup.getChildren().filter(enemy =>
             enemy && enemy.active && enemy.rank === rank
         ).length;
-    },
-
-    // Get enemy count by rank (using cached counts)
-    getEnemyCountByRank: function (rank) {
-        return this.enemyCountsByRank[rank] || 0;
     },
 
     // Get total enemy count
@@ -818,9 +758,6 @@ const EnemySystem = {
         // Reset frame counter (batching)
         this.updateFrameCounter = 0;
 
-        // Reset enemy counts tracking
-        this.enemyCountsByRank = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-
         // Clean up any boss UI elements
         const scene = this.scene;
         if (scene) {
@@ -844,13 +781,16 @@ window.EnemySystem = EnemySystem;
 window.enemySpeedFactor = enemySpeedFactor;
 window.currentEnemyRank = currentEnemyRank;
 window.currentEnemyHealth = currentEnemyHealth;
-window.rankEnemyStartTimes = rankEnemyStartTimes;
+window.rankConfigs = rankConfigs; // Export the consolidated config
 
 // Make boss variables accessible globally
 window.bossMode = bossMode;
 window.activeBoss = activeBoss;
 window.bossSpawned = bossSpawned;
 window.BOSS_CONFIG = BOSS_CONFIG;
+
+// Export the helper function
+window.getRankScaleFactor = getRankScaleFactor;
 
 // Setter functions to modify variables
 EnemySystem.setEnemySpeedFactor = function (value) {

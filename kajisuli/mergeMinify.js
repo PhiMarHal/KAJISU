@@ -53,6 +53,7 @@ const config = {
         'beamLogic.js',
         'beamPerks.js',
         'bestiary.js',
+        'canvasTexture.js',
         'cards.js',
         'challenge.js',
         'cooldown.js',
@@ -76,7 +77,8 @@ const config = {
         'score.js',
         'statdefs.js',
         'visuals.js',
-        'weapons.js'
+        'weapons.js',
+        'help.js',
     ],
     serviceWorkerFile: 'serviceworker.js',
 };
@@ -494,6 +496,9 @@ async function mergeFiles() {
 
     htmlTemplate = htmlTemplate.replace(/const DEBUG_MODE = [^;]+;/g, 'const DEBUG_MODE = false;');
     console.log('Set DEBUG_MODE to false');
+
+    htmlTemplate = htmlTemplate.replace(/const FARCADE_MODE = [^;]+;/g, 'const FARCADE_MODE = true;');
+    console.log('Set FARCADE_MODE to true');
 
     const mergedJs = mergeJsFiles();
 

@@ -639,7 +639,7 @@ OrbitalPerkRegistry.registerPerkOrbital('DEATH_FINGER', {
             fontSize: 16, // Small size
             radius: 32, // Close to player
             angle: 0, // Starting angle (will be updated by directionFollowing)
-            speed: 0.1, // Speed for rotation
+            speed: 0.2, // Speed for rotation
             direction: 'clockwise',
             pattern: 'directionFollowing', // Follows player movement direction
             collisionType: 'persistent', // Never dies from collisions
@@ -686,7 +686,7 @@ OrbitalPerkRegistry.registerPerkOrbital('FINGER_OF_DECAY', {
             fontSize: 16, // Small size
             radius: 48, // Slightly larger than Death Finger
             angle: 0, // Starting angle (will be updated by directionFollowing)
-            speed: 0.1, // Speed for rotation
+            speed: 0.2, // Speed for rotation
             direction: 'clockwise',
             pattern: 'directionFollowing', // Follows player movement direction
             collisionType: 'persistent', // Never dies from collisions
@@ -734,7 +734,7 @@ OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
             fontSize: 32, // Standard size
             radius: 96, //
             angle: Math.random() * Math.PI * 2, // Random starting angle
-            speed: 0.04, // Use this value as rotation speed factor for direction following
+            speed: 0.1, // Use this value as rotation speed factor for direction following
             direction: 'clockwise', // Not really used due to custom movement
             pattern: 'directionFollowing', // Use our custom pattern
             collisionType: 'persistent', // Stays after hitting enemies

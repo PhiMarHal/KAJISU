@@ -715,7 +715,8 @@ const PauseSystem = {
             strokeWidth: 3,
             strokeColor: 0xeeeeee,
             // Adjust card size for kajisuli mode
-            scale: KAJISULI_MODE ? 0.85 : 1, // Slightly smaller in kajisuli 
+            width: KAJISULI_MODE ? 220 : 200,   // 10% wider (200 * 1.1 = 220)
+            height: KAJISULI_MODE ? 330 : 300,  // 10% taller (300 * 1.1 = 330)
             fontSize: KAJISULI_MODE ? 1.2 : 1 // 120% size in kajisuli mode
         });
     },

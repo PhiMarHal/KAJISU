@@ -374,10 +374,14 @@ function showMobileLevelUpScreen(scene) {
         }
     ).setOrigin(0.5);
 
-    // Create subtitle text with browsing instruction
+    // Create subtitle text with browsing instruction - positioned lower in normal mode
+    const subtitleY = KAJISULI_MODE ?
+        game.config.height * 0.82 :    // Original position for KAJISULI mode
+        game.config.height * 0.86;     // Lower for normal mode
+
     const subtitle = scene.add.text(
         centerX,
-        game.config.height * 0.82,
+        subtitleY,
         'Tap arrows to see perks',
         {
             fontFamily: 'Arial',
@@ -517,9 +521,14 @@ function showMobileLevelUpScreen(scene) {
         strokeThickness: 4
     };
 
+    // Position arrows closer to cards in normal mode, further in KAJISULI mode
+    const arrowDistance = KAJISULI_MODE ?
+        game.config.width * 0.32 :  // Original distance for KAJISULI mode
+        game.config.width * 0.16;   // Closer to cards for normal mode
+
     // Left arrow
     const leftArrow = scene.add.text(
-        centerX - (game.config.width * 0.35),
+        centerX - arrowDistance,
         centerY,
         '◀',
         arrowConfig
@@ -535,7 +544,7 @@ function showMobileLevelUpScreen(scene) {
 
     // Right arrow
     const rightArrow = scene.add.text(
-        centerX + (game.config.width * 0.35),
+        centerX + arrowDistance,
         centerY,
         '▶',
         arrowConfig
@@ -581,10 +590,14 @@ function showMobileLevelUpScreen(scene) {
     // Start initial pulsing
     startArrowPulsing();
 
-    // Add card counter text
+    // Add card counter text - positioned lower in normal mode
+    const counterY = KAJISULI_MODE ?
+        centerY + (game.config.height * 0.21) :  // Original position for KAJISULI mode
+        centerY + (game.config.height * 0.25);   // Lower for normal mode
+
     const counterText = scene.add.text(
         centerX,
-        centerY + (game.config.height * 0.21),
+        counterY,
         `${currentPerkIndex + 1}/${numPerkOptions}`,
         {
             fontFamily: 'Arial',

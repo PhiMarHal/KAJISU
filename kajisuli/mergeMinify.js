@@ -47,6 +47,7 @@ const config = {
         }
     },
     jsFiles: [
+        'startMenu.js',
         'artillery.js',
         'backgrounds.js',
         'ballistics.js',
@@ -160,10 +161,25 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
         console.log('❌ No create function found in HTML template');
     }
 
-    if (modifiedHtml.includes('new Phaser.Game')) {
-        console.log('✓ Found new Phaser.Game in HTML template');
+    console.log('\n=== SEARCHING MERGED JS ===');
+    if (modifiedJs.includes('showVictoryScreen')) {
+        console.log('✓ Found showVictoryScreen in merged JS');
+    }
+    if (modifiedJs.includes('showDefeatScreen')) {
+        console.log('✓ Found showDefeatScreen in merged JS');
+    }
+    if (modifiedJs.includes('ScoreSystem.calculateScore')) {
+        console.log('✓ Found ScoreSystem.calculateScore in merged JS');
+    }
+    if (modifiedJs.includes('gameOver = true')) {
+        console.log('✓ Found gameOver = true in merged JS');
+    }
+    if (modifiedJs.includes('window.game = new Phaser.Game')) {
+        console.log('✓ Found window.game = new Phaser.Game in merged JS');
+    } else if (modifiedJs.includes('new Phaser.Game')) {
+        console.log('✓ Found new Phaser.Game in merged JS');
     } else {
-        console.log('❌ No Phaser.Game found in HTML template');
+        console.log('❌ No Phaser.Game found in merged JS');
     }
 
     console.log('\n=== SEARCHING MERGED JS ===');
@@ -183,12 +199,12 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
     // 1. INJECT READY() CALL IN HTML TEMPLATE
     let createPatternFound = false;
 
-    // Pattern 1: function create() { ... buildGame.call(scene); }
-    const createFuncPattern = /(function create\(\) \{[\s\S]*?buildGame\.call\(scene\);)/;
-    const createFuncMatch = modifiedHtml.match(createFuncPattern);
+    // NEW Pattern 1: Look for buildGame.call(this) in the create function
+    const buildGamePattern = /(function create\(\) \{[\s\S]*?buildGame\.call\(this\);)/;
+    const buildGameMatch = modifiedHtml.match(buildGamePattern);
 
-    if (createFuncMatch) {
-        const originalFunction = createFuncMatch[0];
+    if (buildGameMatch) {
+        const originalFunction = buildGameMatch[0];
         const modifiedFunction = originalFunction + `
             
             // Farcade SDK: Signal that game is ready
@@ -198,29 +214,48 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
             }`;
 
         modifiedHtml = modifiedHtml.replace(originalFunction, modifiedFunction);
-        console.log('✓ Injected Farcade ready() call in HTML create function');
+        console.log('✓ Injected Farcade ready() call in HTML create function (buildGame pattern)');
         createPatternFound = true;
     } else {
-        // Pattern 2: scene config object with create: function
-        const sceneCreatePattern = /(create\s*:\s*function\s*\([^)]*\)\s*\{[\s\S]*?)(\s*\},?\s*update)/;
-        const sceneCreateMatch = modifiedHtml.match(sceneCreatePattern);
+        // Original Pattern 1: function create() { ... buildGame.call(scene); }
+        const createFuncPattern = /(function create\(\) \{[\s\S]*?buildGame\.call\(scene\);)/;
+        const createFuncMatch = modifiedHtml.match(createFuncPattern);
 
-        if (sceneCreateMatch) {
-            const originalCreate = sceneCreateMatch[1];
-            const remainder = sceneCreateMatch[2];
+        if (createFuncMatch) {
+            const originalFunction = createFuncMatch[0];
+            const modifiedFunction = originalFunction + `
+                
+                // Farcade SDK: Signal that game is ready
+                if (window.FarcadeSDK) {
+                    window.FarcadeSDK.singlePlayer.actions.ready();
+                    console.log('Farcade SDK: Game ready signal sent');
+                }`;
 
-            const modifiedCreate = originalCreate + `
-            
-            // Farcade SDK: Signal that game is ready
-            if (window.FarcadeSDK) {
-                window.FarcadeSDK.singlePlayer.actions.ready();
-                console.log('Farcade SDK: Game ready signal sent');
-            }
-            ` + remainder;
-
-            modifiedHtml = modifiedHtml.replace(sceneCreateMatch[0], modifiedCreate);
-            console.log('✓ Injected Farcade ready() call in HTML scene create function');
+            modifiedHtml = modifiedHtml.replace(originalFunction, modifiedFunction);
+            console.log('✓ Injected Farcade ready() call in HTML create function');
             createPatternFound = true;
+        } else {
+            // Pattern 2: scene config object with create: function
+            const sceneCreatePattern = /(create\s*:\s*function\s*\([^)]*\)\s*\{[\s\S]*?)(\s*\},?\s*update)/;
+            const sceneCreateMatch = modifiedHtml.match(sceneCreatePattern);
+
+            if (sceneCreateMatch) {
+                const originalCreate = sceneCreateMatch[1];
+                const remainder = sceneCreateMatch[2];
+
+                const modifiedCreate = originalCreate + `
+                
+                // Farcade SDK: Signal that game is ready
+                if (window.FarcadeSDK) {
+                    window.FarcadeSDK.singlePlayer.actions.ready();
+                    console.log('Farcade SDK: Game ready signal sent');
+                }
+                ` + remainder;
+
+                modifiedHtml = modifiedHtml.replace(sceneCreateMatch[0], modifiedCreate);
+                console.log('✓ Injected Farcade ready() call in HTML scene create function');
+                createPatternFound = true;
+            }
         }
     }
 
@@ -329,20 +364,16 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
         console.warn('Could not find gameOver = true assignments');
     }
 
-    // 4. INJECT PLAY_AGAIN EVENT HANDLER IN HTML TEMPLATE
+    // 4. INJECT PLAY_AGAIN EVENT HANDLER IN MERGED JS (not HTML)
     let gameCreatePatternFound = false;
 
-    const gameVarPatterns = [
-        /(const\s+game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/,
-        /(var\s+game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/,
-        /(let\s+game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/
-    ];
+    // NEW: Look for window.game = new Phaser.Game() in merged JS (from startMenu.js)
+    const windowGamePattern = /(window\.game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/;
+    const windowGameMatch = modifiedJs.match(windowGamePattern);
 
-    for (const pattern of gameVarPatterns) {
-        const match = modifiedHtml.match(pattern);
-        if (match) {
-            const originalCreate = match[0];
-            const modifiedCreate = originalCreate + `
+    if (windowGameMatch) {
+        const originalCreate = windowGameMatch[0];
+        const modifiedCreate = originalCreate + `
 
         // Farcade SDK: Handle play again requests
         if (window.FarcadeSDK) {
@@ -379,15 +410,68 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
             console.log('Farcade SDK: Mute toggle handler registered');
         }`;
 
-            modifiedHtml = modifiedHtml.replace(originalCreate, modifiedCreate);
-            console.log('✓ Injected Farcade play_again and toggle_mute event handlers in HTML');
-            gameCreatePatternFound = true;
-            break;
+        modifiedJs = modifiedJs.replace(originalCreate, modifiedCreate);
+        console.log('✓ Injected Farcade play_again and toggle_mute event handlers in merged JS (StartMenuSystem pattern)');
+        gameCreatePatternFound = true;
+    } else {
+        // Fallback: Look for other Phaser.Game patterns in merged JS
+        const gameVarPatterns = [
+            /(const\s+game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/,
+            /(var\s+game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/,
+            /(let\s+game\s*=\s*new\s+Phaser\.Game\s*\([^)]*\)\s*;)/
+        ];
+
+        for (const pattern of gameVarPatterns) {
+            const match = modifiedJs.match(pattern);
+            if (match) {
+                const originalCreate = match[0];
+                const modifiedCreate = originalCreate + `
+
+            // Farcade SDK: Handle play again requests
+            if (window.FarcadeSDK) {
+                window.FarcadeSDK.on('play_again', () => {
+                    console.log('Farcade SDK: Play again requested');
+                    const activeScene = game.scene.scenes[0];
+                    if (activeScene && typeof startGame === 'function') {
+                        startGame.call(activeScene);
+                    } else {
+                        console.warn('Could not restart game: no active scene or startGame function');
+                    }
+                });
+                console.log('Farcade SDK: Play again handler registered');
+                
+                // Farcade SDK: Handle mute toggle requests
+                window.FarcadeSDK.on('toggle_mute', (data) => {
+                    console.log('Farcade SDK: Mute toggle requested, isMuted:', data.isMuted);
+                    if (window.MusicSystem) {
+                        MusicSystem.setMusicEnabled(!data.isMuted);
+                        
+                        // Also update the in-game music button to match Farcade's state
+                        const activeScene = game.scene.scenes[0];
+                        if (activeScene && activeScene.musicButton) {
+                            const musicConfig = UI.buttons.music;
+                            const symbol = data.isMuted ? musicConfig.mutedSymbol : musicConfig.symbol;
+                            activeScene.musicButton.setText(symbol);
+                        }
+                        
+                        console.log('Music system updated, enabled:', !data.isMuted);
+                    } else {
+                        console.warn('MusicSystem not available for mute toggle');
+                    }
+                });
+                console.log('Farcade SDK: Mute toggle handler registered');
+            }`;
+
+                modifiedJs = modifiedJs.replace(originalCreate, modifiedCreate);
+                console.log('✓ Injected Farcade play_again and toggle_mute event handlers in merged JS');
+                gameCreatePatternFound = true;
+                break;
+            }
         }
     }
 
     if (!gameCreatePatternFound) {
-        console.warn('Could not find Phaser.Game creation in HTML to inject play_again handler');
+        console.warn('Could not find Phaser.Game creation in merged JS to inject play_again handler');
     }
 
     console.log('=== FARCADE INTEGRATION COMPLETE ===\n');

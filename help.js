@@ -350,7 +350,7 @@ const HelpSystem = {
         this.elements.container.add(this.elements.titleText);
 
         // Create content lines - position relative to panel
-        const lineHeight = 48;
+        const lineHeight = 40;
         const startY = centerY - panelHeight * 0.15; // 15% up from center of panel
 
         page.content.forEach((line, index) => {
@@ -561,7 +561,12 @@ window.HelpButtonManager = HelpButtonManager;
 const ButtonStateManager = {
     // Called when game starts (after "ENTER THE LOOP")
     onGameStart: function (scene) {
-        if (!HelpButtonManager.isFarcadeMode()) {
+        if (HelpButtonManager.isFarcadeMode()) {
+            // In FARCADE mode, create and show help button immediately
+            HelpButtonManager.createHelpButton(scene);
+            console.log('FARCADE mode: Help button created on game start');
+        } else {
+            // Normal mode behavior
             // First, clean up any existing help button from start screen
             if (scene.helpButton) scene.helpButton.destroy();
             if (scene.helpButtonBg) scene.helpButtonBg.destroy();
@@ -577,18 +582,22 @@ const ButtonStateManager = {
 
     // Called when game is paused (manual pause or level up)
     onGamePause: function (scene) {
-        if (!HelpButtonManager.isFarcadeMode()) {
+        if (HelpButtonManager.isFarcadeMode()) {
+            // In FARCADE mode, help button stays visible (do nothing)
+            console.log('FARCADE mode: Help button remains visible during pause');
+        } else {
             HelpButtonManager.showHelpButton(scene);
         }
-        // In Farcade mode, help button stays visible
     },
 
     // Called when game resumes from pause
     onGameResume: function (scene) {
-        if (!HelpButtonManager.isFarcadeMode()) {
+        if (HelpButtonManager.isFarcadeMode()) {
+            // In FARCADE mode, help button stays visible (do nothing)
+            console.log('FARCADE mode: Help button remains visible after resume');
+        } else {
             HelpButtonManager.showPauseButton(scene);
         }
-        // In Farcade mode, help button stays visible
     }
 };
 

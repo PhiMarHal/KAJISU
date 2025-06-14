@@ -344,25 +344,31 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
         }
     }
 
-    // 3. INJECT ADDITIONAL GAME OVER CALLS (fallback with calculated score)
+    // 3. INJECT ADDITIONAL GAME OVER CALLS (fallback - only for cases not covered by victory/defeat)
     let gameOverCount = 0;
-    modifiedJs = modifiedJs.replace(/(gameOver = true;)/g, (match) => {
+    modifiedJs = modifiedJs.replace(/(gameOver = true;)/g, (match, group1, offset, fullString) => {
+        // Check if this gameOver = true is within a victory or defeat function
+        const surroundingCode = fullString.substring(Math.max(0, offset - 500), offset + 500);
+
+        // Skip if we're already inside victory or defeat handling
+        if (surroundingCode.includes('showVictoryScreen') ||
+            surroundingCode.includes('showDefeatScreen') ||
+            surroundingCode.includes('onBossDefeated') ||
+            surroundingCode.includes('createVictoryContent') ||
+            surroundingCode.includes('createDefeatContent')) {
+            return match; // Don't add Farcade call here
+        }
+
         gameOverCount++;
         return match + `
-            
-            // Farcade SDK: Signal game over with calculated score (fallback)
-            if (window.FarcadeSDK && window.ScoreSystem) {
-                const farcadeScore = ScoreSystem.calculateScore(false); // Assume defeat for fallback
-                window.FarcadeSDK.singlePlayer.actions.gameOver({ score: farcadeScore });
-                console.log('Farcade SDK: Fallback game over signal sent with calculated score:', farcadeScore);
-            }`;
+        
+        // Farcade SDK: Signal game over with calculated score (fallback for other game over scenarios)
+        if (window.FarcadeSDK && window.ScoreSystem) {
+            const farcadeScore = ScoreSystem.calculateScore(false); // Assume defeat for fallback
+            window.FarcadeSDK.singlePlayer.actions.gameOver({ score: farcadeScore });
+            console.log('Farcade SDK: Fallback game over signal sent with calculated score:', farcadeScore);
+        }`;
     });
-
-    if (gameOverCount > 0) {
-        console.log(`✓ Injected Farcade gameOver() fallback calls in ${gameOverCount} locations`);
-    } else {
-        console.warn('Could not find gameOver = true assignments');
-    }
 
     // 4. INJECT PLAY_AGAIN EVENT HANDLER IN MERGED JS (not HTML)
     let gameCreatePatternFound = false;
@@ -578,7 +584,7 @@ async function mergeFiles() {
     htmlTemplate = htmlTemplate.replace(/const KAJISULI_MODE = [^;]+;/g, 'const KAJISULI_MODE = true;');
     console.log('Set KAJISULI_MODE to true');
 
-    htmlTemplate = htmlTemplate.replace(/const DEBUG_MODE = [^;]+;/g, 'const DEBUG_MODE = false;');
+    htmlTemplate = htmlTemplate.replace(/const DEBUG_MODE = [^;]+;/g, 'const DEBUG_MODE = true;');
     console.log('Set DEBUG_MODE to false');
 
     htmlTemplate = htmlTemplate.replace(/const FARCADE_MODE = [^;]+;/g, 'const FARCADE_MODE = true;');

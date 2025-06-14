@@ -145,14 +145,14 @@ const PERKS = {
         kana: "きんじょう",
         romaji: "kinjou",
         english: "Gold Fortress",
-        description: "-1 POW / -1 AGI / -1 LUK / +5 END",
+        description: "-1 POW / -1 AGI / -1 LUK / +4 END",
         color: "#FFD700",        // Gold
         hoverColor: 0xB8860B,     // DarkGoldenRod (or 0xCCA700 if you prefer that shade)
         onAcquire: function () {
             window.modifyStat('damage', -1);    // -1 POW
             window.modifyStat('fireRate', -1);  // -1 AGI
             window.modifyStat('luck', -1);      // -1 LUK
-            window.modifyStat('health', 5);     // +5 END
+            window.modifyStat('health', 4);     // +4 END
         }
     },
     "LASER_CANNON": {
@@ -184,7 +184,7 @@ const PERKS = {
         kana: "うんめいひてい",
         romaji: "unmeihitei",
         english: "Denial of Fate",
-        description: "+3 POW / +3 AGI / -5 LUK",
+        description: "+2 POW / +2 AGI / -3 LUK",
         color: "#ff6600", // Orange-red color
         hoverColor: 0xdd4400,
         onAcquire: function () {
@@ -706,11 +706,11 @@ const PERKS = {
         kana: "きばち",
         romaji: "kibachi",
         english: "Yellow Wasp",
-        description: "+2 AGI / -2 END",
+        description: "+3 AGI / -2 END",
         color: "#ffd700",
         hoverColor: 0xcca700,
         onAcquire: function () {
-            window.modifyStat('fireRate', 2);
+            window.modifyStat('fireRate', 3);
             window.modifyStat('health', -2);
         }
     },
@@ -1045,7 +1045,7 @@ const PERKS = {
         kana: "ぼうきゃくのはな",
         romaji: "boukyakunohana",
         english: "Oblivion Blossom",
-        description: "Sacrifice all your perks, gaining permanent strength from each memory lost",
+        description: "Sacrifice all your perks, +2 STAT from each memory lost",
         color: "#BBBBFF", // Light purple/blue color
         hoverColor: 0x9999DD,
         onAcquire: function () {
@@ -1069,7 +1069,7 @@ const PERKS = {
         kana: "ゆうせい",
         romaji: "yuusei",
         english: "Fun Fairy",
-        description: "Full of tricks",
+        description: "Tricky friend",
         color: "#FF55FF", // Pink color
         hoverColor: 0xDD33DD,
         onAcquire: function () {
@@ -1081,7 +1081,7 @@ const PERKS = {
         kana: "れいせい",
         romaji: "reisei",
         english: "Cold Fairy",
-        description: "Slow shots",
+        description: "Friend with slow shots",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {
@@ -1377,7 +1377,7 @@ const PERKS = {
         kana: "べにさんだん",
         romaji: "benisandan",
         english: "Crimson Scatter",
-        description: "Higher damage at short range",
+        description: "Higher damage at short range, lower dmg at long rng",
         color: "#FF3030",
         hoverColor: 0xC02020,
         onAcquire: function () {

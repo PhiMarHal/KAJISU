@@ -127,7 +127,7 @@ BeamPerkRegistry.registerPerkBeam('EYE_BEAM', {
             symbol: '眼光',           // "Eye light" in kanji
             color: '#FF0000',         // Bright red color
             fontSize: 16,             // Thin beam - smaller font size
-            damage: playerDamage * 4, // 4x player damage
+            damage: playerDamage * 6, // 6x player damage
             damageInterval: 201,     // Single damage tick (slightly over 1s to avoid double-tick)
             duration: 200,           // 1 second beam duration
             beamWidth: 16,            // 16px beam width (thin)

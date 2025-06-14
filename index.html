@@ -9,6 +9,12 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
 
+    <script>
+        // Set this manually as needed
+        const DEBUG_MODE = true;
+        const FARCADE_MODE = false;
+    </script>
+
     <script src="startMenu.js"></script>
     <script src="droppers.js"></script>
     <script src="cooldown.js"></script>
@@ -177,10 +183,6 @@
     </div>
 
     <script>
-        // Set this manually as needed
-        const DEBUG_MODE = true;
-        const FARCADE_MODE = false;
-
         // Apply CSS class based on mode
         if (KAJISULI_MODE) {
             document.body.classList.add('kajisuli-mode');

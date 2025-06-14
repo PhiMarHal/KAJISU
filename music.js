@@ -50,8 +50,6 @@ const MusicSystem = {
     updateInterval: 100,    // Check position every 100ms
 
     // Pause settings
-    //pausedVolume: 0.3,      // Volume level when paused (30% of normal)
-    //savedVolume: null,      // Store the original volume during pause
     pausePulseTween: null,  // Reference to pulse effect tween
     lowPassFilter: null,    // Reference to Web Audio low-pass filter
     pauseGainNode: null,    // Reference to gain node for volume control with filter

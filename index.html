@@ -9,13 +9,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
 
-    <script>
-        // Set this manually as needed
-        const DEBUG_MODE = true;
-        const FARCADE_MODE = false;
-    </script>
-
-    <script src="startMenu.js"></script>
     <script src="droppers.js"></script>
     <script src="cooldown.js"></script>
     <script src="hero.js"></script>
@@ -183,6 +176,12 @@
     </div>
 
     <script>
+        // Set this manually as needed
+        const KAJISULI_MODE = true;
+        const DEBUG_MODE = true;
+        const FARCADE_MODE = false;
+        const LEARNING_CHALLENGE = true;
+
         // Apply CSS class based on mode
         if (KAJISULI_MODE) {
             document.body.classList.add('kajisuli-mode');
@@ -435,13 +434,92 @@
             return acquiredPerks.includes(perkId);
         }
 
+        // Create the game instance
+        const game = new Phaser.Game(config);
+
         function preload() {
             // No image assets to preload
         }
 
         function create() {
-            // The start menu is handled before Phaser, so just build the game
-            buildGame.call(this);
+            // Store reference to this scene
+            const scene = this;
+
+            // Add flag to prevent multiple game starts
+            let gameInitialized = false;
+
+            // Create help button for the start screen with proper UI initialization
+            if (window.StartButtonsDisplay) {
+                window.StartButtonsDisplay.create(this);
+            }
+
+            // Create a black background
+            const background = scene.add.rectangle(
+                game.config.width / 2,
+                game.config.height / 2,
+                game.config.width,
+                game.config.height,
+                0x000000
+            ).setDepth(0);
+
+            // Create the start button text
+            const startButton = scene.add.text(
+                game.config.width / 2,
+                game.config.height / 2,
+                'ENTER THE LOOP',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '48px',
+                    color: '#FFD700', // Gold color
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5).setDepth(10);
+
+            // Create button border
+            const buttonPadding = 30;
+            const buttonBorder = scene.add.rectangle(
+                game.config.width / 2,
+                game.config.height / 2,
+                startButton.width + buttonPadding * 2,
+                startButton.height + buttonPadding * 2
+            ).setStrokeStyle(4, 0xFFD700).setDepth(5); // Gold border
+
+            // Function to start the game and clean up
+            function startTheGame() {
+                // Prevent multiple calls
+                if (gameInitialized) return;
+                gameInitialized = true;
+
+                // Clean up start screen elements
+                background.destroy();
+                startButton.destroy();
+                buttonBorder.destroy();
+
+                // Start the actual game
+                buildGame.call(scene);
+            }
+
+            buttonBorder.setInteractive({ useHandCursor: true });
+
+            // Add hover effects to border instead of text
+            buttonBorder.on('pointerover', function () {
+                startButton.setColor('#FFFFFF'); // White on hover
+                this.setStrokeStyle(6, 0xFFD700); // Thicker border
+            });
+
+            buttonBorder.on('pointerout', function () {
+                startButton.setColor('#FFD700'); // Back to gold
+                this.setStrokeStyle(4, 0xFFD700); // Normal border
+            });
+
+            // Start game on border click
+            buttonBorder.on('pointerdown', startTheGame);
+
+            // Also allow any key press to start
+            scene.input.keyboard.once('keydown', startTheGame);
+
+            // IMPORTANT: Do not add any global pointerdown listeners here!
+            // The canvas click issue was caused by global listeners conflicting with button listeners
         }
 
         function buildGame() {
@@ -690,19 +768,7 @@
             // Update the XP bar with new values
             GameUI.updateExpBar(this);
 
-            // Use learning challenge based on global setting
-            if (window.LEARNING_CHALLENGE_ENABLED && !window.KAJISULI_MODE) {
-                // Use the romaji challenge system
-                if (window.RomajiChallengeSystem) {
-                    window.RomajiChallengeSystem.showLevelUpChallenge(this);
-                } else {
-                    // Fallback to mobile system if romaji system not available
-                    CardSystem.showMobileLevelUpScreen(this);
-                }
-            } else {
-                // Use the mobile/kajisuli card selection system
-                CardSystem.showMobileLevelUpScreen(this);
-            }
+            CardSystem.showLevelUpScreen(this);
         }
 
         function detectKeyboardLayout() {

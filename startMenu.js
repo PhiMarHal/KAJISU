@@ -7,15 +7,12 @@ window.KAJISULI_MODE = (() => {
         return true;
     }
 
-    const stored = localStorage.getItem('kajisuliMode');
-    return stored === 'true';
+    // Default to false (desktop mode) when no FARCADE_MODE
+    return false;
 })();
 
-// Set learning challenge preference
-window.LEARNING_CHALLENGE_ENABLED = (() => {
-    const stored = localStorage.getItem('learningChallengeEnabled');
-    return stored !== 'false'; // Default to true
-})();
+// Set learning challenge preference - default to true
+window.LEARNING_CHALLENGE_ENABLED = true;
 
 const StartMenuSystem = {
     // Menu state
@@ -296,7 +293,6 @@ const StartMenuSystem = {
     toggleLearningChallenge: function (container, sizes) {
         this.state.learningChallengeEnabled = !this.state.learningChallengeEnabled;
         window.LEARNING_CHALLENGE_ENABLED = this.state.learningChallengeEnabled;
-        localStorage.setItem('learningChallengeEnabled', this.state.learningChallengeEnabled.toString());
 
         // Update visual state
         container.toggleBg.style.backgroundColor = this.state.learningChallengeEnabled ? '#FFD700' : '#666666';
@@ -324,7 +320,6 @@ const StartMenuSystem = {
 
         this.state.kajisuliMode = isKajisuliMode;
         window.KAJISULI_MODE = isKajisuliMode;
-        localStorage.setItem('kajisuliMode', isKajisuliMode.toString());
         this.applyCSSMode();
 
         // Update kanji colors

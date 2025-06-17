@@ -584,7 +584,7 @@ async function mergeFiles() {
     htmlTemplate = htmlTemplate.replace(/const KAJISULI_MODE = [^;]+;/g, 'const KAJISULI_MODE = true;');
     console.log('Set KAJISULI_MODE to true');
 
-    htmlTemplate = htmlTemplate.replace(/const DEBUG_MODE = [^;]+;/g, 'const DEBUG_MODE = true;');
+    htmlTemplate = htmlTemplate.replace(/const DEBUG_MODE = [^;]+;/g, 'const DEBUG_MODE = false;');
     console.log('Set DEBUG_MODE to false');
 
     htmlTemplate = htmlTemplate.replace(/const FARCADE_MODE = [^;]+;/g, 'const FARCADE_MODE = true;');

@@ -208,40 +208,18 @@ const InputSystem = {
         });
     },
 
-    // Initialize tap-to-move system
     initializeTapToMove: function (scene) {
         scene.input.on('pointerdown', (pointer) => {
             if (!this.movementSchemes.tapToMove) return;
 
-            const currentTime = Date.now();
-            const timeSinceLastTap = currentTime - this.tapToMove.lastTapTime;
-
-            // Check if this could be a double-tap
-            if (timeSinceLastTap < this.tapToMove.doubleTapThreshold) {
-                const distanceFromLastTap = Math.sqrt(
-                    Math.pow(pointer.x - this.tapToMove.lastTapX, 2) +
-                    Math.pow(pointer.y - this.tapToMove.lastTapY, 2)
-                );
-
-                // If taps are close enough in time and space, register as double-tap
-                if (distanceFromLastTap < this.tapToMove.tapDistanceThreshold) {
-                    this.handleDoubleTap(pointer.x, pointer.y);
-                    // Reset to prevent triple-tap issues
-                    this.tapToMove.lastTapTime = 0;
-                    return;
-                }
-            }
-
-            // Store this tap for potential double-tap
-            this.tapToMove.lastTapTime = currentTime;
-            this.tapToMove.lastTapX = pointer.x;
-            this.tapToMove.lastTapY = pointer.y;
+            // Handle single click for tap-to-move
+            this.handleSingleTap(pointer.x, pointer.y);
         });
     },
 
-    // Handle double-tap to move
-    handleDoubleTap: function (x, y) {
-        console.log(`Double-tap detected at (${x}, ${y})`);
+    // Handle single-tap to move
+    handleSingleTap: function (x, y) {
+        console.log(`Single-tap detected at (${x}, ${y})`);
 
         // Set movement target
         this.tapToMove.targetX = x;

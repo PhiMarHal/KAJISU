@@ -548,9 +548,6 @@
             // Record game start time for difficulty scaling
             gameStartTime = this.time.now;
 
-            // Detect keyboard layout
-            detectKeyboardLayout.call(this);
-
             // Initialize our new systems
             RomajiChallengeSystem.init(this);
             PauseSystem.init(this);
@@ -560,8 +557,6 @@
             PlayerHitSystem.init(this);
             InputSystem.setupCursorHiding(this);
             BackgroundAnimationSystem.init(this);
-
-
 
             // Initialize music system
             if (window.MusicSystem) {
@@ -617,12 +612,6 @@
 
             // Set up collision between player and EnemySystem.enemiesGroup
             this.physics.add.overlap(player, EnemySystem.enemiesGroup, PlayerHitSystem.playerIsHit, null, this);
-
-            // Set up cursor keys for movement
-            cursors = this.input.keyboard.createCursorKeys();
-
-            // Set up WASD keys for movement based on detected layout
-            updateWASDKeys.call(this);
 
             // Create the game over screen (hidden initially)
             gameOverText = this.add.text(game.config.width / 2, game.config.height / 2,
@@ -681,27 +670,8 @@
             // Update the level display to show time survived
             GameUI.updateStatusDisplay(this, elapsedTime, score);
 
-            // Player movement with keyboard
-            player.body.setVelocity(0);
-
-            if (cursors.left.isDown || wasdKeys.left.isDown) {
-                player.body.setVelocityX(-playerSpeed * 50);
-            } else if (cursors.right.isDown || wasdKeys.right.isDown) {
-                player.body.setVelocityX(playerSpeed * 50);
-            }
-
-            if (cursors.up.isDown || wasdKeys.up.isDown) {
-                player.body.setVelocityY(-playerSpeed * 50);
-            } else if (cursors.down.isDown || wasdKeys.down.isDown) {
-                player.body.setVelocityY(playerSpeed * 50);
-            }
-
-            // Touch controls
-            const touchInput = InputSystem.getTouchInput();
-            if (Math.abs(touchInput.x) > 0 || Math.abs(touchInput.y) > 0) {
-                player.body.setVelocityX(touchInput.x * playerSpeed * 50);
-                player.body.setVelocityY(touchInput.y * playerSpeed * 50);
-            }
+            // Player movement
+            InputSystem.updateMovement(player, delta);
 
             // Update enemies
             EnemySystem.updateEnemies();
@@ -769,92 +739,6 @@
             GameUI.updateExpBar(this);
 
             CardSystem.showLevelUpScreen(this);
-        }
-
-        function detectKeyboardLayout() {
-            // Check if we're running locally
-            const isLocalEnvironment =
-                window.location.hostname === 'localhost' ||
-                window.location.hostname === '127.0.0.1' ||
-                window.location.hostname.startsWith('192.168.1.') ||
-                window.location.protocol === 'file:'; // For direct file access
-
-            // Default to AZERTY for local development, QWERTY otherwise
-            keyboardLayout = isLocalEnvironment ? 'azerty' : 'qwerty';
-
-            console.log(`Keyboard layout set to ${keyboardLayout} (${isLocalEnvironment ? 'local environment' : 'remote environment'})`);
-
-            // Try the API detection if we're in a secure context and not local
-            if (window.isSecureContext && !isLocalEnvironment && navigator.keyboard && navigator.keyboard.getLayoutMap) {
-                navigator.keyboard.getLayoutMap()
-                    .then(keyboardLayoutMap => {
-                        const qKey = keyboardLayoutMap.get('KeyQ');
-                        if (qKey === 'a' || qKey === 'A') {
-                            keyboardLayout = 'azerty';
-                            updateWASDKeys.call(this);
-                            console.log("AZERTY keyboard detected via API");
-                        }
-                    })
-                    .catch(error => {
-                        console.log('Error in keyboard API detection:', error);
-                    });
-            }
-
-            // Update keys based on our determined layout
-            updateWASDKeys.call(this);
-
-            // Always add a keyboard shortcut to toggle layout if needed
-            this.input.keyboard.once('keydown-L', function () {
-                keyboardLayout = keyboardLayout === 'qwerty' ? 'azerty' : 'qwerty';
-                updateWASDKeys.call(this);
-
-                // Show confirmation
-                const confirmation = this.add.text(
-                    game.config.width / 2,
-                    game.config.height / 2,
-                    `Switched to ${keyboardLayout.toUpperCase()} layout`,
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '24px',
-                        color: '#ffffff',
-                        backgroundColor: '#333333',
-                        padding: { x: 10, y: 5 }
-                    }
-                ).setOrigin(0.5).setDepth(1000);
-
-                // Fade out
-                this.tweens.add({
-                    targets: confirmation,
-                    alpha: 0,
-                    y: confirmation.y - 30,
-                    duration: 2000,
-                    onComplete: function () { confirmation.destroy(); }
-                });
-
-                // Add another listener for additional toggles
-                this.input.keyboard.once('keydown-L', arguments.callee, this);
-            }, this);
-        }
-
-        function updateWASDKeys() {
-            // Update keys based on detected layout
-            if (keyboardLayout === 'azerty') {
-                // AZERTY layout uses ZQSD for movement
-                wasdKeys = this.input.keyboard.addKeys({
-                    up: Phaser.Input.Keyboard.KeyCodes.Z,
-                    down: Phaser.Input.Keyboard.KeyCodes.S,
-                    left: Phaser.Input.Keyboard.KeyCodes.Q,
-                    right: Phaser.Input.Keyboard.KeyCodes.D
-                });
-            } else {
-                // QWERTY layout uses WASD for movement
-                wasdKeys = this.input.keyboard.addKeys({
-                    up: Phaser.Input.Keyboard.KeyCodes.W,
-                    down: Phaser.Input.Keyboard.KeyCodes.S,
-                    left: Phaser.Input.Keyboard.KeyCodes.A,
-                    right: Phaser.Input.Keyboard.KeyCodes.D
-                });
-            }
         }
 
         // Updated modifyStat function that handles negative values

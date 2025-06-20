@@ -639,7 +639,7 @@ const MusicSystem = {
                     // Keep the same logging as before
                     if (Math.floor(progress * 10) !== Math.floor((progress - 0.1) * 10)) {
                         const actualVolume = track.volume;
-                        console.log(`Fade in ${Math.floor(progress * 100)}% - Set: ${volume.toFixed(3)}, Actual: ${actualVolume.toFixed(3)}`);
+                        //console.log(`Fade in ${Math.floor(progress * 100)}% - Set: ${volume.toFixed(3)}, Actual: ${actualVolume.toFixed(3)}`);
                     }
                 }
             },

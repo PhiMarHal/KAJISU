@@ -76,7 +76,7 @@ const ENEMY_RANK_NAMES = {
 // Boss configuration
 const BOSS_CONFIG = {
     max_rank: 4,                // Maximum rank at which the boss appears
-    health_multiplier: 10.0,    // Boss health multiplier compared to normal enemies
+    health_multiplier: 4.0,    // Boss health multiplier compared to normal enemies
     speed: 100                  // Fixed boss speed
 };
 

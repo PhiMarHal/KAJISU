@@ -71,7 +71,7 @@ const InputSystem = {
             this.tapToMove.isDragging = false;
             this.tapToMove.isWaitingForIntent = true;
 
-            console.log(`Touch started at (${pointer.x}, ${pointer.y})`);
+            //console.log(`Touch started at (${pointer.x}, ${pointer.y})`);
         });
 
         scene.input.on('pointermove', (pointer) => {
@@ -119,7 +119,7 @@ const InputSystem = {
 
             // If we're waiting for intent and haven't moved much, treat as tap
             if (this.tapToMove.isWaitingForIntent && !this.tapToMove.hasMoved) {
-                console.log(`Quick tap detected (${touchDuration}ms)`);
+                //console.log(`Quick tap detected (${touchDuration}ms)`);
                 this.handleSingleTap(this.tapToMove.tapStartX, this.tapToMove.tapStartY);
             }
 
@@ -167,7 +167,8 @@ const InputSystem = {
 
     // Handle single-tap to move (only called for confirmed taps)
     handleSingleTap: function (x, y) {
-        console.log(`Confirmed tap-to-move at (${x}, ${y})`);
+        if (gamePaused || gameOver) return;
+        //console.log(`Confirmed tap-to-move at (${x}, ${y})`);
 
         // Set movement target
         this.tapToMove.targetX = x;
@@ -379,7 +380,7 @@ const InputSystem = {
 
         // If there's manual input, cancel tap-to-move
         if (hasManualInput && this.tapToMove.isMoving) {
-            console.log("Manual input detected, canceling tap-to-move");
+            //console.log("Manual input detected, canceling tap-to-move");
             this.tapToMove.isMoving = false;
             this.tapToMove.targetX = null;
             this.tapToMove.targetY = null;

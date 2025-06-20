@@ -412,7 +412,7 @@ const MusicSystem = {
                 const progress = currentStep / steps;
                 const currentVolume = startVolume + (volumeStep * currentStep);
 
-                console.log(`Fade step ${currentStep}/${steps}: volume ${currentVolume.toFixed(3)}, progress ${(progress * 100).toFixed(1)}%`);
+                //console.log(`Fade step ${currentStep}/${steps}: volume ${currentVolume.toFixed(3)}, progress ${(progress * 100).toFixed(1)}%`);
 
                 // Call update callback
                 if (onUpdate) {
@@ -449,8 +449,6 @@ const MusicSystem = {
             }
         };
     },
-
-    // Remove the resumeMusicTweens method since we don't need it anymore
 
     // UPDATED: Centralized volume setting with robust approach
     setTrackVolume: function (track, volume) {
@@ -766,11 +764,11 @@ const MusicSystem = {
                 // onUpdate - keep same logic as before
                 if (this.currentTrack && this.currentTrack.isPlaying) {
                     this.setTrackVolume(this.currentTrack, volume);
-
+                    /*
                     // Keep the same logging as before
                     if (Math.floor(progress * 10) !== Math.floor((progress - 0.1) * 10)) {
                         console.log(`Fade progress: ${Math.floor(progress * 100)}%, volume: ${volume.toFixed(3)}`);
-                    }
+                    }*/
                 }
             },
             () => {
@@ -874,10 +872,7 @@ const MusicSystem = {
         if (!this.currentTrack || !this.currentTrack.isPlaying) {
             return;
         }
-        /*
-        this.savedVolume = this.currentTrack.volume;
-        console.log(`Saved current volume: ${this.savedVolume}`);
-        */
+
         try {
             if (this.isUsingWebAudio() && this.currentTrack) {
                 const audioContext = this.scene.sound.context || this.forcedAudioContext;
@@ -955,13 +950,6 @@ const MusicSystem = {
                 }
 
                 console.log("Removed low-pass filter from track");
-                /*
-                // Restore the saved volume
-                if (this.savedVolume !== null) {
-                    console.log(`Restoring volume to: ${this.savedVolume}`);
-                    this.setTrackVolume(this.currentTrack, this.savedVolume);
-                    this.savedVolume = null;
-                }*/
             }
 
             // Re-apply boss fight effect if needed
@@ -983,108 +971,6 @@ const MusicSystem = {
         this.isInBossFight = false;
         return true;
     },
-
-    // UPDATED: Enhanced diagnostic function with volume control testing
-    diagnose: function () {
-        console.log('=== MUSIC SYSTEM DIAGNOSTIC ===');
-        console.log(`Music enabled: ${this.musicEnabled}`);
-        console.log(`Current track exists: ${!!this.currentTrack}`);
-
-        if (this.currentTrack) {
-            console.log(`Track key: ${this.currentTrack.key}`);
-            console.log(`Track volume: ${this.currentTrack.volume}`);
-            console.log(`Track mute: ${this.currentTrack.mute}`);
-            console.log(`Track isPlaying: ${this.currentTrack.isPlaying}`);
-            console.log(`Track isPaused: ${this.currentTrack.isPaused}`);
-        }
-
-        console.log(`Scene exists: ${!!this.scene}`);
-        if (this.scene && this.scene.sound) {
-            console.log(`Sound manager type: ${this.scene.sound.constructor.name}`);
-            console.log(`Sound manager volume: ${this.scene.sound.volume}`);
-            console.log(`Sound manager mute: ${this.scene.sound.mute}`);
-            console.log(`Using Web Audio: ${this.isUsingWebAudio()}`);
-            console.log(`Total sounds: ${this.scene.sound.sounds.length}`);
-
-            const playingSounds = this.scene.sound.sounds.filter(s => s.isPlaying);
-            console.log(`Playing sounds: ${playingSounds.length}`);
-            playingSounds.forEach((s, i) => {
-                console.log(`  ${i}: ${s.key} - vol: ${s.volume}, mute: ${s.mute}`);
-            });
-        }
-
-        console.log(`Is fading out: ${this.isFadingOut}`);
-        console.log(`Configured volume: ${this.volume}`);
-        //console.log(`Configured pause volume: ${this.pausedVolume}`);
-
-        // Custom volume control diagnostic
-        console.log(`Custom volume gain node: ${!!this.customVolumeGainNode}`);
-        if (this.customVolumeGainNode) {
-            console.log(`Custom gain node value: ${this.customVolumeGainNode.gain.value}`);
-        }
-        console.log(`Track has _internalVolume: ${this.currentTrack ? this.currentTrack._internalVolume : 'N/A'}`);
-
-        // Filter diagnostic
-        console.log(`Low-pass filter active: ${!!this.lowPassFilter}`);
-        console.log(`Pause gain node active: ${!!this.pauseGainNode}`);
-
-        // Try a direct volume test
-        if (this.currentTrack && this.currentTrack.isPlaying) {
-            const testVol = 0.1;
-            console.log(`\nTesting setTrackVolume(${testVol})...`);
-            const beforeVol = this.currentTrack.volume;
-            const beforeInternal = this.currentTrack._internalVolume;
-            const beforeGain = this.customVolumeGainNode ? this.customVolumeGainNode.gain.value : 'N/A';
-
-            this.setTrackVolume(this.currentTrack, testVol);
-
-            const afterVol = this.currentTrack.volume;
-            const afterInternal = this.currentTrack._internalVolume;
-            const afterGain = this.customVolumeGainNode ? this.customVolumeGainNode.gain.value : 'N/A';
-
-            console.log(`Before - Volume: ${beforeVol}, Internal: ${beforeInternal}, Gain: ${beforeGain}`);
-            console.log(`After - Volume: ${afterVol}, Internal: ${afterInternal}, Gain: ${afterGain}`);
-
-            // Restore previous volume
-            setTimeout(() => {
-                this.setTrackVolume(this.currentTrack, beforeVol);
-            }, 100);
-        }
-    },
-
-    // NEW: Test volume changes with and without filter
-    testVolumeSequence: function () {
-        if (!this.currentTrack || !this.currentTrack.isPlaying) {
-            console.log('No track playing for volume test');
-            return;
-        }
-
-        console.log('=== TESTING VOLUME SEQUENCE ===');
-        console.log(`Filter active: ${!!this.lowPassFilter}`);
-        console.log(`Custom volume control: ${!!this.customVolumeGainNode}`);
-
-        const volumes = [0.1, 0.3, 0.5, 0.8, 1.0, 0.6, 0.2];
-        let index = 0;
-
-        const interval = setInterval(() => {
-            if (index >= volumes.length) {
-                clearInterval(interval);
-                console.log('Volume sequence test complete!');
-                // Restore original volume
-                this.setTrackVolume(this.currentTrack, this.volume);
-                return;
-            }
-
-            const vol = volumes[index];
-            this.setTrackVolume(this.currentTrack, vol);
-
-            const phaserVol = this.currentTrack.volume.toFixed(3);
-            const customGain = this.customVolumeGainNode ? this.customVolumeGainNode.gain.value.toFixed(3) : 'N/A';
-
-            console.log(`Step ${index + 1}: Set ${vol} -> Phaser: ${phaserVol}, Custom: ${customGain}`);
-            index++;
-        }, 800);
-    }
 };
 
 // Export the music system

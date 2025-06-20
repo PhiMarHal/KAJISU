@@ -10,6 +10,7 @@ const ScoreSystem = {
         const maximumScoreTime = bossSpawnTime * 2; // Cap at twice the boss spawn time
 
         let finalScore;
+        let versionBonus = 2;
 
         if (isVictory) {
             // For victory:
@@ -20,11 +21,11 @@ const ScoreSystem = {
             // But ensure we don't go below 2x the maximum death score
             const timeDeduction = Math.min(elapsedTime - bossSpawnTime, maximumScoreTime);
 
-            finalScore = Math.floor(maximumPoints - timeDeduction);
+            finalScore = Math.floor(versionBonus * (maximumPoints - timeDeduction));
         } else {
             // For defeat: 1 point per second survived, capped at twice boss spawn time
             const cappedTime = Math.min(elapsedTime, maximumScoreTime);
-            finalScore = Math.floor(cappedTime);
+            finalScore = Math.floor(versionBonus * cappedTime);
         }
 
         // Debug log the calculation

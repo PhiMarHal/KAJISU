@@ -40,11 +40,11 @@ const HELP_PAGES = [
     {
         title: "FLY, " + HERO_CHARACTER,
         content: [
-            "SLIDE THEN HOLD TO MOVE",
+            "TAP ONCE TO MOVE",
             "",
-            "CHANGE VECTOR AT WILL",
+            "SLIDE TO KEEP MOVING",
             "",
-            "RELEASE TO STOP",
+            "NEVER STOP MOVING",
             "",
             "DO NOT EVER STOP"
         ]

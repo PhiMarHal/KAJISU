@@ -38,19 +38,162 @@ const InputSystem = {
         historyTimeWindow: 20
     },
 
-    // Tap-to-move system
+    // Tap-to-move system with smart tap/drag detection
     tapToMove: {
         enabled: true,
-        lastTapTime: 0,
-        doubleTapThreshold: 300, // ms between taps to register as double-tap
         targetX: null,
         targetY: null,
         isMoving: false,
-        moveSpeed: 400, // pixels per second
-        arrivalThreshold: 5, // pixels - how close to target before stopping
-        lastTapX: 0,
-        lastTapY: 0,
-        tapDistanceThreshold: 30 // max distance between taps for double-tap
+        moveSpeed: 400,
+        arrivalThreshold: 5,
+
+        // Smart detection properties
+        tapStartTime: 0,
+        tapStartX: 0,
+        tapStartY: 0,
+        tapHoldThreshold: 150, // ms - how long before we consider it a potential drag
+        tapMoveThreshold: 15,  // pixels - how far before we consider it a drag
+        hasMoved: false,
+        isDragging: false,
+        isWaitingForIntent: false // waiting to see if it's a tap or drag
+    },
+
+    // Initialize tap-to-move system with smart detection
+    initializeTapToMove: function (scene) {
+        scene.input.on('pointerdown', (pointer) => {
+            if (!this.movementSchemes.tapToMove) return;
+
+            // Record the start of the touch
+            this.tapToMove.tapStartTime = Date.now();
+            this.tapToMove.tapStartX = pointer.x;
+            this.tapToMove.tapStartY = pointer.y;
+            this.tapToMove.hasMoved = false;
+            this.tapToMove.isDragging = false;
+            this.tapToMove.isWaitingForIntent = true;
+
+            console.log(`Touch started at (${pointer.x}, ${pointer.y})`);
+        });
+
+        scene.input.on('pointermove', (pointer) => {
+            if (!this.movementSchemes.tapToMove || !this.tapToMove.isWaitingForIntent) return;
+
+            // Calculate movement since touch start
+            const deltaX = pointer.x - this.tapToMove.tapStartX;
+            const deltaY = pointer.y - this.tapToMove.tapStartY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            // Check if we've moved far enough to be considered a drag
+            if (distance > this.tapToMove.tapMoveThreshold) {
+                this.tapToMove.hasMoved = true;
+
+                // Cancel any pending tap-to-move
+                if (this.tapToMove.isMoving) {
+                    console.log("Converting tap-to-move to drag due to movement");
+                    this.tapToMove.isMoving = false;
+                    this.tapToMove.targetX = null;
+                    this.tapToMove.targetY = null;
+                }
+
+                // Switch to drag mode
+                this.tapToMove.isDragging = true;
+                this.tapToMove.isWaitingForIntent = false;
+
+                // Initialize directional touch from this point
+                this.touch.isActive = true;
+                this.touch.currentX = pointer.x;
+                this.touch.currentY = pointer.y;
+                this.touch.positionHistory = [{
+                    x: pointer.x,
+                    y: pointer.y,
+                    timestamp: Date.now()
+                }];
+
+                console.log("Switched to directional touch mode");
+            }
+        });
+
+        scene.input.on('pointerup', (pointer) => {
+            if (!this.movementSchemes.tapToMove) return;
+
+            const touchDuration = Date.now() - this.tapToMove.tapStartTime;
+
+            // If we're waiting for intent and haven't moved much, treat as tap
+            if (this.tapToMove.isWaitingForIntent && !this.tapToMove.hasMoved) {
+                console.log(`Quick tap detected (${touchDuration}ms)`);
+                this.handleSingleTap(this.tapToMove.tapStartX, this.tapToMove.tapStartY);
+            }
+
+            // If we were dragging, stop directional touch
+            if (this.tapToMove.isDragging) {
+                console.log("Ending directional touch");
+                this.touch.isActive = false;
+                this.touch.directionX = 0;
+                this.touch.directionY = 0;
+                this.touch.positionHistory = [];
+            }
+
+            // Reset intent detection
+            this.tapToMove.isWaitingForIntent = false;
+            this.tapToMove.isDragging = false;
+            this.tapToMove.hasMoved = false;
+        });
+    },
+
+    // Initialize directional touch control (modified to work with smart detection)
+    initializeDirectionalTouch: function (scene) {
+        // Most of the directional touch logic is now handled in initializeTapToMove
+        // This function mainly handles the ongoing drag movement calculation
+
+        scene.input.on('pointermove', (pointer) => {
+            // Only process if we're in active drag mode and directional touch is enabled
+            if (!this.movementSchemes.directionalTouch || !this.touch.isActive || !this.tapToMove.isDragging) return;
+
+            this.touch.currentX = pointer.x;
+            this.touch.currentY = pointer.y;
+
+            this.touch.positionHistory.push({
+                x: pointer.x,
+                y: pointer.y,
+                timestamp: Date.now()
+            });
+
+            if (this.touch.positionHistory.length > this.touch.maxHistoryLength) {
+                this.touch.positionHistory.shift();
+            }
+
+            this.updateTouchDirection();
+        });
+    },
+
+    // Handle single-tap to move (only called for confirmed taps)
+    handleSingleTap: function (x, y) {
+        console.log(`Confirmed tap-to-move at (${x}, ${y})`);
+
+        // Set movement target
+        this.tapToMove.targetX = x;
+        this.tapToMove.targetY = y;
+        this.tapToMove.isMoving = true;
+
+        // Make sure we're not in drag mode
+        this.touch.isActive = false;
+        this.touch.directionX = 0;
+        this.touch.directionY = 0;
+        this.touch.positionHistory = [];
+
+        // Visual feedback - create a brief target indicator
+        if (this.scene) {
+            const targetIndicator = this.scene.add.circle(x, y, 15, 0xFFD700, 0.7);
+            targetIndicator.setDepth(1000);
+
+            this.scene.tweens.add({
+                targets: targetIndicator,
+                scaleX: 2,
+                scaleY: 2,
+                alpha: 0,
+                duration: 500,
+                onComplete: () => targetIndicator.destroy()
+            });
+        }
     },
 
     // Initialize the enhanced input system
@@ -161,91 +304,6 @@ const InputSystem = {
         scene.input.on('pointerdown', this.handlePointerDown, this);
         scene.game.canvas.addEventListener('mouseout', this.handleMouseOut.bind(this));
         this.resetCursorState();
-    },
-
-    // Initialize directional touch control (existing system)
-    initializeDirectionalTouch: function (scene) {
-        scene.input.on('pointerdown', (pointer) => {
-            if (!this.movementSchemes.directionalTouch) return;
-
-            this.touch.isActive = true;
-            this.touch.currentX = pointer.x;
-            this.touch.currentY = pointer.y;
-            this.touch.positionHistory = [{
-                x: pointer.x,
-                y: pointer.y,
-                timestamp: Date.now()
-            }];
-            this.updateTouchDirection();
-        });
-
-        scene.input.on('pointermove', (pointer) => {
-            if (!this.movementSchemes.directionalTouch || !this.touch.isActive) return;
-
-            this.touch.currentX = pointer.x;
-            this.touch.currentY = pointer.y;
-
-            this.touch.positionHistory.push({
-                x: pointer.x,
-                y: pointer.y,
-                timestamp: Date.now()
-            });
-
-            if (this.touch.positionHistory.length > this.touch.maxHistoryLength) {
-                this.touch.positionHistory.shift();
-            }
-
-            this.updateTouchDirection();
-        });
-
-        scene.input.on('pointerup', () => {
-            if (this.touch.isActive) {
-                this.touch.isActive = false;
-                this.touch.directionX = 0;
-                this.touch.directionY = 0;
-                this.touch.positionHistory = [];
-            }
-        });
-    },
-
-    initializeTapToMove: function (scene) {
-        scene.input.on('pointerdown', (pointer) => {
-            if (!this.movementSchemes.tapToMove) return;
-
-            // Handle single click for tap-to-move
-            this.handleSingleTap(pointer.x, pointer.y);
-        });
-    },
-
-    // Handle single-tap to move
-    handleSingleTap: function (x, y) {
-        console.log(`Single-tap detected at (${x}, ${y})`);
-
-        // Set movement target
-        this.tapToMove.targetX = x;
-        this.tapToMove.targetY = y;
-        this.tapToMove.isMoving = true;
-
-        // Cancel any existing directional touch movement
-        this.touch.isActive = false;
-        this.touch.directionX = 0;
-        this.touch.directionY = 0;
-        this.touch.positionHistory = [];
-
-        // Visual feedback - create a brief target indicator
-        if (this.scene) {
-            const targetIndicator = this.scene.add.circle(x, y, 15, 0xFFD700, 0.7);
-            targetIndicator.setDepth(1000);
-
-            this.scene.tweens.add({
-                targets: targetIndicator,
-                scaleX: 2,
-                scaleY: 2,
-                alpha: 0,
-                duration: 500,
-                onComplete: () => targetIndicator.destroy()
-            });
-        }
     },
 
     // Update touch direction (existing system)

@@ -46,7 +46,6 @@ const InputSystem = {
         isMoving: false,
         moveSpeed: 400,
         arrivalThreshold: 5,
-        usedDirectionalTouch: false,
 
         // Smart detection properties
         tapStartTime: 0,
@@ -59,7 +58,7 @@ const InputSystem = {
         isWaitingForIntent: false // waiting to see if it's a tap or drag
     },
 
-    // Initialize tap-to-move system (elegant tap consumption)
+    // Initialize tap-to-move system (both systems work)
     initializeTapToMove: function (scene) {
         scene.input.on('pointerdown', (pointer) => {
             if (!this.movementSchemes.tapToMove || gamePaused || gameOver) return;
@@ -71,7 +70,6 @@ const InputSystem = {
             this.tapToMove.tapStartY = pointer.y;
             this.tapToMove.tapStartTime = Date.now();
             this.tapToMove.hasMovedDuringThisTouch = false;
-            this.tapToMove.usedDirectionalTouch = false; // Track if we used directional movement
 
             // ALWAYS set tap target immediately (optimistic)
             this.handleSingleTap(pointer.x, pointer.y);
@@ -106,7 +104,7 @@ const InputSystem = {
                 this.touch.positionHistory.shift();
             }
 
-            // ALWAYS update direction
+            // ALWAYS update direction (this makes directional touch work)
             this.updateTouchDirection();
 
             // Check if we've moved significantly from the START of this touch
@@ -131,27 +129,18 @@ const InputSystem = {
 
             console.log("Touch up");
 
-            // If we used directional touch during this interaction, cancel any remaining tap-to-move
-            if (this.tapToMove.usedDirectionalTouch && this.tapToMove.isMoving) {
-                console.log("Used directional touch - canceling tap-to-move on release");
-                this.tapToMove.isMoving = false;
-                this.tapToMove.targetX = null;
-                this.tapToMove.targetY = null;
-            }
-
             // ALWAYS stop directional touch
             this.touch.isActive = false;
             this.touch.directionX = 0;
             this.touch.directionY = 0;
             this.touch.positionHistory = [];
 
-            // Reset tracking for next touch
+            // Reset movement tracking for next touch
             this.tapToMove.hasMovedDuringThisTouch = false;
-            this.tapToMove.usedDirectionalTouch = false;
         });
     },
 
-    // Update movement (track directional touch usage)
+    // Update movement (simplified directional check)
     updateMovement: function (player, delta) {
         if (!player || !player.body || gamePaused || gameOver) {
             return;
@@ -168,13 +157,9 @@ const InputSystem = {
 
         // Check what input we have
         const hasKeyboardInput = this.keyboard.velocity.x !== 0 || this.keyboard.velocity.y !== 0;
+        // Check for any directional input while touch is active
         const hasDirectionalInput = this.touch.isActive &&
             (Math.abs(this.touch.directionX) > 0.1 || Math.abs(this.touch.directionY) > 0.1);
-
-        // If we're using directional input, mark it as used
-        if (hasDirectionalInput) {
-            this.tapToMove.usedDirectionalTouch = true;
-        }
 
         // Priority: Keyboard > Directional Touch > Tap-to-Move
         if (hasKeyboardInput) {
@@ -190,7 +175,7 @@ const InputSystem = {
                 this.keyboard.velocity.y * playerSpeed * 50
             );
         } else if (hasDirectionalInput) {
-            // Use directional touch
+            // Use directional touch (this will work now)
             player.body.setVelocity(
                 this.touch.directionX * playerSpeed * 50,
                 this.touch.directionY * playerSpeed * 50
@@ -414,6 +399,53 @@ const InputSystem = {
         this.touch.directionY = deltaY / distance;
     },
 
+    // Simplified movement update
+    updateMovement: function (player, delta) {
+        if (!player || !player.body || gamePaused || gameOver) {
+            return;
+        }
+
+        // Reset keyboard velocity
+        this.keyboard.velocity.x = 0;
+        this.keyboard.velocity.y = 0;
+
+        // Handle keyboard movement
+        if (this.movementSchemes.keyboard) {
+            this.updateKeyboardMovement();
+        }
+
+        // Check what input we have
+        const hasKeyboardInput = this.keyboard.velocity.x !== 0 || this.keyboard.velocity.y !== 0;
+        const hasDirectionalInput = this.touch.isActive &&
+            (Math.abs(this.touch.directionX) > 0.1 || Math.abs(this.touch.directionY) > 0.1);
+
+        // Priority: Keyboard > Directional Touch > Tap-to-Move
+        if (hasKeyboardInput) {
+            // Cancel tap-to-move if keyboard is used
+            if (this.tapToMove.isMoving) {
+                this.tapToMove.isMoving = false;
+                this.tapToMove.targetX = null;
+                this.tapToMove.targetY = null;
+            }
+
+            player.body.setVelocity(
+                this.keyboard.velocity.x * playerSpeed * 50,
+                this.keyboard.velocity.y * playerSpeed * 50
+            );
+        } else if (hasDirectionalInput) {
+            // Use directional touch
+            player.body.setVelocity(
+                this.touch.directionX * playerSpeed * 50,
+                this.touch.directionY * playerSpeed * 50
+            );
+        } else if (this.tapToMove.isMoving) {
+            // Use tap-to-move
+            this.updateTapToMoveMovement(player, delta);
+        } else {
+            // No input
+            player.body.setVelocity(0, 0);
+        }
+    },
 
     // Update keyboard movement
     updateKeyboardMovement: function () {

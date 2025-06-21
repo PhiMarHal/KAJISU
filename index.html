@@ -9,6 +9,13 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
 
+    <script>
+        // Set this manually as needed
+        const DEBUG_MODE = true;
+        const FARCADE_MODE = false;
+    </script>
+
+    <script src="startMenu.js"></script>
     <script src="droppers.js"></script>
     <script src="cooldown.js"></script>
     <script src="hero.js"></script>
@@ -176,12 +183,6 @@
     </div>
 
     <script>
-        // Set this manually as needed
-        const KAJISULI_MODE = true;
-        const DEBUG_MODE = true;
-        const FARCADE_MODE = false;
-        const LEARNING_CHALLENGE = true;
-
         // Apply CSS class based on mode
         if (KAJISULI_MODE) {
             document.body.classList.add('kajisuli-mode');
@@ -434,92 +435,13 @@
             return acquiredPerks.includes(perkId);
         }
 
-        // Create the game instance
-        const game = new Phaser.Game(config);
-
         function preload() {
             // No image assets to preload
         }
 
         function create() {
-            // Store reference to this scene
-            const scene = this;
-
-            // Add flag to prevent multiple game starts
-            let gameInitialized = false;
-
-            // Create help button for the start screen with proper UI initialization
-            if (window.StartButtonsDisplay) {
-                window.StartButtonsDisplay.create(this);
-            }
-
-            // Create a black background
-            const background = scene.add.rectangle(
-                game.config.width / 2,
-                game.config.height / 2,
-                game.config.width,
-                game.config.height,
-                0x000000
-            ).setDepth(0);
-
-            // Create the start button text
-            const startButton = scene.add.text(
-                game.config.width / 2,
-                game.config.height / 2,
-                'ENTER THE LOOP',
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '48px',
-                    color: '#FFD700', // Gold color
-                    fontStyle: 'bold'
-                }
-            ).setOrigin(0.5).setDepth(10);
-
-            // Create button border
-            const buttonPadding = 30;
-            const buttonBorder = scene.add.rectangle(
-                game.config.width / 2,
-                game.config.height / 2,
-                startButton.width + buttonPadding * 2,
-                startButton.height + buttonPadding * 2
-            ).setStrokeStyle(4, 0xFFD700).setDepth(5); // Gold border
-
-            // Function to start the game and clean up
-            function startTheGame() {
-                // Prevent multiple calls
-                if (gameInitialized) return;
-                gameInitialized = true;
-
-                // Clean up start screen elements
-                background.destroy();
-                startButton.destroy();
-                buttonBorder.destroy();
-
-                // Start the actual game
-                buildGame.call(scene);
-            }
-
-            buttonBorder.setInteractive({ useHandCursor: true });
-
-            // Add hover effects to border instead of text
-            buttonBorder.on('pointerover', function () {
-                startButton.setColor('#FFFFFF'); // White on hover
-                this.setStrokeStyle(6, 0xFFD700); // Thicker border
-            });
-
-            buttonBorder.on('pointerout', function () {
-                startButton.setColor('#FFD700'); // Back to gold
-                this.setStrokeStyle(4, 0xFFD700); // Normal border
-            });
-
-            // Start game on border click
-            buttonBorder.on('pointerdown', startTheGame);
-
-            // Also allow any key press to start
-            scene.input.keyboard.once('keydown', startTheGame);
-
-            // IMPORTANT: Do not add any global pointerdown listeners here!
-            // The canvas click issue was caused by global listeners conflicting with button listeners
+            // The start menu is handled before Phaser, so just build the game
+            buildGame.call(this);
         }
 
         function buildGame() {
@@ -673,6 +595,7 @@
             // Player movement
             InputSystem.updateMovement(player, delta);
 
+
             // Update enemies
             EnemySystem.updateEnemies();
 
@@ -738,7 +661,105 @@
             // Update the XP bar with new values
             GameUI.updateExpBar(this);
 
-            CardSystem.showLevelUpScreen(this);
+            // Use learning challenge based on global setting
+            if (window.LEARNING_CHALLENGE_ENABLED && !window.KAJISULI_MODE) {
+                // Use the romaji challenge system
+                if (window.RomajiChallengeSystem) {
+                    window.RomajiChallengeSystem.showLevelUpChallenge(this);
+                } else {
+                    // Fallback to mobile system if romaji system not available
+                    CardSystem.showMobileLevelUpScreen(this);
+                }
+            } else {
+                // Use the mobile/kajisuli card selection system
+                CardSystem.showMobileLevelUpScreen(this);
+            }
+        }
+
+        function detectKeyboardLayout() {
+            // Check if we're running locally
+            const isLocalEnvironment =
+                window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1' ||
+                window.location.hostname.startsWith('192.168.1.') ||
+                window.location.protocol === 'file:'; // For direct file access
+
+            // Default to AZERTY for local development, QWERTY otherwise
+            keyboardLayout = isLocalEnvironment ? 'azerty' : 'qwerty';
+
+            console.log(`Keyboard layout set to ${keyboardLayout} (${isLocalEnvironment ? 'local environment' : 'remote environment'})`);
+
+            // Try the API detection if we're in a secure context and not local
+            if (window.isSecureContext && !isLocalEnvironment && navigator.keyboard && navigator.keyboard.getLayoutMap) {
+                navigator.keyboard.getLayoutMap()
+                    .then(keyboardLayoutMap => {
+                        const qKey = keyboardLayoutMap.get('KeyQ');
+                        if (qKey === 'a' || qKey === 'A') {
+                            keyboardLayout = 'azerty';
+                            updateWASDKeys.call(this);
+                            console.log("AZERTY keyboard detected via API");
+                        }
+                    })
+                    .catch(error => {
+                        console.log('Error in keyboard API detection:', error);
+                    });
+            }
+
+            // Update keys based on our determined layout
+            updateWASDKeys.call(this);
+
+            // Always add a keyboard shortcut to toggle layout if needed
+            this.input.keyboard.once('keydown-L', function () {
+                keyboardLayout = keyboardLayout === 'qwerty' ? 'azerty' : 'qwerty';
+                updateWASDKeys.call(this);
+
+                // Show confirmation
+                const confirmation = this.add.text(
+                    game.config.width / 2,
+                    game.config.height / 2,
+                    `Switched to ${keyboardLayout.toUpperCase()} layout`,
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '24px',
+                        color: '#ffffff',
+                        backgroundColor: '#333333',
+                        padding: { x: 10, y: 5 }
+                    }
+                ).setOrigin(0.5).setDepth(1000);
+
+                // Fade out
+                this.tweens.add({
+                    targets: confirmation,
+                    alpha: 0,
+                    y: confirmation.y - 30,
+                    duration: 2000,
+                    onComplete: function () { confirmation.destroy(); }
+                });
+
+                // Add another listener for additional toggles
+                this.input.keyboard.once('keydown-L', arguments.callee, this);
+            }, this);
+        }
+
+        function updateWASDKeys() {
+            // Update keys based on detected layout
+            if (keyboardLayout === 'azerty') {
+                // AZERTY layout uses ZQSD for movement
+                wasdKeys = this.input.keyboard.addKeys({
+                    up: Phaser.Input.Keyboard.KeyCodes.Z,
+                    down: Phaser.Input.Keyboard.KeyCodes.S,
+                    left: Phaser.Input.Keyboard.KeyCodes.Q,
+                    right: Phaser.Input.Keyboard.KeyCodes.D
+                });
+            } else {
+                // QWERTY layout uses WASD for movement
+                wasdKeys = this.input.keyboard.addKeys({
+                    up: Phaser.Input.Keyboard.KeyCodes.W,
+                    down: Phaser.Input.Keyboard.KeyCodes.S,
+                    left: Phaser.Input.Keyboard.KeyCodes.A,
+                    right: Phaser.Input.Keyboard.KeyCodes.D
+                });
+            }
         }
 
         // Updated modifyStat function that handles negative values

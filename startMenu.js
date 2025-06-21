@@ -377,14 +377,18 @@ const StartMenuSystem = {
 
     // Setup keyboard handler
     setupKeyboardHandler: function () {
-        const keyHandler = (event) => {
+        // Store the handler so we can remove it during cleanup
+        this.keyHandler = (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 this.startGame();
-                document.removeEventListener('keydown', keyHandler);
+                // Remove the handler after use
+                document.removeEventListener('keydown', this.keyHandler);
+                this.keyHandler = null;
             }
         };
-        document.addEventListener('keydown', keyHandler);
+        document.addEventListener('keydown', this.keyHandler);
     },
+
 
     // Start CSS animations
     startAnimations: function () {
@@ -400,6 +404,13 @@ const StartMenuSystem = {
 
     // Clean up the HTML menu
     cleanup: function () {
+        // Remove the keyboard event listener first
+        if (this.keyHandler) {
+            document.removeEventListener('keydown', this.keyHandler);
+            this.keyHandler = null;
+        }
+
+        // Remove the HTML menu container
         if (this.elements.menuContainer) {
             document.body.removeChild(this.elements.menuContainer);
             this.elements.menuContainer = null;

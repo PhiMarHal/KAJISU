@@ -293,14 +293,15 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
     particles: [],
     particleTimer: null,
 
+    // Track our contribution to the global archerMultiplier
+    archerContribution: 0,
+
     initialize: function (player) {
 
         // Reset accumulator and multiplier
         this.accumulator = 0;
         this.currentMultiplier = 1.0;
-
-        // Reset global multiplier
-        archerMultiplier = 1.0;
+        this.archerContribution = 0;
 
         // Remember the time
         this.lastUpdateTime = game.scene.scenes[0].time.now;
@@ -386,77 +387,75 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
         // Determine if player is moving based on velocity
         const isPlayerMoving = speed > this.velocityThreshold;
 
-        // Only log changes in movement state to reduce spam
-        const wasMoving = this.accumulator > 0 && this.currentMultiplier > 1.01;
+        // Calculate the rate of change
+        const maxTimeSeconds = 60 / playerLuck;
+        const changeRate = deltaTime / maxTimeSeconds;
+
         if (isPlayerMoving) {
-            // Player is moving - increase multiplier
-            const maxTimeSeconds = 60 / playerLuck;
+            // Player is moving - increase accumulator
+            this.accumulator = Math.min(1.0, this.accumulator + changeRate);
+        } else {
+            // Player stopped moving - decrease accumulator at same rate
+            this.accumulator = Math.max(0.0, this.accumulator - changeRate);
+        }
 
-            // Calculate increment based on delta time and max time
-            const increment = deltaTime / maxTimeSeconds;
+        // Calculate new multiplier based on current accumulator
+        const newMultiplier = 1.0 + (this.accumulator * (this.maxMultiplier - 1.0));
 
-            // Increase accumulator
-            this.accumulator = Math.min(1.0, this.accumulator + increment);
+        // Update if there's a meaningful change
+        if (Math.abs(this.currentMultiplier - newMultiplier) > 0.01) {
+            this.currentMultiplier = newMultiplier;
 
-            // Calculate new multiplier (linear interpolation from 1.0 to maxMultiplier)
-            const newMultiplier = 1.0 + (this.accumulator * (this.maxMultiplier - 1.0));
+            // Remove our previous contribution
+            archerMultiplier -= this.archerContribution;
 
-            // Only update if there's a meaningful change
-            if (Math.abs(this.currentMultiplier - newMultiplier) > 0.01) {
-                this.currentMultiplier = newMultiplier;
-                archerMultiplier = this.currentMultiplier;
+            // Calculate our new contribution (currentMultiplier - 1.0 gives us the bonus)
+            this.archerContribution = this.currentMultiplier - 1.0;
 
-                // Update the projectile firer with new delay
-                this.updateProjectileFiringRate(scene);
+            // Add our new contribution
+            archerMultiplier += this.archerContribution;
 
-                // Update particle timer frequency based on multiplier
-                if (this.particleTimer) {
-                    // Adjust delay - faster particles at higher multiplier
-                    const newDelay = Math.max(50, 150 - (this.currentMultiplier - 1.0) * 100);
+            // Update the projectile firer with new delay
+            this.updateProjectileFiringRate(scene);
 
-                    if (Math.abs(this.particleTimer.delay - newDelay) > 10) {
-                        this.particleTimer.delay = newDelay;
-                        this.particleTimer.reset({
-                            delay: newDelay,
-                            callback: this.createParticle,
-                            callbackScope: this,
-                            loop: true
-                        });
-                    }
+            // Update particle timer frequency based on multiplier
+            if (this.particleTimer) {
+                // Adjust delay - faster particles at higher multiplier
+                const newDelay = Math.max(50, 150 - (this.currentMultiplier - 1.0) * 100);
 
-                    // Ensure timer is running
+                if (Math.abs(this.particleTimer.delay - newDelay) > 10) {
+                    this.particleTimer.delay = newDelay;
+                    this.particleTimer.reset({
+                        delay: newDelay,
+                        callback: this.createParticle,
+                        callbackScope: this,
+                        loop: true
+                    });
+                }
+
+                // Control timer based on whether we have any bonus
+                if (this.currentMultiplier > 1.01) {
                     if (this.particleTimer.paused) {
                         this.particleTimer.paused = false;
                     }
+                } else {
+                    if (!this.particleTimer.paused) {
+                        this.particleTimer.paused = true;
+                    }
                 }
             }
+        }
 
-            // Visual effect when reaching full speed
-            if (!this.isActive && this.accumulator >= 0.99) {
-                this.isActive = true;
+        // Visual effect when reaching full speed
+        if (!this.isActive && this.accumulator >= 0.99) {
+            this.isActive = true;
 
-                // Create burst effect when reaching max speed
-                for (let i = 0; i < 15; i++) {
-                    this.createParticle();
-                }
+            // Create burst effect when reaching max speed
+            for (let i = 0; i < 15; i++) {
+                this.createParticle();
             }
-        } else {
-            // Player stopped moving - reset multiplier IMMEDIATELY
-            if (this.accumulator > 0 || this.currentMultiplier > 1.0) {
-                // Instant reset
-                this.accumulator = 0;
-                this.currentMultiplier = 1.0;
-                archerMultiplier = 1.0;
-                this.isActive = false;
-
-                // Pause particle creation
-                if (this.particleTimer && !this.particleTimer.paused) {
-                    this.particleTimer.paused = true;
-                }
-
-                // Update projectile firer
-                this.updateProjectileFiringRate(scene);
-            }
+        } else if (this.isActive && this.accumulator < 0.99) {
+            this.isActive = false;
         }
     },
 
@@ -480,8 +479,8 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
 
     cleanup: function (player) {
 
-        // Reset multiplier
-        archerMultiplier = 1.0;
+        // Remove our contribution from the global multiplier
+        archerMultiplier -= this.archerContribution;
 
         // Stop and destroy particle timer
         if (this.particleTimer) {
@@ -498,6 +497,7 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
         this.particles = [];
     }
 });
+
 // Register perk effect
 PlayerPerkRegistry.registerPerkEffect('ETERNAL_RHYTHM', {
     componentName: 'eternalRhythmState',

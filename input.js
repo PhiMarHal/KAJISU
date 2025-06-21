@@ -60,9 +60,22 @@ const InputSystem = {
     initializeTapToMove: function (scene) {
         scene.input.on('pointerdown', (pointer) => {
             if (!this.movementSchemes.tapToMove || gamePaused || gameOver) return;
-            console.log(`Touch down at (${pointer.x}, ${pointer.y})`);
 
-            // Store start position and time - but DON'T set tap target yet
+            // Check if we clicked on any interactive object
+            const hitObjects = scene.input.hitTestPointer(pointer);
+            console.log('Hit objects:', hitObjects.map(obj => obj.constructor.name));
+            console.log('Hit objects length:', hitObjects.length);
+            if (hitObjects.length > 0) {
+                console.log("Clicked on interactive object - ignoring for movement");
+                return;
+            }
+
+            console.log(`Touch down at (${pointer.x}, ${pointer.y}) - setting tap target`);
+
+            // Set tap target immediately (back to pointerdown approach)
+            this.handleSingleTap(pointer.x, pointer.y);
+
+            // Store start position and time
             this.tapToMove.tapStartX = pointer.x;
             this.tapToMove.tapStartY = pointer.y;
             this.tapToMove.tapStartTime = Date.now();
@@ -103,16 +116,7 @@ const InputSystem = {
         scene.input.on('pointerup', (pointer) => {
             if (gamePaused || gameOver) return;
 
-            const touchDuration = Date.now() - this.tapToMove.tapStartTime;
-            console.log(`Touch up after ${touchDuration}ms`);
-
-            // Decision time: was this a quick tap?
-            if (touchDuration < 100) {
-                console.log("Quick tap detected - setting tap target");
-                this.handleSingleTap(this.tapToMove.tapStartX, this.tapToMove.tapStartY);
-            } else {
-                console.log("Long hold detected - no tap target set");
-            }
+            console.log(`Touch up`);
 
             // ALWAYS stop directional touch
             this.touch.isActive = false;
@@ -227,7 +231,7 @@ const InputSystem = {
     // Handle single-tap to move (only called for confirmed taps)
     handleSingleTap: function (x, y) {
         if (gamePaused || gameOver) return;
-        //console.log(`Confirmed tap-to-move at (${x}, ${y})`);
+        console.log(`Setting tap-to-move target at (${x}, ${y})`);
 
         // Set movement target
         this.tapToMove.targetX = x;

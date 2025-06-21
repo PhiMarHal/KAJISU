@@ -109,7 +109,8 @@ const PauseSystem = {
         // Add resume button functionality
         this.elements.resumeButtonBorder.setInteractive({ useHandCursor: true });
 
-        this.elements.resumeButtonBorder.on('pointerdown', function () {
+        this.elements.resumeButtonBorder.on('pointerdown', function (pointer, localX, localY, event) {
+            event.stopPropagation();
             PauseSystem.resumeGame();
         });
 

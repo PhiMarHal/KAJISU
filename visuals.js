@@ -187,10 +187,20 @@ const VisualEffects = {
         const startInterval = 400; // between spawns
         const endInterval = 60;    // 
         let currentInterval = startInterval;
-        let elapsed = 0;
+        let elapsed = 0; // Track elapsed effect time (not real time)
 
         function spawnChargeKanji() {
-            if (elapsed >= duration) return;
+            // Stop if game is over or duration reached
+            if (gameOver || elapsed >= duration) return;
+
+            // If paused, reschedule for later without advancing elapsed time
+            if (gamePaused) {
+                scene.time.delayedCall(16, spawnChargeKanji); // Check again in 16ms
+                return;
+            }
+
+            // Skip if player doesn't exist
+            if (!player || !player.active) return;
 
             // Random position within radius around player
             const angle = Math.random() * Math.PI * 2;
@@ -223,8 +233,10 @@ const VisualEffects = {
                 }
             });
 
-            // Update timing for next spawn (gets faster over time)
+            // NOW advance the elapsed time by the current interval
             elapsed += currentInterval;
+
+            // Calculate next interval based on current progress
             const progress = elapsed / duration;
             currentInterval = startInterval + (endInterval - startInterval) * progress;
 

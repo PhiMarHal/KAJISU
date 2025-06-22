@@ -61,7 +61,7 @@ DropperPerkRegistry.registerDropperPerk('AMBER_BEETLE', {
             fontSize: getEffectiveSize(projectileSizeFactor, amberDamage),
             behaviorType: 'projectile',
             damage: amberDamage,
-            lifespan: null,
+            lifespan: 60000,
             options: {
                 visualEffect: 'createPulsing'
             }
@@ -170,7 +170,7 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             fontSize: 24, // Smaller size as requested
             behaviorType: 'projectile', // Dies on enemy contact
             damage: playerDamage, // Full player damage on contact
-            lifespan: null, // Indefinite lifespan until touched by enemy
+            lifespan: 240000, // more of a sanity check than anything
             options: {
                 hasPeriodicEffect: true, // Generic flag for drops with periodic effects
                 periodicEffectCooldown: 6000, // Base cooldown for the effect
@@ -212,40 +212,6 @@ window.activateBloomingFlower = function () {
     return controller;
 };
 
-// Register a simple Area Effect Perk for testing
-// Updated area effect perk with custom color
-DropperPerkRegistry.registerDropperPerk('AREA_PULSE', {
-    getConfig: function () {
-        return {
-            symbol: '◯', // Simple circle symbol
-            color: '#ff00ff', // Magenta color for the symbol
-            fontSize: 24,
-            behaviorType: 'areaEffect', // Use the area effect behavior
-            damage: playerDamage * 5, // 5x player damage per pulse
-            damageInterval: 0, // Not used for area effects
-            lifespan: null, // 
-            options: {
-                areaEffectInterval: 6000, // Pulse every 2 seconds
-                areaEffectRadius: 400, // 400px radius
-                pulseColor: 0xff00ff // Magenta color for the pulse effect
-            }
-        };
-    },
-    cooldown: 3500, // 15 seconds between drops
-    positionMode: 'player', // Drop at player position
-    activationMethod: 'periodic' // Periodically create pulses
-});
-
-// Function to activate the Area Pulse perk
-window.activateAreaPulse = function () {
-    // Get the current active scene
-    const scene = game.scene.scenes[0];
-    if (!scene) return;
-
-    // Apply the dropper perk
-    DropperPerkRegistry.applyDropperPerk(scene, 'AREA_PULSE');
-};
-
 // Register the perk with DropperPerkRegistry in entrapments.js
 DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
     getConfig: function () {
@@ -256,7 +222,7 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
             behaviorType: 'areaEffect', // Use area effect behavior
             damage: playerDamage * 1,
             damageInterval: 0, // Not used for area effects
-            lifespan: null, // Permanent until touched by enemy
+            lifespan: 240000, // sanity check
             options: {
                 areaEffectInterval: 9000, //
                 areaEffectRadius: 320, // Base radius
@@ -303,7 +269,7 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
             behaviorType: 'areaEffect', // Use area effect behavior
             damage: playerDamage,
             damageInterval: 0, // Not used for area effects
-            lifespan: null, // Permanent until touched by enemy
+            lifespan: 240000, // sanity check
             options: {
                 areaEffectInterval: 7000, //
                 areaEffectRadius: 240, //
@@ -350,7 +316,7 @@ DropperPerkRegistry.registerDropperPerk('FROST_SHRAPNEL', {
             behaviorType: 'projectile', // Projectile type as requested
             damage: playerDamage * 0.2, // 1/5th of player damage
             damageInterval: 1000, // 1 second between damage applications
-            lifespan: null, // Permanent until destroyed
+            lifespan: 60000, //
             options: {
                 effectComponent: 'slowEffect' // Apply slow effect like Azure Frost
             }

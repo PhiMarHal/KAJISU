@@ -134,7 +134,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
             collisionType: 'projectile', // Destroyed on hit
             damage: playerDamage,
             damageInterval: 0, // Not used for projectiles
-            lifespan: null, // Permanent until hit
+            lifespan: 30000, // Delete after 30 seconds, to avoid infinite stacking
             options: {}
         };
     },
@@ -173,7 +173,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
             collisionType: 'projectile', // Destroyed on hit
             damage: playerDamage,
             damageInterval: 0, // Not used for projectiles
-            lifespan: null, // Permanent until hit
+            lifespan: 30000, //
             options: {}
         };
     },
@@ -213,7 +213,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TENTACLE_GRASP', {
             collisionType: 'projectile', // Destroyed on hit with enemies
             damage: playerDamage, //
             damageInterval: 0, // Not used for projectiles
-            lifespan: null, // Permanent until hit
+            lifespan: null,
         };
     },
     cooldown: 30000, // 30 seconds base cooldown
@@ -269,7 +269,7 @@ function launchTentacles(scene) {
                 collisionType: 'projectile', // Destroyed on hit with enemies
                 damage: playerDamage, //
                 damageInterval: 0, // Not used for projectiles
-                lifespan: null, // Permanent until hit
+                lifespan: 60000, // avoid too much stacking. cd / 2 should be min at luck=1
                 options: {
                     wobbleFrequency: wobbleFrequency, // How quickly it oscillates
                     wobbleAmplitude: wobbleAmplitude // How far it oscillates

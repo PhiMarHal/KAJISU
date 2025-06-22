@@ -15,7 +15,7 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
 - change all coordinates to be relative, not absolute -> in progress...
 - firerate resets to 3 rather than 4 (maybe roundup issue tied to archerMultiplier?) -> is this still true? test a game with archer perks
-- bright lance should settle on player position
+- lasers don't go away on oblivion blossom
 
 
 POSSIBLY FIXED BUT NEEDS TESTING

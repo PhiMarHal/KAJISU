@@ -301,6 +301,7 @@ const OneTimeEffects = {
         OnHitEffectSystem.resetAll();
         OrbitalSystem.clearAll();
         DropperSystem.clearAll();
+        BeamSystem.clearAll();
 
         // Add this line to reinitialize the player hit system:
         PlayerHitSystem.init(scene);

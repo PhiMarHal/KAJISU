@@ -56,11 +56,9 @@ const BeamPerkRegistry = {
             cooldown = cooldown();
         }
 
-        // Create timer to spawn beams
-        const timer = CooldownManager.createTimer({
-            statName: 'luck',
-            baseCooldown: cooldown,
-            formula: 'sqrt', // Cooldown decreases with luck (square root scaling)
+        // Create timer to spawn beams - use the EXACT same pattern as droppers/orbitals
+        const timer = scene.time.addEvent({
+            delay: cooldown,
             callback: function () {
                 // Get fresh configuration each time
                 const beamConfig = perkConfig.getConfig();
@@ -70,7 +68,7 @@ const BeamPerkRegistry = {
             loop: true
         });
 
-        // Register timer for cleanup
+        // Register timer for cleanup - EXACT same as other perk systems
         window.registerEffect('timer', timer);
     }
 };

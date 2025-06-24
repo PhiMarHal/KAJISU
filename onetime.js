@@ -297,6 +297,7 @@ const OneTimeEffects = {
         window.clearAllPerkEffects();
 
         // Reset component systems
+        CooldownManager.initialize();
         PlayerComponentSystem.resetAll();
         OnHitEffectSystem.resetAll();
         OrbitalSystem.clearAll();

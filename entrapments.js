@@ -6,10 +6,13 @@ const DropperPerkRegistry = {
     perkDropperConfigs: {},
 
     // Register a perk that creates drops
+    // Updated to accept cooldownStat and cooldownFormula
     registerDropperPerk: function (perkId, config) {
         this.perkDropperConfigs[perkId] = {
             getConfig: config.getConfig ?? function () { return {}; }, // Function that returns drop config
-            cooldown: config.cooldown ?? 4000,                        // Cooldown between drops
+            cooldown: config.cooldown ?? 4000,                        // Base Cooldown in ms (now a number)
+            cooldownStat: config.cooldownStat ?? null,                // Stat that affects cooldown (e.g., 'luck', 'fireRate')
+            cooldownFormula: config.cooldownFormula ?? null,          // Formula for stat scaling ('sqrt', 'divide', 'multiply')
             positionMode: config.positionMode ?? 'player',            // How drops are positioned
             activationMethod: config.activationMethod ?? 'periodic'   // How drops are created
         };
@@ -34,10 +37,12 @@ const DropperPerkRegistry = {
                 break;
 
             case 'periodic':
-                // Set up periodic drops
+                // Set up periodic drops using the new cooldown properties
                 return DropperSystem.setupPeriodicDrops(scene, {
                     getConfig: perkConfig.getConfig,
-                    cooldown: perkConfig.cooldown,
+                    cooldown: perkConfig.cooldown,             // Pass base cooldown
+                    cooldownStat: perkConfig.cooldownStat,     // Pass stat name
+                    cooldownFormula: perkConfig.cooldownFormula, // Pass formula
                     positionMode: perkConfig.positionMode,
                 });
 
@@ -67,10 +72,10 @@ DropperPerkRegistry.registerDropperPerk('AMBER_BEETLE', {
             }
         };
     },
-    cooldown: function () {
-        // Calculate cooldown based on Agility
-        return 4000 / (Math.sqrt(playerFireRate / BASE_STATS.AGI));
-    },
+    // Updated cooldown to be a base number, with stat and formula
+    cooldown: 4000, // Base cooldown for Amber Beetle
+    cooldownStat: 'fireRate',
+    cooldownFormula: 'sqrt',
     positionMode: 'player',
     activationMethod: 'periodic'
 });
@@ -102,10 +107,10 @@ DropperPerkRegistry.registerDropperPerk('MAGMA_FLOOR', {
             }
         };
     },
-    cooldown: function () {
-        // Base cooldown is 8 seconds, scaled by player luck
-        return 8000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
-    },
+    // Updated cooldown to be a base number, with stat and formula
+    cooldown: 8000, // Base cooldown for Magma Floor
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
     positionMode: 'player', // Drop at player position
     activationMethod: 'periodic' // Periodically create magma floors
 });
@@ -145,7 +150,10 @@ DropperPerkRegistry.registerDropperPerk('GREEN_DREAM', {
             }
         };
     },
+    // Cooldown is a fixed number, so no stat/formula needed
     cooldown: 2000, // Drop a new afterimage every 2 seconds
+    cooldownStat: null, // No stat scaling
+    cooldownFormula: null, // No formula
     positionMode: 'player', // Drop at player position
     activationMethod: 'periodic'
 });
@@ -179,12 +187,12 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             }
         };
     },
-    cooldown: function () {
-        // Base 31 second cooldown, scaled by luck
-        return 31000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
-    },
+    // Updated cooldown to be a base number, with stat and formula
+    cooldown: 31000, // Base 31 second cooldown
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
-    activationMethod: 'periodic' // Periodically spawn flowers
+    activationMethod: 'periodic'
 });
 
 // Function to activate the Blooming Flower perk
@@ -232,10 +240,10 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
             }
         };
     },
-    cooldown: function () {
-        // Base 15 second cooldown, scaled by luck
-        return 15000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
-    },
+    // Updated cooldown to be a base number, with stat and formula
+    cooldown: 15000, // Base 15 second cooldown
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
     activationMethod: 'periodic' // Periodically create poison flowers
 });
@@ -279,10 +287,10 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
             }
         };
     },
-    cooldown: function () {
-        // Base 12 second cooldown, scaled by luck
-        return 20000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
-    },
+    // Updated cooldown to be a base number, with stat and formula
+    cooldown: 20000, // Base 20 second cooldown
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
     activationMethod: 'periodic' // Periodically create frost flowers
 });
@@ -322,10 +330,10 @@ DropperPerkRegistry.registerDropperPerk('FROST_SHRAPNEL', {
             }
         };
     },
-    cooldown: function () {
-        // Base cooldown is 4 seconds, scaled by player fire rate
-        return 4000 / (Math.sqrt(playerFireRate / BASE_STATS.AGI));
-    },
+    // Updated cooldown to be a base number, with stat and formula
+    cooldown: 4000, // Base cooldown is 4 seconds
+    cooldownStat: 'fireRate',
+    cooldownFormula: 'sqrt',
     positionMode: 'player', // Drop at player position
     activationMethod: 'periodic' // Periodically create shrapnel
 });
@@ -357,14 +365,18 @@ DropperPerkRegistry.registerDropperPerk('TOXIC_TRAIL', {
             fontSize: 16, // Small size for trail elements
             behaviorType: 'projectile', // Dies on enemy contact
             damage: playerDamage * 0.5,
-            lifespan: Math.ceil(4000 * Math.sqrt(playerLuck / BASE_STATS.LUK)), // 4 seconds * luck factor
+            lifespan: Math.ceil(4000 * Math.sqrt(playerLuck / BASE_STATS.LUK)), // This lifespan is still dynamically calculated
             options: {
                 effectComponent: 'poisonEffect', // Apply poison effect component
                 visualEffect: 'createPulsing' // Add pulsing visual effect
             }
         };
     },
+    // This perk has a fixed cooldown, so no stat/formula needed for the cooldown itself.
+    // Lifespan is scaled by luck, but the droplet creation cooldown is fixed.
     cooldown: 200, // Fixed 200ms cooldown (very fast)
+    cooldownStat: null, // No stat scaling for the cooldown
+    cooldownFormula: null, // No formula for the cooldown
     positionMode: 'trail', // Follow player's movement
     trailInterval: 32, // Minimum 32px distance between drops
     activationMethod: 'periodic' // Periodically create drops

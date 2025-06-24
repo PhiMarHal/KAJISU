@@ -156,7 +156,7 @@ const DropperSystem = {
         // If this is an area effect, set up its timer using CooldownManager
         if (drop.behaviorType === 'areaEffect') {
             drop.areaEffectTimer = CooldownManager.createTimer({
-                statName: 'luck',
+                statName: 'luck', // Assuming area effect radius/frequency scales with luck
                 baseCooldown: drop.areaEffectInterval,
                 formula: 'sqrt',
                 component: drop, // Reference for cleanup
@@ -333,13 +333,14 @@ const DropperSystem = {
 
     // Setup periodic drops
     // Modified setupPeriodicDrops function for droppers.js
-    // This fixes the trail mode by using a flag instead of early returns
-
+    // This now correctly uses baseCooldown, statName, and formula from the perk config.
     setupPeriodicDrops: function (scene, config) {
         // Default options
         const defaults = {
-            getConfig: function () { return {}; },  // Function that returns drop configuration
-            cooldown: 4000,                        // Time between drops in ms
+            getConfig: function () { return {}; },  // Function that returns drop config
+            cooldown: 4000,                        // Base Cooldown in ms
+            cooldownStat: null,                    // Stat that affects cooldown
+            cooldownFormula: null,                 // Formula for stat scaling
             positionMode: 'player',                // 'player', 'random', or 'trail'
             trailInterval: 32,                    // For 'trail' mode, min distance to place new drop
             lastDropPos: { x: 0, y: 0 },           // For 'trail' mode, last position where we dropped
@@ -355,15 +356,12 @@ const DropperSystem = {
             dropperConfig.lastDropPos.y = player.y;
         }
 
-        // Calculate cooldown based on player stats if needed
-        let cooldown = dropperConfig.cooldown;
-        if (typeof cooldown === 'function') {
-            cooldown = cooldown();
-        }
-
-        // Create timer to spawn drops
-        const timer = scene.time.addEvent({
-            delay: cooldown,
+        // Create timer to spawn drops using CooldownManager
+        const timer = CooldownManager.createTimer({
+            baseCooldown: dropperConfig.cooldown,
+            statName: dropperConfig.cooldownStat,
+            formula: dropperConfig.cooldownFormula,
+            component: dropperConfig, // Pass the config object as component for potential future reference
             callback: function () {
                 // Skip if disabled
                 if (!dropperConfig.enabled) return;
@@ -436,7 +434,7 @@ const DropperSystem = {
             loop: true
         });
 
-        // Register timer for cleanup
+        // Register timer for cleanup (this will now register the timer managed by CooldownManager)
         window.registerEffect('timer', timer);
 
         // Return a controller object
@@ -449,16 +447,24 @@ const DropperSystem = {
                 dropperConfig.enabled = enabled;
             },
 
-            // Change cooldown
+            // Change cooldown (this will now interact with CooldownManager's timer)
+            // This will update the baseCooldown of the existing timer. CooldownManager
+            // will then re-apply any stat scaling.
             setCooldown: function (newCooldown) {
-                if (timer && timer.delay) {
-                    timer.delay = newCooldown;
-                    timer.reset({
-                        delay: newCooldown,
-                        callback: timer.callback,
-                        callbackScope: timer.callbackScope,
-                        loop: timer.loop
-                    });
+                if (this.timer) {
+                    CooldownManager.updateTimer(
+                        {
+                            timer: this.timer,
+                            baseCooldown: newCooldown,
+                            statName: this.timer.statName, // Preserve existing statName
+                            formula: this.timer.formula,   // Preserve existing formula
+                            callback: this.timer.callback,
+                            callbackScope: this.timer.callbackScope,
+                            loop: this.timer.loop
+                        },
+                        // Pass the current value of the stat if statName exists, otherwise newCooldown
+                        this.timer.statName ? window[this.timer.statName] : newCooldown
+                    );
                 }
             }
         };
@@ -485,7 +491,7 @@ const DropperSystem = {
         // If drop should fire immediately, process effect now
         if (drop.options.fireImmediately && !drop.hasInitiallyFired) {
             // Mark as having fired to prevent duplicates
-            drop.hasInitiallyFired = true;
+            drop.hasInitiallyFially = true;
 
             // Process effect immediately
             this.processDropEffect(scene, drop);

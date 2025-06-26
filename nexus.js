@@ -7,11 +7,14 @@ const OrbitalPerkRegistry = {
     perkOrbitalConfigs: {},
 
     // Register a perk that creates orbitals
+    // Updated to accept cooldownStat and cooldownFormula
     registerPerkOrbital: function (perkId, config) {
         this.perkOrbitalConfigs[perkId] = {
             getConfig: config.getConfig ?? function () { return {}; }, // Function that returns orbital config
             count: config.count ?? 1,                                // Number of orbitals to create
-            cooldown: config.cooldown ?? null,                       // Cooldown between creating orbitals (null for one-time)
+            cooldown: config.cooldown ?? null,                       // Base Cooldown (now a number)
+            cooldownStat: config.cooldownStat ?? null,               // Stat that affects cooldown (e.g., 'luck', 'fireRate')
+            cooldownFormula: config.cooldownFormula ?? null,         // Formula for stat scaling ('sqrt', 'divide', 'multiply')
             activationMethod: config.activationMethod ?? 'immediate' // How the orbital is activated (immediate, onHit, etc.)
         };
     },
@@ -56,18 +59,21 @@ const OrbitalPerkRegistry = {
     },
 
     // Setup a timer to periodically create orbitals
+    // Now uses CooldownManager.createTimer for dynamic scaling and consistent cleanup
     setupOrbitalTimer: function (scene, perkConfig) {
         if (!perkConfig.cooldown) return;
 
-        // Calculate cooldown based on player stats if needed
-        let cooldown = perkConfig.cooldown;
-        if (typeof cooldown === 'function') {
-            cooldown = cooldown();
-        }
+        // Use properties directly from perkConfig
+        const baseCooldownValue = perkConfig.cooldown;
+        const statNameForCooldown = perkConfig.cooldownStat;
+        const formulaForCooldown = perkConfig.cooldownFormula;
 
-        // Create timer to spawn orbitals
-        const timer = scene.time.addEvent({
-            delay: cooldown,
+        // Create timer to spawn orbitals using CooldownManager
+        const timer = CooldownManager.createTimer({
+            baseCooldown: baseCooldownValue,
+            statName: statNameForCooldown,
+            formula: formulaForCooldown,
+            component: perkConfig, // Pass perkConfig as component for potential future reference/cleanup
             callback: function () {
                 // Get fresh configuration each time (in case player stats changed)
                 const orbitalConfig = perkConfig.getConfig();
@@ -139,10 +145,10 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
         };
     },
     count: 1,
-    cooldown: function () {
-        // Calculate cooldown based on Agi
-        return 1000 / (Math.sqrt(playerFireRate / BASE_STATS.AGI));
-    },
+    // Updated cooldown to be a base number, with stat and formula
+    cooldown: 1000, // Base cooldown for Teal Octopus
+    cooldownStat: 'fireRate',
+    cooldownFormula: 'sqrt',
     activationMethod: 'timer'
 });
 
@@ -178,10 +184,10 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
         };
     },
     count: 1,
-    cooldown: function () {
-        // Calculate cooldown based on Agi - same as TEAL_OCTOPUS
-        return 1000 / (Math.sqrt(playerFireRate / BASE_STATS.AGI));
-    },
+    // Updated cooldown to be a base number, with stat and formula
+    cooldown: 1000, // Base cooldown for Inverted Octopus
+    cooldownStat: 'fireRate',
+    cooldownFormula: 'sqrt',
     activationMethod: 'timer'
 });
 
@@ -216,7 +222,10 @@ OrbitalPerkRegistry.registerPerkOrbital('TENTACLE_GRASP', {
             lifespan: null,
         };
     },
+    // This perk has a fixed cooldown, so no stat/formula needed for the cooldown itself.
     cooldown: 30000, // 30 seconds base cooldown
+    cooldownStat: null, // No stat scaling for the cooldown
+    cooldownFormula: null, // No formula for the cooldown
     activationMethod: 'timer' // Create periodically on a timer
 });
 
@@ -226,10 +235,10 @@ window.activateTentacleGrasp = function () {
     const scene = game.scene.scenes[0];
     if (!scene) return;
 
-    // Launch tentacles immediately
+    // Launch tentacles immediately (this part is for initial spawn, not periodic)
     launchTentacles(scene);
 
-    // Apply the orbital perk using the registry (this ensures proper cleanup)
+    // Apply the orbital perk using the registry (this ensures proper cleanup and periodic spawning)
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'TENTACLE_GRASP');
 };
 
@@ -437,11 +446,14 @@ window.activateSniperFairy = function () {
 
     // Create firing timer for the orbital using the generic function
     if (orbital && orbital.options && orbital.options.isFamiliar) {
+        // Cooldown for FamiliarSystem.setupFamiliarFiringTimer is not defined in nexus.js for Sniper Fairy,
+        // Assuming a base cooldown here, it should be defined in FamiliarSystem or in the perk config if dynamic.
+        // For now, using a placeholder of 4000ms as per your original hero.js for general timers.
         orbital.firingTimer = FamiliarSystem.setupFamiliarFiringTimer(
             scene,
             orbital,
             orbital.options.familiarType,
-            4000 // 4 seconds base cooldown
+            4000 // Placeholder: Replace with actual base cooldown if specified
         );
     }
 };
@@ -510,7 +522,7 @@ window.activateCopyFairy = function () {
             scene,
             orbital,
             orbital.options.familiarType,
-            1200 //
+            1200 // Base cooldown for Copy Fairy
         );
     }
 };
@@ -531,7 +543,7 @@ window.activateBerserkFairy = function () {
             scene,
             orbital,
             orbital.options.familiarType,
-            600 //
+            600 // Base cooldown for Berserk Fairy
         );
     }
 };
@@ -830,7 +842,10 @@ OrbitalPerkRegistry.registerPerkOrbital('LAVA_FAIRIES', {
             }
         };
     },
+    // This perk has a fixed cooldown, so no stat/formula needed for the cooldown itself.
     cooldown: 4000, // Fixed 4 second cooldown
+    cooldownStat: null, // No stat scaling for the cooldown
+    cooldownFormula: null, // No formula for the cooldown
     activationMethod: 'timer' // Create periodically
 });
 
@@ -866,10 +881,10 @@ OrbitalPerkRegistry.registerPerkOrbital('WRECKING_BALL', {
             }
         };
     },
-    cooldown: function () {
-        // 16 second base cooldown that scales with sqrt of player luck
-        return 16000 / (Math.sqrt(playerLuck / BASE_STATS.LUK));
-    },
+    // Updated cooldown to be a base number, with stat and formula
+    cooldown: 16000, // Base 16 second cooldown
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
     activationMethod: 'timer' // Create periodically on a timer
 });
 

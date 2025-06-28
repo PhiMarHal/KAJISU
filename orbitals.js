@@ -73,6 +73,49 @@ const MovementPatterns = {
         orbital.entity.setPosition(x, y);
     },
 
+    spiralOut: function (orbital, time) {
+        // Skip if game is paused
+        if (gamePaused || gameOver) {
+            // Update lastUpdateTime to current time to prevent large delta when resuming
+            orbital.lastUpdateTime = time;
+            return;
+        }
+
+        // Update the orbit angle based on speed
+        orbital.angle += orbital.speed * (orbital.direction === 'clockwise' ? 1 : -1);
+
+        // Initialize currentRadius if not set
+        if (orbital.currentRadius === undefined) {
+            orbital.currentRadius = orbital.options.startRadius ?? 8;
+        }
+
+        // Initialize lastUpdate time if not set
+        if (orbital.lastUpdateTime === undefined) {
+            orbital.lastUpdateTime = time;
+            return; // Skip first frame to avoid large delta
+        }
+
+        // Calculate actual delta time since last update
+        const deltaTime = time - orbital.lastUpdateTime;
+        orbital.lastUpdateTime = time;
+
+        // Cap delta time to prevent huge jumps (e.g., after tab switching or long pauses)
+        const cappedDelta = Math.min(deltaTime, 50); // Maximum 50ms delta
+
+        // Expand radius based on actual elapsed time
+        const expansionRate = orbital.options.expansionRate ?? 60; // pixels per second
+        const expansionAmount = expansionRate * (cappedDelta / 1000); // Convert ms to seconds
+
+        orbital.currentRadius += expansionAmount;
+
+        // Calculate new position based on player position and current radius
+        const x = player.x + Math.cos(orbital.angle) * orbital.currentRadius;
+        const y = player.y + Math.sin(orbital.angle) * orbital.currentRadius;
+
+        // Update orbital position
+        orbital.entity.setPosition(x, y);
+    },
+
     // Oscillating orbit (wobbles in and out while orbiting)
     oscillating: function (orbital, time) {
         // Update the orbit angle based on speed

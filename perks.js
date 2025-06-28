@@ -1113,6 +1113,55 @@ const PERKS = {
             // Nothing specific needed here as the registration is handled in onhit.js
         }
     },
+    "COMET": {
+        kanji: "彗星",
+        kana: "すいせい",
+        romaji: "suisei",
+        english: "Comet",
+        description: "Comets spiral outward, lifespan scales with LUK",
+        color: "#ffff00", // Standard yellow color
+        hoverColor: 0xdddd00,
+        onAcquire: function () {
+            window.activateComet();
+        }
+    },
+    "INVERTED_COMET": {
+        kanji: "逆彗星",
+        kana: "ぎゃくすいせい",
+        romaji: "gyakusuisei",
+        english: "Inverted Comet",
+        description: "Comets spiral outward counterclockwise, lifespan scales with LUK",
+        color: "#ffff00", // Standard yellow color
+        hoverColor: 0xdddd00,
+        onAcquire: function () {
+            window.activateInvertedComet();
+        }
+    },
+    "SHOOTING_STAR": {
+        kanji: "流星",
+        kana: "りゅうせい",
+        romaji: "ryuusei",
+        english: "Shooting Star",
+        description: "Periodically fires star projectiles in random directions",
+        color: "#ffff00",
+        hoverColor: 0xdddd00,
+        onAcquire: function () {
+            window.activateShootingStar();
+        }
+    },
+
+    "METEOR": {
+        kanji: "隕石",
+        kana: "いんせき",
+        romaji: "inseki",
+        english: "Meteor",
+        description: "Periodically fires powerful meteors in random directions",
+        color: "#ffff00",
+        hoverColor: 0xdddd00,
+        onAcquire: function () {
+            window.activateMeteor();
+        }
+    },
     "GREEN_DEER": {
         kanji: "緑鹿",
         kana: "みどりしか",

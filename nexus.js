@@ -902,5 +902,87 @@ window.activateWreckingBall = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'WRECKING_BALL');
 };
 
+OrbitalPerkRegistry.registerPerkOrbital('COMET', {
+    getConfig: function () {
+        return {
+            symbol: '★', // Standard projectile symbol
+            color: '#ffff00', // Standard yellow color
+            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
+            radius: 8, // Starting radius (will be overridden by spiralOut pattern)
+            speed: 0.02, // Rotation speed
+            direction: 'clockwise',
+            pattern: 'spiralOut', // Use our new spiral out pattern
+            collisionType: 'projectile', // Destroyed on hit
+            damage: playerDamage,
+            damageInterval: 0, // Not used for projectiles
+            lifespan: playerLuck * 2000,
+            options: {
+                startRadius: 16, // Start close to the player
+                expansionRate: 32 // Pixels per second expansion rate
+            }
+        };
+    },
+    count: 1,
+    cooldown: 1200, // Base cooldown
+    cooldownStat: 'fireRate',
+    cooldownFormula: 'sqrt',
+    activationMethod: 'timer'
+});
+
+window.activateComet = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create initial comet immediately
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['COMET'].getConfig();
+    OrbitalSystem.create(scene, orbitalConfig);
+
+    // Set up timer for subsequent comets
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'COMET');
+};
+
+// Add this to nexus.js - INVERTED_COMET orbital perk
+
+OrbitalPerkRegistry.registerPerkOrbital('INVERTED_COMET', {
+    getConfig: function () {
+        return {
+            symbol: '★', // Standard projectile symbol
+            color: '#ffff00', // Standard yellow color
+            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
+            radius: 8, // Starting radius (will be overridden by spiralOut pattern)
+            speed: 0.02, // Rotation speed
+            direction: 'counterclockwise', // Key difference: counter-clockwise rotation
+            pattern: 'spiralOut', // Use our new spiral out pattern
+            collisionType: 'projectile', // Destroyed on hit
+            damage: playerDamage,
+            damageInterval: 0, // Not used for projectiles
+            lifespan: playerLuck * 2000,
+            options: {
+                startRadius: 16, // Start close to the player
+                expansionRate: 32 // Pixels per second expansion rate
+            }
+        };
+    },
+    count: 1,
+    cooldown: 1200, // Base cooldown
+    cooldownStat: 'fireRate',
+    cooldownFormula: 'sqrt',
+    activationMethod: 'timer'
+});
+
+// Activation function
+window.activateInvertedComet = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create initial inverted comet immediately
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['INVERTED_COMET'].getConfig();
+    OrbitalSystem.create(scene, orbitalConfig);
+
+    // Set up timer for subsequent inverted comets
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'INVERTED_COMET');
+};
+
+
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

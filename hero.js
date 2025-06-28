@@ -1577,6 +1577,107 @@ window.activateStormBringer = function () {
     PlayerComponentSystem.addComponent('stormBringerAbility');
 };
 
+// Create a factory function for random shots components
+function createRandomShotsComponent(baseCooldown, damageMultiplier) {
+    return {
+        // Store timer reference
+        shotsTimer: null,
+
+        // Configuration
+        baseCooldown: baseCooldown,
+        damageMultiplier: damageMultiplier,
+
+        initialize: function (player) {
+            // Get the scene
+            const scene = game.scene.scenes[0];
+            if (!scene) return;
+
+            // Create and register timer using the configured cooldown
+            this.shotsTimer = CooldownManager.createTimer({
+                statName: 'fireRate',
+                baseCooldown: this.baseCooldown,
+                formula: 'sqrt',
+                component: this,
+                callback: this.fireRandomShot,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Fire first shot immediately
+            this.fireRandomShot();
+        },
+
+        // Method to fire a projectile in a random direction
+        fireRandomShot: function () {
+            // Skip if game is over or paused
+            if (gameOver || gamePaused) return;
+
+            // Get the scene
+            const scene = game.scene.scenes[0];
+            if (!scene) return;
+
+            // Generate random angle (0 to 2π)
+            const randomAngle = Math.random() * Math.PI * 2;
+
+            // Calculate the actual damage for this projectile
+            const actualDamage = getEffectiveDamage() * this.damageMultiplier;
+
+            // Create the projectile using WeaponSystem with proper context
+            const projectile = WeaponSystem.createProjectile.call(WeaponSystem, scene, {
+                x: player.x,
+                y: player.y,
+                angle: randomAngle,
+                symbol: '★',
+                color: '#ffff00',
+                speed: 400,
+                damage: actualDamage,
+                fontSize: getEffectiveSize(projectileSizeFactor, actualDamage)
+            });
+
+            return projectile;
+        },
+
+        // Cleanup on removal
+        cleanup: function (player) {
+            // Remove timer
+            if (this.shotsTimer) {
+                CooldownManager.removeTimer(this.shotsTimer);
+                this.shotsTimer = null;
+            }
+        }
+    };
+}
+
+// Register separate components for each perk to allow stacking
+PlayerComponentSystem.registerComponent('shootingStarAbility', createRandomShotsComponent(400, 1));
+PlayerComponentSystem.registerComponent('meteorAbility', createRandomShotsComponent(2000, 4));
+
+// Register the Shooting Star perk
+PlayerPerkRegistry.registerPerkEffect('SHOOTING_STAR', {
+    componentName: 'shootingStarAbility',
+    condition: function () {
+        return true;
+    }
+});
+
+// Register the Meteor perk  
+PlayerPerkRegistry.registerPerkEffect('METEOR', {
+    componentName: 'meteorAbility',
+    condition: function () {
+        return true;
+    }
+});
+
+// Function to activate shooting star
+window.activateShootingStar = function () {
+    PlayerComponentSystem.addComponent('shootingStarAbility');
+};
+
+// Function to activate meteor
+window.activateMeteor = function () {
+    PlayerComponentSystem.addComponent('meteorAbility');
+};
+
 // Function to update player status in game loop
 function updatePlayerStatus() {
     // Skip if game is over or paused

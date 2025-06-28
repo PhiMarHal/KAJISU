@@ -118,7 +118,7 @@ ProjectileComponentSystem.registerComponent('slowEffect', {
         // Apply cyan tint to enemy to show slow effect
         SpriteEffectHelpers.applyEffectColorTexture(enemy, '#00ffff', scene);
 
-        console.log(`Enemy slowed: ${enemy.text || enemy.kanjiCharacter}`);
+        //console.log(`Enemy slowed: ${enemy.text || enemy.kanjiCharacter}`);
     }
 });
 

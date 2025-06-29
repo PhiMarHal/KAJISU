@@ -365,7 +365,7 @@ const StartMenuSystem = {
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: this.state.kajisuliMode ? 800 : 1200,
+                width: this.state.kajisuliMode ? 720 : 1200,
                 height: this.state.kajisuliMode ? 1280 : 800,
                 parent: 'game-container',
                 expandParent: false

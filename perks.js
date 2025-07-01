@@ -1149,7 +1149,6 @@ const PERKS = {
             window.activateShootingStar();
         }
     },
-
     "METEOR": {
         kanji: "隕石",
         kana: "いんせき",
@@ -1160,6 +1159,18 @@ const PERKS = {
         hoverColor: 0xdddd00,
         onAcquire: function () {
             window.activateMeteor();
+        }
+    },
+    "DECELERATING_BULLET": {
+        kanji: "減速弾",
+        kana: "げんそくだん",
+        romaji: "gensokudan",
+        english: "Decelerating Bullet",
+        description: "Projectiles slow down over time, deal 2x damage",
+        color: "#8A2BE2", // Blue-violet color
+        hoverColor: 0x6A1BA2,
+        onAcquire: function () {
+            // Logic handled by ProjectilePerkRegistry
         }
     },
     "GREEN_DEER": {

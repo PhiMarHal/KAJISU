@@ -122,3 +122,13 @@ ProjectilePerkRegistry.registerPerkEffect('YELLOW_BOOMERANG', {
     chanceMultiplier: 0.5,
     applyChance: true, // Apply based on chance
 });
+
+ProjectilePerkRegistry.registerPerkEffect('DECELERATING_BULLET', {
+    componentName: 'stasisEffect',
+    applyChance: true, // Apply based on luck-based chance
+    configGenerator: function (scene) {
+        return {
+            // No additional config needed, component handles everything
+        };
+    }
+});

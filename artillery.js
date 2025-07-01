@@ -717,3 +717,88 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
         }
     }
 });
+
+// Stasis Effect
+ProjectileComponentSystem.registerComponent('stasisEffect', {
+    initialize: function (projectile) {
+        // Store base damage using getEffectiveDamage() and apply 2x multiplier
+        this.baseDamage = getEffectiveDamage();
+        projectile.damage = this.baseDamage * 2;
+
+        // Update projectile size to reflect the doubled damage
+        const newSize = getEffectiveSize(null, projectile.damage);
+        projectile.setFontSize(newSize);
+
+        // Update physics body size to match new visual size
+        if (projectile.body) {
+            projectile.body.setSize(projectile.width / 2, projectile.height / 2);
+        }
+
+        // Force this projectile to be non-piercing for balance reasons
+        // (Prevents overpowered interaction with piercing perk)
+        projectile.piercing = false;
+
+        // Track elapsed time for deceleration calculation
+        this.timeElapsed = 0;
+        this.lastUpdate = undefined;
+        this.initialized = false; // Flag to track when velocity is captured
+
+        // Set up lifespan timer based on playerLuck
+        const lifespan = playerLuck * 2 * 1000; // Convert seconds to milliseconds
+        const timer = projectile.scene.time.delayedCall(lifespan, function () {
+            if (projectile.active) {
+                projectile.destroy();
+            }
+        });
+
+        // Register timer for cleanup
+        window.registerEffect('timer', timer);
+    },
+
+    update: function (projectile, scene) {
+        // Force non-piercing every frame (bulletproof against component order)
+        projectile.piercing = false;
+
+        // Skip until body and velocity are available
+        if (!this.initialized) {
+            if (projectile.body && projectile.body.velocity) {
+                // Capture velocity now that it's available
+                this.originalVelocityX = projectile.body.velocity.x;
+                this.originalVelocityY = projectile.body.velocity.y;
+                this.originalSpeed = Math.sqrt(this.originalVelocityX * this.originalVelocityX + this.originalVelocityY * this.originalVelocityY);
+
+                // Calculate and store normalized direction
+                this.directionX = this.originalSpeed > 0 ? this.originalVelocityX / this.originalSpeed : 0;
+                this.directionY = this.originalSpeed > 0 ? this.originalVelocityY / this.originalSpeed : 0;
+
+                // Initialize deceleration variables
+                this.currentSpeedMultiplier = 1.0; // Start at 100% speed
+                this.lastDecelerationTime = scene.time.now;
+
+                this.initialized = true;
+                this.lastUpdate = scene.time.now;
+
+                // Ensure damage is correctly applied (in case it was reset)
+                projectile.damage = this.baseDamage * 2;
+            }
+            return; // Skip until initialized
+        }
+
+        // Check if it's time for deceleration (every 200ms)
+        const currentTime = scene.time.now;
+        if (currentTime - this.lastDecelerationTime >= 200) {
+            // Reduce speed by 25% every 200ms
+            this.currentSpeedMultiplier -= 0.25;
+            this.currentSpeedMultiplier = Math.max(0, this.currentSpeedMultiplier);
+            this.lastDecelerationTime = currentTime;
+        }
+
+        // Calculate current speed and apply velocity
+        const currentSpeed = this.originalSpeed * this.currentSpeedMultiplier;
+        projectile.body.setVelocity(
+            this.directionX * currentSpeed,
+            this.directionY * currentSpeed
+        );
+    }
+});
+

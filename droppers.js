@@ -126,7 +126,7 @@ const DropperSystem = {
                 fontFamily: 'Arial',
                 fontSize: `${dropConfig.fontSize}px`,
                 color: dropConfig.color,
-                fontStyle: 'bold'
+                fontStyle: dropConfig.fontStyle ?? 'bold' // Allow override, default to bold for compatibility
             }
         ).setOrigin(0.5);
 
@@ -149,10 +149,30 @@ const DropperSystem = {
             entity.body.setMass(0.04);
             entity.body.setMaxVelocity(800, 800);
 
-            // Add physics collider with player (for pushing)
-            scene.physics.add.collider(entity, player, null, null, scene);
-        }
+            // Add physics collider with player (for pushing with random deflection)
+            scene.physics.add.collider(entity, player, function (ballEntity, player) {
+                // Calculate base push direction (away from player)
+                const dx = ballEntity.x - player.x;
+                const dy = ballEntity.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
 
+                if (distance > 0) {
+                    // Calculate base angle
+                    const baseAngle = Math.atan2(dy, dx);
+
+                    // Add random deflection (±10 degrees in radians)
+                    const randomDeflection = (Math.random() - 0.5) * (Math.PI / 9); // ±20 degrees total range
+                    const finalAngle = baseAngle + randomDeflection;
+
+                    // Apply push force with the randomized angle
+                    const pushForce = 800;
+                    const pushX = Math.cos(finalAngle) * pushForce;
+                    const pushY = Math.sin(finalAngle) * pushForce;
+
+                    ballEntity.body.setVelocity(pushX, pushY);
+                }
+            }, null, scene);
+        }
         // Store unique ID for damage source (used for cooldown tracking)
         entity.damageSourceId = `drop_${Date.now()}_${Math.random()}`;
 

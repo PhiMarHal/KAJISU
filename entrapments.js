@@ -406,7 +406,7 @@ DropperPerkRegistry.registerDropperPerk('GOLDEN_AGE', {
     getConfig: function () {
         return {
             symbol: '球',
-            color: '#ffff00', // Gold/yellow color
+            color: '#ffd700', // Gold/yellow color
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
             damage: playerDamage,
@@ -414,9 +414,6 @@ DropperPerkRegistry.registerDropperPerk('GOLDEN_AGE', {
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
             health: 999999999, // Effectively indestructible
-            options: {
-                opacity: 1.0
-            }
         };
     },
     cooldown: null, // No periodic spawning

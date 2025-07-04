@@ -146,23 +146,11 @@ const DropperSystem = {
             entity.body.setCollideWorldBounds(true);
             entity.body.setBounce(0.8, 0.8);
             entity.body.setDrag(10, 10);
-            entity.body.setMass(0.5);
+            entity.body.setMass(0.04);
             entity.body.setMaxVelocity(800, 800);
 
             // Add physics collider with player (for pushing)
             scene.physics.add.collider(entity, player, null, null, scene);
-
-            // Add physics collider with enemies (for bouncing AND damage)
-            scene.physics.add.collider(entity, EnemySystem.enemiesGroup, function (ballEntity, enemy) {
-                // Handle damage in the collider since overlap can't fire reliably with physics separation
-                applyContactDamage.call(
-                    scene,
-                    ballEntity,
-                    enemy,
-                    ballEntity.damage,
-                    drop.damageInterval
-                );
-            }, null, scene);
         }
 
         // Store unique ID for damage source (used for cooldown tracking)
@@ -213,16 +201,14 @@ const DropperSystem = {
         // Get the appropriate behavior function
         const behavior = DropBehaviors[dropConfig.behaviorType] ?? DropBehaviors.projectile;
 
-        // Add overlap with enemies based on behavior (skip for physics-based behaviors)
-        if (dropConfig.behaviorType !== 'playerPushable') {
-            scene.physics.add.overlap(entity, EnemySystem.enemiesGroup, function (dropEntity, enemy) {
-                // Skip if drop is already marked as destroyed
-                if (drop.destroyed) return;
+        // Add overlap with enemies based on behavior
+        scene.physics.add.overlap(entity, EnemySystem.enemiesGroup, function (dropEntity, enemy) {
+            // Skip if drop is already marked as destroyed
+            if (drop.destroyed) return;
 
-                // Call the appropriate behavior function
-                behavior(scene, drop, enemy);
-            }, null, scene);
-        }
+            // Call the appropriate behavior function
+            behavior(scene, drop, enemy);
+        }, null, scene);
 
         // Visual effect when spawning
         scene.tweens.add({

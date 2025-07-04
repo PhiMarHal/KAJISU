@@ -1173,6 +1173,18 @@ const PERKS = {
             // Logic handled by ProjectilePerkRegistry
         }
     },
+    "GOLDEN_AGE": {
+        kanji: "全盛期",
+        kana: "ぜんせいき",
+        romaji: "zenseiki",
+        english: "Golden Age",
+        description: "Spawns a golden ball you can push into enemies",
+        color: "#ffff00", // Gold/yellow color
+        hoverColor: 0xdddd00,
+        onAcquire: function () {
+            window.activateGoldenAge();
+        }
+    },
     "GREEN_DEER": {
         kanji: "緑鹿",
         kana: "みどりしか",

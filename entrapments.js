@@ -402,5 +402,39 @@ window.activateToxicTrail = function () {
     return DropperPerkRegistry.applyDropperPerk(scene, 'TOXIC_TRAIL');
 };
 
+DropperPerkRegistry.registerDropperPerk('GOLDEN_AGE', {
+    getConfig: function () {
+        return {
+            symbol: '球',
+            color: '#ffff00', // Gold/yellow color
+            fontSize: 32, // Same size as player
+            behaviorType: 'playerPushable',
+            damage: playerDamage,
+            damageInterval: 400,
+            colliderSize: 1.0, // Full size collision
+            lifespan: null, // Permanent
+            health: 999999999, // Effectively indestructible
+            options: {
+                opacity: 1.0
+            }
+        };
+    },
+    cooldown: null, // No periodic spawning
+    cooldownStat: null,
+    cooldownFormula: null,
+    positionMode: 'player', // Spawn near player
+    activationMethod: 'immediate' // Create once immediately
+});
+
+// Add this to entrapments.js - activation function
+window.activateGoldenAge = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the dropper perk (will create one ball immediately)
+    DropperPerkRegistry.applyDropperPerk(scene, 'GOLDEN_AGE');
+};
+
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

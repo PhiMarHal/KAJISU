@@ -181,7 +181,7 @@ const WeaponSystem = {
         // Find the closest enemy
         distance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * 400;
         const closestEnemy = this.findClosestEnemy(scene, distance);
-
+        /*
         if (closestEnemy) {
             // Calculate direction to the enemy
             const angle = Phaser.Math.Angle.Between(
@@ -193,7 +193,7 @@ const WeaponSystem = {
             if (this.activeWeaponType === 'BASIC_PROJECTILE') {
                 this.fireBasicProjectile(scene, angle);
             }
-        }
+        }*/
     },
 
     // Fire a basic projectile

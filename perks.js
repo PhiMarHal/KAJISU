@@ -1428,8 +1428,6 @@ const PERKS = {
         color: "#00ffff", // Cyan color like ALIEN_WORLD
         hoverColor: 0x00dddd,
         onAcquire: function () {
-            // The effect is handled by the PlayerComponentSystem
-            window.activateAlienClock();
         }
     },
     "PURPLE_HEDGEHOG": {

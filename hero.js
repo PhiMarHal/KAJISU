@@ -15,9 +15,7 @@ const BASE_STATS = {
 // Perk cooldowns in milliseconds - divide by 4 for real base time
 const shieldBaseCd = 80000;
 const godHammerBaseCd = 120000;
-const divineBeaconBaseCd = 120000;
 const fatedShieldBaseCd = 60000;
-const angelHoneyBaseCd = 80000;
 
 // Player Status Component System for Word Survivors
 // This system manages special behaviors and status effects for the player
@@ -889,388 +887,6 @@ window.activateGodHammer = function () {
     PlayerComponentSystem.addComponent('godHammerAbility');
 };
 
-// Register component for Divine Beacon ability
-PlayerComponentSystem.registerComponent('divineBeaconAbility', {
-    // Store timer reference
-    beaconTimer: null,
-
-    initialize: function (player) {
-
-        // Get the scene
-        const scene = game.scene.scenes[0];
-        if (!scene) return;
-
-        // Create and register timer in one step
-        this.beaconTimer = CooldownManager.createTimer({
-            statName: 'luck',
-            baseCooldown: divineBeaconBaseCd,
-            formula: 'divide',
-            component: this,
-            callback: this.spawnBeacon,
-            callbackScope: scene
-        });
-
-        // Immediately spawn first beacon
-        this.spawnBeacon.call(scene);
-    },
-
-    spawnBeacon: function () {
-        // Skip if game is over or paused
-        if (gameOver || gamePaused) return;
-
-        // Random position on screen (with padding from edges)
-        const x = Phaser.Math.Between(game.config.width * 0.017, game.config.width * 0.983); // 20/1200 to 1180/1200
-        const y = Phaser.Math.Between(game.config.height * 0.025, game.config.height * 0.975); // 20/800 to 780/800
-
-        // Create the beacon using the kanji for "heaven/sky": 天
-        const beacon = this.add.text(x, y, '天', {
-            fontFamily: 'Arial',
-            fontSize: '16px',
-            color: '#FFD700', // Gold color
-            stroke: '#FFFFFF',
-            strokeThickness: 4,
-            shadow: {
-                offsetX: 0,
-                offsetY: 0,
-                color: '#FFFFFF',
-                blur: 10,
-                stroke: true,
-                fill: true
-            }
-        }).setOrigin(0.5);
-
-        // Add physics body for collision detection
-        this.physics.world.enable(beacon);
-        beacon.body.setSize(beacon.width * 0.8, beacon.height * 0.8);
-
-        // Set as immovable
-        beacon.body.immovable = true;
-
-        // Add a unique ID to prevent duplicate collection
-        beacon.beaconId = 'beacon_' + Date.now() + '_' + Math.random();
-
-        // Register entity for cleanup
-        window.registerEffect('entity', beacon);
-
-        // Add overlap with player
-        this.physics.add.overlap(beacon, player, function (beacon, player) {
-            // Only collect if not already collected
-            if (beacon.collected) return;
-
-            // Mark as collected to prevent multiple triggers
-            beacon.collected = true;
-
-            // Trigger hammer drop
-            dropGodHammer.call(this);
-
-            // Visual effect for collection
-            this.tweens.add({
-                targets: beacon,
-                alpha: 0,
-                scale: 2,
-                duration: 500,
-                onComplete: function () {
-                    beacon.destroy();
-                }
-            });
-
-            // Create radial flash effect
-            const flash = this.add.circle(beacon.x, beacon.y, 5, 0xFFFFFF, 1);
-            this.tweens.add({
-                targets: flash,
-                radius: 100,
-                alpha: 0,
-                duration: 500,
-                onComplete: function () {
-                    flash.destroy();
-                }
-            });
-
-        }, null, this);
-
-        // Add pulsing animation
-        VisualEffects.createPulsing(this, beacon);
-    },
-
-    cleanup: function (player) {
-        // Remove timer from CooldownManager's registry
-        CooldownManager.removeTimer(this.beaconTimer);
-
-        // Also directly remove the timer to ensure it's destroyed
-        if (this.beaconTimer && this.beaconTimer.remove) {
-            this.beaconTimer.remove();
-        }
-
-        this.beaconTimer = null;
-    }
-});
-
-// Register the perk with the PlayerPerkRegistry
-PlayerPerkRegistry.registerPerkEffect('DIVINE_BEACON', {
-    componentName: 'divineBeaconAbility',
-    condition: function () {
-        // Always active when perk is acquired
-        return true;
-    }
-});
-
-// Register component for Angel Honey ability
-PlayerComponentSystem.registerComponent('angelHoneyAbility', {
-    // Store timer reference
-    honeyTimer: null,
-
-    initialize: function (player) {
-        // Get the scene
-        const scene = game.scene.scenes[0];
-        if (!scene) return;
-
-        // Create and register timer in one step
-        this.honeyTimer = CooldownManager.createTimer({
-            statName: 'luck',
-            baseCooldown: angelHoneyBaseCd,
-            formula: 'divide',
-            component: this,
-            callback: this.spawnHoney,
-            callbackScope: scene
-        });
-
-        // Immediately spawn first honey
-        this.spawnHoney.call(scene);
-    },
-
-    spawnHoney: function () {
-        // Skip if game is over or paused
-        if (gameOver || gamePaused) return;
-
-        // Random position on screen (with padding from edges)
-        const x = Phaser.Math.Between(game.config.width * 0.017, game.config.width * 0.983); // 20/1200 to 1180/1200
-        const y = Phaser.Math.Between(game.config.height * 0.025, game.config.height * 0.975); // 20/800 to 780/800
-
-        // Create the honey using the kanji for "honey": 蜜
-        const honey = this.add.text(x, y, '蜜', {
-            fontFamily: 'Arial',
-            fontSize: '20px',
-            color: '#00CC00', // Green color
-            stroke: '#FFFFFF',
-            strokeThickness: 4,
-            shadow: {
-                offsetX: 0,
-                offsetY: 0,
-                color: '#FFFFFF',
-                blur: 10,
-                stroke: true,
-                fill: true
-            }
-        }).setOrigin(0.5);
-
-        // Add physics body for collision detection
-        this.physics.world.enable(honey);
-        honey.body.setSize(honey.width * 0.8, honey.height * 0.8);
-
-        // Set as immovable
-        honey.body.immovable = true;
-
-        // Add a unique ID to prevent duplicate collection
-        honey.honeyId = 'honey_' + Date.now() + '_' + Math.random();
-
-        // Register entity for cleanup
-        window.registerEffect('entity', honey);
-
-        // Add overlap with player
-        this.physics.add.overlap(honey, player, function (honey, player) {
-            // Only collect if not already collected
-            if (honey.collected) return;
-
-            // Mark as collected to prevent multiple triggers
-            honey.collected = true;
-
-            // Use the heal function for +1 HP
-            LifeSystem.heal(1);
-
-            // Visual effect for collection
-            this.tweens.add({
-                targets: honey,
-                alpha: 0,
-                scale: 2,
-                duration: 500,
-                onComplete: function () {
-                    honey.destroy();
-                }
-            });
-
-            // Create radial flash effect
-            const flash = this.add.circle(honey.x, honey.y, 5, 0x00FF00, 1);
-            this.tweens.add({
-                targets: flash,
-                radius: 100,
-                alpha: 0,
-                duration: 500,
-                onComplete: function () {
-                    flash.destroy();
-                }
-            });
-
-        }, null, this);
-
-        // Add pulsing animation
-        VisualEffects.createPulsing(this, honey);
-    },
-
-    cleanup: function (player) {
-        // Remove timer from CooldownManager's registry
-        CooldownManager.removeTimer(this.honeyTimer);
-
-        // Also directly remove the timer to ensure it's destroyed
-        if (this.honeyTimer && this.honeyTimer.remove) {
-            this.honeyTimer.remove();
-        }
-
-        this.honeyTimer = null;
-    }
-});
-
-// Register the perk with the PlayerPerkRegistry
-PlayerPerkRegistry.registerPerkEffect('ANGEL_HONEY', {
-    componentName: 'angelHoneyAbility',
-    condition: function () {
-        // Always active when perk is acquired
-        return true;
-    }
-});
-
-// Register component for Alien Clock ability
-PlayerComponentSystem.registerComponent('alienClockAbility', {
-    // Store timer reference
-    clockTimer: null,
-    beaconCooldown: 120000, // 2 minutes base cooldown
-
-    initialize: function (player) {
-        // Get the scene
-        const scene = game.scene.scenes[0];
-        if (!scene) return;
-
-        // Create and register timer in one step
-        this.clockTimer = CooldownManager.createTimer({
-            statName: 'luck',
-            baseCooldown: this.beaconCooldown,
-            formula: 'divide',
-            component: this,
-            callback: this.spawnClockBeacon,
-            callbackScope: scene
-        });
-
-        // Immediately spawn first clock beacon
-        this.spawnClockBeacon.call(scene);
-    },
-
-    spawnClockBeacon: function () {
-        // Skip if game is over or paused
-        if (gameOver || gamePaused) return;
-
-        // Random position on screen (with padding from edges)
-        const x = Phaser.Math.Between(game.config.width * 0.080, game.config.width * 0.920); // 100/1200 to 1100/1200
-        const y = Phaser.Math.Between(game.config.height * 0.125, game.config.height * 0.875); // 100/800 to 700/800
-
-        // Create the beacon using the kanji for "time": 時
-        const beacon = this.add.text(x, y, '時', {
-            fontFamily: 'Arial',
-            fontSize: '20px',
-            color: '#00FFFF', // Cyan color
-            stroke: '#000000',
-            strokeThickness: 3,
-            shadow: {
-                offsetX: 0,
-                offsetY: 0,
-                color: '#00FFFF',
-                blur: 8,
-                stroke: true,
-                fill: true
-            }
-        }).setOrigin(0.5);
-
-        // Add physics body for collision detection
-        this.physics.world.enable(beacon);
-        beacon.body.setSize(beacon.width * 0.8, beacon.height * 0.8);
-
-        // Set as immovable
-        beacon.body.immovable = true;
-
-        // Add a unique ID to prevent duplicate collection
-        beacon.beaconId = 'timeBeacon_' + Date.now() + '_' + Math.random();
-
-        // Register entity for cleanup
-        window.registerEffect('entity', beacon);
-
-        // Add overlap with player
-        this.physics.add.overlap(beacon, player, function (beacon, player) {
-            // Only collect if not already collected
-            if (beacon.collected) return;
-
-            // Mark as collected to prevent multiple triggers
-            beacon.collected = true;
-
-            // Calculate slow motion duration based on luck
-            const slowdownDuration = Math.sqrt(playerLuck / BASE_STATS.LUK) * 1000;
-
-            // Activate time dilation
-            window.activateTimeDilation(slowdownDuration);
-
-            // Visual effect for collection
-            this.tweens.add({
-                targets: beacon,
-                alpha: 0,
-                scale: 2,
-                duration: 500,
-                onComplete: function () {
-                    beacon.destroy();
-                }
-            });
-
-            // Create radial flash effect
-            const flash = this.add.circle(beacon.x, beacon.y, 5, 0x00FFFF, 1);
-            this.tweens.add({
-                targets: flash,
-                radius: 100,
-                alpha: 0,
-                duration: 800,
-                onComplete: function () {
-                    flash.destroy();
-                }
-            });
-
-        }, null, this);
-
-        // Add pulsing animation
-        VisualEffects.createPulsing(this, beacon);
-    },
-
-    cleanup: function (player) {
-        // Remove timer from CooldownManager's registry
-        CooldownManager.removeTimer(this.clockTimer);
-
-        // Also directly remove the timer to ensure it's destroyed
-        if (this.clockTimer && this.clockTimer.remove) {
-            this.clockTimer.remove();
-        }
-
-        this.clockTimer = null;
-    }
-});
-
-// Register the perk with the PlayerPerkRegistry
-PlayerPerkRegistry.registerPerkEffect('ALIEN_CLOCK', {
-    componentName: 'alienClockAbility',
-    condition: function () {
-        // Always active when perk is acquired
-        return true;
-    }
-});
-
-window.activateAlienClock = function () {
-    // Now just add the component - no need to add timeDilationEffect
-    PlayerComponentSystem.addComponent('alienClockAbility');
-};
-
 // Lightning strike function in hero.js (outside the component)
 function createLightningStrike(scene, x, y, options = {}) {
     // Skip if game is over or paused
@@ -1425,157 +1041,6 @@ window.activateStormCaller = function () {
 // Make the function globally accessible for other perks
 window.createLightningStrike = createLightningStrike;
 
-// Register component for Storm Bringer ability in hero.js
-PlayerComponentSystem.registerComponent('stormBringerAbility', {
-    // Store timer reference
-    beaconTimer: null,
-
-    initialize: function () {
-        // Get the scene
-        const scene = game.scene.scenes[0];
-        if (!scene) return;
-
-        // Create and register timer
-        this.beaconTimer = CooldownManager.createTimer({
-            statName: 'luck',
-            baseCooldown: 30000, // 30 seconds base cooldown
-            formula: 'sqrt',
-            component: this,
-            callback: this.spawnBeacon,
-            callbackScope: scene,
-            loop: true
-        });
-
-        // Spawn initial beacon
-        this.spawnBeacon.call(scene);
-    },
-
-    // Method to spawn a storm beacon
-    spawnBeacon: function () {
-        // Skip if game is over or paused
-        if (gameOver || gamePaused) return;
-
-        // Random position on screen (with padding from edges)
-        const x = Phaser.Math.Between(game.config.width * 0.2, game.config.width * 0.8); // 360/1200 to (1200-360)/1200
-        const y = Phaser.Math.Between(game.config.height * 0.2, game.config.height * 0.8); // 360/800 to (800-360)/800
-
-        // Create the beacon using the kanji for "storm"
-        const beacon = this.add.text(x, y, '嵐', {
-            fontFamily: 'Arial',
-            fontSize: '24px',
-            color: '#00DDFF', // Bright cyan color
-            stroke: '#FFFFFF',
-            strokeThickness: 2,
-            shadow: {
-                offsetX: 0,
-                offsetY: 0,
-                color: '#FFFFFF',
-                blur: 8,
-                stroke: true,
-                fill: true
-            }
-        }).setOrigin(0.5);
-
-        // Add physics body for collision detection
-        this.physics.world.enable(beacon);
-        beacon.body.setSize(beacon.width * 0.8, beacon.height * 0.8);
-
-        // Set as immovable
-        beacon.body.immovable = true;
-
-        // Add a unique ID to prevent duplicate collection
-        beacon.beaconId = 'storm_beacon_' + Date.now() + '_' + Math.random();
-
-        // Register entity for cleanup
-        window.registerEffect('entity', beacon);
-
-        // Add overlap with player
-        this.physics.add.overlap(beacon, player, function (beacon, player) {
-            // Only collect if not already collected
-            if (beacon.collected) return;
-
-            // Mark as collected to prevent multiple triggers
-            beacon.collected = true;
-
-            // Create a lightning storm at this position
-            const centerX = beacon.x;
-            const centerY = beacon.y;
-            const lightningCount = 8; // 8 lightning strikes
-            const radius = 360; // Radius around the center point
-
-            // Create first lightning at the center
-            createLightningStrike(this, centerX, centerY);
-
-            // Create remaining lightning strikes with delays
-            for (let i = 1; i < lightningCount; i++) {
-                // Calculate position - random point within radius
-                const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * radius;
-                const x = centerX + Math.cos(angle) * distance;
-                const y = centerY + Math.sin(angle) * distance;
-
-                // Schedule with increasing delay
-                this.time.delayedCall(i * 300, function () {
-                    if (gameOver || gamePaused) return;
-                    createLightningStrike(this, x, y);
-                }, [], this);
-            }
-
-            // Visual effect for collection
-            this.tweens.add({
-                targets: beacon,
-                alpha: 0,
-                scale: 2,
-                duration: 500,
-                onComplete: function () {
-                    beacon.destroy();
-                }
-            });
-
-            // Create radial flash effect
-            const flash = this.add.circle(beacon.x, beacon.y, 50, 0x00DDFF, 0.7);
-            window.registerEffect('entity', flash);
-
-            this.tweens.add({
-                targets: flash,
-                radius: 200,
-                alpha: 0,
-                duration: 800,
-                onComplete: function () {
-                    flash.destroy();
-                }
-            });
-
-        }, null, this);
-
-        // Add pulsing animation
-        VisualEffects.createPulsing(this, beacon);
-    },
-
-    // Cleanup on removal
-    cleanup: function () {
-        // Remove timer
-        if (this.beaconTimer) {
-            CooldownManager.removeTimer(this.beaconTimer);
-            this.beaconTimer = null;
-        }
-    }
-});
-
-// Register the perk with the PlayerPerkRegistry
-PlayerPerkRegistry.registerPerkEffect('STORM_BRINGER', {
-    componentName: 'stormBringerAbility',
-    condition: function () {
-        // Always active when perk is acquired
-        return true;
-    }
-});
-
-// Function to activate storm bringer
-window.activateStormBringer = function () {
-    // Simply add the component through the component system
-    PlayerComponentSystem.addComponent('stormBringerAbility');
-};
 
 // Create a factory function for random shots components
 function createRandomShotsComponent(baseCooldown, damageMultiplier) {
@@ -1678,6 +1143,51 @@ window.activateMeteor = function () {
     PlayerComponentSystem.addComponent('meteorAbility');
 };
 
+
+PlayerComponentSystem.registerComponent('divineBeaconAbility',
+    BeaconSystem.createBeaconComponent(BeaconConfigs.DIVINE_BEACON)
+);
+
+PlayerComponentSystem.registerComponent('angelHoneyAbility',
+    BeaconSystem.createBeaconComponent(BeaconConfigs.ANGEL_HONEY)
+);
+
+PlayerComponentSystem.registerComponent('alienClockAbility',
+    BeaconSystem.createBeaconComponent(BeaconConfigs.ALIEN_CLOCK)
+);
+
+PlayerComponentSystem.registerComponent('stormBringerAbility',
+    BeaconSystem.createBeaconComponent(BeaconConfigs.STORM_BRINGER)
+);
+
+PlayerPerkRegistry.registerPerkEffect('DIVINE_BEACON', {
+    componentName: 'divineBeaconAbility',
+    condition: function () {
+        return true;
+    }
+});
+
+PlayerPerkRegistry.registerPerkEffect('ANGEL_HONEY', {
+    componentName: 'angelHoneyAbility',
+    condition: function () {
+        return true;
+    }
+});
+
+PlayerPerkRegistry.registerPerkEffect('ALIEN_CLOCK', {
+    componentName: 'alienClockAbility',
+    condition: function () {
+        return true;
+    }
+});
+
+PlayerPerkRegistry.registerPerkEffect('STORM_BRINGER', {
+    componentName: 'stormBringerAbility',
+    condition: function () {
+        return true;
+    }
+});
+
 // Function to update player status in game loop
 function updatePlayerStatus() {
     // Skip if game is over or paused
@@ -1697,4 +1207,5 @@ function updatePlayerStatus() {
 function resetPlayerStatus() {
     PlayerComponentSystem.resetAll();
     berserkMultiplier = 1.0;
+    archerMultiplier = 1.0;
 }

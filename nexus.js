@@ -825,7 +825,7 @@ OrbitalPerkRegistry.registerPerkOrbital('LAVA_FAIRIES', {
             symbol: '溶', // Kanji for "melt/dissolve"
             color: '#FF6600', // Orange-red color for lava
             fontSize: 24, // Medium size
-            radius: playerLuck * 16, // Radius scales with luck as requested
+            radius: 64 * (Math.sqrt(playerLuck / BASE_STATS.LUK)),
             speed: 0.012, // Moderate speed
             pattern: 'standard', // Standard circular pattern as requested
             collisionType: 'projectile', // Dies when hit enemies

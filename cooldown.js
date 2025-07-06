@@ -38,7 +38,9 @@ const CooldownManager = {
 
         // Calculate initial cooldown
         let initialCooldown;
-        if (options.formula === 'multiply') {
+        if (options.formula === 'fixed') {
+            initialCooldown = options.baseCooldown; // Fixed cooldown ignores stats
+        } else if (options.formula === 'multiply') {
             initialCooldown = options.baseCooldown * currentStatValue;
         } else if (options.formula === 'sqrt') {
             // Use BASE_STATS reference for better code maintenance
@@ -144,7 +146,9 @@ const CooldownManager = {
 
         // Calculate new cooldown based on formula
         let newCooldown;
-        if (config.formula === 'multiply') {
+        if (config.formula === 'fixed') {
+            newCooldown = config.baseCooldown; // Fixed cooldown ignores stat changes
+        } else if (config.formula === 'multiply') {
             newCooldown = config.baseCooldown * newStatValue;
         } else if (config.formula === 'sqrt') {
             // Use BASE_STATS reference for better code maintenance

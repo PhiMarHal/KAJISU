@@ -545,6 +545,18 @@ const PERKS = {
             //
         }
     },
+    "AUGMENTATION": {
+        kanji: "増強",
+        kana: "ぞうきょう",
+        romaji: "zoukyou",
+        english: "Augmentation",
+        description: "Beacons grant +1 damage/fire rate for LUK seconds",
+        color: "#FF4500",
+        hoverColor: 0xDD3300,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
 
     // Red animal perks (damage focused)
     "RED_TIGER": {

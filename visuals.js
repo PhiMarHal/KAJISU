@@ -366,6 +366,71 @@ const VisualEffects = {
         }
     },
 
+    // Add this function to the VisualEffects object in visuals.js
+    createPowerBoostEffect: function (scene, x, y, duration) {
+        // Create golden halo using the hero character itself
+        const halo = scene.add.text(x, y, HERO_CHARACTER, {
+            fontFamily: 'Arial',
+            fontSize: '36px', // Slightly larger than player's 32px
+            color: '#FFD700'
+        }).setOrigin(0.5).setAlpha(1);
+
+        // Position behind the player
+        halo.setDepth(player.depth - 1);
+
+        // Register for cleanup
+        window.registerEffect('entity', halo);
+
+        // Create pulsing animation
+        const pulseAnimation = VisualEffects.createPulsing(scene, halo, {
+            scaleFrom: 1.0,
+            scaleTo: 1.2,
+            duration: 200,
+            ease: 'Sine.InOut'
+        });
+
+        // Update halo position to follow player
+        const updateTimer = scene.time.addEvent({
+            delay: 8, // High frequency for smooth following
+            callback: function () {
+                if (halo.active && player.active) {
+                    halo.x = player.x;
+                    halo.y = player.y;
+                    // Match player's current font size and scale slightly larger
+                    const playerSize = parseInt(player.style.fontSize) || 32;
+                    halo.setFontSize(playerSize * 1.1);
+                }
+            },
+            repeat: Math.floor(duration / 8),
+            callbackScope: scene
+        });
+
+        window.registerEffect('timer', updateTimer);
+
+        // Remove halo when duration expires
+        scene.time.delayedCall(duration, function () {
+            // Stop pulsing animation
+            if (pulseAnimation && !pulseAnimation.isDestroyed) {
+                pulseAnimation.stop();
+            }
+
+            // Fade out halo
+            if (halo.active) {
+                scene.tweens.add({
+                    targets: halo,
+                    alpha: 0,
+                    scale: 2,
+                    duration: 500,
+                    onComplete: function () {
+                        halo.destroy();
+                    }
+                });
+            }
+        });
+
+        return { halo, pulseAnimation };
+    },
+
     convertToColorValue: function (color) {
         // If it's already a number, return it directly
         if (typeof color === 'number') {

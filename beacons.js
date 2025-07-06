@@ -281,6 +281,61 @@ const BeaconConfigs = {
                 }
             });
         }
+    },
+
+    AUGMENTATION: {
+        beaconType: 'augmentation',
+        symbol: '猛',
+        fontSize: '20px',
+        color: '#FF4500', // Orange-red for power
+        baseCooldown: 60000, // Fixed 60 seconds
+        cooldownStat: 'luck', // Doesn't matter for fixed cooldown
+        cooldownFormula: 'fixed', // Uses fixed formula
+        maxBeacons: null, // Use playerLuck
+        onCollect: function (beacon) {
+            // Apply power boost effect
+            const scene = this;
+            const boostDuration = playerLuck * 10000; // Convert to milliseconds
+
+            // Increase both multipliers by 1
+            berserkMultiplier += 1.0;
+            archerMultiplier += 1.0;
+
+            console.log(`Augmentation boost activated! Duration: ${boostDuration}ms`);
+
+            // Create visual effects using VisualEffects
+            VisualEffects.createPowerBoostEffect(scene, beacon.x, beacon.y, boostDuration);
+
+            // Create timer to remove the boost after duration
+            const boostTimer = scene.time.addEvent({
+                delay: boostDuration,
+                callback: function () {
+                    // Remove the boost
+                    berserkMultiplier -= 1.0;
+                    archerMultiplier -= 1.0;
+
+                    // Ensure multipliers don't go below 1.0
+                    if (berserkMultiplier < 1.0) {
+                        berserkMultiplier = 1.0;
+                    }
+                    if (archerMultiplier < 1.0) {
+                        archerMultiplier = 1.0;
+                    }
+
+                    console.log("Augmentation boost expired");
+
+                    // Update stat display
+                    GameUI.updateStatCircles(scene);
+                },
+                callbackScope: scene
+            });
+
+            // Register the boost timer
+            window.registerEffect('timer', boostTimer);
+
+            // Update stat display immediately
+            GameUI.updateStatCircles(scene);
+        },
     }
 };
 

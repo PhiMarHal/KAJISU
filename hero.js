@@ -1188,6 +1188,19 @@ PlayerPerkRegistry.registerPerkEffect('STORM_BRINGER', {
     }
 });
 
+// Add to hero.js - register the component
+PlayerComponentSystem.registerComponent('augmentationBeaconAbility',
+    BeaconSystem.createBeaconComponent(BeaconConfigs.AUGMENTATION)
+);
+
+// Add to hero.js - register the perk effect
+PlayerPerkRegistry.registerPerkEffect('AUGMENTATION', {
+    componentName: 'augmentationBeaconAbility',
+    condition: function () {
+        return true;
+    }
+});
+
 // Function to update player status in game loop
 function updatePlayerStatus() {
     // Skip if game is over or paused

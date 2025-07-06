@@ -49,9 +49,11 @@ const CooldownManager = {
                     options.statName === 'damage' ? BASE_STATS.POW :
                         options.statName === 'health' ? BASE_STATS.END : 4;
             initialCooldown = options.baseCooldown / (Math.sqrt(currentStatValue / baseStatValue));
-        } else {
-            // Default to divide
+        } else if (options.formula === 'divide') {
             initialCooldown = options.baseCooldown / currentStatValue;
+        } else {
+            // No formula specified - use fixed cooldown
+            initialCooldown = options.baseCooldown;
         }
 
         // Create the timer
@@ -65,12 +67,12 @@ const CooldownManager = {
         // Register with effect system
         window.registerEffect('timer', timer);
 
-        // Store configuration
+        // Store configuration - DO NOT use defaults for statName/formula when null
         const config = {
             timer: timer,
-            statName: options.statName ?? 'luck',
+            statName: options.statName, // Keep original null value
             baseCooldown: options.baseCooldown ?? 30000,
-            formula: options.formula ?? 'divide',
+            formula: options.formula, // Keep original null value
             component: options.component ?? null,
             callback: options.callback,
             callbackScope: options.callbackScope,
@@ -130,7 +132,7 @@ const CooldownManager = {
         // Update each affected timer
         this.registeredTimers.forEach(config => {
             // Check if this timer depends on a changed stat
-            if (changedStats.hasOwnProperty(config.statName)) {
+            if (config.statName && changedStats.hasOwnProperty(config.statName)) {
                 this.updateTimer(config, changedStats[config.statName]);
             }
         });
@@ -143,6 +145,9 @@ const CooldownManager = {
     updateTimer: function (config, newStatValue) {
         // Skip if timer was removed
         if (!config.timer || config.timer.hasOwnProperty('removed')) return;
+
+        // Skip if no statName or formula specified (fixed cooldown)
+        if (!config.statName || !config.formula) return;
 
         // Calculate new cooldown based on formula
         let newCooldown;
@@ -157,9 +162,11 @@ const CooldownManager = {
                     config.statName === 'damage' ? BASE_STATS.POW :
                         config.statName === 'health' ? BASE_STATS.END : 4;
             newCooldown = config.baseCooldown / (Math.sqrt(newStatValue / baseStatValue));
-        } else {
-            // Default to divide
+        } else if (config.formula === 'divide') {
             newCooldown = config.baseCooldown / newStatValue;
+        } else {
+            // Unknown formula - don't update
+            return;
         }
 
         // Store elapsed time and progress

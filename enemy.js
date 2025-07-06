@@ -201,6 +201,9 @@ const EnemySystem = {
             });
         }
 
+        // Show death animation
+        VisualEffects.createDeathAnimation(this.scene, enemy);
+
         // Destroy the enemy entity
         enemy.destroy();
 

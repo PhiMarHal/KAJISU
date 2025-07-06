@@ -476,15 +476,12 @@ const PERKS = {
         kana: "どくあと",
         romaji: "dokuato",
         english: "Toxic Trail",
-        description: "A path of shared sickness",
+        description: "A path of shared sickness. -2 END",
         color: "#33cc33", // Green color for poison
         hoverColor: 0x22aa22, // Darker green for hover effect
         onAcquire: function () {
             window.activateToxicTrail();
-            window.modifyStat('health', -1);
-            window.modifyStat('damage', -1);
-            window.modifyStat('fireRate', -1);
-            window.modifyStat('luck', -1);
+            window.modifyStat('health', -2);
         }
     },
     "FINGER_OF_DECAY": {

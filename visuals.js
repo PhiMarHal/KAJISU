@@ -250,6 +250,122 @@ const VisualEffects = {
         spawnChargeKanji();
     },
 
+    createDeathAnimation: function (scene, enemy, options = {}) {
+        if (!scene || !enemy) return;
+
+        const enemyX = enemy.x;
+        const enemyY = enemy.y;
+
+        let color = 0xdddddd; // Default gray
+        let enemySize = 32; // Default size
+
+        // Detect enemy properties based on type
+        if (enemy.enemyType === 'sprite') {
+            // Sprite enemies from KanjiTextureSystem
+            enemySize = enemy.actualWidth || enemy.actualHeight || 32;
+
+            // Extract color from texture key: kanji_char_size_color
+            if (enemy.texture && enemy.texture.key) {
+                const parts = enemy.texture.key.split('_');
+                if (parts.length >= 4) {
+                    const colorHex = parts[parts.length - 1];
+                    if (colorHex.match(/^[0-9a-f]{6}$/i)) {
+                        color = parseInt('0x' + colorHex);
+                    }
+                }
+            }
+        } else {
+            // Text-based enemies (bosses, etc.)
+            if (enemy.style && enemy.style.fontSize) {
+                enemySize = parseInt(enemy.style.fontSize);
+            }
+
+            if (enemy.style && enemy.style.color) {
+                if (enemy.style.color.startsWith('#')) {
+                    color = parseInt('0x' + enemy.style.color.substring(1));
+                }
+            } else if (enemy.fillColor !== undefined) {
+                color = enemy.fillColor;
+            }
+        }
+
+        // Override with tint if present (status effects)
+        if (enemy.tint !== undefined && enemy.tint !== 0xffffff) {
+            color = enemy.tint;
+        }
+
+        const sizeScale = enemySize / 32;
+
+        // Animation configuration
+        const pieceCount = options.pieceCount ?? 4;
+        const maxDistance = options.maxDistance ?? (200 * sizeScale);
+        const animationDuration = options.duration ?? 1800;
+        const fadeDelay = options.fadeDelay ?? 200;
+
+        // Create debris pieces
+        for (let i = 0; i < pieceCount; i++) {
+            // Random piece dimensions (thin rectangles scaled by enemy size)
+            const baseWidth = 2 * sizeScale;
+            const width = Phaser.Math.FloatBetween(baseWidth, baseWidth * 2);
+            const length = Phaser.Math.FloatBetween(width * 2, width * 8);
+
+            // Create piece
+            const piece = scene.add.rectangle(enemyX, enemyY, length, width, color);
+            piece.setDepth(10);
+
+            // Random trajectory
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Phaser.Math.FloatBetween(maxDistance * 0.2, maxDistance);
+            const targetX = enemyX + Math.cos(angle) * distance;
+            const targetY = enemyY + Math.sin(angle) * distance;
+
+            // Random rotation
+            const initialRotation = Math.random() * Math.PI * 4;
+            const rotationSpeed = Phaser.Math.FloatBetween(-16, 16);
+            const spinDuration = Phaser.Math.Between(200, 1400);
+
+            piece.setRotation(initialRotation);
+
+            // Movement animation
+            scene.tweens.add({
+                targets: piece,
+                x: targetX,
+                y: targetY,
+                duration: animationDuration * 0.7,
+                ease: 'Quad.easeOut'
+            });
+
+            // Spinning animation
+            scene.tweens.add({
+                targets: piece,
+                rotation: piece.rotation + (rotationSpeed * spinDuration / 1000),
+                duration: spinDuration,
+                ease: 'Power2.easeOut'
+            });
+
+            // Fade out animation
+            scene.tweens.add({
+                targets: piece,
+                alpha: { from: 1, to: 0 },
+                duration: animationDuration - fadeDelay,
+                delay: fadeDelay,
+                ease: 'Quad.easeIn',
+                onComplete: function () {
+                    if (piece.active) {
+                        piece.destroy();
+                    }
+                }
+            });
+
+            // Safety cleanup
+            scene.time.delayedCall(animationDuration + 100, () => {
+                if (piece && piece.active) {
+                    piece.destroy();
+                }
+            });
+        }
+    },
+
     convertToColorValue: function (color) {
         // If it's already a number, return it directly
         if (typeof color === 'number') {

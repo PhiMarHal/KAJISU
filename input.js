@@ -32,10 +32,11 @@ const InputSystem = {
         currentY: 0,
         directionX: 0,
         directionY: 0,
-        minDistance: 10,
+        minDistance: 8, // Lowered as requested by user
         positionHistory: [],
-        maxHistoryLength: 2,
-        historyTimeWindow: 20
+        maxHistoryLength: 5, // Increased to get better average
+        historyTimeWindow: 50, // Increased from 20ms for more stable direction
+        smoothingFactor: 0.5 // 0 = instant direction changes, 1 = no changes. 0-0.8
     },
 
     // Tap-to-move system with smart tap/drag detection
@@ -52,8 +53,8 @@ const InputSystem = {
         tapStartX: 0,
         tapStartY: 0,
         tapHoldThreshold: 100, // ms - how long before we remove tap location
+        tapGracePeriod: 10, // ms - extra grace period for near-misses
         hasMoved: false,
-        isDragging: false,
         isWaitingForIntent: false // waiting to see if it's a tap or drag
     },
 
@@ -70,10 +71,10 @@ const InputSystem = {
 
             console.log(`Touch down at (${pointer.x}, ${pointer.y})`);
 
-            // Store start position and time - but DON'T set tap target yet
+            // Use game time instead of Date.now() for better frame drop handling
+            this.tapToMove.tapStartTime = scene.time.now;
             this.tapToMove.tapStartX = pointer.x;
             this.tapToMove.tapStartY = pointer.y;
-            this.tapToMove.tapStartTime = Date.now();
             this.tapToMove.hasMovedDuringThisTouch = false;
 
             // ALWAYS start directional touch tracking
@@ -85,7 +86,7 @@ const InputSystem = {
             this.touch.positionHistory = [{
                 x: pointer.x,
                 y: pointer.y,
-                timestamp: Date.now()
+                timestamp: scene.time.now
             }];
         });
 
@@ -98,24 +99,28 @@ const InputSystem = {
             this.touch.positionHistory.push({
                 x: pointer.x,
                 y: pointer.y,
-                timestamp: Date.now()
+                timestamp: scene.time.now
             });
-            if (this.touch.positionHistory.length > this.touch.maxHistoryLength) {
+
+            // Keep only recent history
+            while (this.touch.positionHistory.length > this.touch.maxHistoryLength) {
                 this.touch.positionHistory.shift();
             }
 
             // ALWAYS update direction (this makes directional touch work)
-            this.updateTouchDirection();
+            this.updateTouchDirection(scene);
         });
 
         scene.input.on('pointerup', (pointer) => {
             if (gamePaused || gameOver) return;
 
-            const touchDuration = Date.now() - this.tapToMove.tapStartTime;
-            console.log(`Touch up after ${touchDuration}ms`);
+            const touchDuration = scene.time.now - this.tapToMove.tapStartTime;
+            const effectiveThreshold = this.tapToMove.tapHoldThreshold + this.tapToMove.tapGracePeriod;
 
-            // Decision time: was this a quick tap?
-            if (touchDuration < 100) {
+            console.log(`Touch up after ${touchDuration}ms (threshold: ${effectiveThreshold}ms)`);
+
+            // Decision: was this a tap?
+            if (touchDuration < effectiveThreshold) {
                 console.log("Quick tap detected - setting tap target");
                 this.handleSingleTap(this.tapToMove.tapStartX, this.tapToMove.tapStartY);
             } else {
@@ -150,33 +155,10 @@ const InputSystem = {
 
         // Check what input we have
         const hasKeyboardInput = this.keyboard.velocity.x !== 0 || this.keyboard.velocity.y !== 0;
+        // Only consider it directional input if we're actively touching AND have moved enough
         const hasDirectionalInput = this.touch.isActive &&
-            (Math.abs(this.touch.directionX) > 0.1 || Math.abs(this.touch.directionY) > 0.1);
-
-        // If we have directional input and a tap target, check if we're moving away from the target
-        if (hasDirectionalInput && this.tapToMove.isMoving) {
-            // Calculate direction TO the target
-            const deltaX = this.tapToMove.targetX - player.x;
-            const deltaY = this.tapToMove.targetY - player.y;
-            const distanceToTarget = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-            if (distanceToTarget > 0) {
-                // Normalize direction to target
-                const directionToTargetX = deltaX / distanceToTarget;
-                const directionToTargetY = deltaY / distanceToTarget;
-
-                // Calculate dot product between current movement direction and direction to target
-                // If dot product < very high threshold, we're deviating from straight path
-                const dotProduct = this.touch.directionX * directionToTargetX + this.touch.directionY * directionToTargetY;
-
-                if (dotProduct < 0.99) { // cos(~8°) ≈ 0.99 - detects >8° deviation
-                    console.log(`Deviating from straight path to target (dot product: ${dotProduct.toFixed(3)}) - canceling tap-to-move`);
-                    this.tapToMove.isMoving = false;
-                    this.tapToMove.targetX = null;
-                    this.tapToMove.targetY = null;
-                }
-            }
-        }
+            (Math.abs(this.touch.directionX) > 0.1 || Math.abs(this.touch.directionY) > 0.1) &&
+            this.touch.positionHistory.length >= 2; // Need at least 2 positions to have real direction
 
         // Priority: Keyboard > Directional Touch > Tap-to-Move
         if (hasKeyboardInput) {
@@ -191,8 +173,8 @@ const InputSystem = {
                 this.keyboard.velocity.x * playerSpeed * 50,
                 this.keyboard.velocity.y * playerSpeed * 50
             );
-        } else if (hasDirectionalInput) {
-            // Use directional touch
+        } else if (hasDirectionalInput && !this.tapToMove.isMoving) {
+            // Use directional touch only if not in tap-to-move mode
             player.body.setVelocity(
                 this.touch.directionX * playerSpeed * 50,
                 this.touch.directionY * playerSpeed * 50
@@ -206,36 +188,21 @@ const InputSystem = {
         }
     },
 
-    // Initialize directional touch control (modified to work with smart detection)
+    // Initialize directional touch control
     initializeDirectionalTouch: function (scene) {
-        // Most of the directional touch logic is now handled in initializeTapToMove
-        // This function mainly handles the ongoing drag movement calculation
-
-        scene.input.on('pointermove', (pointer) => {
-            // Only process if we're in active drag mode and directional touch is enabled
-            if (!this.movementSchemes.directionalTouch || !this.touch.isActive || !this.tapToMove.isDragging) return;
-
-            this.touch.currentX = pointer.x;
-            this.touch.currentY = pointer.y;
-
-            this.touch.positionHistory.push({
-                x: pointer.x,
-                y: pointer.y,
-                timestamp: Date.now()
-            });
-
-            if (this.touch.positionHistory.length > this.touch.maxHistoryLength) {
-                this.touch.positionHistory.shift();
-            }
-
-            this.updateTouchDirection();
-        });
+        // The actual directional touch logic is handled in initializeTapToMove's pointermove handler
+        // This function is kept for compatibility and potential future directional-touch-specific setup
     },
 
     // Handle single-tap to move (only called for confirmed taps)
     handleSingleTap: function (x, y) {
         if (gamePaused || gameOver) return;
         console.log(`Setting tap-to-move target at (${x}, ${y})`);
+
+        // Clear directional history to prevent old movement from affecting new tap
+        this.touch.directionX = 0;
+        this.touch.directionY = 0;
+        this.touch.positionHistory = [];
 
         // Set movement target
         this.tapToMove.targetX = x;
@@ -369,45 +336,72 @@ const InputSystem = {
     },
 
     // Update touch direction (existing system)
-    updateTouchDirection: function () {
+    updateTouchDirection: function (scene) {
         if (this.touch.positionHistory.length < 2) {
             this.touch.directionX = 0;
             this.touch.directionY = 0;
             return;
         }
 
-        const currentTime = Date.now();
-        let referencePosition = null;
+        const currentTime = scene?.time?.now ?? Date.now();
 
-        for (let i = this.touch.positionHistory.length - 1; i >= 0; i--) {
+        // Find the oldest position within our time window
+        let oldestValidPosition = null;
+        for (let i = 0; i < this.touch.positionHistory.length; i++) {
             const pos = this.touch.positionHistory[i];
             if (currentTime - pos.timestamp <= this.touch.historyTimeWindow) {
-                referencePosition = pos;
-            } else {
+                oldestValidPosition = pos;
                 break;
             }
         }
 
-        if (!referencePosition && this.touch.positionHistory.length >= 2) {
-            referencePosition = this.touch.positionHistory[this.touch.positionHistory.length - 2];
+        // If no valid position in time window, use the oldest available
+        if (!oldestValidPosition && this.touch.positionHistory.length >= 2) {
+            oldestValidPosition = this.touch.positionHistory[0];
         }
 
-        if (!referencePosition) {
+        if (!oldestValidPosition) {
             this.touch.directionX = 0;
             this.touch.directionY = 0;
             return;
         }
 
-        const deltaX = this.touch.currentX - referencePosition.x;
-        const deltaY = this.touch.currentY - referencePosition.y;
+        // Calculate movement from oldest to current position
+        const deltaX = this.touch.currentX - oldestValidPosition.x;
+        const deltaY = this.touch.currentY - oldestValidPosition.y;
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
+        // If movement is too small, keep previous direction for stability
         if (distance < this.touch.minDistance) {
             return;
         }
 
-        this.touch.directionX = deltaX / distance;
-        this.touch.directionY = deltaY / distance;
+        // Calculate new direction
+        const newDirectionX = deltaX / distance;
+        const newDirectionY = deltaY / distance;
+
+        // Apply smoothing only during drag movement, not during tap-to-move
+        const effectiveSmoothingFactor = this.tapToMove.isMoving ? 0 : this.touch.smoothingFactor;
+
+        // Apply smoothing - blend with previous direction
+        if ((this.touch.directionX !== 0 || this.touch.directionY !== 0) && effectiveSmoothingFactor > 0) {
+            this.touch.directionX = this.touch.directionX * effectiveSmoothingFactor +
+                newDirectionX * (1 - effectiveSmoothingFactor);
+            this.touch.directionY = this.touch.directionY * effectiveSmoothingFactor +
+                newDirectionY * (1 - effectiveSmoothingFactor);
+
+            // Renormalize after smoothing
+            const smoothedLength = Math.sqrt(this.touch.directionX * this.touch.directionX +
+                this.touch.directionY * this.touch.directionY);
+            if (smoothedLength > 0) {
+                this.touch.directionX /= smoothedLength;
+                this.touch.directionY /= smoothedLength;
+            }
+        } else {
+            // First movement or no smoothing - set direction directly
+            this.touch.directionX = newDirectionX;
+            this.touch.directionY = newDirectionY;
+        }
     },
 
     // Update keyboard movement
@@ -486,6 +480,21 @@ const InputSystem = {
 
     getMovementSchemes: function () {
         return { ...this.movementSchemes };
+    },
+
+    // Adjust touch sensitivity
+    setTouchSensitivity: function (settings) {
+        // smoothing: 0 = instant direction changes, 1 = no direction changes
+        // typical values: 0.5-0.8 for smooth movement
+        if (settings.smoothing !== undefined) {
+            this.touch.smoothingFactor = Math.max(0, Math.min(1, settings.smoothing));
+        }
+        if (settings.minDistance !== undefined) {
+            this.touch.minDistance = Math.max(1, settings.minDistance);
+        }
+        if (settings.historyWindow !== undefined) {
+            this.touch.historyTimeWindow = Math.max(10, settings.historyWindow);
+        }
     },
 
     // Existing cursor hiding methods (unchanged)

@@ -220,6 +220,57 @@ window.activateBloomingFlower = function () {
     return controller;
 };
 
+DropperPerkRegistry.registerDropperPerk('LASER_FLOWER', {
+    getConfig: function () {
+        return {
+            symbol: '光', // Kanji for "light flower"
+            color: '#00FFFF', // Cyan color like laser cannon
+            fontSize: 24, // Medium size like other flowers
+            behaviorType: 'persistent', // Stays around to keep firing
+            damage: playerDamage, // Base damage
+            damageInterval: 1000, // Not really used for laser flowers
+            lifespan: 240000, // Long lifespan like other flowers
+            options: {
+                hasPeriodicEffect: true, // Uses the periodic effect system
+                periodicEffectCooldown: 8000, // 8 second cooldown between shots
+                fireImmediately: true, // Fire immediately when spawned
+                visualEffect: 'createPulsing', // Pulsing animation
+                isLaserFlower: true // Flag to identify this as a laser flower
+            }
+        };
+    },
+    cooldown: 33000, // Base 33 second cooldown for spawning new flowers
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
+    positionMode: 'random', // Random position on screen
+    activationMethod: 'periodic' // Periodically create laser flowers
+});
+
+// Add this to entrapments.js - Activation function
+window.activateLaserFlower = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Setup periodic effects for drops (only needs to be done once)
+    setupPeriodicEffectsSystem(scene);
+
+    // Create a laser flower configuration
+    const flowerConfig = DropperPerkRegistry.perkDropperConfigs['LASER_FLOWER'].getConfig();
+
+    // Explicitly set random position for the first flower
+    flowerConfig.x = Phaser.Math.Between(0, game.config.width);
+    flowerConfig.y = Phaser.Math.Between(0, game.config.height);
+
+    // Create the first flower immediately
+    DropperSystem.create(scene, flowerConfig);
+
+    // Apply the dropper perk for future flowers
+    const controller = DropperPerkRegistry.applyDropperPerk(scene, 'LASER_FLOWER');
+
+    return controller;
+};
+
 // Register the perk with DropperPerkRegistry in entrapments.js
 DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
     getConfig: function () {

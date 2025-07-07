@@ -423,6 +423,18 @@ const PERKS = {
             //
         }
     },
+    "LASER_FLOWER": {
+        kanji: "光花",
+        kana: "こうばな",
+        romaji: "koubana",
+        english: "Laser Flower",
+        description: "Flower rotates through directions, firing laser beams",
+        color: "#00FFFF", // Cyan color to match the beam
+        hoverColor: 0x00DDDD,
+        onAcquire: function () {
+            window.activateLaserFlower();
+        }
+    },
     "POISON_FLOWER": {
         kanji: "毒花",
         kana: "どくばな",

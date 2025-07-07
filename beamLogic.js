@@ -96,6 +96,8 @@ const BeamSystem = {
             followPlayer: false,       // Whether beam follows player position
             chargeTime: 4000,          // Time to charge before firing (ms)
             direction: null,           // Auto-determined if null
+            originX: null,             // Custom origin X (defaults to player.x)
+            originY: null,             // Custom origin Y (defaults to player.y)
             onChargeStart: null,       // Callback when charge begins
             onBeamStart: null,         // Callback when beam fires
             onBeamEnd: null            // Callback when beam ends
@@ -161,15 +163,15 @@ const BeamSystem = {
         // Use provided direction or the tracked direction
         const beamDirection = config.direction || direction;
 
-        // Get initial position (player's current position)
-        const originX = player.x;
-        const originY = player.y;
+        // Get origin position (custom origin or player position)
+        const originX = config.originX ?? player.x;
+        const originY = config.originY ?? player.y;
 
         // Calculate beam geometry
         const geometry = calculateBeamGeometry(beamDirection, originX, originY, config.beamWidth);
 
         // Create the visual beam using repeated symbol text
-        const beamVisual = this.createBeamVisual(scene, config, beamDirection, geometry);
+        const beamVisual = this.createBeamVisual(scene, config, beamDirection, geometry, originX, originY);
 
         // Create the physics body for collision detection
         const beamPhysics = this.createBeamPhysics(scene, config, geometry);
@@ -277,13 +279,13 @@ const BeamSystem = {
     },
 
     // Create visual representation of the beam
-    createBeamVisual: function (scene, config, direction, geometry) {
+    createBeamVisual: function (scene, config, direction, geometry, originX, originY) {
         // Fixed number of repetitions for consistent beam length
         const repetitions = 32;
         const beamText = config.symbol.repeat(repetitions);
 
-        // Create the beam as a single text object positioned at player location
-        const beamVisual = scene.add.text(player.x, player.y, beamText, {
+        // Create the beam as a single text object positioned at origin
+        const beamVisual = scene.add.text(originX, originY, beamText, {
             fontFamily: 'Arial',
             fontSize: `${config.fontSize}px`,
             color: config.color,

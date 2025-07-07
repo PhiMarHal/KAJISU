@@ -518,8 +518,53 @@ const DropperSystem = {
 
     // Process drop effect based on type
     processDropEffect: function (scene, drop) {
-        // Check symbol to determine effect type
-        if (drop.entity.text === '花') { // Flower
+        // Check if this is a laser flower
+        if (drop.options && drop.options.isLaserFlower) {
+            // Initialize direction tracking if not set
+            if (drop.currentDirectionIndex === undefined) {
+                drop.currentDirectionIndex = 0; // Start with east (index 0)
+            }
+
+            // Direction sequence: east → south → west → north (clockwise)
+            const directionSequence = [
+                BEAM_DIRECTIONS.EAST,
+                BEAM_DIRECTIONS.SOUTH,
+                BEAM_DIRECTIONS.WEST,
+                BEAM_DIRECTIONS.NORTH
+            ];
+
+            const currentDirection = directionSequence[drop.currentDirectionIndex];
+
+            // Create beam using the enhanced BeamSystem
+            BeamSystem.create(scene, {
+                symbol: '線', // Light beam kanji like laser cannon
+                color: '#00FFFF', // Cyan color to match the flower
+                fontSize: 24, // Medium size
+                damage: drop.entity.damage, // Use the flower's damage
+                damageInterval: 100, // Fast damage ticks
+                duration: 2000, // 2 second beam duration
+                beamWidth: 24, // Medium beam width
+                followPlayer: false, // Static beam from flower position
+                chargeTime: 1000, // 1 second charge time
+                direction: currentDirection, // Force specific direction
+                originX: drop.entity.x, // Fire from flower position
+                originY: drop.entity.y, // Fire from flower position
+                onChargeStart: function (scene) {
+                    // Small charging effect at flower position
+                    VisualEffects.createChargingEffect(scene, {
+                        color: '#00FFFF',
+                        duration: 2000,
+                        originX: drop.entity.x, // Charge effect at flower position
+                        originY: drop.entity.y  // Charge effect at flower position
+                    });
+                }
+            });
+
+            // Advance to next direction (clockwise)
+            drop.currentDirectionIndex = (drop.currentDirectionIndex + 1) % directionSequence.length;
+        }
+        // Existing flower logic
+        else if (drop.entity.text === '花') { // Regular blooming flower
             // Fire defensive burst for flowers
             window.createDefensiveBurst(scene, drop.entity.x, drop.entity.y, {
                 projectileCount: playerLuck * 2,

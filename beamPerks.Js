@@ -80,7 +80,7 @@ BeamPerkRegistry.registerPerkBeam('LASER_CANNON', {
             symbol: '光線',           // "Light beam" in kanji
             color: '#00FFFF',         // Bright cyan color
             fontSize: 32,             // Medium size for visibility
-            damage: playerDamage, // Double player damage
+            damage: playerDamage, // 
             damageInterval: 100,       // Very fast damage ticks (10 per second)
             duration: 2000,           // 2 second beam duration
             beamWidth: 32,            // 32px beam width as requested

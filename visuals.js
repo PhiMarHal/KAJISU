@@ -183,6 +183,8 @@ const VisualEffects = {
         const color = options.color ?? '#FFFF00';
         const duration = options.duration ?? 4000;
         const maxRadius = options.maxRadius ?? 32;
+        const originX = options.originX ?? player.x; // Default to player position
+        const originY = options.originY ?? player.y; // Default to player position
 
         const startInterval = 400; // between spawns
         const endInterval = 60;    // 
@@ -199,14 +201,11 @@ const VisualEffects = {
                 return;
             }
 
-            // Skip if player doesn't exist
-            if (!player || !player.active) return;
-
-            // Random position within radius around player
+            // Random position within radius around origin
             const angle = Math.random() * Math.PI * 2;
             const radius = maxRadius;
-            const x = player.x + Math.cos(angle) * radius;
-            const y = player.y + Math.sin(angle) * radius;
+            const x = originX + Math.cos(angle) * radius;
+            const y = originY + Math.sin(angle) * radius;
 
             const text = scene.add.text(x, y, symbol, {
                 fontFamily: 'Arial',

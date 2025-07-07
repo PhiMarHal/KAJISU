@@ -670,14 +670,24 @@ const EnemySystem = {
         const scene = this.scene;
         if (!scene) return;
 
+        // Store boss properties before cleanup for death animation
+        const bossProps = {
+            x: activeBoss.x,
+            y: activeBoss.y,
+            actualWidth: activeBoss.actualWidth || activeBoss.width || 64,
+            actualHeight: activeBoss.actualHeight || activeBoss.height || 64,
+            tint: activeBoss.tint,
+            style: activeBoss.style,
+            fillColor: activeBoss.fillColor,
+            texture: activeBoss.texture,
+            enemyType: activeBoss.enemyType || 'text'
+        };
+
         // Reset background to normal
         if (window.BackgroundAnimationSystem) BackgroundAnimationSystem.setBossMode(false);
 
         // Reset music to normal
         MusicSystem.removeBossFightEffect();
-
-        // End the game with victory
-        this.showVictoryScreen();
 
         // Clean up all boss-related UI objects thoroughly
         this.cleanupBossUI(scene);
@@ -685,6 +695,107 @@ const EnemySystem = {
         // Reset boss state
         bossMode = false;
         activeBoss = null;
+
+        // Start the dramatic death sequence
+        this.playBossDeathSequence(scene, bossProps);
+    },
+
+    // New method: Play the boss death sequence
+    playBossDeathSequence: function (scene, bossProps) {
+        if (!scene) return;
+
+        // Pause game systems but don't show pause overlay
+        PauseSystem.pauseGame();
+
+        // Create mock boss object for death animations
+        const mockBoss = {
+            x: bossProps.x,
+            y: bossProps.y,
+            actualWidth: bossProps.actualWidth,
+            actualHeight: bossProps.actualHeight,
+            tint: bossProps.tint,
+            style: bossProps.style,
+            fillColor: bossProps.fillColor,
+            texture: bossProps.texture,
+            enemyType: bossProps.enemyType,
+            active: true
+        };
+
+        // Create 8 death animations, one every 0.25s over 2 seconds
+        for (let i = 0; i < 8; i++) {
+            scene.time.delayedCall(i * 250, () => {
+                // Add some positional variation to make it more dramatic
+                const offsetX = (Math.random() - 0.5) * 40;
+                const offsetY = (Math.random() - 0.5) * 40;
+
+                const variedBoss = {
+                    ...mockBoss,
+                    x: mockBoss.x + offsetX,
+                    y: mockBoss.y + offsetY
+                };
+
+                VisualEffects.createDeathAnimation(scene, variedBoss, {
+                    pieceCount: 6, // More pieces for boss
+                    maxDistance: 300, // Larger explosion
+                    duration: 2000 // Longer animation
+                });
+            });
+        }
+
+        // After 2 seconds, show VICTORY text sequence
+        scene.time.delayedCall(2000, () => {
+            this.showVictoryText(scene, () => {
+                // After victory text animation completes, show victory screen
+                this.showVictoryScreen();
+            });
+        });
+    },
+
+    // New method: Show VICTORY text with dramatic animation
+    showVictoryText: function (scene, onComplete) {
+        if (!scene) return;
+
+        const centerX = game.config.width / 2;
+        const centerY = game.config.height / 2;
+
+        // Create VICTORY text with gold styling
+        const victoryText = scene.add.text(centerX, centerY, 'VICTORY', {
+            fontFamily: 'Arial',
+            fontSize: '120px',
+            color: '#FFD700', // Gold color matching UI borders
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 8
+        }).setOrigin(0.5).setAlpha(0).setDepth(2000);
+
+        // Phase 1: Fade in quickly (0.4s)
+        scene.tweens.add({
+            targets: victoryText,
+            alpha: 1,
+            scale: { from: 0.8, to: 1 }, // Slight grow during fade-in
+            duration: 400,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Phase 2: Settle for 0.6s, then start final animation
+                scene.time.delayedCall(600, () => {
+                    // Phase 3: Scale up beyond screen and fade out (1s)
+                    scene.tweens.add({
+                        targets: victoryText,
+                        scale: 4, // Scale well beyond screen bounds
+                        alpha: 0,
+                        duration: 1000,
+                        ease: 'Quad.easeIn',
+                        onComplete: () => {
+                            // Clean up and trigger callback
+                            victoryText.destroy();
+                            if (onComplete) {
+                                onComplete();
+                            }
+                        }
+                    });
+                });
+            }
+        });
     },
 
     cleanupBossUI: function (scene) {

@@ -289,8 +289,6 @@
         let level = 1;
         let touchInput = { x: 0, y: 0, isActive: false };
         let gameOver = false;
-        let gameOverText;
-        let restartButton;
 
         // Track elapsed time
         let elapsedTime = 0; // in seconds
@@ -536,21 +534,6 @@
             // Set up collision between player and EnemySystem.enemiesGroup
             this.physics.add.overlap(player, EnemySystem.enemiesGroup, PlayerHitSystem.playerIsHit, null, this);
 
-            // Create the game over screen (hidden initially)
-            gameOverText = this.add.text(game.config.width / 2, game.config.height / 2,
-                'GAME OVER',
-                { fontFamily: 'Arial', fontSize: '40px', color: '#ff0000', fontStyle: 'bold' }
-            ).setOrigin(0.5).setVisible(false);
-
-            // Create restart button (hidden initially)
-            restartButton = this.add.text(game.config.width / 2, game.config.height * 0.75,
-                'PLAY AGAIN',
-                { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', backgroundColor: '#880000', padding: { left: 15, right: 15, top: 10, bottom: 10 } }
-            ).setOrigin(0.5).setVisible(false).setInteractive();
-
-            // Add restart button functionality
-            restartButton.on('pointerdown', startGame, this);
-
             // Create learning feedback text (initially empty)
             this.learningFeedback = this.add.text(game.config.width / 2, game.config.height * 0.9625, '', {
                 fontFamily: 'Arial',
@@ -723,7 +706,6 @@
         };
 
         function startGame() {
-
             // Reset game state variables
             gameOver = false;
             gamePaused = false;
@@ -741,6 +723,7 @@
             window.initKanjiOptimization(this);
 
             // Reset player status components
+            resetOnHitEffects();
             resetPlayerStatus();
             CooldownManager.initialize();
             PlayerHitSystem.reset();
@@ -757,8 +740,6 @@
             // Reset and initialize weapon system
             WeaponSystem.reset(this);
             WeaponSystem.initialize(this);
-
-            resetOnHitEffects();
 
             // Clean up old timers
             cleanupTimers();
@@ -783,14 +764,6 @@
             if (pauseScreen) pauseScreen.setVisible(false);
             if (pauseMessage) pauseMessage.setVisible(false);
             if (resumeButton) resumeButton.setVisible(false);
-
-            // Hide legacy game over elements if they exist
-            if (typeof gameOverText !== 'undefined' && gameOverText.setVisible) {
-                gameOverText.setVisible(false);
-            }
-            if (typeof restartButton !== 'undefined' && restartButton.setVisible) {
-                restartButton.setVisible(false);
-            }
 
             // Reset player stats to base values
             playerHealth = BASE_STATS.END;
@@ -843,7 +816,8 @@
 
             // Update player stats text
             GameUI.updateStatCircles(this);
-        }</script>
+        }
+    </script>
 </body>
 
 </html>

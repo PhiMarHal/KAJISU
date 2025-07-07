@@ -59,7 +59,6 @@ const OrbitalPerkRegistry = {
     },
 
     // Setup a timer to periodically create orbitals
-    // Now uses CooldownManager.createTimer for dynamic scaling and consistent cleanup
     setupOrbitalTimer: function (scene, perkConfig) {
         if (!perkConfig.cooldown) return;
 
@@ -68,13 +67,16 @@ const OrbitalPerkRegistry = {
         const statNameForCooldown = perkConfig.cooldownStat;
         const formulaForCooldown = perkConfig.cooldownFormula;
 
-        // Create timer to spawn orbitals using CooldownManager
-        const timer = CooldownManager.createTimer({
-            baseCooldown: baseCooldownValue,
-            statName: statNameForCooldown,
-            formula: formulaForCooldown,
-            component: perkConfig, // Pass perkConfig as component for potential future reference/cleanup
-            callback: function () {
+        // Determine the callback to use
+        let timerCallback;
+        if (perkConfig.customCallback) {
+            // Use custom callback if provided
+            timerCallback = function () {
+                perkConfig.customCallback(scene);
+            };
+        } else {
+            // Use default orbital creation logic
+            timerCallback = function () {
                 // Get fresh configuration each time (in case player stats changed)
                 const orbitalConfig = perkConfig.getConfig();
 
@@ -84,7 +86,16 @@ const OrbitalPerkRegistry = {
                 } else {
                     OrbitalSystem.create(scene, orbitalConfig);
                 }
-            },
+            };
+        }
+
+        // Create timer to spawn orbitals using CooldownManager
+        const timer = CooldownManager.createTimer({
+            baseCooldown: baseCooldownValue,
+            statName: statNameForCooldown,
+            formula: formulaForCooldown,
+            component: perkConfig, // Pass perkConfig as component for potential future reference/cleanup
+            callback: timerCallback,
             callbackScope: scene,
             loop: true
         });
@@ -222,11 +233,14 @@ OrbitalPerkRegistry.registerPerkOrbital('TENTACLE_GRASP', {
             lifespan: null,
         };
     },
-    // This perk has a fixed cooldown, so no stat/formula needed for the cooldown itself.
     cooldown: 30000, // 30 seconds base cooldown
     cooldownStat: null, // No stat scaling for the cooldown
     cooldownFormula: null, // No formula for the cooldown
-    activationMethod: 'timer' // Create periodically on a timer
+    activationMethod: 'timer', // Create periodically on a timer
+    // Add custom callback for this perk
+    customCallback: function (scene) {
+        launchTentacles(scene);
+    }
 });
 
 // Then modify the activateTentacleGrasp function to use the registry

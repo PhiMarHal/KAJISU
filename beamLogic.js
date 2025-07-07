@@ -396,8 +396,8 @@ const BeamSystem = {
         // Mark as destroyed first to prevent multiple calls
         beam.destroyed = true;
 
-        // Remove overlap collider first
-        if (beam.overlapCollider) {
+        // Remove overlap collider first - check if it exists and is active
+        if (beam.overlapCollider && beam.overlapCollider.active) {
             beam.overlapCollider.destroy();
             beam.overlapCollider = null;
         }

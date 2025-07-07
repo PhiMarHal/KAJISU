@@ -535,27 +535,30 @@ const DropperSystem = {
 
             const currentDirection = directionSequence[drop.currentDirectionIndex];
 
+            // Store flower reference for the charging effect (like player beams store player reference)
+            const flowerEntity = drop.entity;
+
             // Create beam using the enhanced BeamSystem
             BeamSystem.create(scene, {
-                symbol: '線', // Light beam kanji like laser cannon
+                symbol: '光線', // Light beam kanji like laser cannon
                 color: '#00FFFF', // Cyan color to match the flower
-                fontSize: 24, // Medium size
+                fontSize: 20, // Medium size
                 damage: drop.entity.damage, // Use the flower's damage
                 damageInterval: 100, // Fast damage ticks
-                duration: 2000, // 2 second beam duration
-                beamWidth: 24, // Medium beam width
+                duration: 1000, // 1 second beam duration
+                beamWidth: 20, // Medium beam width
                 followPlayer: false, // Static beam from flower position
-                chargeTime: 1000, // 1 second charge time
+                chargeTime: 2000, // 2 second charge time
                 direction: currentDirection, // Force specific direction
                 originX: drop.entity.x, // Fire from flower position
                 originY: drop.entity.y, // Fire from flower position
                 onChargeStart: function (scene) {
-                    // Small charging effect at flower position
+                    // Mimic player beam pattern - pass entity reference, not coordinates
                     VisualEffects.createChargingEffect(scene, {
                         color: '#00FFFF',
-                        duration: 2000,
-                        originX: drop.entity.x, // Charge effect at flower position
-                        originY: drop.entity.y  // Charge effect at flower position
+                        duration: 2000, // Match charge time exactly
+                        maxRadius: 32, // Smaller radius than player charging
+                        targetEntity: flowerEntity // Let it evaluate position fresh each time
                     });
                 }
             });

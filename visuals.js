@@ -183,8 +183,11 @@ const VisualEffects = {
         const color = options.color ?? '#FFFF00';
         const duration = options.duration ?? 4000;
         const maxRadius = options.maxRadius ?? 32;
-        const originX = options.originX ?? player.x; // Default to player position
-        const originY = options.originY ?? player.y; // Default to player position
+
+        // Support for targetEntity (like player) that gets evaluated fresh each time
+        const targetEntity = options.targetEntity ?? player;
+        const originX = options.originX ?? null; // Explicit coordinates override targetEntity
+        const originY = options.originY ?? null;
 
         const startInterval = 400; // between spawns
         const endInterval = 60;    // 
@@ -201,11 +204,15 @@ const VisualEffects = {
                 return;
             }
 
-            // Random position within radius around origin
+            // Evaluate position fresh each time (like player beams do)
+            const centerX = originX ?? targetEntity.x;
+            const centerY = originY ?? targetEntity.y;
+
+            // Random position within radius around center
             const angle = Math.random() * Math.PI * 2;
             const radius = maxRadius;
-            const x = originX + Math.cos(angle) * radius;
-            const y = originY + Math.sin(angle) * radius;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
 
             const text = scene.add.text(x, y, symbol, {
                 fontFamily: 'Arial',

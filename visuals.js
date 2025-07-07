@@ -371,12 +371,12 @@ const VisualEffects = {
         // Create golden halo using the hero character itself
         const halo = scene.add.text(x, y, HERO_CHARACTER, {
             fontFamily: 'Arial',
-            fontSize: '36px', // Slightly larger than player's 32px
+            fontSize: '36px',
             color: '#FFD700'
         }).setOrigin(0.5).setAlpha(1);
 
-        // Position behind the player
-        halo.setDepth(player.depth - 1);
+        // Position in front of the player
+        halo.setDepth(player.depth + 1);
 
         // Register for cleanup
         window.registerEffect('entity', halo);

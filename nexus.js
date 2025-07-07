@@ -7,7 +7,6 @@ const OrbitalPerkRegistry = {
     perkOrbitalConfigs: {},
 
     // Register a perk that creates orbitals
-    // Updated to accept cooldownStat and cooldownFormula
     registerPerkOrbital: function (perkId, config) {
         this.perkOrbitalConfigs[perkId] = {
             getConfig: config.getConfig ?? function () { return {}; }, // Function that returns orbital config
@@ -15,7 +14,8 @@ const OrbitalPerkRegistry = {
             cooldown: config.cooldown ?? null,                       // Base Cooldown (now a number)
             cooldownStat: config.cooldownStat ?? null,               // Stat that affects cooldown (e.g., 'luck', 'fireRate')
             cooldownFormula: config.cooldownFormula ?? null,         // Formula for stat scaling ('sqrt', 'divide', 'multiply')
-            activationMethod: config.activationMethod ?? 'immediate' // How the orbital is activated (immediate, onHit, etc.)
+            activationMethod: config.activationMethod ?? 'immediate', // How the orbital is activated (immediate, onHit, etc.)
+            customCallback: config.customCallback ?? null            // Custom callback function for complex perks
         };
     },
 
@@ -67,15 +67,16 @@ const OrbitalPerkRegistry = {
         const statNameForCooldown = perkConfig.cooldownStat;
         const formulaForCooldown = perkConfig.cooldownFormula;
 
-        // Determine the callback to use
+        // Determine callback function to use
         let timerCallback;
+
         if (perkConfig.customCallback) {
-            // Use custom callback if provided
+            // Use custom callback for complex perks like TENTACLE_GRASP
             timerCallback = function () {
                 perkConfig.customCallback(scene);
             };
         } else {
-            // Use default orbital creation logic
+            // Use standard orbital creation for simple perks
             timerCallback = function () {
                 // Get fresh configuration each time (in case player stats changed)
                 const orbitalConfig = perkConfig.getConfig();
@@ -228,16 +229,21 @@ OrbitalPerkRegistry.registerPerkOrbital('TENTACLE_GRASP', {
             speed: 0.01, // Moderate speed
             pattern: 'oscillating', // Use oscillating pattern for organic movement
             collisionType: 'projectile', // Destroyed on hit with enemies
-            damage: playerDamage, //
+            damage: playerDamage,
             damageInterval: 0, // Not used for projectiles
-            lifespan: null,
+            lifespan: 60000, // avoid too much stacking. cd / 2 should be min at luck=1
+            options: {
+                wobbleFrequency: 6,  // Higher frequency for more erratic movement
+                wobbleAmplitude: 180  // Larger amplitude for more dramatic wobbles
+            }
         };
     },
-    cooldown: 30000, // 30 seconds base cooldown
-    cooldownStat: null, // No stat scaling for the cooldown
-    cooldownFormula: null, // No formula for the cooldown
-    activationMethod: 'timer', // Create periodically on a timer
-    // Add custom callback for this perk
+    count: 1, // This is ignored when customCallback is used
+    cooldown: 30000, // Base cooldown for Tentacle Grasp
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
+    activationMethod: 'timer',
+    // Add custom callback that creates the full tentacle pattern
     customCallback: function (scene) {
         launchTentacles(scene);
     }

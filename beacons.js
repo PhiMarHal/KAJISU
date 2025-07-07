@@ -295,7 +295,7 @@ const BeaconConfigs = {
         onCollect: function (beacon) {
             // Apply power boost effect
             const scene = this;
-            const boostDuration = playerLuck * 10000; // Convert to milliseconds
+            const boostDuration = playerLuck * 1000; // Convert to milliseconds
 
             // Increase both multipliers by 1
             berserkMultiplier += 1.0;

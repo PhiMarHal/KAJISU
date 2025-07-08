@@ -10,7 +10,7 @@ const ScoreSystem = {
         const maximumScoreTime = bossSpawnTime * 2; // Cap at twice the boss spawn time
 
         let finalScore;
-        let versionBonus = 2;
+        let versionBonus = 3;
 
         if (isVictory) {
             // For victory:

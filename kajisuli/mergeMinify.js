@@ -51,6 +51,7 @@ const config = {
         'artillery.js',
         'backgrounds.js',
         'ballistics.js',
+        'beacons.js',
         'beamLogic.js',
         'beamPerks.js',
         'bestiary.js',

@@ -78,7 +78,7 @@ BeamPerkRegistry.registerPerkBeam('LASER_CANNON', {
     getConfig: function () {
         return {
             symbol: '光線',           // "Light beam" in kanji
-            color: '#FFD700',         // Bright cyan color
+            color: '#FF00FF',
             fontSize: 32,             // Medium size for visibility
             damage: playerDamage, // 
             damageInterval: 100,       // Very fast damage ticks (10 per second)
@@ -88,7 +88,7 @@ BeamPerkRegistry.registerPerkBeam('LASER_CANNON', {
             chargeTime: 4000,         // 4 second charge time
             onChargeStart: function (scene) {
                 VisualEffects.createChargingEffect(scene, {
-                    color: '#FFD700',     // Bright red to match beam
+                    color: '#FF00FF',     // Bright red to match beam
                     duration: 4000       // Match charge time
                 });
             },

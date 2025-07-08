@@ -541,7 +541,7 @@ const DropperSystem = {
             // Create beam using the enhanced BeamSystem
             BeamSystem.create(scene, {
                 symbol: '光線', // Light beam kanji like laser cannon
-                color: '#FFD700',
+                color: '#FF00FF',
                 fontSize: 20, // Medium size
                 damage: drop.entity.damage, // Use the flower's damage
                 damageInterval: 100, // Fast damage ticks
@@ -555,7 +555,7 @@ const DropperSystem = {
                 onChargeStart: function (scene) {
                     // Mimic player beam pattern - pass entity reference, not coordinates
                     VisualEffects.createChargingEffect(scene, {
-                        color: '#FFD700',
+                        color: '#FF00FF',
                         duration: 2000, // Match charge time exactly
                         maxRadius: 32, // Smaller radius than player charging
                         targetEntity: flowerEntity // Let it evaluate position fresh each time

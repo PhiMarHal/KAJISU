@@ -224,7 +224,7 @@ DropperPerkRegistry.registerDropperPerk('LASER_FLOWER', {
     getConfig: function () {
         return {
             symbol: '光', // Kanji for "light flower"
-            color: '#FFD700', // Cyan color like laser cannon
+            color: '#FF00FF',
             fontSize: 24, // Medium size like other flowers
             behaviorType: 'projectile', // Stays around to keep firing
             damage: playerDamage, // Base damage

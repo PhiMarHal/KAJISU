@@ -347,7 +347,7 @@ const StartMenuSystem = {
 
         const config = {
             type: Phaser.AUTO,
-            width: this.state.kajisuliMode ? 720 : 1280,
+            width: this.state.kajisuliMode ? 720 : 1200,
             height: this.state.kajisuliMode ? 1280 : 800,
             parent: 'game-container',
             physics: {
@@ -365,7 +365,7 @@ const StartMenuSystem = {
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: this.state.kajisuliMode ? 720 : 1280,
+                width: this.state.kajisuliMode ? 720 : 1200,
                 height: this.state.kajisuliMode ? 1280 : 800,
                 parent: 'game-container',
                 expandParent: false

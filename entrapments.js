@@ -224,7 +224,7 @@ DropperPerkRegistry.registerDropperPerk('LASER_FLOWER', {
     getConfig: function () {
         return {
             symbol: '光', // Kanji for "light flower"
-            color: '#00FFFF', // Cyan color like laser cannon
+            color: '#FFD700', // Cyan color like laser cannon
             fontSize: 24, // Medium size like other flowers
             behaviorType: 'projectile', // Stays around to keep firing
             damage: playerDamage, // Base damage
@@ -232,7 +232,7 @@ DropperPerkRegistry.registerDropperPerk('LASER_FLOWER', {
             lifespan: 240000, // Long lifespan like other flowers
             options: {
                 hasPeriodicEffect: true, // Uses the periodic effect system
-                periodicEffectCooldown: 12000, // 8 second cooldown between shots
+                periodicEffectCooldown: 13000,
                 fireImmediately: true, // Fire immediately when spawned
                 visualEffect: 'createPulsing', // Pulsing animation
                 isLaserFlower: true // Flag to identify this as a laser flower

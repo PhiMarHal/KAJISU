@@ -373,7 +373,7 @@ const BeamSystem = {
 
             // Update beam position if it follows the player
             if (beam.followPlayer && player) {
-                console.log(`Updating beam position from (${beam.visual.x}, ${beam.visual.y}) to (${player.x}, ${player.y})`);
+                //console.log(`Updating beam position from (${beam.visual.x}, ${beam.visual.y}) to (${player.x}, ${player.y})`);
 
                 // Update visual position to current player position
                 beam.visual.x = player.x;
@@ -384,7 +384,7 @@ const BeamSystem = {
                 beam.physics.x = newGeometry.beamX;
                 beam.physics.y = newGeometry.beamY;
 
-                console.log(`Physics updated to (${beam.physics.x}, ${beam.physics.y})`);
+                //console.log(`Physics updated to (${beam.physics.x}, ${beam.physics.y})`);
             }
         }
     },

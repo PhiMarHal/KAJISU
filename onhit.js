@@ -696,6 +696,14 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
         berserkMultiplier -= this.berserkContribution;
         archerMultiplier -= this.archerContribution;
 
+        // Ensure multipliers don't go below 1.0
+        if (berserkMultiplier < 1.0) {
+            berserkMultiplier = 1.0;
+        }
+        if (archerMultiplier < 1.0) {
+            archerMultiplier = 1.0;
+        }
+
         // Clear timer
         this.clearStepTimer();
 

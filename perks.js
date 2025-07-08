@@ -161,8 +161,8 @@ const PERKS = {
         romaji: "kousenpou",
         english: "Laser Cannon",
         description: "Charges up and fires a devastating laser beam",
-        color: "#00FFFF",
-        hoverColor: 0x00DDDD,
+        color: "#FFD700",
+        hoverColor: 0xdddd00,
         onAcquire: function () {
             window.activateLaserBlast();
         }
@@ -429,8 +429,8 @@ const PERKS = {
         romaji: "koubana",
         english: "Laser Flower",
         description: "Flower rotates through directions, firing laser beams",
-        color: "#00FFFF", // Cyan color to match the beam
-        hoverColor: 0x00DDDD,
+        color: "#FFD700",
+        hoverColor: 0xdddd00,
         onAcquire: function () {
             window.activateLaserFlower();
         }

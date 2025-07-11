@@ -169,6 +169,25 @@ const UI = {
             fontSize: function () {
                 return UI.buttons.common.fontSize();
             }
+        },
+
+        // AI button configuration  
+        ai: {
+            symbol: "智", // Kanji for "intelligence/wisdom" - perfect for AI
+            x: function () {
+                // Position to the right of pause button
+                const pauseX = UI.buttons.pause.x();
+                const buttonSize = UI.buttons.common.size();
+                const spacing = UI.buttons.common.margin() * 0.5; // Half margin for closer spacing
+                return pauseX + buttonSize + spacing;
+            },
+            y: function () {
+                // Same Y position as pause button (bottom left area)
+                return UI.buttons.pause.y();
+            },
+            fontSize: function () {
+                return UI.buttons.common.fontSize();
+            }
         }
     },
 
@@ -230,6 +249,10 @@ const ButtonDisplay = {
         if (scene.musicButton) scene.musicButton.destroy();
         if (scene.musicButtonBg) scene.musicButtonBg.destroy();
         if (scene.musicButtonBorder) scene.musicButtonBorder.destroy();
+        // Clean up existing AI button elements if they exist
+        if (scene.aiButton) scene.aiButton.destroy();
+        if (scene.aiButtonBg) scene.aiButtonBg.destroy();
+        if (scene.aiButtonBorder) scene.aiButtonBorder.destroy();
 
         // Get button configurations
         const pauseConfig = UI.buttons.pause;
@@ -352,6 +375,94 @@ const ButtonDisplay = {
             }
         });
 
+        // Create AI button background and border
+        scene.aiButtonBorder = scene.add.rectangle(
+            UI.buttons.ai.x(),
+            UI.buttons.ai.y(),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(UI.depth.ui);
+
+        scene.aiButtonBg = scene.add.rectangle(
+            UI.buttons.ai.x(),
+            UI.buttons.ai.y(),
+            commonConfig.size(),
+            commonConfig.size(),
+            UI.colors.black
+        ).setDepth(UI.depth.ui);
+
+        // Create AI button
+        scene.aiButton = scene.add.text(
+            UI.buttons.ai.x(),
+            UI.buttons.ai.y(),
+            UI.buttons.ai.symbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: `${UI.buttons.ai.fontSize()}px`,
+                color: '#ffffff',
+                fontStyle: 'bold',
+            }
+        ).setOrigin(0.5).setDepth(UI.depth.ui);
+        scene.aiButton.setAlpha(1);
+
+        // Make AI button interactive
+        scene.aiButtonBorder.setInteractive({ useHandCursor: true });
+
+        scene.aiButtonBorder.on('pointerover', function () {
+            scene.aiButton.setColor('#ffff00'); // Yellow on hover
+            scene.aiButton.setScale(1.1);
+        });
+
+        scene.aiButtonBorder.on('pointerout', function () {
+            scene.aiButton.setColor('#ffffff'); // White normally
+            scene.aiButton.setScale(1);
+        });
+
+        scene.aiButtonBorder.on('pointerdown', async function () {
+            if (!window.gameAI) {
+                console.error("AI system not loaded");
+                return;
+            }
+
+            if (!window.gameAI.enabled) {
+                // Initialize AI system
+                const success = await window.gameAI.initialize(scene);
+                if (success) {
+                    // Change button appearance to show AI is enabled
+                    scene.aiButton.setColor('#00ff00'); // Green when enabled
+                    scene.aiButton.setText('智'); // Keep same kanji but now it's "active"
+
+                    // Optional: Show brief feedback
+                    const feedback = scene.add.text(
+                        UI.buttons.ai.x(),
+                        UI.buttons.ai.y() - 60,
+                        'AI Ready!\nX = Control\nC = Learn',
+                        {
+                            fontFamily: 'Arial',
+                            fontSize: '12px',
+                            color: '#00ff00',
+                            align: 'center'
+                        }
+                    ).setOrigin(0.5).setDepth(UI.depth.ui + 1);
+
+                    // Fade out the feedback after 3 seconds
+                    scene.tweens.add({
+                        targets: feedback,
+                        alpha: 0,
+                        duration: 3000,
+                        onComplete: () => feedback.destroy()
+                    });
+                }
+            } else {
+                // AI already enabled, toggle the interface visibility
+                const aiInterface = document.getElementById('ai-interface');
+                if (aiInterface) {
+                    aiInterface.style.display = aiInterface.style.display === 'none' ? 'block' : 'none';
+                }
+            }
+        });
+
         // Initial update
         this.update(scene);
     },
@@ -379,6 +490,21 @@ const ButtonDisplay = {
                 const symbol = window.MusicSystem.musicEnabled ?
                     musicConfig.symbol : musicConfig.mutedSymbol;
                 scene.musicButton.setText(symbol);
+            }
+        }
+
+        // Update AI button positions if needed
+        if (scene.aiButton && scene.aiButtonBg && scene.aiButtonBorder) {
+            const aiConfig = UI.buttons.ai;
+            scene.aiButton.setPosition(aiConfig.x(), aiConfig.y());
+            scene.aiButtonBg.setPosition(aiConfig.x(), aiConfig.y());
+            scene.aiButtonBorder.setPosition(aiConfig.x(), aiConfig.y());
+
+            // Update button color based on AI state
+            if (window.gameAI && window.gameAI.enabled) {
+                scene.aiButton.setColor('#00ff00'); // Green when AI is enabled
+            } else {
+                scene.aiButton.setColor('#ffffff'); // White when AI is disabled
             }
         }
     }

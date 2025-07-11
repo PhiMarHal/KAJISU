@@ -16,6 +16,7 @@
     </script>
 
     <script src="startMenu.js"></script>
+    <script src="automataCore.js"></script>
     <script src="droppers.js"></script>
     <script src="cooldown.js"></script>
     <script src="beacons.js"></script>
@@ -553,6 +554,11 @@
             if (!gameStarted) return; // Exit early if game hasn't started yet
             if (gameOver) return;
             if (gamePaused) return; // Skip updates when game is paused for level up
+
+            // Add this line:
+            if (window.gameAI) {
+                window.gameAI.update();
+            }
 
             if (window.BackgroundAnimationSystem && BackgroundAnimationSystem.isInitialized) {
                 BackgroundAnimationSystem.update(time, delta);

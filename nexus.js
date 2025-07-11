@@ -152,7 +152,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
             collisionType: 'projectile', // Destroyed on hit
             damage: playerDamage,
             damageInterval: 0, // Not used for projectiles
-            lifespan: 30000, // Delete after 30 seconds, to avoid infinite stacking
+            lifespan: 20000, // Delete after 20 seconds, to avoid infinite stacking
             options: {}
         };
     },
@@ -191,7 +191,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
             collisionType: 'projectile', // Destroyed on hit
             damage: playerDamage,
             damageInterval: 0, // Not used for projectiles
-            lifespan: 30000, //
+            lifespan: 20000, //
             options: {}
         };
     },
@@ -943,7 +943,7 @@ OrbitalPerkRegistry.registerPerkOrbital('COMET', {
         };
     },
     count: 1,
-    cooldown: 1200, // Base cooldown
+    cooldown: 1600, // Base cooldown
     cooldownStat: 'fireRate',
     cooldownFormula: 'sqrt',
     activationMethod: 'timer'
@@ -984,7 +984,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_COMET', {
         };
     },
     count: 1,
-    cooldown: 1200, // Base cooldown
+    cooldown: 1600, // Base cooldown
     cooldownStat: 'fireRate',
     cooldownFormula: 'sqrt',
     activationMethod: 'timer'

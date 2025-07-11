@@ -1114,8 +1114,8 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier) {
 }
 
 // Register separate components for each perk to allow stacking
-PlayerComponentSystem.registerComponent('shootingStarAbility', createRandomShotsComponent(400, 1));
-PlayerComponentSystem.registerComponent('meteorAbility', createRandomShotsComponent(2000, 4));
+PlayerComponentSystem.registerComponent('shootingStarAbility', createRandomShotsComponent(500, 1));
+PlayerComponentSystem.registerComponent('meteorAbility', createRandomShotsComponent(2500, 4));
 
 // Register the Shooting Star perk
 PlayerPerkRegistry.registerPerkEffect('SHOOTING_STAR', {

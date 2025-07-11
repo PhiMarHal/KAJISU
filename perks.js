@@ -57,7 +57,7 @@ const PERKS = {
         kana: "あおみどりたこ",
         romaji: "aomidoritako",
         english: "Teal Octopus",
-        description: "Gain orbiting projectiles",
+        description: "Gain orbiting stars",
         color: "#008080",
         hoverColor: 0x005f5f,
         onAcquire: function () {
@@ -198,7 +198,7 @@ const PERKS = {
         kana: "こはくこうちゅう",
         romaji: "kohakukouchuu",
         english: "Amber Beetle",
-        description: "Drops projectiles that damage enemies",
+        description: "Drops stars that damage enemies",
         color: "#ffbf00",
         hoverColor: 0xbb8c00,
         onAcquire: function () {
@@ -405,7 +405,7 @@ const PERKS = {
         kana: "みどりどく",
         romaji: "midoridoku",
         english: "Green Venom",
-        description: "Poisonous projectiles deal damage over time",
+        description: "Poisonous stars deal damage over time",
         color: "#2aad27",
         hoverColor: 0x1a8d17,
         onAcquire: function () {
@@ -1163,7 +1163,7 @@ const PERKS = {
         kana: "りゅうせい",
         romaji: "ryuusei",
         english: "Shooting Star",
-        description: "Periodically fires star projectiles in random directions",
+        description: "Periodically fires stars in random directions",
         color: "#ffff00",
         hoverColor: 0xdddd00,
         onAcquire: function () {
@@ -1187,7 +1187,7 @@ const PERKS = {
         kana: "げんそくだん",
         romaji: "gensokudan",
         english: "Decelerating Bullet",
-        description: "Projectiles slow down over time, deal 2x damage",
+        description: "Stars slow down over time, deal 1.5x damage",
         color: "#8A2BE2", // Blue-violet color
         hoverColor: 0x6A1BA2,
         onAcquire: function () {
@@ -1456,7 +1456,7 @@ const PERKS = {
         kana: "むらさきはりねずみ",
         romaji: "murasakiharinezumi",
         english: "Purple Hedgehog",
-        description: "Release projectiles in all directions when hit",
+        description: "Release stars in all directions when hit",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -1552,7 +1552,7 @@ const PERKS = {
         kana: "こはくばく",
         romaji: "kohakubaku",
         english: "Amber Nova",
-        description: "Projectiles explode on impact, damaging nearby enemies",
+        description: "Stars explode on impact, damaging nearby enemies",
         color: "#FF9500", // Amber/orange color
         hoverColor: 0xDD7000,
         onAcquire: function () {
@@ -1576,7 +1576,7 @@ const PERKS = {
         kana: "あおしも",
         romaji: "aoshimo",
         english: "Azure Frost",
-        description: "Projectiles may slow enemies upon impact",
+        description: "Stars may slow enemies upon impact",
         color: "#00ffff", // Cyan color
         hoverColor: 0x00dddd,
         onAcquire: function () {

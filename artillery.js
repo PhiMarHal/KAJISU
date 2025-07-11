@@ -721,9 +721,9 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
 // Stasis Effect
 ProjectileComponentSystem.registerComponent('stasisEffect', {
     initialize: function (projectile) {
-        // Store base damage using getEffectiveDamage() and apply 2x multiplier
+        // Store base damage using getEffectiveDamage() and apply multiplier
         this.baseDamage = getEffectiveDamage();
-        projectile.damage = this.baseDamage * 2;
+        projectile.damage = this.baseDamage * 1.5;
 
         // Update projectile size to reflect the doubled damage
         const newSize = getEffectiveSize(null, projectile.damage);
@@ -743,8 +743,8 @@ ProjectileComponentSystem.registerComponent('stasisEffect', {
         this.lastUpdate = undefined;
         this.initialized = false; // Flag to track when velocity is captured
 
-        // Set up lifespan timer based on playerLuck
-        const lifespan = playerLuck * 2 * 1000; // Convert seconds to milliseconds
+        // Set up a fixed lifespan timer 
+        const lifespan = 8000;
         const timer = projectile.scene.time.delayedCall(lifespan, function () {
             if (projectile.active) {
                 projectile.destroy();

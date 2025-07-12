@@ -17,6 +17,7 @@
 
     <script src="startMenu.js"></script>
     <script src="automataCore.js"></script>
+    <script src="imitationLearning.js"></script>
     <script src="droppers.js"></script>
     <script src="cooldown.js"></script>
     <script src="beacons.js"></script>
@@ -555,6 +556,10 @@
 
             if (window.gameAI) {
                 window.gameAI.update();
+            }
+
+            if (window.imitationLearning) {
+                window.imitationLearning.update();
             }
 
             if (gameOver) return;

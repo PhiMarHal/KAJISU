@@ -1,13 +1,7 @@
-// automataCore.js - Improved AI system with smaller footprint and better behavior
+// automataCore.js - Fixed AI with proper evasive movement and calculated perk selection
 
 /**
- * MAIN AI CONTROLLER - Completely rewritten for better performance
- * Key improvements:
- * - Much smaller neural network (fits in localStorage)
- * - Better spatial awareness without overcomplicated grids
- * - Fixed stuck detection (only when truly stuck)
- * - Simplified but more robust perk selection
- * - Better survival-focused behavior
+ * MAIN AI CONTROLLER - Fixed for proper evasive behavior and calculated UI clicks
  */
 class GameAIController {
     constructor() {
@@ -24,15 +18,15 @@ class GameAIController {
         this.trainingData = [];
         this.currentSession = [];
 
-        // Improved movement state with fixed stuck detection
+        // Movement state with fixed stuck detection
         this.currentDirection = 0;
         this.lastDecisionTime = 0;
         this.keysPressed = new Set();
 
         // Fixed stuck detection - only when truly not moving
         this.lastPosition = { x: 0, y: 0, time: 0 };
-        this.stuckCheckInterval = 2000; // Check every 2 seconds
-        this.stuckThreshold = 10; // Must move at least 10 pixels in 2 seconds
+        this.stuckCheckInterval = 2000;
+        this.stuckThreshold = 10;
         this.isReallyStuck = false;
 
         // Performance monitoring
@@ -52,7 +46,7 @@ class GameAIController {
         // Auto-loading
         this.autoLoadAttempted = false;
 
-        console.log("🤖 Improved GameAI Controller initialized - smaller network, better behavior");
+        console.log("🤖 Fixed GameAI Controller - proper evasive movement and calculated perk selection");
     }
 
     async initialize(scene) {
@@ -61,7 +55,6 @@ class GameAIController {
         try {
             console.log("🔄 Loading AI systems...");
 
-            // Load TensorFlow.js
             if (!window.tf) {
                 console.log("📥 Loading TensorFlow.js...");
                 await this.loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js');
@@ -71,23 +64,18 @@ class GameAIController {
             this.tfLoaded = true;
             this.scene = scene;
 
-            // Initialize compact game state reader
             this.gameState = new CompactGameStateExtractor();
             this.gameState.initialize(scene);
 
-            // Initialize RL agent with much smaller network
             const stateSize = this.gameState.getStateSize();
-            const actionSize = 9; // 8 directions + stay
+            const actionSize = 9;
 
-            this.agent = new CompactSurvivalAgent(stateSize, actionSize);
+            this.agent = new EvasiveSurvivalAgent(stateSize, actionSize);
 
             this.enabled = true;
             console.log("✅ AI systems initialized successfully");
 
-            // Auto-load saved model
             await this.attemptAutoLoad();
-
-            // Show UI
             this.createAIInterface();
 
             return true;
@@ -104,7 +92,7 @@ class GameAIController {
         this.autoLoadAttempted = true;
 
         try {
-            const autoSaveSuccess = await this.agent.loadModel('automata-compact-autosave');
+            const autoSaveSuccess = await this.agent.loadModel('automata-evasive-autosave');
             if (autoSaveSuccess) {
                 console.log("🔄 Auto-loaded previous AI training");
                 return;
@@ -128,32 +116,25 @@ class GameAIController {
     update() {
         if (!this.enabled || !this.agent) return;
 
-        // Update stuck detection
         this.updateStuckDetection();
 
-        // Make AI decisions when active
         if (this.aiActive) {
             this.makeAIDecision();
         }
 
-        // Record player actions for learning
         if (this.learningActive && !this.aiActive) {
             this.recordPlayerAction();
         }
 
-        // Track game state
         this.updateGameStateTracking();
 
-        // Check for game over
         if (this.isGameOver() && !this.gameOverHandled) {
             this.handleGameOver();
         }
 
-        // Update UI
         this.updateInterface();
     }
 
-    // Fixed stuck detection - only when truly not moving
     updateStuckDetection() {
         const gamePlayer = window.player || player;
         if (!gamePlayer) return;
@@ -161,27 +142,22 @@ class GameAIController {
         const now = Date.now();
         const currentPos = { x: gamePlayer.x, y: gamePlayer.y, time: now };
 
-        // Check if enough time has passed for stuck detection
         if (now - this.lastPosition.time >= this.stuckCheckInterval) {
             const distance = Math.sqrt(
                 Math.pow(currentPos.x - this.lastPosition.x, 2) +
                 Math.pow(currentPos.y - this.lastPosition.y, 2)
             );
 
-            // Only consider stuck if moved less than threshold AND we're trying to move
             this.isReallyStuck = distance < this.stuckThreshold && this.currentDirection !== 0;
-
             this.lastPosition = currentPos;
         }
     }
 
     updateGameStateTracking() {
-        // Track game start
         if (!this.gameStartTime && !this.isGameOver()) {
             this.gameStartTime = Date.now();
         }
 
-        // Reset on new game
         if (this.gameStartTime && this.isGameOver()) {
             this.gameStartTime = null;
         }
@@ -190,20 +166,20 @@ class GameAIController {
     async makeAIDecision() {
         const now = Date.now();
 
-        // Make decisions every 150ms for responsive but not frantic gameplay
         if (now - this.lastDecisionTime < 150) return;
 
         try {
             const state = this.gameState.getState();
             if (!state) return;
 
-            // Handle level-up
+            // STOP MOVING during level up
             if (this.isLevelUpActive()) {
+                this.releaseAllMovementKeys();
+                this.currentDirection = 0;
                 this.handleLevelUp();
                 return;
             }
 
-            // Handle game over
             if (this.isGameOver()) {
                 this.handleGameOver();
                 return;
@@ -211,21 +187,18 @@ class GameAIController {
 
             let newDirection;
 
-            // Emergency unstuck action (only when truly stuck)
             if (this.isReallyStuck) {
                 newDirection = this.getUnstuckAction(state);
-                this.isReallyStuck = false; // Reset
+                this.isReallyStuck = false;
                 console.log("🆘 AI: Emergency unstuck action");
             } else {
                 newDirection = await this.agent.chooseAction(state);
             }
 
-            // Change direction
             if (newDirection !== this.currentDirection) {
                 this.changeDirection(newDirection);
                 this.currentDirection = newDirection;
 
-                // Record for learning
                 if (this.learningActive) {
                     this.recordAIAction(state, newDirection);
                 }
@@ -243,47 +216,57 @@ class GameAIController {
         const playerX = state[0];
         const playerY = state[1];
 
-        // Move towards center with some randomness
-        const targetX = 0.4 + Math.random() * 0.2; // 40-60% across screen
-        const targetY = 0.4 + Math.random() * 0.2; // 40-60% down screen
+        // Move towards center with randomness
+        const targetX = 0.4 + Math.random() * 0.2;
+        const targetY = 0.4 + Math.random() * 0.2;
 
         const deltaX = targetX - playerX;
         const deltaY = targetY - playerY;
 
-        // Choose direction based on largest delta
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            return deltaX > 0 ? 3 : 7; // Right or Left
+            return deltaX > 0 ? 3 : 7;
         } else {
-            return deltaY > 0 ? 5 : 1; // Down or Up
+            return deltaY > 0 ? 5 : 1;
         }
     }
 
     isLevelUpActive() {
-        // Check multiple indicators
         const globalLevelUpInProgress = window.levelUpInProgress ?? (typeof levelUpInProgress !== 'undefined' ? levelUpInProgress : false);
         const hasLevelUpCards = window.levelUpCards?.length > 0 ?? (typeof levelUpCards !== 'undefined' ? levelUpCards?.length > 0 : false);
         const isGamePaused = window.gamePaused ?? (typeof gamePaused !== 'undefined' ? gamePaused : false);
 
-        return globalLevelUpInProgress || hasLevelUpCards || (isGamePaused && this.detectLevelUpUI());
+        const hasLevelUpUI = this.detectLevelUpUI();
+
+        const result = globalLevelUpInProgress || hasLevelUpCards || hasLevelUpUI || (isGamePaused && hasLevelUpUI);
+
+        if (result && !this.levelUpStartTime) {
+            console.log("🎓 AI: Level up detected - stopping movement");
+        }
+
+        return result;
     }
 
     detectLevelUpUI() {
-        const levelUpTexts = ['LEVEL UP', 'CHOOSE A PERK', 'TYPE ROMAJI'];
+        const levelUpTexts = ['LEVEL UP', 'CHOOSE A PERK', 'TYPE ROMAJI', 'Tap arrows to see perks', 'MY PERKS'];
         const allElements = document.querySelectorAll('*');
 
-        return Array.from(allElements).some(el => {
+        for (const el of allElements) {
             const text = el.textContent || '';
             const style = window.getComputedStyle(el);
-            return levelUpTexts.some(levelText => text.includes(levelText)) &&
-                style.display !== 'none' && style.visibility !== 'hidden';
-        });
+            const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+
+            if (isVisible && levelUpTexts.some(levelText => text.includes(levelText))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     handleLevelUp() {
         if (!this.levelUpStartTime) {
             this.levelUpStartTime = Date.now();
             this.levelUpHandled = false;
-            console.log("🎓 AI: Level up detected");
+            console.log("🎓 AI: Level up started - movement stopped");
         }
 
         if (this.levelUpHandled) return;
@@ -293,73 +276,86 @@ class GameAIController {
         // Wait for UI to settle
         if (elapsed < 1000) return;
 
-        // Try simplified perk selection
-        const perkSelected = this.selectAnyAvailablePerk();
+        console.log("🎓 AI: Attempting calculated perk selection...");
+        const perkSelected = this.selectPerkByCalculatedPosition();
 
         if (perkSelected) {
             this.levelUpHandled = true;
             this.levelUpStartTime = null;
             console.log("🎓 AI: Perk selected successfully");
         } else if (elapsed > 8000) {
-            // Timeout - try emergency clicks
-            console.log("🎓 AI: Perk selection timeout, trying emergency clicks");
-            this.emergencyClickStrategy();
+            console.log("🎓 AI: Perk selection timeout after 8 seconds");
+            this.emergencyLevelUpExit();
             this.levelUpHandled = true;
             this.levelUpStartTime = null;
         }
     }
 
-    // Simplified perk selection - just find and click anything that looks like a perk
-    selectAnyAvailablePerk() {
-        console.log("🎓 AI: Looking for any clickable perk...");
+    // Use calculated positions from cards.js instead of DOM scanning
+    selectPerkByCalculatedPosition() {
+        console.log("🎓 AI: Using calculated UI positions for perk selection...");
 
-        // Strategy 1: Look for any kanji characters that are clickable
-        const allElements = document.querySelectorAll('*');
+        // Get game dimensions (from cards.js: game.config.width/height)
+        const gameWidth = window.game?.config?.width || 1200;
+        const gameHeight = window.game?.config?.height || 800;
 
-        for (const element of allElements) {
-            const text = element.textContent || '';
-            const hasKanji = /[\u4e00-\u9faf]/.test(text); // Japanese kanji range
+        // Calculate center positions (from showMobileLevelUpScreen in cards.js)
+        const centerX = gameWidth / 2;
+        const centerY = gameHeight / 2;
 
-            if (hasKanji) {
-                const style = window.getComputedStyle(element);
-                const rect = element.getBoundingClientRect();
+        console.log(`🎓 AI: Game dimensions: ${gameWidth}x${gameHeight}, center: ${centerX},${centerY}`);
 
-                const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 20 && rect.height > 20;
-                const isReasonableSize = rect.width < 300 && rect.height < 200; // Not too big
+        // Strategy 1: Click center where current perk card should be
+        console.log("🎓 AI: Clicking center perk card position");
+        this.clickAtGamePosition(centerX, centerY);
 
-                if (isVisible && isReasonableSize) {
-                    console.log(`🎓 AI: Found kanji element: "${text.trim()}" - attempting click`);
-                    this.clickElement(element);
-                    return true;
-                }
-            }
-        }
-
-        // Strategy 2: Look for any large clickable areas (like card backgrounds)
-        for (const element of allElements) {
-            const style = window.getComputedStyle(element);
-            const rect = element.getBoundingClientRect();
-
-            const isClickable = style.cursor === 'pointer' || element.onclick || element.getAttribute('onclick');
-            const isCardSized = rect.width > 150 && rect.width < 350 && rect.height > 200 && rect.height < 400;
-            const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
-
-            if (isClickable && isCardSized && isVisible) {
-                console.log("🎓 AI: Found card-sized clickable element - attempting click");
-                this.clickElement(element);
-                return true;
-            }
-        }
-
-        return false;
+        return true; // Always return true since we attempted a click
     }
 
-    emergencyClickStrategy() {
-        // Try clicking center and random areas
-        this.clickCenter();
-        setTimeout(() => this.clickRandomArea(), 200);
-        setTimeout(() => this.simulateKeyPress('Enter'), 400);
-        setTimeout(() => this.clickRandomArea(), 600);
+    // Convert game coordinates to screen coordinates and click
+    clickAtGamePosition(gameX, gameY) {
+        const canvas = document.querySelector('canvas');
+        if (!canvas) {
+            console.log("🎓 AI: No canvas found");
+            return;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+
+        // Get game dimensions
+        const gameWidth = window.game?.config?.width || 1200;
+        const gameHeight = window.game?.config?.height || 800;
+
+        // Convert game coordinates to canvas coordinates
+        const canvasX = rect.left + (gameX / gameWidth) * rect.width;
+        const canvasY = rect.top + (gameY / gameHeight) * rect.height;
+
+        console.log(`🎓 AI: Clicking at canvas position: ${canvasX.toFixed(0)},${canvasY.toFixed(0)} (game: ${gameX},${gameY})`);
+
+        // Create and dispatch click events
+        const events = [
+            new MouseEvent('mousedown', { bubbles: true, clientX: canvasX, clientY: canvasY }),
+            new MouseEvent('mouseup', { bubbles: true, clientX: canvasX, clientY: canvasY }),
+            new MouseEvent('click', { bubbles: true, clientX: canvasX, clientY: canvasY }),
+            new PointerEvent('pointerdown', { bubbles: true, clientX: canvasX, clientY: canvasY, pointerId: 1 }),
+            new PointerEvent('pointerup', { bubbles: true, clientX: canvasX, clientY: canvasY, pointerId: 1 })
+        ];
+
+        events.forEach((event, index) => {
+            setTimeout(() => canvas.dispatchEvent(event), index * 50);
+        });
+    }
+
+    emergencyLevelUpExit() {
+        console.log("🎓 AI: Emergency level up exit");
+
+        // Try clicking center and some navigation areas
+        const gameWidth = window.game?.config?.width || 1200;
+        const gameHeight = window.game?.config?.height || 800;
+
+        this.clickAtGamePosition(gameWidth / 2, gameHeight / 2);
+        setTimeout(() => this.simulateKeyPress('Enter'), 200);
+        setTimeout(() => this.clickAtGamePosition(gameWidth * 0.8, gameHeight / 2), 400); // Right arrow area
     }
 
     isGameOver() {
@@ -374,13 +370,12 @@ class GameAIController {
 
         setTimeout(() => {
             this.attemptGameRestart();
-        }, 2000); // Wait 2 seconds before restart attempt
+        }, 2000);
     }
 
     attemptGameRestart() {
         console.log("🔄 AI: Attempting to restart game...");
 
-        // Method 1: Look for restart button text
         const allElements = document.querySelectorAll('*');
 
         for (const element of allElements) {
@@ -399,7 +394,6 @@ class GameAIController {
             }
         }
 
-        // Method 2: Try calling startGame directly if available
         if (this.scene && typeof startGame === 'function') {
             console.log("🔄 AI: Calling startGame directly");
             try {
@@ -411,8 +405,7 @@ class GameAIController {
             }
         }
 
-        // Method 3: Emergency key presses
-        console.log("🔄 AI: Trying emergency restart keys");
+        console.log("🔄 AI: Trying emergency restart methods");
         this.simulateKeyPress('Enter');
         setTimeout(() => this.clickCenter(), 500);
         this.resetGameOverState();
@@ -441,8 +434,6 @@ class GameAIController {
         };
 
         this.currentSession.push(experience);
-
-        // Calculate immediate reward
         this.updateRealTimeRewards(state);
     }
 
@@ -476,16 +467,15 @@ class GameAIController {
         const vx = Math.sign(velocity.x);
         const vy = Math.sign(velocity.y);
 
-        // Map velocity to action index
-        if (vx === 0 && vy === 0) return 0; // Stay
-        if (vx === 0 && vy === -1) return 1; // Up
-        if (vx === 1 && vy === -1) return 2; // Up-right
-        if (vx === 1 && vy === 0) return 3; // Right
-        if (vx === 1 && vy === 1) return 4; // Down-right
-        if (vx === 0 && vy === 1) return 5; // Down
-        if (vx === -1 && vy === 1) return 6; // Down-left
-        if (vx === -1 && vy === 0) return 7; // Left
-        if (vx === -1 && vy === -1) return 8; // Up-left
+        if (vx === 0 && vy === 0) return 0;
+        if (vx === 0 && vy === -1) return 1;
+        if (vx === 1 && vy === -1) return 2;
+        if (vx === 1 && vy === 0) return 3;
+        if (vx === 1 && vy === 1) return 4;
+        if (vx === 0 && vy === 1) return 5;
+        if (vx === -1 && vy === 1) return 6;
+        if (vx === -1 && vy === 0) return 7;
+        if (vx === -1 && vy === -1) return 8;
 
         return 0;
     }
@@ -502,24 +492,30 @@ class GameAIController {
 
         let reward = 0.01; // Small survival reward
 
-        // Penalty for damage
+        // Heavy penalty for damage
         if (currentPlayerHealth < this.lastPlayerHealth) {
             const damage = this.lastPlayerHealth - currentPlayerHealth;
-            reward -= damage * 3.0; // Heavy penalty for taking damage
+            reward -= damage * 5.0;
         }
 
         // Reward for kills
         if (currentScore > this.lastScore) {
             const kills = currentScore - this.lastScore;
-            reward += kills * 0.2;
+            reward += kills * 0.1;
         }
 
-        // Boundary penalty
+        // Strong boundary penalty
         const playerX = state[0];
         const playerY = state[1];
-        if (playerX < 0.15 || playerX > 0.85 || playerY < 0.15 || playerY > 0.85) {
-            reward -= 0.05;
-        }
+        const boundaryThreshold = 0.2;
+
+        let boundaryPenalty = 0;
+        if (playerX < boundaryThreshold) boundaryPenalty += (boundaryThreshold - playerX) * 5;
+        if (playerX > (1 - boundaryThreshold)) boundaryPenalty += (playerX - (1 - boundaryThreshold)) * 5;
+        if (playerY < boundaryThreshold) boundaryPenalty += (boundaryThreshold - playerY) * 5;
+        if (playerY > (1 - boundaryThreshold)) boundaryPenalty += (playerY - (1 - boundaryThreshold)) * 5;
+
+        reward -= boundaryPenalty;
 
         // Store reward with last experience
         if (this.currentSession.length > 0 && Math.abs(reward - 0.01) > 0.001) {
@@ -535,15 +531,15 @@ class GameAIController {
 
     changeDirection(actionIndex) {
         const actionMap = [
-            { keys: [] },                    // 0: stay
-            { keys: ['up'] },                // 1: up
-            { keys: ['up', 'right'] },       // 2: up-right
-            { keys: ['right'] },             // 3: right
-            { keys: ['down', 'right'] },     // 4: down-right
-            { keys: ['down'] },              // 5: down
-            { keys: ['down', 'left'] },      // 6: down-left
-            { keys: ['left'] },              // 7: left
-            { keys: ['up', 'left'] }         // 8: up-left
+            { keys: [] },
+            { keys: ['up'] },
+            { keys: ['up', 'right'] },
+            { keys: ['right'] },
+            { keys: ['down', 'right'] },
+            { keys: ['down'] },
+            { keys: ['down', 'left'] },
+            { keys: ['left'] },
+            { keys: ['up', 'left'] }
         ];
 
         const action = actionMap[actionIndex];
@@ -596,7 +592,6 @@ class GameAIController {
         this.keysPressed.clear();
     }
 
-    // UI interaction helpers
     clickElement(element) {
         if (!element) return;
 
@@ -631,20 +626,6 @@ class GameAIController {
         }
     }
 
-    clickRandomArea() {
-        const canvas = document.querySelector('canvas');
-        if (canvas) {
-            const rect = canvas.getBoundingClientRect();
-            const x = rect.left + rect.width * (0.3 + Math.random() * 0.4);
-            const y = rect.top + rect.height * (0.3 + Math.random() * 0.4);
-
-            const clickEvent = new MouseEvent('click', {
-                bubbles: true, clientX: x, clientY: y
-            });
-            canvas.dispatchEvent(clickEvent);
-        }
-    }
-
     simulateKeyPress(key) {
         const downEvent = new KeyboardEvent('keydown', { key, bubbles: true });
         const upEvent = new KeyboardEvent('keyup', { key, bubbles: true });
@@ -659,7 +640,6 @@ class GameAIController {
         try {
             console.log(`🧠 Training AI on ${this.currentSession.length} actions...`);
 
-            // Train on recorded data
             if (this.agent.memory.length > 32) {
                 const loss = await this.agent.replay();
                 console.log(`✅ Training complete. Loss: ${loss?.toFixed(4) || 'N/A'}`);
@@ -749,7 +729,7 @@ class GameAIController {
         }
 
         try {
-            const modelName = prompt("Model name:", "automata-compact-" + Date.now());
+            const modelName = prompt("Model name:", "automata-evasive-" + Date.now());
             if (!modelName) return;
 
             await this.agent.saveModel(modelName);
@@ -785,7 +765,9 @@ class GameAIController {
         const ui = document.createElement('div');
         ui.id = 'ai-interface';
         ui.style.cssText = `
-            position: fixed; top: 20px; left: 20px;
+            position: fixed; 
+            top: 50%; left: 20px;
+            transform: translateY(-50%);
             background: rgba(0,0,0,0.9); color: white;
             padding: 15px; border-radius: 8px;
             font-family: Arial, sans-serif; font-size: 12px;
@@ -794,10 +776,6 @@ class GameAIController {
         `;
 
         ui.innerHTML = `
-            <div style="margin-bottom: 10px; text-align: center; font-weight: bold; color: #4CAF50;">
-                🤖 COMPACT AUTOMATA
-            </div>
-            
             <div style="margin-bottom: 10px;">
                 <div>Status: <span id="ai-status">Ready</span></div>
                 <div>Learning: <span id="learning-status">Off</span></div>
@@ -820,21 +798,10 @@ class GameAIController {
                     Load Model
                 </button>
             </div>
-            
-            <div style="margin-top: 10px; font-size: 10px; color: #888;">
-                FIXES:<br>
-                ✅ Compact neural network (fits in storage)<br>
-                ✅ Fixed stuck detection (only when truly stuck)<br>
-                ✅ Simplified perk selection<br>
-                ✅ Better survival behavior<br>
-                ✅ Improved spatial awareness<br><br>
-                X = Toggle AI, C = Toggle learning
-            </div>
         `;
 
         document.body.appendChild(ui);
 
-        // Attach events
         document.getElementById('toggle-ai').onclick = () => this.toggleAIControl();
         document.getElementById('toggle-learning').onclick = () => this.toggleLearning();
         document.getElementById('save-model').onclick = () => this.saveModel();
@@ -882,7 +849,6 @@ class GameAIController {
 
 /**
  * COMPACT GAME STATE EXTRACTOR
- * Much smaller state representation that fits in localStorage
  */
 class CompactGameStateExtractor {
     constructor() {
@@ -907,7 +873,6 @@ class CompactGameStateExtractor {
 
             if (window.gameOver ?? gameOver) return this.lastState;
 
-            // Compact state: player info + nearby threats
             const state = [
                 // Player position (normalized)
                 gamePlayer.x / this.gameWidth,
@@ -917,16 +882,16 @@ class CompactGameStateExtractor {
                 (window.playerHealth || playerHealth || 100) / (window.maxPlayerHealth || maxPlayerHealth || 100),
                 Math.min((window.playerDamage || playerDamage || 10) / 50, 1),
                 Math.min((window.playerSpeed || playerSpeed || 8) / 20, 1),
-                Math.min((window.elapsedTime || elapsedTime || 0) / 1800, 1), // 30 min max
+                Math.min((window.elapsedTime || elapsedTime || 0) / 1800, 1),
 
-                // Threat detection in 8 directions around player
+                // Threat detection in 8 directions
                 ...this.getDirectionalThreats(gamePlayer),
 
                 // Closest enemy info
                 ...this.getClosestEnemyInfo(gamePlayer),
 
-                // Boundary distances
-                ...this.getBoundaryDistances(gamePlayer)
+                // Boundary info
+                ...this.getBoundaryInfo(gamePlayer)
             ];
 
             this.lastState = state;
@@ -939,7 +904,6 @@ class CompactGameStateExtractor {
     }
 
     getDirectionalThreats(player) {
-        // Check 8 directions around player for threats
         const directions = [
             { dx: 0, dy: -1 },   // Up
             { dx: 1, dy: -1 },   // Up-right
@@ -951,7 +915,7 @@ class CompactGameStateExtractor {
             { dx: -1, dy: -1 }   // Up-left
         ];
 
-        const checkDistance = 150; // pixels
+        const checkDistance = 100;
         const threats = [];
 
         directions.forEach(dir => {
@@ -960,7 +924,6 @@ class CompactGameStateExtractor {
 
             let threatLevel = 0;
 
-            // Check for enemies
             try {
                 const enemies = window.EnemySystem?.enemiesGroup?.getChildren() || [];
                 for (const enemy of enemies) {
@@ -968,7 +931,7 @@ class CompactGameStateExtractor {
                         const dist = Math.sqrt(Math.pow(enemy.x - checkX, 2) + Math.pow(enemy.y - checkY, 2));
                         if (dist < checkDistance) {
                             const intensity = Math.max(0, 1 - dist / checkDistance);
-                            threatLevel += intensity * (enemy.isBoss ? 2 : 1);
+                            threatLevel += intensity;
                         }
                     }
                 }
@@ -993,44 +956,46 @@ class CompactGameStateExtractor {
                     const dy = enemy.y - player.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
-                    if (dist < closestDist && dist < 300) { // Only within 300 pixels
+                    if (dist < closestDist && dist < 200) {
                         closestDist = dist;
-                        closestAngle = Math.atan2(dy, dx) / Math.PI; // Normalized to [-1, 1]
-                        closestThreat = enemy.isBoss ? 1 : 0.5;
+                        closestAngle = Math.atan2(dy, dx) / Math.PI;
+                        closestThreat = 0.5;
                     }
                 }
             }
 
             return [
-                Math.min(closestDist / 300, 1), // Normalized distance
-                closestAngle,                   // Angle to closest enemy
-                closestThreat                   // Threat level
+                Math.min(closestDist / 200, 1),
+                closestAngle,
+                closestThreat
             ];
         } catch (e) {
-            return [1, 0, 0]; // No threat
+            return [1, 0, 0];
         }
     }
 
-    getBoundaryDistances(player) {
+    getBoundaryInfo(player) {
+        const normalizedX = player.x / this.gameWidth;
+        const normalizedY = player.y / this.gameHeight;
+
         return [
-            player.x / this.gameWidth,                    // Distance from left edge
-            (this.gameWidth - player.x) / this.gameWidth, // Distance from right edge
-            player.y / this.gameHeight,                   // Distance from top edge
-            (this.gameHeight - player.y) / this.gameHeight // Distance from bottom edge
+            normalizedX,
+            1 - normalizedX,
+            normalizedY,
+            1 - normalizedY,
+            Math.min(normalizedX, 1 - normalizedX, normalizedY, 1 - normalizedY)
         ];
     }
 
     getStateSize() {
-        // 6 player stats + 8 directional threats + 3 closest enemy + 4 boundary distances = 21
-        return 21;
+        return 22;
     }
 }
 
 /**
- * COMPACT SURVIVAL AGENT
- * Much smaller neural network that fits in localStorage
+ * EVASIVE SURVIVAL AGENT - Focuses on movement and avoidance
  */
-class CompactSurvivalAgent {
+class EvasiveSurvivalAgent {
     constructor(stateSize, actionSize) {
         this.stateSize = stateSize;
         this.actionSize = actionSize;
@@ -1038,36 +1003,35 @@ class CompactSurvivalAgent {
         this.config = {
             learningRate: 0.001,
             gamma: 0.95,
-            epsilon: 0.5,
+            epsilon: 0.4,
             epsilonMin: 0.05,
             epsilonDecay: 0.995,
             batchSize: 32,
-            memorySize: 5000 // Smaller memory
+            memorySize: 5000
         };
 
         this.memory = [];
         this.memoryIndex = 0;
 
-        // Much smaller networks
-        this.mainNetwork = this.buildCompactNetwork();
-        this.targetNetwork = this.buildCompactNetwork();
+        this.mainNetwork = this.buildEvasiveNetwork();
+        this.targetNetwork = this.buildEvasiveNetwork();
         this.updateTargetNetwork();
 
         this.totalSteps = 0;
 
-        console.log(`🧠 Compact Survival Agent: ${stateSize} inputs → ${actionSize} actions`);
+        console.log(`🧠 Evasive Survival Agent: ${stateSize} inputs → ${actionSize} actions`);
     }
 
-    buildCompactNetwork() {
+    buildEvasiveNetwork() {
         const model = tf.sequential({
             layers: [
                 tf.layers.dense({
                     inputShape: [this.stateSize],
-                    units: 32, // Much smaller
+                    units: 32,
                     activation: 'relu'
                 }),
                 tf.layers.dense({
-                    units: 16, // Even smaller
+                    units: 16,
                     activation: 'relu'
                 }),
                 tf.layers.dense({
@@ -1086,8 +1050,8 @@ class CompactSurvivalAgent {
     }
 
     async chooseAction(state) {
-        if (this.memory.length < 10 || Math.random() < this.config.epsilon) {
-            return this.chooseSmartAction(state);
+        if (this.memory.length < 20 || Math.random() < this.config.epsilon) {
+            return this.chooseEvasiveAction(state);
         }
 
         const stateTensor = tf.tensor2d([state]);
@@ -1100,34 +1064,70 @@ class CompactSurvivalAgent {
         return action[0];
     }
 
-    chooseSmartAction(state) {
+    chooseEvasiveAction(state) {
         const playerX = state[0];
         const playerY = state[1];
         const playerHealth = state[2];
+        const minBoundaryDist = state[21];
 
         // Get threat directions (indices 6-13)
         const threats = state.slice(6, 14);
 
-        // Action weights based on threats and position
-        const actionWeights = [2, 1, 1, 1, 1, 1, 1, 1, 1]; // Favor staying still
+        // Start with balanced action weights
+        const actionWeights = [1, 1, 1, 1, 1, 1, 1, 1, 1];
 
-        // Reduce weights for directions with threats
+        // AVOID directions with threats (move away from danger)
         threats.forEach((threat, i) => {
-            if (threat > 0.3) {
-                const actionIndex = i + 1; // Threat directions map to actions 1-8
-                actionWeights[actionIndex] *= (1 - threat);
+            if (threat > 0.1) {
+                const actionIndex = i + 1;
+                actionWeights[actionIndex] *= (1 - threat * 3); // Strong avoidance
+
+                // BOOST opposite direction to actively evade
+                const oppositeDirection = ((i + 4) % 8) + 1;
+                actionWeights[oppositeDirection] *= (1 + threat * 2);
             }
         });
 
-        // Avoid boundaries
-        if (playerX < 0.2) actionWeights[7] *= 0.3; // Left
-        if (playerX > 0.8) actionWeights[3] *= 0.3; // Right
-        if (playerY < 0.2) actionWeights[1] *= 0.3; // Up
-        if (playerY > 0.8) actionWeights[5] *= 0.3; // Down
+        // Boundary avoidance
+        const boundaryThreshold = 0.2;
 
-        // When low health, heavily favor staying
+        if (playerX < boundaryThreshold) {
+            actionWeights[7] *= 0.2;  // Avoid left
+            actionWeights[6] *= 0.2;  // Avoid down-left  
+            actionWeights[8] *= 0.2;  // Avoid up-left
+            actionWeights[3] *= 2;    // Favor right
+        }
+        if (playerX > (1 - boundaryThreshold)) {
+            actionWeights[3] *= 0.2;  // Avoid right
+            actionWeights[2] *= 0.2;  // Avoid up-right
+            actionWeights[4] *= 0.2;  // Avoid down-right
+            actionWeights[7] *= 2;    // Favor left
+        }
+        if (playerY < boundaryThreshold) {
+            actionWeights[1] *= 0.2;  // Avoid up
+            actionWeights[2] *= 0.2;  // Avoid up-right
+            actionWeights[8] *= 0.2;  // Avoid up-left
+            actionWeights[5] *= 2;    // Favor down
+        }
+        if (playerY > (1 - boundaryThreshold)) {
+            actionWeights[5] *= 0.2;  // Avoid down
+            actionWeights[4] *= 0.2;  // Avoid down-right
+            actionWeights[6] *= 0.2;  // Avoid down-left
+            actionWeights[1] *= 2;    // Favor up
+        }
+
+        // When low health, be MORE evasive, not less
         if (playerHealth < 0.5) {
-            actionWeights[0] *= 5;
+            // Reduce staying still when low health
+            actionWeights[0] *= 0.5;
+
+            // Boost movement away from threats
+            threats.forEach((threat, i) => {
+                if (threat > 0.05) {
+                    const oppositeDirection = ((i + 4) % 8) + 1;
+                    actionWeights[oppositeDirection] *= 3; // Even stronger evasion when low health
+                }
+            });
         }
 
         // Choose action based on weights
@@ -1201,22 +1201,19 @@ class CompactSurvivalAgent {
         targetTensor.dispose();
         if (targetQValues) targetQValues.dispose();
 
-        // Decay epsilon
         if (this.config.epsilon > this.config.epsilonMin) {
             this.config.epsilon *= this.config.epsilonDecay;
         }
 
-        // Update target network
         this.totalSteps++;
         if (this.totalSteps % 50 === 0) {
             this.updateTargetNetwork();
         }
 
-        // Auto-save (smaller model saves faster)
         if (this.totalSteps % 200 === 0) {
             try {
-                await this.saveModel('automata-compact-autosave');
-                console.log(`🔄 Auto-saved compact model at step ${this.totalSteps}`);
+                await this.saveModel('automata-evasive-autosave');
+                console.log(`🔄 Auto-saved evasive model at step ${this.totalSteps}`);
             } catch (error) {
                 console.warn("Auto-save failed:", error);
             }
@@ -1233,10 +1230,10 @@ class CompactSurvivalAgent {
     async saveModel(name) {
         try {
             await this.mainNetwork.save(`localstorage://${name}`);
-            console.log(`✅ Compact model saved: ${name}`);
+            console.log(`✅ Evasive model saved: ${name}`);
             return true;
         } catch (error) {
-            console.error(`❌ Failed to save compact model: ${error}`);
+            console.error(`❌ Failed to save evasive model: ${error}`);
             return false;
         }
     }
@@ -1245,10 +1242,10 @@ class CompactSurvivalAgent {
         try {
             this.mainNetwork = await tf.loadLayersModel(`localstorage://${name}`);
             this.updateTargetNetwork();
-            console.log(`✅ Compact model loaded: ${name}`);
+            console.log(`✅ Evasive model loaded: ${name}`);
             return true;
         } catch (error) {
-            console.error(`❌ Failed to load compact model: ${error}`);
+            console.error(`❌ Failed to load evasive model: ${error}`);
             return false;
         }
     }
@@ -1264,4 +1261,4 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-console.log("🤖 Compact Game AI System loaded! Fixed storage issues, better movement, simplified perk selection.");
+console.log("🤖 Fixed Game AI System loaded! Proper evasive movement and calculated perk selection.");

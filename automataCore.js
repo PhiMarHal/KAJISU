@@ -32,6 +32,7 @@ class GameAIController {
         // Performance monitoring
         this.lastActionTime = 0;
         this.actionCount = 0;
+        this.lastPlayerRecordTime = 0;
 
         // Game state tracking
         this.lastPlayerHealth = null;
@@ -42,11 +43,26 @@ class GameAIController {
         this.gameOverHandled = false;
         this.levelUpHandled = false;
         this.levelUpStartTime = null;
+        this.perkScrollPhase = null; // Track perk browsing vs selection phase
+        this.perksViewed = 0; // Track how many perks we've seen
 
         // Auto-loading
         this.autoLoadAttempted = false;
 
-        console.log("🤖 Fixed GameAI Controller - proper evasive movement and calculated perk selection");
+        // Training tracking
+        this.lossHistory = [];
+
+        console.log("🤖 Fixed GameAI Controller - improved boundary avoidance, level-up detection, and training frequency");
+
+        // Log training guidance
+        console.log(`
+📚 AI Training Guide:
+• Expect 200-500 training steps before noticeable improvement
+• Training can plateau or go wrong - watch the loss values
+• If loss stops decreasing after 1000+ steps, consider restarting
+• Player training records every 150ms (not every frame) to match AI decisions
+• Boundary avoidance now uses gradual pressure instead of hard cutoffs
+        `.trim());
     }
 
     async initialize(scene) {
@@ -231,19 +247,44 @@ class GameAIController {
     }
 
     isLevelUpActive() {
-        const globalLevelUpInProgress = window.levelUpInProgress ?? (typeof levelUpInProgress !== 'undefined' ? levelUpInProgress : false);
-        const hasLevelUpCards = window.levelUpCards?.length > 0 ?? (typeof levelUpCards !== 'undefined' ? levelUpCards?.length > 0 : false);
-        const isGamePaused = window.gamePaused ?? (typeof gamePaused !== 'undefined' ? gamePaused : false);
+        // Try accessing variables from the scene and window in multiple ways
+        const scene = this.scene;
 
-        const hasLevelUpUI = this.detectLevelUpUI();
+        // Check multiple possible sources for level-up state
+        const checks = {
+            windowLevelUpInProgress: window.levelUpInProgress,
+            globalLevelUpInProgress: (typeof levelUpInProgress !== 'undefined') ? levelUpInProgress : undefined,
+            windowLevelUpCards: window.levelUpCards,
+            globalLevelUpCards: (typeof levelUpCards !== 'undefined') ? levelUpCards : undefined,
+            windowGamePaused: window.gamePaused,
+            globalGamePaused: (typeof gamePaused !== 'undefined') ? gamePaused : undefined,
+            sceneGamePaused: scene?.gamePaused,
+            hasLevelUpUI: this.detectLevelUpUI(),
+            // Check if CardSystem is in level-up mode
+            cardSystemMode: window.CardSystem?.showingLevelUp,
+            // Check scene physics state (paused during level-up)
+            physicsActive: scene?.physics?.world?.enabled,
+        };
 
-        const result = globalLevelUpInProgress || hasLevelUpCards || hasLevelUpUI || (isGamePaused && hasLevelUpUI);
+        // Log debug info every 60 frames but only when paused
+        if (this.actionCount % 60 === 0 && (checks.windowGamePaused || checks.globalGamePaused)) {
+            console.log("🔍 AI: Level-up debug:", checks);
+        }
 
-        if (result && !this.levelUpStartTime) {
+        // Determine if level-up is active - prioritize actual UI detection
+        const isLevelUp = checks.hasLevelUpUI ||
+            checks.windowLevelUpInProgress ||
+            checks.globalLevelUpInProgress ||
+            (checks.windowLevelUpCards && checks.windowLevelUpCards.length > 0) ||
+            (checks.globalLevelUpCards && checks.globalLevelUpCards.length > 0) ||
+            // If game is paused AND physics is paused AND we can see level-up UI
+            ((checks.windowGamePaused || checks.globalGamePaused) && checks.hasLevelUpUI);
+
+        if (isLevelUp && !this.levelUpStartTime) {
             console.log("🎓 AI: Level up detected - stopping movement");
         }
 
-        return result;
+        return isLevelUp;
     }
 
     detectLevelUpUI() {
@@ -266,7 +307,9 @@ class GameAIController {
         if (!this.levelUpStartTime) {
             this.levelUpStartTime = Date.now();
             this.levelUpHandled = false;
-            console.log("🎓 AI: Level up started - movement stopped");
+            this.perkScrollPhase = 'browsing'; // Track what phase we're in
+            this.perksViewed = 0; // Track how many perks we've seen
+            console.log("🎓 AI: Level up started - beginning perk browsing phase");
         }
 
         if (this.levelUpHandled) return;
@@ -276,19 +319,70 @@ class GameAIController {
         // Wait for UI to settle
         if (elapsed < 1000) return;
 
-        console.log("🎓 AI: Attempting calculated perk selection...");
-        const perkSelected = this.selectPerkByCalculatedPosition();
+        // PHASE 1: Browse through all perks first (required by the game)
+        if (this.perkScrollPhase === 'browsing') {
+            console.log(`🎓 AI: Browsing phase - viewed ${this.perksViewed}/4 perks`);
 
-        if (perkSelected) {
-            this.levelUpHandled = true;
-            this.levelUpStartTime = null;
-            console.log("🎓 AI: Perk selected successfully");
-        } else if (elapsed > 8000) {
-            console.log("🎓 AI: Perk selection timeout after 8 seconds");
-            this.emergencyLevelUpExit();
-            this.levelUpHandled = true;
-            this.levelUpStartTime = null;
+            if (this.perksViewed < 4) {
+                // Click navigation arrows to browse through perks
+                this.navigateToNextPerk();
+                this.perksViewed++;
+                return;
+            } else {
+                // We've viewed all perks, now we can select
+                console.log("🎓 AI: Finished browsing all perks, switching to selection phase");
+                this.perkScrollPhase = 'selecting';
+                return;
+            }
         }
+
+        // PHASE 2: Actually select a perk (only after browsing all)
+        if (this.perkScrollPhase === 'selecting') {
+            console.log("🎓 AI: Attempting perk selection...");
+            const perkSelected = this.selectPerkByCalculatedPosition();
+
+            if (perkSelected) {
+                this.levelUpHandled = true;
+                this.levelUpStartTime = null;
+                this.perkScrollPhase = null;
+                console.log("🎓 AI: Perk selected successfully");
+            } else if (elapsed > 15000) { // Longer timeout since we have two phases
+                console.log("🎓 AI: Perk selection timeout after 15 seconds");
+                this.emergencyLevelUpExit();
+                this.levelUpHandled = true;
+                this.levelUpStartTime = null;
+                this.perkScrollPhase = null;
+            }
+        }
+    }
+
+    // Navigate through perks using arrow buttons
+    navigateToNextPerk() {
+        console.log("🎓 AI: Clicking navigation arrow to browse next perk");
+
+        // Get game dimensions
+        const gameWidth = window.game?.config?.width || 1200;
+        const gameHeight = window.game?.config?.height || 800;
+
+        // From cards.js showMobileLevelUpScreen: arrows are positioned at centerX ± arrowDistance
+        const centerX = gameWidth / 2;
+        const centerY = gameHeight / 2;
+
+        // Calculate arrow positions (from cards.js)
+        const kajisuliMode = (typeof KAJISULI_MODE !== 'undefined') ? KAJISULI_MODE : false;
+        const arrowDistance = kajisuliMode ? gameWidth * 0.32 : gameWidth * 0.16;
+
+        // Click right arrow to navigate to next perk
+        const rightArrowX = centerX + arrowDistance;
+        const rightArrowY = centerY;
+
+        console.log(`🎓 AI: Clicking right arrow at game position: ${rightArrowX},${rightArrowY}`);
+        this.clickAtGamePosition(rightArrowX, rightArrowY);
+
+        // Wait a bit before next action
+        setTimeout(() => {
+            console.log("🎓 AI: Navigation click completed");
+        }, 500);
     }
 
     // Use calculated positions from cards.js instead of DOM scanning
@@ -440,6 +534,12 @@ class GameAIController {
     recordPlayerAction() {
         if (!this.learningActive || this.aiActive) return;
 
+        // Record at the same frequency as AI decisions (every 150ms)
+        const now = Date.now();
+        if (!this.lastPlayerRecordTime) this.lastPlayerRecordTime = now;
+        if (now - this.lastPlayerRecordTime < 150) return;
+        this.lastPlayerRecordTime = now;
+
         try {
             const state = this.gameState.getState();
             const action = this.getPlayerAction();
@@ -453,6 +553,11 @@ class GameAIController {
                 };
 
                 this.currentSession.push(experience);
+
+                // Log occasionally to show it's working
+                if (this.currentSession.length % 50 === 0) {
+                    console.log(`📚 AI: Recorded ${this.currentSession.length} player actions (every 150ms)`);
+                }
             }
         } catch (error) {
             console.error("Recording error:", error);
@@ -638,16 +743,38 @@ class GameAIController {
         if (this.currentSession.length < 10) return;
 
         try {
-            console.log(`🧠 Training AI on ${this.currentSession.length} actions...`);
+            console.log(`🧠 TRAINING: Processing ${this.currentSession.length} actions...`);
 
             if (this.agent.memory.length > 32) {
                 const loss = await this.agent.replay();
-                console.log(`✅ Training complete. Loss: ${loss?.toFixed(4) || 'N/A'}`);
+
+                // Make loss values VERY visible
+                if (loss !== null && loss !== undefined) {
+                    console.log(`🔥 TRAINING LOSS: ${loss.toFixed(6)} | Memory: ${this.agent.memory.length} | Epsilon: ${this.agent.config.epsilon.toFixed(3)}`);
+
+                    // Store loss history for trend analysis
+                    if (!this.lossHistory) this.lossHistory = [];
+                    this.lossHistory.push(loss);
+
+                    // Keep only last 10 loss values
+                    if (this.lossHistory.length > 10) this.lossHistory.shift();
+
+                    // Show trend
+                    if (this.lossHistory.length >= 3) {
+                        const recent = this.lossHistory.slice(-3);
+                        const trend = recent[2] < recent[0] ? "📉 IMPROVING" : "📈 INCREASING";
+                        console.log(`🔥 LOSS TREND: ${trend} | Last 3: [${recent.map(l => l.toFixed(4)).join(', ')}]`);
+                    }
+                } else {
+                    console.log(`🔥 TRAINING: Complete but no loss reported`);
+                }
+            } else {
+                console.log(`🔥 TRAINING: Need more data (${this.agent.memory.length}/32 minimum)`);
             }
 
             this.currentSession = [];
         } catch (error) {
-            console.error("Training error:", error);
+            console.error("🔥 TRAINING ERROR:", error);
         }
     }
 
@@ -1076,67 +1203,128 @@ class EvasiveSurvivalAgent {
         // Start with balanced action weights
         const actionWeights = [1, 1, 1, 1, 1, 1, 1, 1, 1];
 
-        // AVOID directions with threats (move away from danger)
+        // GRADUAL boundary avoidance instead of hard cutoffs
+        const softBoundaryThreshold = 0.25; // Start applying pressure at 25% from edges
+        const hardBoundaryThreshold = 0.1;  // Strong pressure at 10% from edges
+
+        // Calculate boundary pressures
+        const leftPressure = Math.max(0, (softBoundaryThreshold - playerX) / softBoundaryThreshold);
+        const rightPressure = Math.max(0, (playerX - (1 - softBoundaryThreshold)) / softBoundaryThreshold);
+        const topPressure = Math.max(0, (softBoundaryThreshold - playerY) / softBoundaryThreshold);
+        const bottomPressure = Math.max(0, (playerY - (1 - softBoundaryThreshold)) / softBoundaryThreshold);
+
+        // Apply gradual boundary pressure
+        if (leftPressure > 0) {
+            const penalty = 1 - (leftPressure * 0.9); // Reduce weight by up to 90%
+            actionWeights[7] *= penalty; // Left
+            actionWeights[6] *= penalty; // Down-left
+            actionWeights[8] *= penalty; // Up-left
+
+            const boost = 1 + (leftPressure * 2); // Boost by up to 200%
+            actionWeights[3] *= boost; // Right
+            actionWeights[2] *= boost * 0.7; // Up-right
+            actionWeights[4] *= boost * 0.7; // Down-right
+
+            // Debug log when near left boundary
+            if (this.actionCount % 20 === 0) { // More frequent logging
+                console.log(`🟡 AI BOUNDARY: Left pressure ${leftPressure.toFixed(2)} at X:${playerX.toFixed(2)}`);
+            }
+        }
+
+        if (rightPressure > 0) {
+            const penalty = 1 - (rightPressure * 0.9);
+            actionWeights[3] *= penalty; // Right
+            actionWeights[2] *= penalty; // Up-right
+            actionWeights[4] *= penalty; // Down-right
+
+            const boost = 1 + (rightPressure * 2);
+            actionWeights[7] *= boost; // Left
+            actionWeights[6] *= boost * 0.7; // Down-left
+            actionWeights[8] *= boost * 0.7; // Up-left
+
+            if (this.actionCount % 20 === 0) {
+                console.log(`🟡 AI BOUNDARY: Right pressure ${rightPressure.toFixed(2)} at X:${playerX.toFixed(2)}`);
+            }
+        }
+
+        if (topPressure > 0) {
+            const penalty = 1 - (topPressure * 0.9);
+            actionWeights[1] *= penalty; // Up
+            actionWeights[2] *= penalty; // Up-right
+            actionWeights[8] *= penalty; // Up-left
+
+            const boost = 1 + (topPressure * 2);
+            actionWeights[5] *= boost; // Down
+            actionWeights[4] *= boost * 0.7; // Down-right
+            actionWeights[6] *= boost * 0.7; // Down-left
+
+            if (this.actionCount % 20 === 0) {
+                console.log(`🟡 AI BOUNDARY: Top pressure ${topPressure.toFixed(2)} at Y:${playerY.toFixed(2)}`);
+            }
+        }
+
+        if (bottomPressure > 0) {
+            const penalty = 1 - (bottomPressure * 0.9);
+            actionWeights[5] *= penalty; // Down
+            actionWeights[4] *= penalty; // Down-right
+            actionWeights[6] *= penalty; // Down-left
+
+            const boost = 1 + (bottomPressure * 2);
+            actionWeights[1] *= boost; // Up
+            actionWeights[2] *= boost * 0.7; // Up-right
+            actionWeights[8] *= boost * 0.7; // Up-left
+
+            if (this.actionCount % 20 === 0) {
+                console.log(`🟡 AI BOUNDARY: Bottom pressure ${bottomPressure.toFixed(2)} at Y:${playerY.toFixed(2)}`);
+            }
+        }
+
+        // Apply threat avoidance AFTER boundary logic (so threats can override boundary preference if needed)
         threats.forEach((threat, i) => {
             if (threat > 0.1) {
                 const actionIndex = i + 1;
-                actionWeights[actionIndex] *= (1 - threat * 3); // Strong avoidance
+                const threatPenalty = 1 - (threat * 2); // Up to 200% penalty
+                actionWeights[actionIndex] *= Math.max(0.1, threatPenalty); // Never go below 10%
 
                 // BOOST opposite direction to actively evade
                 const oppositeDirection = ((i + 4) % 8) + 1;
-                actionWeights[oppositeDirection] *= (1 + threat * 2);
+                const threatBoost = 1 + (threat * 1.5); // Up to 150% boost
+                actionWeights[oppositeDirection] *= threatBoost;
             }
         });
 
-        // Boundary avoidance
-        const boundaryThreshold = 0.2;
-
-        if (playerX < boundaryThreshold) {
-            actionWeights[7] *= 0.2;  // Avoid left
-            actionWeights[6] *= 0.2;  // Avoid down-left  
-            actionWeights[8] *= 0.2;  // Avoid up-left
-            actionWeights[3] *= 2;    // Favor right
-        }
-        if (playerX > (1 - boundaryThreshold)) {
-            actionWeights[3] *= 0.2;  // Avoid right
-            actionWeights[2] *= 0.2;  // Avoid up-right
-            actionWeights[4] *= 0.2;  // Avoid down-right
-            actionWeights[7] *= 2;    // Favor left
-        }
-        if (playerY < boundaryThreshold) {
-            actionWeights[1] *= 0.2;  // Avoid up
-            actionWeights[2] *= 0.2;  // Avoid up-right
-            actionWeights[8] *= 0.2;  // Avoid up-left
-            actionWeights[5] *= 2;    // Favor down
-        }
-        if (playerY > (1 - boundaryThreshold)) {
-            actionWeights[5] *= 0.2;  // Avoid down
-            actionWeights[4] *= 0.2;  // Avoid down-right
-            actionWeights[6] *= 0.2;  // Avoid down-left
-            actionWeights[1] *= 2;    // Favor up
-        }
-
-        // When low health, be MORE evasive, not less
+        // When low health, be MORE evasive
         if (playerHealth < 0.5) {
-            // Reduce staying still when low health
-            actionWeights[0] *= 0.5;
+            actionWeights[0] *= 0.3; // Reduce staying still
 
-            // Boost movement away from threats
+            // Boost evasion
             threats.forEach((threat, i) => {
                 if (threat > 0.05) {
                     const oppositeDirection = ((i + 4) % 8) + 1;
-                    actionWeights[oppositeDirection] *= 3; // Even stronger evasion when low health
+                    actionWeights[oppositeDirection] *= 1.5;
                 }
             });
         }
 
         // Choose action based on weights
         const totalWeight = actionWeights.reduce((sum, w) => sum + w, 0);
+        if (totalWeight <= 0) {
+            console.log("🚨 AI: All actions blocked, forcing center movement");
+            return playerX < 0.5 ? 3 : 7;
+        }
+
         let random = Math.random() * totalWeight;
 
         for (let i = 0; i < actionWeights.length; i++) {
             random -= actionWeights[i];
-            if (random <= 0) return i;
+            if (random <= 0) {
+                // Debug log chosen action when near boundaries
+                if ((leftPressure > 0 || rightPressure > 0 || topPressure > 0 || bottomPressure > 0) && this.actionCount % 20 === 0) {
+                    const actionNames = ['Stay', 'Up', 'Up-Right', 'Right', 'Down-Right', 'Down', 'Down-Left', 'Left', 'Up-Left'];
+                    console.log(`🎯 AI ACTION: Chose ${i} (${actionNames[i]}) - weights: ${actionWeights.map(w => w.toFixed(1)).join(',')}`);
+                }
+                return i;
+            }
         }
 
         return 0;
@@ -1261,4 +1449,4 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-console.log("🤖 Fixed Game AI System loaded! Proper evasive movement and calculated perk selection.");
+console.log("🤖 Fixed Game AI System loaded! Improved boundary avoidance, level-up detection, and proper training frequency.");

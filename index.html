@@ -552,13 +552,13 @@
         // Add this to your update function
         function update(time, delta) {
             if (!gameStarted) return; // Exit early if game hasn't started yet
-            if (gameOver) return;
-            if (gamePaused) return; // Skip updates when game is paused for level up
 
-            // Add this line:
             if (window.gameAI) {
                 window.gameAI.update();
             }
+
+            if (gameOver) return;
+            if (gamePaused) return; // Skip updates when game is paused for level up
 
             if (window.BackgroundAnimationSystem && BackgroundAnimationSystem.isInitialized) {
                 BackgroundAnimationSystem.update(time, delta);

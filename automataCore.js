@@ -740,12 +740,36 @@ class GameAIController {
     }
 
     async processSession() {
-        if (this.currentSession.length < 10) return;
+        if (this.currentSession.length < 10) {
+            console.log(`📊 SESSION TOO SHORT: ${this.currentSession.length} actions (need 10+ to process)`);
+            return;
+        }
 
         try {
-            console.log(`🧠 TRAINING: Processing ${this.currentSession.length} actions...`);
+            console.log(`🧠 PROCESSING SESSION: ${this.currentSession.length} actions → agent memory...`);
 
-            if (this.agent.memory.length > 32) {
+            // Process each experience in the session
+            for (let i = 0; i < this.currentSession.length - 1; i++) {
+                const experience = this.currentSession[i];
+                const nextState = this.currentSession[i + 1].state;
+
+                // Calculate a simple reward (this is basic - could be improved)
+                const reward = 0.01; // Small positive reward for surviving
+
+                // Add to agent memory
+                this.agent.remember(
+                    experience.state,
+                    experience.action,
+                    reward,
+                    nextState,
+                    false // not done
+                );
+            }
+
+            console.log(`📊 MEMORY UPDATE: Session → Memory | Agent memory now: ${this.agent.memory.length} experiences`);
+
+            // Now try to train if we have enough experiences
+            if (this.agent.memory.length >= 32) {
                 const loss = await this.agent.replay();
 
                 // Make loss values VERY visible
@@ -769,10 +793,12 @@ class GameAIController {
                     console.log(`🔥 TRAINING: Complete but no loss reported`);
                 }
             } else {
-                console.log(`🔥 TRAINING: Need more data (${this.agent.memory.length}/32 minimum)`);
+                console.log(`📊 NEED MORE DATA: Agent memory has ${this.agent.memory.length}/32 experiences (need 32+ for training)`);
             }
 
+            // Clear the session after processing
             this.currentSession = [];
+
         } catch (error) {
             console.error("🔥 TRAINING ERROR:", error);
         }
@@ -906,7 +932,7 @@ class GameAIController {
             <div style="margin-bottom: 10px;">
                 <div>Status: <span id="ai-status">Ready</span></div>
                 <div>Learning: <span id="learning-status">Off</span></div>
-                <div>Session: <span id="session-length">0</span> actions</div>
+                <div>Session/Memory: <span id="session-length">S:0 M:0</span></div>
                 <div>Decisions: <span id="decision-count">0</span></div>
                 <div>Stuck: <span id="stuck-indicator">No</span></div>
             </div>
@@ -924,6 +950,11 @@ class GameAIController {
                 <button id="load-model" style="padding: 6px; background: #9C27B0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">
                     Load Model
                 </button>
+            </div>
+            
+            <div style="margin-top: 8px; font-size: 10px; color: #aaa;">
+                S=Session (current actions), M=Memory (training data)<br>
+                Need 32+ Memory for training to start
             </div>
         `;
 
@@ -948,11 +979,22 @@ class GameAIController {
         }
 
         if (learningEl) {
-            learningEl.textContent = this.learningActive ? 'Recording' : 'Off';
-            learningEl.style.color = this.learningActive ? '#ffaa00' : '#888';
+            if (this.learningActive) {
+                const memoryInfo = this.agent ? ` (Mem: ${this.agent.memory.length})` : '';
+                learningEl.textContent = `Recording${memoryInfo}`;
+                learningEl.style.color = '#ffaa00';
+            } else {
+                learningEl.textContent = 'Off';
+                learningEl.style.color = '#888';
+            }
         }
 
-        if (sessionEl) sessionEl.textContent = this.currentSession.length;
+        if (sessionEl) {
+            const sessionCount = this.currentSession.length;
+            const memoryCount = this.agent ? this.agent.memory.length : 0;
+            sessionEl.textContent = `S:${sessionCount} M:${memoryCount}`;
+        }
+
         if (decisionEl) decisionEl.textContent = this.actionCount;
         if (stuckEl) {
             stuckEl.textContent = this.isReallyStuck ? 'Yes' : 'No';
@@ -1197,15 +1239,19 @@ class EvasiveSurvivalAgent {
         const playerHealth = state[2];
         const minBoundaryDist = state[21];
 
+        // ALWAYS log position every 20 frames to debug boundary detection
+        if (this.actionCount % 20 === 0) {
+            console.log(`🔍 AI POSITION: X:${playerX.toFixed(3)} Y:${playerY.toFixed(3)} (boundaries at 0.25/0.75)`);
+        }
+
         // Get threat directions (indices 6-13)
         const threats = state.slice(6, 14);
 
         // Start with balanced action weights
         const actionWeights = [1, 1, 1, 1, 1, 1, 1, 1, 1];
 
-        // GRADUAL boundary avoidance instead of hard cutoffs
+        // GRADUAL boundary avoidance - with MUCH more visible debugging
         const softBoundaryThreshold = 0.25; // Start applying pressure at 25% from edges
-        const hardBoundaryThreshold = 0.1;  // Strong pressure at 10% from edges
 
         // Calculate boundary pressures
         const leftPressure = Math.max(0, (softBoundaryThreshold - playerX) / softBoundaryThreshold);
@@ -1213,78 +1259,75 @@ class EvasiveSurvivalAgent {
         const topPressure = Math.max(0, (softBoundaryThreshold - playerY) / softBoundaryThreshold);
         const bottomPressure = Math.max(0, (playerY - (1 - softBoundaryThreshold)) / softBoundaryThreshold);
 
+        // ALWAYS log pressure calculations every 10 frames when ANY pressure > 0
+        const anyPressure = leftPressure > 0 || rightPressure > 0 || topPressure > 0 || bottomPressure > 0;
+        if (anyPressure && this.actionCount % 10 === 0) {
+            console.log(`🟡 BOUNDARY PRESSURE: L:${leftPressure.toFixed(2)} R:${rightPressure.toFixed(2)} T:${topPressure.toFixed(2)} B:${bottomPressure.toFixed(2)}`);
+        }
+
         // Apply gradual boundary pressure
         if (leftPressure > 0) {
-            const penalty = 1 - (leftPressure * 0.9); // Reduce weight by up to 90%
+            const penalty = Math.max(0.1, 1 - (leftPressure * 0.8)); // Reduce weight by up to 80%, minimum 10%
             actionWeights[7] *= penalty; // Left
             actionWeights[6] *= penalty; // Down-left
             actionWeights[8] *= penalty; // Up-left
 
-            const boost = 1 + (leftPressure * 2); // Boost by up to 200%
+            const boost = 1 + (leftPressure * 3); // Boost by up to 300%
             actionWeights[3] *= boost; // Right
             actionWeights[2] *= boost * 0.7; // Up-right
             actionWeights[4] *= boost * 0.7; // Down-right
 
-            // Debug log when near left boundary
-            if (this.actionCount % 20 === 0) { // More frequent logging
-                console.log(`🟡 AI BOUNDARY: Left pressure ${leftPressure.toFixed(2)} at X:${playerX.toFixed(2)}`);
-            }
+            console.log(`🟡 LEFT BOUNDARY: penalty=${penalty.toFixed(2)}, boost=${boost.toFixed(2)}`);
         }
 
         if (rightPressure > 0) {
-            const penalty = 1 - (rightPressure * 0.9);
+            const penalty = Math.max(0.1, 1 - (rightPressure * 0.8));
             actionWeights[3] *= penalty; // Right
             actionWeights[2] *= penalty; // Up-right
             actionWeights[4] *= penalty; // Down-right
 
-            const boost = 1 + (rightPressure * 2);
+            const boost = 1 + (rightPressure * 3);
             actionWeights[7] *= boost; // Left
             actionWeights[6] *= boost * 0.7; // Down-left
             actionWeights[8] *= boost * 0.7; // Up-left
 
-            if (this.actionCount % 20 === 0) {
-                console.log(`🟡 AI BOUNDARY: Right pressure ${rightPressure.toFixed(2)} at X:${playerX.toFixed(2)}`);
-            }
+            console.log(`🟡 RIGHT BOUNDARY: penalty=${penalty.toFixed(2)}, boost=${boost.toFixed(2)}`);
         }
 
         if (topPressure > 0) {
-            const penalty = 1 - (topPressure * 0.9);
+            const penalty = Math.max(0.1, 1 - (topPressure * 0.8));
             actionWeights[1] *= penalty; // Up
             actionWeights[2] *= penalty; // Up-right
             actionWeights[8] *= penalty; // Up-left
 
-            const boost = 1 + (topPressure * 2);
+            const boost = 1 + (topPressure * 3);
             actionWeights[5] *= boost; // Down
             actionWeights[4] *= boost * 0.7; // Down-right
             actionWeights[6] *= boost * 0.7; // Down-left
 
-            if (this.actionCount % 20 === 0) {
-                console.log(`🟡 AI BOUNDARY: Top pressure ${topPressure.toFixed(2)} at Y:${playerY.toFixed(2)}`);
-            }
+            console.log(`🟡 TOP BOUNDARY: penalty=${penalty.toFixed(2)}, boost=${boost.toFixed(2)}`);
         }
 
         if (bottomPressure > 0) {
-            const penalty = 1 - (bottomPressure * 0.9);
+            const penalty = Math.max(0.1, 1 - (bottomPressure * 0.8));
             actionWeights[5] *= penalty; // Down
             actionWeights[4] *= penalty; // Down-right
             actionWeights[6] *= penalty; // Down-left
 
-            const boost = 1 + (bottomPressure * 2);
+            const boost = 1 + (bottomPressure * 3);
             actionWeights[1] *= boost; // Up
             actionWeights[2] *= boost * 0.7; // Up-right
             actionWeights[8] *= boost * 0.7; // Up-left
 
-            if (this.actionCount % 20 === 0) {
-                console.log(`🟡 AI BOUNDARY: Bottom pressure ${bottomPressure.toFixed(2)} at Y:${playerY.toFixed(2)}`);
-            }
+            console.log(`🟡 BOTTOM BOUNDARY: penalty=${penalty.toFixed(2)}, boost=${boost.toFixed(2)}`);
         }
 
-        // Apply threat avoidance AFTER boundary logic (so threats can override boundary preference if needed)
+        // Apply threat avoidance AFTER boundary logic
         threats.forEach((threat, i) => {
             if (threat > 0.1) {
                 const actionIndex = i + 1;
-                const threatPenalty = 1 - (threat * 2); // Up to 200% penalty
-                actionWeights[actionIndex] *= Math.max(0.1, threatPenalty); // Never go below 10%
+                const threatPenalty = Math.max(0.1, 1 - (threat * 2)); // Up to 200% penalty, minimum 10%
+                actionWeights[actionIndex] *= threatPenalty;
 
                 // BOOST opposite direction to actively evade
                 const oppositeDirection = ((i + 4) % 8) + 1;
@@ -1318,10 +1361,11 @@ class EvasiveSurvivalAgent {
         for (let i = 0; i < actionWeights.length; i++) {
             random -= actionWeights[i];
             if (random <= 0) {
-                // Debug log chosen action when near boundaries
-                if ((leftPressure > 0 || rightPressure > 0 || topPressure > 0 || bottomPressure > 0) && this.actionCount % 20 === 0) {
+                // Log chosen action when near boundaries OR every 30 frames for debugging
+                if (anyPressure || this.actionCount % 30 === 0) {
                     const actionNames = ['Stay', 'Up', 'Up-Right', 'Right', 'Down-Right', 'Down', 'Down-Left', 'Left', 'Up-Left'];
-                    console.log(`🎯 AI ACTION: Chose ${i} (${actionNames[i]}) - weights: ${actionWeights.map(w => w.toFixed(1)).join(',')}`);
+                    const topWeights = actionWeights.map((w, idx) => `${idx}:${w.toFixed(1)}`).join(',');
+                    console.log(`🎯 AI CHOSE: ${i} (${actionNames[i]}) | Weights: ${topWeights}`);
                 }
                 return i;
             }

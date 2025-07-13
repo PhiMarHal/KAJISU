@@ -1,9 +1,9 @@
-// imitationLearning.js - Dual-Mode Behavioral Cloning System
-// Separates movement learning from level-up learning for better AI performance
+// imitationLearning.js - Complete Enhanced Dual-Mode Behavioral Cloning System
+// Enhanced boundary awareness and rational game space representation
 
 /**
  * DUAL-MODE IMITATION LEARNING SYSTEM
- * Separates movement training from level-up training to avoid confusion
+ * Separates movement training from level-up training for better AI performance
  */
 class DualModeImitationLearningSystem {
     constructor() {
@@ -32,9 +32,9 @@ class DualModeImitationLearningSystem {
         this.lastDecisionTime = 0;
         this.decisionInterval = 150;
 
-        // Training state management - REMOVED AUTO-TRAINING
+        // Training state management
         this.isTraining = false;
-        this.trainingQueued = false; // No longer used
+        this.trainingQueued = false;
         this.lastGameOverState = false;
         this.sessionRecorded = false;
 
@@ -42,7 +42,7 @@ class DualModeImitationLearningSystem {
         this.lastGamePausedState = false;
         this.lastLevelUpState = false;
         this.isInLevelUpMode = false;
-        this.currentGameMode = 'movement'; // 'movement' or 'levelup'
+        this.currentGameMode = 'movement';
 
         // Level-up handling
         this.levelUpStartTime = null;
@@ -63,7 +63,7 @@ class DualModeImitationLearningSystem {
         // Debug mode
         this.debugMode = false;
 
-        console.log("🎬 Dual-Mode Imitation Learning System - Separate movement and level-up training");
+        console.log("🎬 Enhanced Dual-Mode Imitation Learning System - Rational boundary awareness");
     }
 
     async initialize(scene) {
@@ -78,7 +78,7 @@ class DualModeImitationLearningSystem {
         this.setupKeyboardShortcuts();
         this.setupEnhancedAutoTraining();
 
-        console.log("🎬 Dual-mode imitation learning system ready");
+        console.log("🎬 Enhanced dual-mode imitation learning system ready");
     }
 
     async ensureTensorFlowLoaded() {
@@ -105,12 +105,11 @@ class DualModeImitationLearningSystem {
     setupEnhancedAutoTraining() {
         setInterval(() => {
             this.checkForGameOverEnhanced();
-            this.updateGameModeDetection(); // Add continuous game mode detection
-        }, 200); // Check more frequently
+            this.updateGameModeDetection();
+        }, 200);
     }
 
     updateGameModeDetection() {
-        // Use the actual game state variables - much simpler and more reliable
         const isLevelUpInProgress = window.levelUpInProgress ?? (typeof levelUpInProgress !== 'undefined' ? levelUpInProgress : false);
 
         let hasLevelUpCards = false;
@@ -119,7 +118,6 @@ class DualModeImitationLearningSystem {
             hasLevelUpCards = cards && cards.length > 0;
         } catch (e) { }
 
-        // Simple and direct: if either flag is set, we're in level-up mode
         const isActuallyInLevelUp = isLevelUpInProgress || hasLevelUpCards;
 
         if (this.debugMode && isActuallyInLevelUp !== this.isInLevelUpMode) {
@@ -132,11 +130,8 @@ class DualModeImitationLearningSystem {
 
     checkForGameOverEnhanced() {
         const currentGameOverState = window.gameOver ?? (typeof gameOver !== 'undefined' ? gameOver : false);
-
-        // Update state tracking
         this.lastGameOverState = currentGameOverState;
 
-        // Reset session tracking when game starts again
         if (!currentGameOverState && this.lastGameOverState) {
             this.sessionRecorded = false;
             if (this.trainingQueued && !this.isTraining) {
@@ -158,20 +153,17 @@ class DualModeImitationLearningSystem {
         }
     }
 
-    // Separate recorded data into movement and level-up examples
     separateTrainingData() {
         const movementExamples = [];
         const levelUpExamples = [];
 
         console.log(`📊 Analyzing ${this.recordingData.length} recorded examples...`);
 
-        // Debug: Count examples by detected state
         let movementDetected = 0;
         let levelUpDetected = 0;
         let pausedDetected = 0;
 
         for (const example of this.recordingData) {
-            // Simple and direct level-up detection using the game state variables
             const isLevelUpExample = example.gameMode === 'levelup' ||
                 example.isLevelUp ||
                 example.levelUpInProgress ||
@@ -179,7 +171,6 @@ class DualModeImitationLearningSystem {
 
             if (isLevelUpExample) {
                 levelUpDetected++;
-                // Level-up example
                 levelUpExamples.push({
                     state: example.state.slice(),
                     action: example.action,
@@ -189,7 +180,6 @@ class DualModeImitationLearningSystem {
                 });
             } else {
                 movementDetected++;
-                // Movement example - only include if actually moving or important context
                 if (example.action !== 0 || this.isImportantStillAction(example, movementExamples)) {
                     movementExamples.push({
                         state: example.state.slice(),
@@ -203,7 +193,6 @@ class DualModeImitationLearningSystem {
 
         console.log(`📊 Detection results: ${movementDetected} movement, ${levelUpDetected} level-up, ${pausedDetected} paused`);
 
-        // Balance movement data - reduce excessive "stay still" actions
         const balancedMovement = this.balanceMovementData(movementExamples);
 
         console.log(`📊 Final separation: ${balancedMovement.length} movement (balanced), ${levelUpExamples.length} level-up`);
@@ -214,16 +203,12 @@ class DualModeImitationLearningSystem {
         };
     }
 
-    // Determine if a "stay still" action is important for context
     isImportantStillAction(example, existingExamples) {
-        // Keep some "stay still" actions for context, but not too many
         const recentStillCount = existingExamples.slice(-10).filter(e => e.action === 0).length;
-
-        // Keep every 5th still action, or if player health is low (defensive positioning)
         return recentStillCount < 2 || example.playerHealth < 50;
     }
 
-    // Balance movement data to prevent action bias
+    // Enhanced movement data balancing - much less aggressive
     balanceMovementData(movementData) {
         const actionCounts = {};
         movementData.forEach(ex => {
@@ -232,17 +217,17 @@ class DualModeImitationLearningSystem {
 
         console.log("📊 Movement action distribution:", actionCounts);
 
-        // If "stay still" is more than 30% of actions, reduce it
+        // Only filter if "stay still" is extremely over-represented (>60%)
         const totalActions = movementData.length;
-        const maxStillAllowed = Math.floor(totalActions * 0.3);
+        const maxStillAllowed = Math.floor(totalActions * 0.6);
 
         if (actionCounts[0] > maxStillAllowed) {
-            console.log(`📊 Reducing "stay still" actions: ${actionCounts[0]} → ${maxStillAllowed}`);
+            console.log(`📊 Reducing excessive "stay still" actions: ${actionCounts[0]} → ${maxStillAllowed}`);
 
             const stillActions = movementData.filter(ex => ex.action === 0);
             const nonStillActions = movementData.filter(ex => ex.action !== 0);
 
-            // Randomly sample "stay still" actions
+            // Simple random sampling - no strategic assumptions
             const sampledStill = this.randomSample(stillActions, maxStillAllowed);
 
             return [...nonStillActions, ...sampledStill];
@@ -251,7 +236,7 @@ class DualModeImitationLearningSystem {
         return movementData;
     }
 
-    // Train the movement model
+    // Train the movement model with enhanced features
     async trainMovementModel(movementData) {
         if (!this.tfLoaded) {
             console.error("❌ TensorFlow.js not loaded!");
@@ -259,28 +244,52 @@ class DualModeImitationLearningSystem {
         }
 
         try {
-            console.log(`🏃 Starting movement model training with ${movementData.length} examples`);
+            console.log(`🏃 Starting enhanced movement model training with ${movementData.length} examples`);
 
             const states = movementData.map(ex => ex.state);
             const actions = movementData.map(ex => ex.action);
-            const oneHotActions = this.actionsToOneHot(actions, 9); // 9 movement actions
+            const oneHotActions = this.actionsToOneHot(actions, 9);
 
-            console.log(`🏃 State dimensions: ${states[0].length}, Action examples: ${actions.length}`);
+            console.log(`🏃 Enhanced state dimensions: ${states[0].length}, Action examples: ${actions.length}`);
 
-            if (!this.movementModel) {
-                console.log("🏃 Creating new movement model...");
+            // Better model reuse logic with explicit checking
+            let isNewModel = false;
+            if (!this.movementModel || !this.isMovementModelTrained) {
+                console.log("🏃 Creating NEW enhanced movement model...");
                 this.movementModel = await this.createMovementModel(states[0].length);
+                this.modelTrainingCount = 0;
+                isNewModel = true;
             } else {
-                console.log("🏃 Using existing movement model...");
+                console.log(`🏃 REUSING existing movement model (previous training sessions: ${this.modelTrainingCount || 0})`);
+                isNewModel = false;
             }
+
+            // Increment training counter
+            this.modelTrainingCount = (this.modelTrainingCount || 0) + 1;
 
             const statesTensor = tf.tensor2d(states);
             const actionsTensor = tf.tensor2d(oneHotActions);
 
+            // Test current model performance before training
+            let initialLoss = "N/A";
+            if (!isNewModel) {
+                try {
+                    const testPrediction = await this.movementModel.predict(statesTensor.slice([0, 0], [Math.min(10, states.length), -1]));
+                    const testLoss = await tf.losses.softmaxCrossEntropy(
+                        actionsTensor.slice([0, 0], [Math.min(10, states.length), -1]),
+                        testPrediction
+                    ).data();
+                    initialLoss = testLoss[0].toFixed(4);
+                    testPrediction.dispose();
+                } catch (e) {
+                    console.log("Could not test initial loss:", e.message);
+                }
+            }
+
             const epochs = this.calculateOptimalEpochs(movementData.length);
             const batchSize = this.calculateOptimalBatchSize(movementData.length);
 
-            console.log(`🏃 Training movement model: ${epochs} epochs, batch ${batchSize}`);
+            console.log(`🏃 Training session ${this.modelTrainingCount}: ${epochs} epochs, batch ${batchSize}, initial loss: ${initialLoss}`);
 
             const history = await this.movementModel.fit(statesTensor, actionsTensor, {
                 epochs: epochs,
@@ -289,36 +298,38 @@ class DualModeImitationLearningSystem {
                 shuffle: true,
                 callbacks: {
                     onEpochEnd: (epoch, logs) => {
-                        if (epoch % 10 === 0 || epoch === epochs - 1) {
-                            console.log(`🏃 Movement Epoch ${epoch}: loss=${logs.loss.toFixed(4)}, acc=${logs.acc.toFixed(4)}`);
+                        if (epoch % 5 === 0 || epoch === epochs - 1) {
+                            console.log(`🏃 Session ${this.modelTrainingCount} Epoch ${epoch}: loss=${logs.loss.toFixed(4)}, acc=${logs.acc.toFixed(4)}`);
                         }
                     }
                 }
             });
 
+            // Clean up tensors
             statesTensor.dispose();
             actionsTensor.dispose();
 
             const finalLoss = history.history.loss[history.history.loss.length - 1];
             const finalAcc = history.history.acc[history.history.acc.length - 1];
 
-            console.log(`✅ Movement model training complete! Loss: ${finalLoss.toFixed(4)}, Accuracy: ${finalAcc.toFixed(4)}`);
+            console.log(`✅ Training session ${this.modelTrainingCount} complete!`);
+            console.log(`📊 ${isNewModel ? 'New model' : 'Continued training'}: Loss ${initialLoss} → ${finalLoss.toFixed(4)}, Accuracy: ${finalAcc.toFixed(4)}`);
 
-            // Explicitly set trained flag and log it
+            // Ensure the trained flag is set and persists
             this.isMovementModelTrained = true;
-            console.log(`🏃 Movement model trained flag set to: ${this.isMovementModelTrained}`);
 
+            // Force UI update
             this.updateUI();
 
             return true;
 
         } catch (error) {
-            console.error("Movement model training error:", error);
+            console.error("Enhanced movement model training error:", error);
+            // Don't clear the model on error - keep it for next attempt
             return false;
         }
     }
 
-    // Train the level-up model (simplified for now - could be expanded for click prediction)
     async trainLevelUpModel(levelUpData) {
         if (!this.tfLoaded) {
             console.error("❌ TensorFlow.js not loaded!");
@@ -326,16 +337,11 @@ class DualModeImitationLearningSystem {
         }
 
         try {
-            // For now, just create a simple model that learns basic level-up behavior
-            // In the future, this could predict optimal perk selections
-
             if (!this.levelUpModel) {
                 this.levelUpModel = await this.createLevelUpModel();
             }
 
             console.log(`🎯 Level-up model created with ${levelUpData.length} examples`);
-
-            // For now, mark as trained - future versions could do actual click prediction
             this.isLevelUpModelTrained = true;
             this.updateUI();
 
@@ -347,8 +353,10 @@ class DualModeImitationLearningSystem {
         }
     }
 
-    // Create specialized movement model
+    // Also replace createMovementModel to add diagnostics
     async createMovementModel(stateSize) {
+        console.log(`🏗️ Creating enhanced movement model with state size: ${stateSize}`);
+
         const model = tf.sequential({
             layers: [
                 tf.layers.dense({
@@ -365,33 +373,50 @@ class DualModeImitationLearningSystem {
                 }),
                 tf.layers.dropout({ rate: 0.2 }),
                 tf.layers.dense({
-                    units: 9, // 9 movement actions
-                    activation: 'softmax'
-                })
-            ]
-        });
-
-        model.compile({
-            optimizer: tf.train.adam(0.001),
-            loss: 'categoricalCrossentropy',
-            metrics: ['accuracy']
-        });
-
-        return model;
-    }
-
-    // Create simplified level-up model
-    async createLevelUpModel() {
-        // For now, return a dummy model - future versions could predict clicks
-        const model = tf.sequential({
-            layers: [
-                tf.layers.dense({
-                    inputShape: [10], // Simplified state for level-up
                     units: 32,
                     activation: 'relu'
                 }),
                 tf.layers.dense({
-                    units: 4, // Simple level-up actions (browse, select, etc.)
+                    units: 9,
+                    activation: 'softmax'
+                })
+            ]
+        });
+
+        // Compile the model (only done once when creating)
+        model.compile({
+            optimizer: tf.train.adam(0.001),
+            loss: 'categoricalCrossentropy',
+            metrics: ['accuracy']
+        });
+
+        console.log(`🏗️ Model created with ${model.weights.length} weight tensors`);
+
+        // Test that the model works
+        try {
+            const testInput = tf.tensor2d([[...new Array(stateSize).fill(0.5)]]);
+            const testPrediction = await model.predict(testInput);
+            const testOutput = await testPrediction.data();
+            console.log(`🏗️ New model test prediction: ${testOutput.slice(0, 3).map(x => x.toFixed(3)).join(',')}... (random weights)`);
+            testInput.dispose();
+            testPrediction.dispose();
+        } catch (e) {
+            console.log(`🏗️ New model test FAILED: ${e.message}`);
+        }
+
+        return model;
+    }
+
+    async createLevelUpModel() {
+        const model = tf.sequential({
+            layers: [
+                tf.layers.dense({
+                    inputShape: [10],
+                    units: 32,
+                    activation: 'relu'
+                }),
+                tf.layers.dense({
+                    units: 4,
                     activation: 'softmax'
                 })
             ]
@@ -406,7 +431,6 @@ class DualModeImitationLearningSystem {
         return model;
     }
 
-    // Record frame with dual-mode awareness
     recordFrame() {
         if (!this.isRecording || !this.scene) return;
 
@@ -466,7 +490,6 @@ class DualModeImitationLearningSystem {
         }
     }
 
-    // Use appropriate model based on game mode
     async controlMovement() {
         if (!this.isUsingImitationMode) return;
 
@@ -489,7 +512,7 @@ class DualModeImitationLearningSystem {
         this.lastDecisionTime = now;
     }
 
-    // Use movement model for decisions
+    // Enhanced debug output for movement constraints
     async chooseMovementAction(state) {
         if (!this.movementModel || !this.isMovementModelTrained) {
             return 0;
@@ -504,7 +527,24 @@ class DualModeImitationLearningSystem {
 
             if (this.debugMode) {
                 const actionNames = ['Stay', 'Up', 'Up-Right', 'Right', 'Down-Right', 'Down', 'Down-Left', 'Left', 'Up-Left'];
+
+                // Show movement constraints for debugging
+                const constraints = state.slice(10, 18); // Features 10-17 are the movement constraints
+                const blockedDirections = constraints.map((constraint, i) =>
+                    constraint === 0 ? actionNames[i + 1] : null
+                ).filter(d => d);
+
+                const constrainedDirections = constraints.map((constraint, i) =>
+                    constraint === 0.5 ? actionNames[i + 1] : null
+                ).filter(d => d);
+
                 console.log(`🏃 MOVEMENT AI: ${actionNames[action]} (${(probabilities[action] * 100).toFixed(1)}%)`);
+                if (blockedDirections.length > 0) {
+                    console.log(`🚫 BLOCKED directions: ${blockedDirections.join(', ')}`);
+                }
+                if (constrainedDirections.length > 0) {
+                    console.log(`⚠️ CONSTRAINED directions: ${constrainedDirections.join(', ')}`);
+                }
             }
 
             stateTensor.dispose();
@@ -517,9 +557,7 @@ class DualModeImitationLearningSystem {
         }
     }
 
-    // Handle level-up with model (simplified for now)
     handleLevelUpWithModel() {
-        // For now, use the simple approach
         if (!this.levelUpStartTime) {
             this.levelUpStartTime = Date.now();
             this.levelUpHandled = false;
@@ -561,7 +599,6 @@ class DualModeImitationLearningSystem {
         }
     }
 
-    // Start recording
     startRecording(sessionName = null) {
         if (this.isRecording) {
             console.log("⚠️ Already recording!");
@@ -588,7 +625,6 @@ class DualModeImitationLearningSystem {
         this.updateUI();
     }
 
-    // Stop recording
     stopRecording() {
         if (!this.isRecording) {
             console.log("⚠️ Not currently recording!");
@@ -608,7 +644,6 @@ class DualModeImitationLearningSystem {
         this.updateUI();
     }
 
-    // Toggle imitation mode
     toggleImitationMode() {
         if (this.isTraining) {
             console.log("⚠️ Cannot toggle imitation mode while training is in progress");
@@ -629,7 +664,6 @@ class DualModeImitationLearningSystem {
                 return;
             }
 
-            // Disable the reinforcement learning AI if it's active
             if (window.gameAI?.aiActive) {
                 console.log("🔄 Disabling reinforcement learning AI");
                 window.gameAI.aiActive = false;
@@ -644,7 +678,6 @@ class DualModeImitationLearningSystem {
         this.updateUI();
     }
 
-    // Manual training on current session
     async trainOnCurrentSession() {
         if (this.isTraining) {
             console.log("⚠️ Training already in progress! Waiting for completion...");
@@ -670,7 +703,6 @@ class DualModeImitationLearningSystem {
         this.showTrainingOverlay("Manual dual-mode training in progress...");
 
         try {
-            // Use the same processing as automatic training
             await this.processDualModeTrainingInternal();
             this.showTrainingOverlay("Manual training complete!", 2000);
             return true;
@@ -684,16 +716,13 @@ class DualModeImitationLearningSystem {
         }
     }
 
-    // Internal training logic - NO AUTO-TRIGGER
     async processDualModeTrainingInternal() {
-        // Separate data into movement and level-up examples
         const separatedData = this.separateTrainingData();
 
         console.log(`📊 Separated data: ${separatedData.movement.length} movement, ${separatedData.levelUp.length} level-up`);
 
         let trainingSuccess = false;
 
-        // Train movement model if we have enough data
         if (separatedData.movement.length >= this.movementDataThreshold) {
             console.log("🏃 Training movement model...");
             const movementSuccess = await this.trainMovementModel(separatedData.movement);
@@ -702,7 +731,6 @@ class DualModeImitationLearningSystem {
             console.log(`📊 Not enough movement data: ${separatedData.movement.length} < ${this.movementDataThreshold}`);
         }
 
-        // Train level-up model if we have enough data
         if (separatedData.levelUp.length >= this.levelUpDataThreshold) {
             console.log("🎯 Training level-up model...");
             const levelUpSuccess = await this.trainLevelUpModel(separatedData.levelUp);
@@ -714,7 +742,6 @@ class DualModeImitationLearningSystem {
         return trainingSuccess;
     }
 
-    // Utility methods (carried over from original)
     getCurrentHumanAction() {
         const inputSystem = window.InputSystem;
         if (!inputSystem?.keyboard?.cursors || !inputSystem?.keyboard?.wasdKeys) return null;
@@ -805,13 +832,12 @@ class DualModeImitationLearningSystem {
         this.pressedKeys.clear();
     }
 
-    // Navigation methods for level-up
     navigateToNextPerk() {
-        const gameWidth = window.game?.config?.width || 1200;
-        const gameHeight = window.game?.config?.height || 800;
+        const gameWidth = window.game?.config?.width || (window.KAJISULI_MODE ? 720 : 1280);
+        const gameHeight = window.game?.config?.height || (window.KAJISULI_MODE ? 1200 : 800);
         const centerX = gameWidth / 2;
         const centerY = gameHeight / 2;
-        const kajisuliMode = (typeof KAJISULI_MODE !== 'undefined') ? KAJISULI_MODE : false;
+        const kajisuliMode = window.KAJISULI_MODE ?? false;
         const arrowDistance = kajisuliMode ? gameWidth * 0.32 : gameWidth * 0.16;
         const rightArrowX = centerX + arrowDistance;
         const rightArrowY = centerY;
@@ -820,8 +846,8 @@ class DualModeImitationLearningSystem {
     }
 
     selectRandomPerk() {
-        const gameWidth = window.game?.config?.width || 1200;
-        const gameHeight = window.game?.config?.height || 800;
+        const gameWidth = window.game?.config?.width || (window.KAJISULI_MODE ? 720 : 1280);
+        const gameHeight = window.game?.config?.height || (window.KAJISULI_MODE ? 1200 : 800);
         const centerX = gameWidth / 2;
         const centerY = gameHeight / 2;
 
@@ -830,8 +856,8 @@ class DualModeImitationLearningSystem {
     }
 
     emergencyLevelUpExit() {
-        const gameWidth = window.game?.config?.width || 1200;
-        const gameHeight = window.game?.config?.height || 800;
+        const gameWidth = window.game?.config?.width || (window.KAJISULI_MODE ? 720 : 1280);
+        const gameHeight = window.game?.config?.height || (window.KAJISULI_MODE ? 1200 : 800);
         this.clickAtGamePosition(gameWidth / 2, gameHeight / 2);
         setTimeout(() => this.simulateKeyPress('Enter'), 200);
     }
@@ -841,8 +867,8 @@ class DualModeImitationLearningSystem {
         if (!canvas) return;
 
         const rect = canvas.getBoundingClientRect();
-        const gameWidth = window.game?.config?.width || 1200;
-        const gameHeight = window.game?.config?.height || 800;
+        const gameWidth = window.game?.config?.width || (window.KAJISULI_MODE ? 720 : 1280);
+        const gameHeight = window.game?.config?.height || (window.KAJISULI_MODE ? 1200 : 800);
         const canvasX = rect.left + (gameX / gameWidth) * rect.width;
         const canvasY = rect.top + (gameY / gameHeight) * rect.height;
 
@@ -866,7 +892,6 @@ class DualModeImitationLearningSystem {
         setTimeout(() => document.dispatchEvent(upEvent), 100);
     }
 
-    // Utility methods
     calculateOptimalEpochs(dataSize) {
         if (dataSize < 200) return 50;
         if (dataSize < 1000) return 40;
@@ -932,9 +957,9 @@ class DualModeImitationLearningSystem {
 
         const statusColor = this.isTraining ? '#ffaa00' : '#9C27B0';
         this.trainingOverlay.innerHTML = `
-            <div style="margin-bottom: 15px; color: ${statusColor};">🤖 Dual-Mode AI Training</div>
+            <div style="margin-bottom: 15px; color: ${statusColor};">🤖 Enhanced Dual-Mode AI Training</div>
             <div>${message}</div>
-            ${this.isTraining ? '<div style="margin-top: 10px; font-size: 12px; color: #aaa;">Separating movement and level-up training...</div>' : ''}
+            ${this.isTraining ? '<div style="margin-top: 10px; font-size: 12px; color: #aaa;">Enhanced boundary awareness and rational movement...</div>' : ''}
         `;
 
         document.body.appendChild(this.trainingOverlay);
@@ -968,7 +993,7 @@ class DualModeImitationLearningSystem {
 
         ui.innerHTML = `
             <div style="margin-bottom: 10px;">
-                <div><strong>🎬 Dual-Mode Imitation</strong></div>
+                <div><strong>🎬 Enhanced Dual-Mode Imitation</strong></div>
                 <div>Recording: <span id="recording-status">Off</span></div>
                 <div>Training: <span id="training-status">Ready</span></div>
                 <div>Movement Model: <span id="movement-model-status">Not Trained</span></div>
@@ -1009,13 +1034,12 @@ class DualModeImitationLearningSystem {
             </div>
             
             <div style="margin-top: 8px; font-size: 10px; color: #aaa;">
-                Manual training only - Enhanced boundary awareness
+                Enhanced boundary awareness - Rational movement training
             </div>
         `;
 
         document.body.appendChild(ui);
 
-        // Add event listeners
         document.getElementById('toggle-recording').onclick = () => {
             if (this.isRecording) {
                 this.stopRecording();
@@ -1029,7 +1053,7 @@ class DualModeImitationLearningSystem {
         document.getElementById('export-session').onclick = () => this.exportCurrentSession();
         document.getElementById('toggle-debug').onclick = () => {
             this.debugMode = !this.debugMode;
-            console.log(`🔍 Dual-mode debug: ${this.debugMode ? 'ON' : 'OFF'}`);
+            console.log(`🔍 Enhanced dual-mode debug: ${this.debugMode ? 'ON' : 'OFF'}`);
         };
         document.getElementById('save-movement').onclick = () => this.saveMovementModel();
         document.getElementById('load-movement').onclick = () => this.loadMovementModel();
@@ -1064,8 +1088,14 @@ class DualModeImitationLearningSystem {
         }
 
         if (movementModelStatus) {
-            movementModelStatus.textContent = this.isMovementModelTrained ? 'Trained' : 'Not Trained';
-            movementModelStatus.style.color = this.isMovementModelTrained ? '#44ff44' : '#888';
+            if (this.isMovementModelTrained) {
+                const sessions = this.modelTrainingCount || 0;
+                movementModelStatus.textContent = sessions > 0 ? `Trained (${sessions}x)` : 'Trained';
+                movementModelStatus.style.color = '#44ff44';
+            } else {
+                movementModelStatus.textContent = 'Not Trained';
+                movementModelStatus.style.color = '#888';
+            }
         }
 
         if (levelupModelStatus) {
@@ -1113,19 +1143,18 @@ class DualModeImitationLearningSystem {
         }
     }
 
-    // Model saving/loading
     async saveMovementModel() {
         if (!this.movementModel) {
             console.log("❌ No movement model to save!");
             return;
         }
 
-        const modelName = prompt("Movement model name:", `dual_movement_${Date.now()}`);
+        const modelName = prompt("Movement model name:", `enhanced_movement_${Date.now()}`);
         if (!modelName) return;
 
         try {
             await this.movementModel.save(`localstorage://${modelName}`);
-            console.log(`✅ Movement model saved: ${modelName}`);
+            console.log(`✅ Enhanced movement model saved: ${modelName}`);
         } catch (error) {
             console.error("Save failed:", error);
         }
@@ -1143,7 +1172,7 @@ class DualModeImitationLearningSystem {
         try {
             this.movementModel = await tf.loadLayersModel(`localstorage://${modelName}`);
             this.isMovementModelTrained = true;
-            console.log(`✅ Movement model loaded: ${modelName}`);
+            console.log(`✅ Enhanced movement model loaded: ${modelName}`);
             this.updateUI();
         } catch (error) {
             console.error("Load failed:", error);
@@ -1159,7 +1188,7 @@ class DualModeImitationLearningSystem {
         const separatedData = this.separateTrainingData();
 
         const exportData = {
-            version: 'dual-mode',
+            version: 'enhanced-dual-mode',
             count: this.recordingData.length,
             movementData: separatedData.movement,
             levelUpData: separatedData.levelUp,
@@ -1168,7 +1197,7 @@ class DualModeImitationLearningSystem {
                     (this.recordingData[this.recordingData.length - 1].timestamp - this.recordingData[0].timestamp) / 1000 : 0,
                 movementExamples: separatedData.movement.length,
                 levelUpExamples: separatedData.levelUp.length,
-                dualMode: true
+                enhancedBoundaryAwareness: true
             }
         };
 
@@ -1177,13 +1206,13 @@ class DualModeImitationLearningSystem {
 
         const a = document.createElement('a');
         a.href = url;
-        a.download = `dual_mode_session_${Date.now()}.json`;
+        a.download = `enhanced_dual_mode_session_${Date.now()}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        console.log(`📥 Exported dual-mode session: ${separatedData.movement.length} movement, ${separatedData.levelUp.length} level-up`);
+        console.log(`📥 Exported enhanced dual-mode session: ${separatedData.movement.length} movement, ${separatedData.levelUp.length} level-up`);
     }
 
     setupKeyboardShortcuts() {
@@ -1244,37 +1273,52 @@ class DualModeImitationLearningSystem {
 }
 
 /**
- * DUAL-MODE STATE EXTRACTOR
- * Provides different state representations for movement vs level-up
+ * ENHANCED DUAL-MODE STATE EXTRACTOR
+ * Enhanced boundary awareness and rational game space representation
  */
 class DualModeStateExtractor {
     constructor() {
-        this.gameWidth = 1200;
-        this.gameHeight = 800;
+        this.updateResolution();
         this.lastMovementState = null;
         this.lastLevelUpState = null;
     }
 
+    updateResolution() {
+        const isKajisuli = window.KAJISULI_MODE ?? false;
+        if (isKajisuli) {
+            this.gameWidth = 720;
+            this.gameHeight = 1200;
+        } else {
+            this.gameWidth = 1280;
+            this.gameHeight = 800;
+        }
+    }
+
     initialize(scene) {
         this.scene = scene;
+
+        this.updateResolution();
+
         if (scene?.game?.config) {
             this.gameWidth = scene.game.config.width;
             this.gameHeight = scene.game.config.height;
         }
-        console.log("🧠 Dual-mode state extractor initialized (29 features - enhanced boundary awareness)");
+
+        console.log(`🧠 Enhanced state extractor initialized (${this.gameWidth}x${this.gameHeight}, 38 features - rational game space)`);
     }
 
     getState(mode = 'movement') {
         try {
+            this.updateResolution();
+
             if (mode === 'movement') {
                 return this.getMovementState();
             } else if (mode === 'levelup') {
                 return this.getLevelUpState();
             }
-
-            return this.getMovementState(); // Default to movement
+            return this.getMovementState();
         } catch (error) {
-            console.error("Dual-mode state extraction error:", error);
+            console.error("State extraction error:", error);
             return mode === 'movement' ? this.lastMovementState : this.lastLevelUpState;
         }
     }
@@ -1286,7 +1330,7 @@ class DualModeStateExtractor {
         if (window.gameOver ?? gameOver) return this.lastMovementState;
 
         const state = [
-            // Player position and status
+            // Player position and status (6 features)
             gamePlayer.x / this.gameWidth,
             gamePlayer.y / this.gameHeight,
             (window.playerHealth || playerHealth || 100) / (window.maxPlayerHealth || maxPlayerHealth || 100),
@@ -1294,83 +1338,284 @@ class DualModeStateExtractor {
             Math.min((window.playerSpeed || playerSpeed || 8) / 20, 1),
             Math.min((window.elapsedTime || elapsedTime || 0) / 1800, 1),
 
-            // Enhanced boundary awareness
-            ...this.getEnhancedBoundaryInfo(gamePlayer),
+            // Clear boundary representation (12 features)
+            ...this.getClearBoundaryInfo(gamePlayer),
 
-            // Simplified enemy threats (8 directions)
-            ...this.getDirectionalThreats(gamePlayer),
+            // Enhanced enemy positioning (16 features) 
+            ...this.getEnemyPositionInfo(gamePlayer),
 
-            // Additional context
-            Math.min((window.score || score || 0) / 1000, 1),
-            Math.min((window.playerLevel || playerLevel || 1) / 20, 1)
+            // Movement context (4 features)
+            ...this.getMovementContext(gamePlayer)
         ];
 
         this.lastMovementState = state;
         return state;
     }
 
-    getEnhancedBoundaryInfo(player) {
+    // Replace the trainMovementModel method with this heavily instrumented version
+    async trainMovementModel(movementData) {
+        if (!this.tfLoaded) {
+            console.error("❌ TensorFlow.js not loaded!");
+            return false;
+        }
+
+        try {
+            console.log(`🏃 Starting enhanced movement model training with ${movementData.length} examples`);
+
+            const states = movementData.map(ex => ex.state);
+            const actions = movementData.map(ex => ex.action);
+            const oneHotActions = this.actionsToOneHot(actions, 9);
+
+            console.log(`🏃 Enhanced state dimensions: ${states[0].length}, Action examples: ${actions.length}`);
+
+            // HEAVY DIAGNOSTICS: Check model state thoroughly
+            console.log("🔍 DIAGNOSTIC: Model existence check:");
+            console.log(`  - this.movementModel exists: ${!!this.movementModel}`);
+            console.log(`  - this.isMovementModelTrained: ${this.isMovementModelTrained}`);
+            console.log(`  - this.modelTrainingCount: ${this.modelTrainingCount || 0}`);
+
+            if (this.movementModel) {
+                console.log(`  - Model object type: ${typeof this.movementModel}`);
+                console.log(`  - Model has weights: ${!!this.movementModel.weights}`);
+                console.log(`  - Model weights length: ${this.movementModel.weights ? this.movementModel.weights.length : 'N/A'}`);
+                console.log(`  - Model compiled: ${!!this.movementModel.optimizer}`);
+
+                // Test if model can make predictions (sign that weights exist)
+                try {
+                    const testInput = tf.tensor2d([[...new Array(states[0].length).fill(0.5)]]);
+                    const testPrediction = await this.movementModel.predict(testInput);
+                    const testOutput = await testPrediction.data();
+                    console.log(`  - Model prediction test: ${testOutput.slice(0, 3).map(x => x.toFixed(3)).join(',')}... (first 3 values)`);
+                    testInput.dispose();
+                    testPrediction.dispose();
+                } catch (e) {
+                    console.log(`  - Model prediction test FAILED: ${e.message}`);
+                }
+            }
+
+            let isNewModel = false;
+            let modelCreationReason = "";
+
+            // Determine if we need a new model
+            if (!this.movementModel) {
+                isNewModel = true;
+                modelCreationReason = "movementModel is null/undefined";
+            } else if (!this.isMovementModelTrained) {
+                isNewModel = true;
+                modelCreationReason = "isMovementModelTrained is false";
+            } else if (!this.movementModel.weights || this.movementModel.weights.length === 0) {
+                isNewModel = true;
+                modelCreationReason = "model has no weights";
+            } else {
+                isNewModel = false;
+            }
+
+            if (isNewModel) {
+                console.log(`🏃 Creating NEW model because: ${modelCreationReason}`);
+                this.movementModel = await this.createMovementModel(states[0].length);
+                this.modelTrainingCount = 0;
+            } else {
+                console.log(`🏃 REUSING existing movement model (previous sessions: ${this.modelTrainingCount || 0})`);
+            }
+
+            // CRITICAL: Test the model BEFORE training to get baseline
+            const statesTensor = tf.tensor2d(states);
+            const actionsTensor = tf.tensor2d(oneHotActions);
+
+            let initialLoss = "N/A";
+            let initialAcc = "N/A";
+
+            if (!isNewModel) {
+                try {
+                    console.log("🔍 Testing model performance BEFORE training...");
+
+                    // Use a small subset for initial testing
+                    const testSize = Math.min(32, states.length);
+                    const testStates = statesTensor.slice([0, 0], [testSize, -1]);
+                    const testActions = actionsTensor.slice([0, 0], [testSize, -1]);
+
+                    const prediction = await this.movementModel.predict(testStates);
+
+                    // Calculate loss manually
+                    const loss = await tf.losses.softmaxCrossEntropy(testActions, prediction).data();
+                    initialLoss = loss[0].toFixed(4);
+
+                    // Calculate accuracy manually
+                    const predictionArgMax = tf.argMax(prediction, 1);
+                    const actualArgMax = tf.argMax(testActions, 1);
+                    const correct = tf.equal(predictionArgMax, actualArgMax);
+                    const accuracy = await tf.mean(tf.cast(correct, 'float32')).data();
+                    initialAcc = accuracy[0].toFixed(4);
+
+                    console.log(`🔍 PRE-TRAINING: Loss=${initialLoss}, Acc=${initialAcc}`);
+
+                    // Cleanup test tensors
+                    testStates.dispose();
+                    testActions.dispose();
+                    prediction.dispose();
+                    predictionArgMax.dispose();
+                    actualArgMax.dispose();
+                    correct.dispose();
+
+                } catch (e) {
+                    console.log(`🔍 PRE-TRAINING test failed: ${e.message}`);
+                }
+            }
+
+            // Increment training counter
+            this.modelTrainingCount = (this.modelTrainingCount || 0) + 1;
+
+            const epochs = this.calculateOptimalEpochs(movementData.length);
+            const batchSize = this.calculateOptimalBatchSize(movementData.length);
+
+            console.log(`🏃 Training session ${this.modelTrainingCount}: ${epochs} epochs, batch ${batchSize}`);
+            console.log(`🏃 Expected: ${isNewModel ? 'Loss should start high (new model)' : `Loss should start around ${initialLoss} (continuing training)`}`);
+
+            const history = await this.movementModel.fit(statesTensor, actionsTensor, {
+                epochs: epochs,
+                batchSize: batchSize,
+                validationSplit: 0.15,
+                shuffle: true,
+                callbacks: {
+                    onEpochEnd: (epoch, logs) => {
+                        if (epoch === 0) {
+                            // Log epoch 0 specifically to see if it matches our expectation
+                            console.log(`🏃 EPOCH 0: loss=${logs.loss.toFixed(4)}, acc=${logs.acc.toFixed(4)} ${isNewModel ? '(new model)' : '(should match pre-training)'}`);
+
+                            if (!isNewModel && initialLoss !== "N/A") {
+                                const lossDiff = Math.abs(logs.loss - parseFloat(initialLoss));
+                                if (lossDiff > 0.1) {
+                                    console.log(`⚠️ WARNING: Epoch 0 loss (${logs.loss.toFixed(4)}) differs significantly from pre-training loss (${initialLoss}). This suggests weights were reset!`);
+                                } else {
+                                    console.log(`✅ Good: Epoch 0 loss matches pre-training loss (diff: ${lossDiff.toFixed(4)})`);
+                                }
+                            }
+                        } else if (epoch % 5 === 0 || epoch === epochs - 1) {
+                            console.log(`🏃 Session ${this.modelTrainingCount} Epoch ${epoch}: loss=${logs.loss.toFixed(4)}, acc=${logs.acc.toFixed(4)}`);
+                        }
+                    }
+                }
+            });
+
+            // Clean up tensors
+            statesTensor.dispose();
+            actionsTensor.dispose();
+
+            const finalLoss = history.history.loss[history.history.loss.length - 1];
+            const finalAcc = history.history.acc[history.history.acc.length - 1];
+
+            console.log(`✅ Training session ${this.modelTrainingCount} complete!`);
+            console.log(`📊 ${isNewModel ? 'New model' : 'Continued training'}: Loss ${initialLoss} → ${finalLoss.toFixed(4)}, Accuracy: ${initialAcc} → ${finalAcc.toFixed(4)}`);
+
+            // Ensure the trained flag is set and persists
+            this.isMovementModelTrained = true;
+
+            // VERIFICATION: Test the model again after training to ensure weights persisted
+            try {
+                const testInput = tf.tensor2d([[...new Array(states[0].length).fill(0.5)]]);
+                const testPrediction = await this.movementModel.predict(testInput);
+                const testOutput = await testPrediction.data();
+                console.log(`🔍 POST-TRAINING: Model can still predict: ${testOutput.slice(0, 3).map(x => x.toFixed(3)).join(',')}...`);
+                testInput.dispose();
+                testPrediction.dispose();
+            } catch (e) {
+                console.log(`🔍 POST-TRAINING test FAILED: ${e.message}`);
+            }
+
+            // Force UI update
+            this.updateUI();
+
+            return true;
+
+        } catch (error) {
+            console.error("Enhanced movement model training error:", error);
+            // Don't clear the model on error - keep it for next attempt
+            return false;
+        }
+    }
+
+    // Fix 2: Replace boundary info with movement constraints
+    getClearBoundaryInfo(player) {
         const normalizedX = player.x / this.gameWidth;
         const normalizedY = player.y / this.gameHeight;
 
-        // Basic boundary distances
+        // Raw distances to each boundary (4 features)
         const leftDist = normalizedX;
         const rightDist = 1 - normalizedX;
         const topDist = normalizedY;
         const bottomDist = 1 - normalizedY;
 
-        // Minimum distance to any boundary (danger indicator)
-        const minBoundaryDist = Math.min(leftDist, rightDist, topDist, bottomDist);
-
-        // Explicit corner detection (these should be strong danger signals)
-        const cornerThreshold = 0.15; // Within 15% of any corner
-        const inTopLeftCorner = leftDist < cornerThreshold && topDist < cornerThreshold ? 1 : 0;
-        const inTopRightCorner = rightDist < cornerThreshold && topDist < cornerThreshold ? 1 : 0;
-        const inBottomLeftCorner = leftDist < cornerThreshold && bottomDist < cornerThreshold ? 1 : 0;
-        const inBottomRightCorner = rightDist < cornerThreshold && bottomDist < cornerThreshold ? 1 : 0;
-
-        // Edge proximity warnings (closer to boundaries)
-        const edgeThreshold = 0.1; // Within 10% of edge
-        const nearLeftEdge = leftDist < edgeThreshold ? 1 : 0;
-        const nearRightEdge = rightDist < edgeThreshold ? 1 : 0;
-        const nearTopEdge = topDist < edgeThreshold ? 1 : 0;
-        const nearBottomEdge = bottomDist < edgeThreshold ? 1 : 0;
+        // Movement constraints for each direction (8 features)
+        const movementConstraints = this.getMovementConstraints(normalizedX, normalizedY);
 
         return [
-            leftDist, rightDist, topDist, bottomDist,     // 4 features: basic distances
-            minBoundaryDist,                              // 1 feature: overall danger
-            inTopLeftCorner, inTopRightCorner,           // 2 features: corner detection
-            inBottomLeftCorner, inBottomRightCorner,     // 2 features: corner detection  
-            nearLeftEdge, nearRightEdge,                 // 2 features: edge proximity
-            nearTopEdge, nearBottomEdge                  // 2 features: edge proximity
-        ]; // Total: 13 features (was 4)
+            leftDist, rightDist, topDist, bottomDist,  // Basic distances (4)
+            ...movementConstraints                      // Movement constraints (8)
+        ];
     }
 
-    getLevelUpState() {
-        // Simplified state for level-up context
-        const state = [
-            // Basic game context
-            Math.min((window.playerLevel || playerLevel || 1) / 20, 1),
-            (window.playerHealth || playerHealth || 100) / (window.maxPlayerHealth || maxPlayerHealth || 100),
-            Math.min((window.playerDamage || playerDamage || 10) / 100, 1),
-            Math.min((window.playerSpeed || playerSpeed || 8) / 20, 1),
-            Math.min((window.playerLuck || playerLuck || 10) / 50, 1),
-            Math.min((window.elapsedTime || elapsedTime || 0) / 1800, 1),
-            Math.min((window.score || score || 0) / 1000, 1),
+    // New method: Movement constraints instead of dangers
+    getMovementConstraints(normalizedX, normalizedY) {
+        // For each of 8 movement directions, can we move there?
+        // 1.0 = FREE to move this direction
+        // 0.0 = BLOCKED (boundary prevents movement)
+        // 0.5 = CONSTRAINED (can move a little but will hit boundary soon)
 
-            // Placeholder values for future perk analysis
-            0, 0, 0
+        const directions = [
+            { dx: 0, dy: -1, name: 'up' },        // 0: Up
+            { dx: 1, dy: -1, name: 'up-right' },  // 1: Up-right  
+            { dx: 1, dy: 0, name: 'right' },      // 2: Right
+            { dx: 1, dy: 1, name: 'down-right' }, // 3: Down-right
+            { dx: 0, dy: 1, name: 'down' },       // 4: Down
+            { dx: -1, dy: 1, name: 'down-left' }, // 5: Down-left
+            { dx: -1, dy: 0, name: 'left' },      // 6: Left
+            { dx: -1, dy: -1, name: 'up-left' }   // 7: Up-left
         ];
 
-        this.lastLevelUpState = state;
-        return state;
+        const blockedThreshold = 0.05;     // Within 5% of boundary = blocked
+        const constrainedThreshold = 0.15; // Within 15% of boundary = constrained
+
+        const constraints = [];
+
+        directions.forEach(dir => {
+            // Simulate a small move in this direction
+            const moveSize = 0.03; // Small test move
+            const newX = normalizedX + dir.dx * moveSize;
+            const newY = normalizedY + dir.dy * moveSize;
+
+            // Check if this move would be out of bounds
+            const wouldBeOutOfBounds = (newX < 0 || newX > 1 || newY < 0 || newY > 1);
+
+            if (wouldBeOutOfBounds) {
+                constraints.push(0.0); // BLOCKED - can't move this direction
+                return;
+            }
+
+            // Check distances from new position to boundaries
+            const newLeftDist = newX;
+            const newRightDist = 1 - newX;
+            const newTopDist = newY;
+            const newBottomDist = 1 - newY;
+
+            const minDistAfterMove = Math.min(newLeftDist, newRightDist, newTopDist, newBottomDist);
+
+            if (minDistAfterMove < blockedThreshold) {
+                constraints.push(0.0); // BLOCKED - would hit boundary immediately
+            } else if (minDistAfterMove < constrainedThreshold) {
+                constraints.push(0.5); // CONSTRAINED - can move but will hit boundary soon
+            } else {
+                constraints.push(1.0); // FREE - plenty of room to move
+            }
+        });
+
+        return constraints;
     }
 
-    getDirectionalThreats(player) {
+    getMovementViability(normalizedX, normalizedY) {
         const directions = [
             { dx: 0, dy: -1 },   // Up
             { dx: 1, dy: -1 },   // Up-right
-            { dx: 1, dy: 0 },    // Right
+            { dx: 1, dy: 0 },    // Right  
             { dx: 1, dy: 1 },    // Down-right
             { dx: 0, dy: 1 },    // Down
             { dx: -1, dy: 1 },   // Down-left
@@ -1378,32 +1623,217 @@ class DualModeStateExtractor {
             { dx: -1, dy: -1 }   // Up-left
         ];
 
-        const checkDistance = 120;
-        const threats = [];
+        const viability = [];
+        const moveStepSize = 0.1;
 
         directions.forEach(dir => {
-            const checkX = player.x + dir.dx * checkDistance;
-            const checkY = player.y + dir.dy * checkDistance;
+            let steps = 0;
+            let testX = normalizedX;
+            let testY = normalizedY;
 
-            let threatLevel = 0;
+            for (let i = 0; i < 5; i++) {
+                testX += dir.dx * moveStepSize;
+                testY += dir.dy * moveStepSize;
 
-            try {
-                const enemies = window.EnemySystem?.enemiesGroup?.getChildren() || [];
-                for (const enemy of enemies) {
-                    if (enemy?.active && enemy.x !== undefined) {
-                        const dist = Math.sqrt(Math.pow(enemy.x - checkX, 2) + Math.pow(enemy.y - checkY, 2));
-                        if (dist < checkDistance) {
-                            const intensity = Math.max(0, 1 - dist / checkDistance);
-                            threatLevel += intensity;
-                        }
+                if (testX < 0.05 || testX > 0.95 || testY < 0.05 || testY > 0.95) {
+                    break;
+                }
+                steps++;
+            }
+
+            viability.push(Math.min(steps / 5, 1));
+        });
+
+        return viability;
+    }
+
+    getEnemyPositionInfo(player) {
+        const enemies = this.getActiveEnemies();
+
+        const threatDensity = this.getDirectionalThreatDensity(player, enemies);
+        const closestEnemies = this.getClosestEnemiesInfo(player, enemies);
+        const safeZones = this.getSafeZoneInfo(player, enemies);
+
+        return [
+            ...threatDensity,    // 8 features
+            ...closestEnemies,   // 6 features  
+            ...safeZones         // 2 features
+        ];
+    }
+
+    getActiveEnemies() {
+        try {
+            const enemies = window.EnemySystem?.enemiesGroup?.getChildren() || [];
+            return enemies.filter(enemy => enemy?.active && enemy.x !== undefined);
+        } catch (e) {
+            return [];
+        }
+    }
+
+    getDirectionalThreatDensity(player, enemies) {
+        const directions = [
+            { dx: 0, dy: -1 }, { dx: 1, dy: -1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 },
+            { dx: 0, dy: 1 }, { dx: -1, dy: 1 }, { dx: -1, dy: 0 }, { dx: -1, dy: -1 }
+        ];
+
+        const threats = [];
+        const sectorRadius = 150;
+
+        directions.forEach(dir => {
+            let threatScore = 0;
+            const sectorCenterX = player.x + dir.dx * sectorRadius;
+            const sectorCenterY = player.y + dir.dy * sectorRadius;
+
+            enemies.forEach(enemy => {
+                const distToEnemy = Math.sqrt(
+                    Math.pow(enemy.x - player.x, 2) +
+                    Math.pow(enemy.y - player.y, 2)
+                );
+
+                if (distToEnemy < sectorRadius * 1.5) {
+                    const distToSectorCenter = Math.sqrt(
+                        Math.pow(enemy.x - sectorCenterX, 2) +
+                        Math.pow(enemy.y - sectorCenterY, 2)
+                    );
+
+                    if (distToSectorCenter < sectorRadius) {
+                        const threatIntensity = Math.max(0, 1 - distToEnemy / sectorRadius);
+                        threatScore += threatIntensity;
                     }
                 }
-            } catch (e) { }
+            });
 
-            threats.push(Math.min(threatLevel, 1));
+            threats.push(Math.min(threatScore, 1));
         });
 
         return threats;
+    }
+
+    getClosestEnemiesInfo(player, enemies) {
+        if (enemies.length === 0) {
+            return [1, 0, 1, 0, 1, 0];
+        }
+
+        const enemyData = enemies.map(enemy => {
+            const dx = enemy.x - player.x;
+            const dy = enemy.y - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) / Math.PI;
+
+            return { distance, angle };
+        });
+
+        enemyData.sort((a, b) => a.distance - b.distance);
+
+        const result = [];
+        for (let i = 0; i < 3; i++) {
+            if (i < enemyData.length) {
+                const enemy = enemyData[i];
+                result.push(
+                    Math.min(enemy.distance / 300, 1),
+                    enemy.angle
+                );
+            } else {
+                result.push(1, 0);
+            }
+        }
+
+        return result;
+    }
+
+    getSafeZoneInfo(player, enemies) {
+        const checkDirections = [
+            { dx: -1, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+            { dx: -1, dy: -1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: 1, dy: 1 }
+        ];
+
+        let safestDirection = 0;
+        let maxSafety = -1;
+        const checkDistance = 200;
+
+        checkDirections.forEach((dir, index) => {
+            const checkX = player.x + dir.dx * checkDistance;
+            const checkY = player.y + dir.dy * checkDistance;
+
+            let nearbyEnemies = 0;
+            enemies.forEach(enemy => {
+                const dist = Math.sqrt(
+                    Math.pow(enemy.x - checkX, 2) +
+                    Math.pow(enemy.y - checkY, 2)
+                );
+                if (dist < checkDistance) {
+                    nearbyEnemies++;
+                }
+            });
+
+            const safety = Math.max(0, 1 - nearbyEnemies / 10);
+            if (safety > maxSafety) {
+                maxSafety = safety;
+                safestDirection = index;
+            }
+        });
+
+        return [
+            maxSafety,
+            safestDirection / 7
+        ];
+    }
+
+    getMovementContext(player) {
+        const normalizedX = player.x / this.gameWidth;
+        const normalizedY = player.y / this.gameHeight;
+
+        const centerDist = Math.sqrt(
+            Math.pow(normalizedX - 0.5, 2) +
+            Math.pow(normalizedY - 0.5, 2)
+        );
+
+        const minBoundaryDist = Math.min(
+            normalizedX, 1 - normalizedX,
+            normalizedY, 1 - normalizedY
+        );
+
+        let nearbyEnemyCount = 0;
+        try {
+            const enemies = this.getActiveEnemies();
+            enemies.forEach(enemy => {
+                const dist = Math.sqrt(
+                    Math.pow(enemy.x - player.x, 2) +
+                    Math.pow(enemy.y - player.y, 2)
+                );
+                if (dist < 100) {
+                    nearbyEnemyCount++;
+                }
+            });
+        } catch (e) { }
+
+        const enemyPressure = Math.min(nearbyEnemyCount / 5, 1);
+
+        const healthRatio = (window.playerHealth || playerHealth || 100) /
+            (window.maxPlayerHealth || maxPlayerHealth || 100);
+
+        return [
+            Math.min(centerDist / 0.7, 1),
+            minBoundaryDist,
+            enemyPressure,
+            healthRatio
+        ];
+    }
+
+    getLevelUpState() {
+        const state = [
+            Math.min((window.playerLevel || playerLevel || 1) / 20, 1),
+            (window.playerHealth || playerHealth || 100) / (window.maxPlayerHealth || maxPlayerHealth || 100),
+            Math.min((window.playerDamage || playerDamage || 10) / 100, 1),
+            Math.min((window.playerSpeed || playerSpeed || 8) / 20, 1),
+            Math.min((window.playerLuck || playerLuck || 10) / 50, 1),
+            Math.min((window.elapsedTime || elapsedTime || 0) / 1800, 1),
+            Math.min((window.score || score || 0) / 1000, 1),
+            0, 0, 0
+        ];
+
+        this.lastLevelUpState = state;
+        return state;
     }
 }
 
@@ -1424,4 +1854,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(checkGameReady, 2000);
 });
 
-console.log("🎬 Dual-Mode Imitation Learning System loaded - Separate movement and level-up training!");
+console.log("🎬 Enhanced Dual-Mode Imitation Learning System loaded - Rational boundary awareness and movement viability!");

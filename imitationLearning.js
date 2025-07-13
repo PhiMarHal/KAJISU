@@ -133,25 +133,6 @@ class DualModeImitationLearningSystem {
     checkForGameOverEnhanced() {
         const currentGameOverState = window.gameOver ?? (typeof gameOver !== 'undefined' ? gameOver : false);
 
-        // Game just ended and we have recorded data
-        if (currentGameOverState && !this.lastGameOverState && this.sessionRecorded && this.recordingData.length > 0) {
-            console.log("🎮 Game over detected - processing dual-mode training...");
-
-            if (this.isRecording) {
-                this.stopRecording();
-            }
-
-            if (this.isTraining) {
-                console.log("⚠️ Training already in progress - queuing this session");
-                this.trainingQueued = true;
-                return;
-            }
-
-            setTimeout(() => {
-                this.processDualModeTraining();
-            }, 1000);
-        }
-
         // Update state tracking
         this.lastGameOverState = currentGameOverState;
 

@@ -32,9 +32,9 @@ class DualModeImitationLearningSystem {
         this.lastDecisionTime = 0;
         this.decisionInterval = 150;
 
-        // Training state management
+        // Training state management - REMOVED AUTO-TRAINING
         this.isTraining = false;
-        this.trainingQueued = false;
+        this.trainingQueued = false; // No longer used
         this.lastGameOverState = false;
         this.sessionRecorded = false;
 
@@ -174,43 +174,6 @@ class DualModeImitationLearningSystem {
         if (newMode !== this.currentGameMode) {
             console.log(`🔄 Game mode changed: ${this.currentGameMode} → ${newMode}`);
             this.currentGameMode = newMode;
-        }
-    }
-
-    // DUAL-MODE TRAINING: Process recorded data into separate movement and level-up datasets
-    async processDualModeTraining() {
-        if (this.isTraining) {
-            console.log("⚠️ Training already in progress - skipping");
-            return;
-        }
-
-        if (this.recordingData.length < 50) {
-            console.log(`📊 Session too short for training: ${this.recordingData.length} examples`);
-            return;
-        }
-
-        console.log("🤖 DUAL-MODE TRAINING: Separating movement and level-up data...");
-        this.isTraining = true;
-        this.showTrainingOverlay("Processing dual-mode training...");
-
-        try {
-            const trainingSuccess = await this.processDualModeTrainingInternal();
-
-            if (trainingSuccess) {
-                this.showTrainingOverlay("Dual-mode training complete!", 3000);
-            } else {
-                this.showTrainingOverlay("Training completed but no models updated", 3000);
-            }
-
-        } catch (error) {
-            console.error("DUAL-MODE TRAINING ERROR:", error);
-            this.showTrainingOverlay("Training error - check console", 3000);
-        } finally {
-            // Always reset training state
-            this.isTraining = false;
-            this.recordingData = [];
-            this.currentSessionName = null;
-            console.log("🔄 Training state reset");
         }
     }
 
@@ -722,9 +685,6 @@ class DualModeImitationLearningSystem {
 
         console.log(`🧠 Manual dual-mode training: ${this.recordingData.length} examples`);
 
-        // Reset any queued training
-        this.trainingQueued = false;
-
         this.isTraining = true;
         this.showTrainingOverlay("Manual dual-mode training in progress...");
 
@@ -743,7 +703,7 @@ class DualModeImitationLearningSystem {
         }
     }
 
-    // Internal training logic (separated to avoid duplicate code)
+    // Internal training logic - NO AUTO-TRIGGER
     async processDualModeTrainingInternal() {
         // Separate data into movement and level-up examples
         const separatedData = this.separateTrainingData();
@@ -1008,7 +968,6 @@ class DualModeImitationLearningSystem {
         }
     }
 
-    // UI Creation and Management
     createDualModeUI() {
         const existing = document.getElementById('imitation-interface');
         if (existing) existing.remove();
@@ -1069,7 +1028,7 @@ class DualModeImitationLearningSystem {
             </div>
             
             <div style="margin-top: 8px; font-size: 10px; color: #aaa;">
-                Dual-mode: Separate movement and level-up training
+                Manual training only - Enhanced boundary awareness
             </div>
         `;
 
@@ -1321,7 +1280,7 @@ class DualModeStateExtractor {
             this.gameWidth = scene.game.config.width;
             this.gameHeight = scene.game.config.height;
         }
-        console.log("🧠 Dual-mode state extractor initialized");
+        console.log("🧠 Dual-mode state extractor initialized (29 features - enhanced boundary awareness)");
     }
 
     getState(mode = 'movement') {
@@ -1354,11 +1313,11 @@ class DualModeStateExtractor {
             Math.min((window.playerSpeed || playerSpeed || 8) / 20, 1),
             Math.min((window.elapsedTime || elapsedTime || 0) / 1800, 1),
 
+            // Enhanced boundary awareness
+            ...this.getEnhancedBoundaryInfo(gamePlayer),
+
             // Simplified enemy threats (8 directions)
             ...this.getDirectionalThreats(gamePlayer),
-
-            // Boundary distances
-            ...this.getBoundaryDistances(gamePlayer),
 
             // Additional context
             Math.min((window.score || score || 0) / 1000, 1),
@@ -1367,6 +1326,43 @@ class DualModeStateExtractor {
 
         this.lastMovementState = state;
         return state;
+    }
+
+    getEnhancedBoundaryInfo(player) {
+        const normalizedX = player.x / this.gameWidth;
+        const normalizedY = player.y / this.gameHeight;
+
+        // Basic boundary distances
+        const leftDist = normalizedX;
+        const rightDist = 1 - normalizedX;
+        const topDist = normalizedY;
+        const bottomDist = 1 - normalizedY;
+
+        // Minimum distance to any boundary (danger indicator)
+        const minBoundaryDist = Math.min(leftDist, rightDist, topDist, bottomDist);
+
+        // Explicit corner detection (these should be strong danger signals)
+        const cornerThreshold = 0.15; // Within 15% of any corner
+        const inTopLeftCorner = leftDist < cornerThreshold && topDist < cornerThreshold ? 1 : 0;
+        const inTopRightCorner = rightDist < cornerThreshold && topDist < cornerThreshold ? 1 : 0;
+        const inBottomLeftCorner = leftDist < cornerThreshold && bottomDist < cornerThreshold ? 1 : 0;
+        const inBottomRightCorner = rightDist < cornerThreshold && bottomDist < cornerThreshold ? 1 : 0;
+
+        // Edge proximity warnings (closer to boundaries)
+        const edgeThreshold = 0.1; // Within 10% of edge
+        const nearLeftEdge = leftDist < edgeThreshold ? 1 : 0;
+        const nearRightEdge = rightDist < edgeThreshold ? 1 : 0;
+        const nearTopEdge = topDist < edgeThreshold ? 1 : 0;
+        const nearBottomEdge = bottomDist < edgeThreshold ? 1 : 0;
+
+        return [
+            leftDist, rightDist, topDist, bottomDist,     // 4 features: basic distances
+            minBoundaryDist,                              // 1 feature: overall danger
+            inTopLeftCorner, inTopRightCorner,           // 2 features: corner detection
+            inBottomLeftCorner, inBottomRightCorner,     // 2 features: corner detection  
+            nearLeftEdge, nearRightEdge,                 // 2 features: edge proximity
+            nearTopEdge, nearBottomEdge                  // 2 features: edge proximity
+        ]; // Total: 13 features (was 4)
     }
 
     getLevelUpState() {
@@ -1427,18 +1423,6 @@ class DualModeStateExtractor {
         });
 
         return threats;
-    }
-
-    getBoundaryDistances(player) {
-        const normalizedX = player.x / this.gameWidth;
-        const normalizedY = player.y / this.gameHeight;
-
-        return [
-            normalizedX,           // Distance from left
-            1 - normalizedX,       // Distance from right
-            normalizedY,           // Distance from top
-            1 - normalizedY        // Distance from bottom
-        ];
     }
 }
 

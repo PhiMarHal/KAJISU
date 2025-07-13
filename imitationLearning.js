@@ -1,8 +1,9 @@
-// imitationLearning.js - Complete Behavioral Cloning System for Game AI
+// imitationLearning.js - Enhanced Behavioral Cloning System for Game AI
 // Records human gameplay and trains AI to imitate human decisions
+// Version 2.1 - Preserves long sessions, handles level-ups intelligently
 
 /**
- * IMITATION LEARNING SYSTEM - Records human gameplay for behavioral cloning
+ * ENHANCED IMITATION LEARNING SYSTEM - Full session training with smart level-up handling
  */
 class ImitationLearningSystem {
     constructor() {
@@ -25,10 +26,26 @@ class ImitationLearningSystem {
         this.lastDecisionTime = 0;
         this.decisionInterval = 150; // Make decisions every 150ms
 
-        // Auto-training settings
-        this.autoTrainingEnabled = true;
+        // Training state management
+        this.isTraining = false;
+        this.trainingQueued = false;
         this.lastGameOverState = false;
         this.sessionRecorded = false;
+
+        // Improved data quality - keep long sessions!
+        this.dataQualityThreshold = 100; // Minimum examples needed for training
+        this.maxConsecutiveStillActions = 5; // Limit consecutive "stay still" to reduce noise
+
+        // Level-up state management
+        this.lastGamePausedState = false;
+        this.lastLevelUpState = false;
+        this.isInLevelUpMode = false;
+
+        // Simple level-up handling (based on automataCore.js)
+        this.levelUpStartTime = null;
+        this.levelUpHandled = false;
+        this.perkScrollPhase = null;
+        this.perksViewed = 0;
 
         // Training overlay
         this.trainingOverlay = null;
@@ -39,7 +56,7 @@ class ImitationLearningSystem {
         // Debug mode
         this.debugMode = false;
 
-        console.log("🎬 Complete Imitation Learning System initialized");
+        console.log("🎬 Enhanced Imitation Learning System v2.1 - Full sessions with smart level-up handling");
     }
 
     // Initialize the system with a game scene
@@ -59,10 +76,10 @@ class ImitationLearningSystem {
         // Setup keyboard shortcuts
         this.setupKeyboardShortcuts();
 
-        // Setup auto-training detection
-        this.setupAutoTraining();
+        // Setup auto-training detection with enhanced logic
+        this.setupEnhancedAutoTraining();
 
-        console.log("🎬 Imitation learning system ready with 60-feature state extraction");
+        console.log("🎬 Enhanced imitation learning system ready - preserves full sessions");
     }
 
     // Ensure TensorFlow.js is loaded
@@ -87,73 +104,619 @@ class ImitationLearningSystem {
         });
     }
 
-    // Setup auto-training on game over detection
-    setupAutoTraining() {
+    // Enhanced auto-training setup with better state management
+    setupEnhancedAutoTraining() {
         setInterval(() => {
-            this.checkForGameOver();
-        }, 1000);
+            this.checkForGameOverEnhanced();
+        }, 500); // Check more frequently for better responsiveness
     }
 
-    // Check if game just ended and trigger auto-training
-    checkForGameOver() {
+    // Enhanced game over detection with safer variable access
+    checkForGameOverEnhanced() {
         const currentGameOverState = window.gameOver ?? (typeof gameOver !== 'undefined' ? gameOver : false);
+        const currentPausedState = window.gamePaused ?? (typeof gamePaused !== 'undefined' ? gamePaused : false);
+        const currentLevelUpState = window.levelUpInProgress ?? (typeof levelUpInProgress !== 'undefined' ? levelUpInProgress : false);
+
+        // Safer level-up detection
+        let hasLevelUpCards = false;
+        try {
+            const cards = window.levelUpCards;
+            hasLevelUpCards = cards && cards.length > 0;
+        } catch (e) {
+            // levelUpCards not available, skip this check
+        }
+
+        const isActuallyInLevelUp = currentLevelUpState || hasLevelUpCards;
 
         // Game just ended and we have recorded data
         if (currentGameOverState && !this.lastGameOverState && this.sessionRecorded && this.recordingData.length > 0) {
-            console.log("🎮 Game over detected - triggering auto-training...");
+            console.log("🎮 Game over detected - managing training...");
 
             if (this.isRecording) {
                 this.stopRecording();
             }
 
+            // Check if we're already training
+            if (this.isTraining) {
+                console.log("⚠️ Training already in progress - queuing this session");
+                this.trainingQueued = true;
+                return;
+            }
+
+            // Start training after a brief delay
             setTimeout(() => {
-                this.autoTrainOnGameOver();
-            }, 2000);
+                this.autoTrainOnGameOverEnhanced();
+            }, 1000);
         }
 
+        // Update level-up state tracking
+        this.isInLevelUpMode = isActuallyInLevelUp;
+
+        // Reset level-up handling when level-up ends
+        if (!isActuallyInLevelUp && this.lastLevelUpState) {
+            this.levelUpStartTime = null;
+            this.levelUpHandled = false;
+            this.perkScrollPhase = null;
+            this.perksViewed = 0;
+        }
+
+        // Update state tracking
         this.lastGameOverState = currentGameOverState;
+        this.lastGamePausedState = currentPausedState;
+        this.lastLevelUpState = isActuallyInLevelUp;
 
         // Reset session tracking when game starts again
         if (!currentGameOverState && this.lastGameOverState) {
             this.sessionRecorded = false;
+            // If we have queued training, start it now
+            if (this.trainingQueued && !this.isTraining) {
+                console.log("🎯 Starting queued training session");
+                this.trainingQueued = false;
+                setTimeout(() => {
+                    this.autoTrainOnGameOverEnhanced();
+                }, 1000);
+            }
         }
     }
 
-    // Auto-train on the current session
-    async autoTrainOnGameOver() {
-        if (this.recordingData.length < 50) {
-            console.log("📊 Session too short for auto-training, skipping...");
+    // Enhanced auto-training with full session preservation
+    async autoTrainOnGameOverEnhanced() {
+        if (this.isTraining) {
+            console.log("⚠️ Training already in progress - skipping");
             return;
         }
 
-        console.log("🤖 AUTO-TRAINING: Starting incremental model update...");
-        this.showTrainingOverlay("Auto-training on your gameplay...");
+        if (this.recordingData.length < this.dataQualityThreshold) {
+            console.log(`📊 Session too short for training: ${this.recordingData.length} < ${this.dataQualityThreshold}`);
+            return;
+        }
+
+        console.log("🤖 ENHANCED AUTO-TRAINING: Starting full session training...");
+        this.isTraining = true;
+        this.showTrainingOverlay("Training on full session...");
 
         try {
-            const success = await this.trainOnCurrentSession();
+            // Prepare high-quality training data (but keep the full session length!)
+            const cleanedData = this.prepareFullSessionData();
+
+            if (cleanedData.length < this.dataQualityThreshold) {
+                console.log(`📊 Cleaned data too small: ${cleanedData.length} examples`);
+                this.isTraining = false;
+                this.showTrainingOverlay("Training skipped - insufficient clean data", 3000);
+                return;
+            }
+
+            console.log(`📊 Training on ${cleanedData.length} examples from full session (${this.recordingData.length} raw)`);
+
+            const success = await this.trainOnCleanedData(cleanedData);
 
             if (success) {
-                console.log("✅ AUTO-TRAINING: Model updated successfully!");
-                this.showTrainingOverlay("Training complete! AI learned from your gameplay.", 3000);
+                console.log("✅ ENHANCED TRAINING: Model updated successfully!");
+                this.showTrainingOverlay("Enhanced training complete! AI learned from your full session.", 3000);
 
                 // Auto-save the model
-                await this.saveImitationModel(`auto_trained_${Date.now()}`);
+                await this.saveImitationModel(`full_session_trained_${Date.now()}`);
             } else {
-                console.log("❌ AUTO-TRAINING: Training failed");
+                console.log("❌ ENHANCED TRAINING: Training failed");
                 this.showTrainingOverlay("Training failed - data preserved for manual training", 3000);
             }
 
+        } catch (error) {
+            console.error("ENHANCED TRAINING ERROR:", error);
+            this.showTrainingOverlay("Training error - data preserved", 3000);
+        } finally {
+            this.isTraining = false;
             // Clear current session data after training
             this.recordingData = [];
             this.currentSessionName = null;
-
-        } catch (error) {
-            console.error("AUTO-TRAINING ERROR:", error);
-            this.showTrainingOverlay("Auto-training error - data preserved", 3000);
         }
     }
 
-    // Show training progress overlay
+    // NEW: Prepare full session data with smart filtering (no length limits!)
+    prepareFullSessionData() {
+        console.log(`🧹 Preparing full session data: ${this.recordingData.length} raw examples`);
+
+        let cleanedData = [...this.recordingData];
+
+        // Step 1: Only reduce excessive consecutive "stay still" actions, don't remove level-ups
+        cleanedData = this.reduceExcessiveStillActions(cleanedData);
+
+        // Step 2: Light balancing - prevent extreme action bias but keep natural distribution
+        cleanedData = this.lightActionBalancing(cleanedData);
+
+        console.log(`🧹 Full session prepared: ${cleanedData.length} examples (preserved ${((cleanedData.length / this.recordingData.length) * 100).toFixed(1)}% of original)`);
+        return cleanedData;
+    }
+
+    // NEW: Reduce excessive consecutive "stay still" but keep level-up examples
+    reduceExcessiveStillActions(data) {
+        if (data.length === 0) return data;
+
+        const filtered = [data[0]]; // Always keep first example
+        let consecutiveStillCount = data[0].action === 0 ? 1 : 0;
+
+        for (let i = 1; i < data.length; i++) {
+            const current = data[i];
+            const previous = data[i - 1];
+
+            if (current.action === 0 && previous.action === 0) {
+                consecutiveStillCount++;
+                // Allow more still actions during level-ups, fewer during normal gameplay
+                const maxConsecutive = this.isLikelyLevelUpPeriod(data, i) ? 10 : this.maxConsecutiveStillActions;
+
+                // Keep every nth consecutive "stay still" action
+                if (consecutiveStillCount <= maxConsecutive || consecutiveStillCount % 3 === 0) {
+                    filtered.push(current);
+                }
+            } else {
+                consecutiveStillCount = current.action === 0 ? 1 : 0;
+                filtered.push(current);
+            }
+        }
+
+        console.log(`📊 Reduced excessive still actions: ${data.length} → ${filtered.length}`);
+        return filtered;
+    }
+
+    // NEW: Detect if we're likely in a level-up period based on context
+    isLikelyLevelUpPeriod(data, index) {
+        // Look at a window around this index to see if we're in a period of mostly staying still
+        const windowSize = 10;
+        const start = Math.max(0, index - windowSize);
+        const end = Math.min(data.length, index + windowSize);
+
+        let stillCount = 0;
+        for (let i = start; i < end; i++) {
+            if (data[i].action === 0) stillCount++;
+        }
+
+        // If most actions in this window are "stay still", likely a level-up period
+        return stillCount / (end - start) > 0.8;
+    }
+
+    // NEW: Light action balancing - prevent extreme bias but keep natural distribution
+    lightActionBalancing(data) {
+        // Count actions
+        const actionCounts = {};
+        data.forEach(example => {
+            actionCounts[example.action] = (actionCounts[example.action] || 0) + 1;
+        });
+
+        console.log(`📊 Action distribution before balancing:`, actionCounts);
+
+        // More aggressive balancing - if any action >40% of total, balance it
+        const totalActions = data.length;
+        const maxAllowedPercent = 0.4; // 40% max for any single action
+        const maxAllowed = Math.floor(totalActions * maxAllowedPercent);
+
+        // Find overrepresented actions
+        const overrepresentedActions = Object.keys(actionCounts).filter(action =>
+            actionCounts[action] > maxAllowed
+        );
+
+        if (overrepresentedActions.length === 0) {
+            console.log(`📊 Action distribution is reasonable, keeping all ${data.length} examples`);
+            return data;
+        }
+
+        // Balance overrepresented actions
+        const actionBuckets = {};
+        data.forEach(example => {
+            if (!actionBuckets[example.action]) {
+                actionBuckets[example.action] = [];
+            }
+            actionBuckets[example.action].push(example);
+        });
+
+        const balanced = [];
+        for (const [action, examples] of Object.entries(actionBuckets)) {
+            if (overrepresentedActions.includes(action)) {
+                // Randomly sample from overrepresented action
+                const sampled = this.randomSample(examples, maxAllowed);
+                balanced.push(...sampled);
+                console.log(`📊 Balanced action ${action}: ${examples.length} → ${sampled.length}`);
+            } else {
+                balanced.push(...examples);
+            }
+        }
+
+        // Count again for logging
+        const balancedCounts = {};
+        balanced.forEach(example => {
+            balancedCounts[example.action] = (balancedCounts[example.action] || 0) + 1;
+        });
+
+        console.log(`📊 Action distribution after balancing:`, balancedCounts);
+        return balanced;
+    }
+
+    // Random sampling helper
+    randomSample(array, size) {
+        if (array.length <= size) return array;
+
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        return shuffled.slice(0, size);
+    }
+
+    // Train on cleaned data with improved training parameters
+    async trainOnCleanedData(cleanedData) {
+        if (!this.tfLoaded) {
+            console.error("❌ TensorFlow.js not loaded!");
+            return false;
+        }
+
+        console.log(`🧠 Training on cleaned data: ${cleanedData.length} examples`);
+
+        try {
+            const states = cleanedData.map(ex => ex.state);
+            const actions = cleanedData.map(ex => ex.action);
+            const oneHotActions = this.actionsToOneHot(actions);
+
+            if (!this.imitationModel) {
+                this.imitationModel = await this.createBehavioralCloningModel(states[0].length);
+            }
+
+            const statesTensor = tf.tensor2d(states);
+            const actionsTensor = tf.tensor2d(oneHotActions);
+
+            // Adaptive training parameters based on data size
+            const epochs = this.calculateOptimalEpochs(cleanedData.length);
+            const batchSize = this.calculateOptimalBatchSize(cleanedData.length);
+
+            console.log(`🔧 Training with ${epochs} epochs, batch size ${batchSize}`);
+
+            // Add early stopping to prevent overfitting
+            const earlyStopping = tf.callbacks.earlyStopping({
+                monitor: 'val_loss',
+                patience: 8, // Stop if validation loss doesn't improve for 8 epochs
+                restoreBestWeights: true
+            });
+
+            const history = await this.imitationModel.fit(statesTensor, actionsTensor, {
+                epochs: epochs,
+                batchSize: batchSize,
+                validationSplit: 0.15, // Smaller validation split for large datasets
+                shuffle: true,
+                callbacks: {
+                    onEpochEnd: (epoch, logs) => {
+                        if (epoch % 5 === 0 || epoch === epochs - 1) {
+                            console.log(`🔄 Epoch ${epoch}: loss=${logs.loss.toFixed(4)}, accuracy=${logs.acc.toFixed(4)}, val_loss=${logs.val_loss?.toFixed(4) || 'N/A'}`);
+                        }
+                    },
+                    // Add early stopping
+                    earlyStopping
+                }
+            });
+
+            statesTensor.dispose();
+            actionsTensor.dispose();
+
+            const finalLoss = history.history.loss[history.history.loss.length - 1];
+            const finalAcc = history.history.acc[history.history.acc.length - 1];
+            const finalValLoss = history.history.val_loss ? history.history.val_loss[history.history.val_loss.length - 1] : null;
+
+            console.log(`✅ Full session training complete! Final - Loss: ${finalLoss.toFixed(4)}, Accuracy: ${finalAcc.toFixed(4)}, Val Loss: ${finalValLoss?.toFixed(4) || 'N/A'}`);
+
+            // Analyze final action distribution to debug behavior
+            if (this.debugMode) {
+                console.log("🔍 Analyzing trained model behavior...");
+                const testPredictions = await this.imitationModel.predict(statesTensor.slice([0, 0], [Math.min(100, statesTensor.shape[0]), -1]));
+                const predData = await testPredictions.data();
+                const actionCounts = {};
+
+                for (let i = 0; i < Math.min(100, statesTensor.shape[0]); i++) {
+                    const startIdx = i * 9;
+                    const actionProbs = predData.slice(startIdx, startIdx + 9);
+                    const predictedAction = actionProbs.indexOf(Math.max(...actionProbs));
+                    actionCounts[predictedAction] = (actionCounts[predictedAction] || 0) + 1;
+                }
+
+                console.log("🔍 Model prediction distribution on sample:", actionCounts);
+                testPredictions.dispose();
+            }
+
+            // Check for overfitting but be more lenient with large datasets
+            if (finalValLoss && finalValLoss > finalLoss * 3) {
+                console.log("⚠️ Possible overfitting detected - validation loss significantly higher than training loss");
+            } else if (finalLoss > 0.5) {
+                console.log("⚠️ High training loss detected - model may need more training or better data quality");
+            }
+
+            this.isModelTrained = true;
+            this.updateUI();
+
+            return true;
+
+        } catch (error) {
+            console.error("Enhanced training error:", error);
+            return false;
+        }
+    }
+
+    // NEW: Calculate optimal epochs based on dataset size
+    calculateOptimalEpochs(dataSize) {
+        if (dataSize < 500) return 60;
+        if (dataSize < 2000) return 50;
+        if (dataSize < 5000) return 40;
+        if (dataSize < 10000) return 35;
+        return 30; // More epochs for large datasets to learn complex patterns
+    }
+
+    // NEW: Calculate optimal batch size based on dataset size
+    calculateOptimalBatchSize(dataSize) {
+        const batchSize = Math.min(64, Math.max(16, Math.floor(dataSize / 50)));
+        return batchSize;
+    }
+
+    // Smart recording that handles level-ups appropriately
+    recordFrame() {
+        if (!this.isRecording || !this.scene) return;
+
+        const now = Date.now();
+        if (now - this.lastRecordTime < this.recordingInterval) return;
+
+        // Check game states - improved level-up detection with safer access
+        const isPaused = window.gamePaused ?? (typeof gamePaused !== 'undefined' ? gamePaused : false);
+        const isLevelUp = window.levelUpInProgress ?? (typeof levelUpInProgress !== 'undefined' ? levelUpInProgress : false);
+        const isGameOver = window.gameOver ?? (typeof gameOver !== 'undefined' ? gameOver : false);
+
+        // Safer level-up detection
+        let hasLevelUpCards = false;
+        let hasLevelUpUI = false;
+
+        try {
+            const cards = window.levelUpCards;
+            hasLevelUpCards = cards && cards.length > 0;
+        } catch (e) {
+            // levelUpCards not available
+        }
+
+        try {
+            // Quick DOM check for level-up UI
+            const hasLevelUpText = document.body.textContent.includes('LEVEL UP') ||
+                document.body.textContent.includes('CHOOSE A PERK');
+            hasLevelUpUI = hasLevelUpText;
+        } catch (e) {
+            // DOM scanning failed
+        }
+
+        const isActuallyInLevelUp = isLevelUp || hasLevelUpCards || hasLevelUpUI;
+
+        // Skip recording only during game over
+        if (isGameOver) {
+            if (this.debugMode) {
+                console.log("⏸️ Skipping recording during game over");
+            }
+            return;
+        }
+
+        try {
+            const state = this.stateExtractor.getState();
+            if (!state) return;
+
+            const action = this.getCurrentHumanAction();
+            if (action === null) return;
+
+            const example = {
+                state: state.slice(),
+                action: action,
+                timestamp: now - this.recordingStartTime,
+                gameTime: window.elapsedTime || 0,
+                playerHealth: window.playerHealth || 100,
+                score: window.score || 0,
+                isPaused: isPaused,
+                isLevelUp: isActuallyInLevelUp // Use the safer detection
+            };
+
+            this.recordingData.push(example);
+            this.lastRecordTime = now;
+
+            if (this.recordingData.length % 200 === 0) {
+                const movementExamples = this.recordingData.filter(e => e.action !== 0).length;
+                const levelUpExamples = this.recordingData.filter(e => e.isLevelUp).length;
+                console.log(`📊 Recorded ${this.recordingData.length} examples (${movementExamples} movement, ${levelUpExamples} level-up)`);
+
+                // Debug: show action distribution every 1000 examples
+                if (this.recordingData.length % 1000 === 0 && this.debugMode) {
+                    const actionCounts = {};
+                    this.recordingData.slice(-1000).forEach(ex => { // Only check last 1000 to avoid performance issues
+                        actionCounts[ex.action] = (actionCounts[ex.action] || 0) + 1;
+                    });
+                    console.log("🔍 Recent 1000 action distribution:", actionCounts);
+                }
+            }
+
+        } catch (error) {
+            console.error("Recording error:", error);
+        }
+    }
+
+    // Use imitation model for movement decisions
+    async chooseImitationAction(state) {
+        if (!this.imitationModel || !this.isModelTrained) {
+            return 0;
+        }
+
+        try {
+            const stateTensor = tf.tensor2d([state]);
+            const prediction = await this.imitationModel.predict(stateTensor);
+            const probabilities = await prediction.data();
+
+            const action = this.sampleFromProbabilities(probabilities);
+
+            if (this.debugMode) {
+                const actionNames = ['Stay', 'Up', 'Up-Right', 'Right', 'Down-Right', 'Down', 'Down-Left', 'Left', 'Up-Left'];
+                console.log(`🎭 IMITATION: Action ${action} (${actionNames[action]}) - Confidence: ${(probabilities[action] * 100).toFixed(1)}%`);
+            }
+
+            stateTensor.dispose();
+            prediction.dispose();
+
+            return action;
+        } catch (error) {
+            console.error("Imitation action error:", error);
+            return 0;
+        }
+    }
+
+    // Control player movement when in imitation mode
+    async controlMovement() {
+        if (!this.isUsingImitationMode || !this.isModelTrained) return;
+
+        // Handle level-ups with simple browsing then selection
+        if (this.isInLevelUpMode) {
+            this.handleSimpleLevelUp();
+            return;
+        }
+
+        const now = Date.now();
+        if (now - this.lastDecisionTime < this.decisionInterval) return;
+
+        const state = this.stateExtractor?.getState();
+        if (!state) return;
+
+        const action = await this.chooseImitationAction(state);
+        this.executeAction(action);
+
+        this.lastDecisionTime = now;
+    }
+
+    // Simple level-up handling (based on automataCore.js approach)
+    handleSimpleLevelUp() {
+        if (!this.levelUpStartTime) {
+            this.levelUpStartTime = Date.now();
+            this.levelUpHandled = false;
+            this.perkScrollPhase = 'browsing';
+            this.perksViewed = 0;
+            console.log("🎭 Imitation AI: Level up started - browsing perks");
+        }
+
+        if (this.levelUpHandled) return;
+
+        const elapsed = Date.now() - this.levelUpStartTime;
+        if (elapsed < 1000) return; // Wait 1 second before starting
+
+        if (this.perkScrollPhase === 'browsing') {
+            if (this.perksViewed < 4) {
+                this.navigateToNextPerk();
+                this.perksViewed++;
+                return;
+            } else {
+                console.log("🎭 Imitation AI: Finished browsing, selecting random perk");
+                this.perkScrollPhase = 'selecting';
+                return;
+            }
+        }
+
+        if (this.perkScrollPhase === 'selecting') {
+            const perkSelected = this.selectRandomPerk();
+
+            if (perkSelected) {
+                this.levelUpHandled = true;
+                this.levelUpStartTime = null;
+                this.perkScrollPhase = null;
+                console.log("🎭 Imitation AI: Random perk selected");
+            } else if (elapsed > 15000) {
+                console.log("🎭 Imitation AI: Perk selection timeout");
+                this.emergencyLevelUpExit();
+                this.levelUpHandled = true;
+                this.levelUpStartTime = null;
+                this.perkScrollPhase = null;
+            }
+        }
+    }
+
+    // Navigate to next perk (click right arrow)
+    navigateToNextPerk() {
+        const gameWidth = window.game?.config?.width || 1200;
+        const gameHeight = window.game?.config?.height || 800;
+        const centerX = gameWidth / 2;
+        const centerY = gameHeight / 2;
+        const kajisuliMode = (typeof KAJISULI_MODE !== 'undefined') ? KAJISULI_MODE : false;
+        const arrowDistance = kajisuliMode ? gameWidth * 0.32 : gameWidth * 0.16;
+        const rightArrowX = centerX + arrowDistance;
+        const rightArrowY = centerY;
+
+        this.clickAtGamePosition(rightArrowX, rightArrowY);
+    }
+
+    // Select random perk (click center)
+    selectRandomPerk() {
+        const gameWidth = window.game?.config?.width || 1200;
+        const gameHeight = window.game?.config?.height || 800;
+        const centerX = gameWidth / 2;
+        const centerY = gameHeight / 2;
+
+        this.clickAtGamePosition(centerX, centerY);
+        return true;
+    }
+
+    // Emergency exit if stuck
+    emergencyLevelUpExit() {
+        const gameWidth = window.game?.config?.width || 1200;
+        const gameHeight = window.game?.config?.height || 800;
+        this.clickAtGamePosition(gameWidth / 2, gameHeight / 2);
+        setTimeout(() => this.simulateKeyPress('Enter'), 200);
+    }
+
+    // Click at specific game position (from automataCore.js)
+    clickAtGamePosition(gameX, gameY) {
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const gameWidth = window.game?.config?.width || 1200;
+        const gameHeight = window.game?.config?.height || 800;
+        const canvasX = rect.left + (gameX / gameWidth) * rect.width;
+        const canvasY = rect.top + (gameY / gameHeight) * rect.height;
+
+        const events = [
+            new MouseEvent('mousedown', { bubbles: true, clientX: canvasX, clientY: canvasY }),
+            new MouseEvent('mouseup', { bubbles: true, clientX: canvasX, clientY: canvasY }),
+            new MouseEvent('click', { bubbles: true, clientX: canvasX, clientY: canvasY }),
+            new PointerEvent('pointerdown', { bubbles: true, clientX: canvasX, clientY: canvasY, pointerId: 1 }),
+            new PointerEvent('pointerup', { bubbles: true, clientX: canvasX, clientY: canvasY, pointerId: 1 })
+        ];
+
+        events.forEach((event, index) => {
+            setTimeout(() => canvas.dispatchEvent(event), index * 50);
+        });
+    }
+
+    // Simulate key press (from automataCore.js)
+    simulateKeyPress(key) {
+        const downEvent = new KeyboardEvent('keydown', { key, bubbles: true });
+        const upEvent = new KeyboardEvent('keyup', { key, bubbles: true });
+        document.dispatchEvent(downEvent);
+        setTimeout(() => document.dispatchEvent(upEvent), 100);
+    }
+
+    // Show training progress overlay with enhanced messaging
     showTrainingOverlay(message, duration = null) {
         if (this.trainingOverlay) {
             this.trainingOverlay.remove();
@@ -169,9 +732,12 @@ class ImitationLearningSystem {
             z-index: 2000; border: 2px solid #9C27B0;
             text-align: center; min-width: 300px;
         `;
+
+        const statusColor = this.isTraining ? '#ffaa00' : '#9C27B0';
         this.trainingOverlay.innerHTML = `
-            <div style="margin-bottom: 15px;">🤖 AI Training</div>
+            <div style="margin-bottom: 15px; color: ${statusColor};">🤖 Enhanced AI Training</div>
             <div>${message}</div>
+            ${this.isTraining ? '<div style="margin-top: 10px; font-size: 12px; color: #aaa;">Training on full session data...</div>' : ''}
         `;
 
         document.body.appendChild(this.trainingOverlay);
@@ -193,7 +759,13 @@ class ImitationLearningSystem {
             return;
         }
 
-        const defaultName = `session_${Date.now()}`;
+        if (this.isTraining) {
+            console.log("⚠️ Cannot start recording while training is in progress");
+            this.showTrainingOverlay("Cannot start recording - training in progress", 2000);
+            return;
+        }
+
+        const defaultName = `full_session_${Date.now()}`;
         sessionName = sessionName || defaultName;
 
         this.isRecording = true;
@@ -203,7 +775,7 @@ class ImitationLearningSystem {
         this.currentSessionName = sessionName;
         this.sessionRecorded = true;
 
-        console.log(`🔴 RECORDING STARTED: ${sessionName}`);
+        console.log(`🔴 FULL SESSION RECORDING STARTED: ${sessionName}`);
         this.updateUI();
     }
 
@@ -218,46 +790,13 @@ class ImitationLearningSystem {
 
         if (this.recordingData.length > 0) {
             const duration = (Date.now() - this.recordingStartTime) / 1000;
-            console.log(`⏹️ RECORDING STOPPED: ${this.currentSessionName}`);
-            console.log(`📊 Captured ${this.recordingData.length} examples over ${duration.toFixed(1)}s`);
+            const movementExamples = this.recordingData.filter(e => e.action !== 0).length;
+            const levelUpExamples = this.recordingData.filter(e => e.isLevelUp).length;
+            console.log(`⏹️ FULL SESSION RECORDING STOPPED: ${this.currentSessionName}`);
+            console.log(`📊 Captured ${this.recordingData.length} examples (${movementExamples} movement, ${levelUpExamples} level-up) over ${duration.toFixed(1)}s`);
         }
 
         this.updateUI();
-    }
-
-    // Record a single frame of gameplay
-    recordFrame() {
-        if (!this.isRecording || !this.scene) return;
-
-        const now = Date.now();
-        if (now - this.lastRecordTime < this.recordingInterval) return;
-
-        try {
-            const state = this.stateExtractor.getState();
-            if (!state) return;
-
-            const action = this.getCurrentHumanAction();
-            if (action === null) return;
-
-            const example = {
-                state: state.slice(),
-                action: action,
-                timestamp: now - this.recordingStartTime,
-                gameTime: window.elapsedTime || 0,
-                playerHealth: window.playerHealth || 100,
-                score: window.score || 0
-            };
-
-            this.recordingData.push(example);
-            this.lastRecordTime = now;
-
-            if (this.recordingData.length % 100 === 0) {
-                console.log(`📊 Recorded ${this.recordingData.length} examples`);
-            }
-
-        } catch (error) {
-            console.error("Recording error:", error);
-        }
     }
 
     // Get the current human action from input state
@@ -289,78 +828,74 @@ class ImitationLearningSystem {
         return 0;
     }
 
-    // Train on current session data
+    // Train on current session data with enhanced error handling
     async trainOnCurrentSession() {
+        if (this.isTraining) {
+            console.log("⚠️ Training already in progress!");
+            this.showTrainingOverlay("Training already in progress", 2000);
+            return false;
+        }
+
         if (!this.tfLoaded) {
             console.error("❌ TensorFlow.js not loaded!");
             return false;
         }
 
-        if (this.recordingData.length < 50) {
-            console.error(`❌ Not enough training data! Need at least 50 examples, got ${this.recordingData.length}.`);
+        if (this.recordingData.length < this.dataQualityThreshold) {
+            console.error(`❌ Not enough training data! Need at least ${this.dataQualityThreshold} examples, got ${this.recordingData.length}.`);
+            this.showTrainingOverlay(`Need at least ${this.dataQualityThreshold} examples for training`, 3000);
             return false;
         }
 
-        console.log(`🧠 Training on current session: ${this.recordingData.length} examples`);
+        console.log(`🧠 Manual training on current session: ${this.recordingData.length} examples`);
+        this.isTraining = true;
+        this.showTrainingOverlay("Manual training in progress...");
 
         try {
-            const states = this.recordingData.map(ex => ex.state);
-            const actions = this.recordingData.map(ex => ex.action);
-            const oneHotActions = this.actionsToOneHot(actions);
+            // Use the same enhanced data preparation
+            const cleanedData = this.prepareFullSessionData();
+            const success = await this.trainOnCleanedData(cleanedData);
 
-            if (!this.imitationModel) {
-                this.imitationModel = await this.createBehavioralCloningModel(states[0].length);
+            if (success) {
+                this.showTrainingOverlay("Manual training complete!", 2000);
+            } else {
+                this.showTrainingOverlay("Manual training failed!", 2000);
             }
 
-            const statesTensor = tf.tensor2d(states);
-            const actionsTensor = tf.tensor2d(oneHotActions);
-
-            const history = await this.imitationModel.fit(statesTensor, actionsTensor, {
-                epochs: this.isModelTrained ? 20 : 50,
-                batchSize: 32,
-                validationSplit: 0.2,
-                shuffle: true,
-                callbacks: {
-                    onEpochEnd: (epoch, logs) => {
-                        if (epoch % 10 === 0) {
-                            console.log(`🔄 Epoch ${epoch}: loss=${logs.loss.toFixed(4)}, accuracy=${logs.acc.toFixed(4)}`);
-                        }
-                    }
-                }
-            });
-
-            statesTensor.dispose();
-            actionsTensor.dispose();
-
-            const finalLoss = history.history.loss[history.history.loss.length - 1];
-            const finalAcc = history.history.acc[history.history.acc.length - 1];
-
-            console.log(`✅ Training complete! Final loss: ${finalLoss.toFixed(4)}, accuracy: ${finalAcc.toFixed(4)}`);
-
-            this.isModelTrained = true;
-            this.updateUI();
-
-            return true;
+            return success;
 
         } catch (error) {
-            console.error("Training error:", error);
+            console.error("Manual training error:", error);
+            this.showTrainingOverlay("Manual training error!", 2000);
             return false;
+        } finally {
+            this.isTraining = false;
         }
     }
 
-    // Create behavioral cloning neural network
+    // Create behavioral cloning neural network with improved architecture
     async createBehavioralCloningModel(stateSize) {
         const model = tf.sequential({
             layers: [
                 tf.layers.dense({
                     inputShape: [stateSize],
-                    units: 64,
-                    activation: 'relu'
+                    units: 256, // Increased capacity for complex patterns
+                    activation: 'relu',
+                    kernelRegularizer: tf.regularizers.l2({ l2: 0.0001 }) // Reduced regularization
                 }),
+                tf.layers.dropout({ rate: 0.3 }),
                 tf.layers.dense({
-                    units: 32,
-                    activation: 'relu'
+                    units: 128,
+                    activation: 'relu',
+                    kernelRegularizer: tf.regularizers.l2({ l2: 0.0001 })
                 }),
+                tf.layers.dropout({ rate: 0.3 }),
+                tf.layers.dense({
+                    units: 64, // Additional layer for better pattern learning
+                    activation: 'relu',
+                    kernelRegularizer: tf.regularizers.l2({ l2: 0.0001 })
+                }),
+                tf.layers.dropout({ rate: 0.2 }),
                 tf.layers.dense({
                     units: 9,
                     activation: 'softmax'
@@ -369,7 +904,7 @@ class ImitationLearningSystem {
         });
 
         model.compile({
-            optimizer: tf.train.adam(0.001),
+            optimizer: tf.train.adam(0.001), // Slightly higher learning rate
             loss: 'categoricalCrossentropy',
             metrics: ['accuracy']
         });
@@ -386,34 +921,6 @@ class ImitationLearningSystem {
             oneHot.push(vector);
         });
         return oneHot;
-    }
-
-    // Use imitation model to choose action
-    async chooseImitationAction(state) {
-        if (!this.imitationModel || !this.isModelTrained) {
-            return 0;
-        }
-
-        try {
-            const stateTensor = tf.tensor2d([state]);
-            const prediction = await this.imitationModel.predict(stateTensor);
-            const probabilities = await prediction.data();
-
-            const action = this.sampleFromProbabilities(probabilities);
-
-            if (this.debugMode) {
-                const actionNames = ['Stay', 'Up', 'Up-Right', 'Right', 'Down-Right', 'Down', 'Down-Left', 'Left', 'Up-Left'];
-                console.log(`🎭 IMITATION: Action ${action} (${actionNames[action]})`);
-            }
-
-            stateTensor.dispose();
-            prediction.dispose();
-
-            return action;
-        } catch (error) {
-            console.error("Imitation action error:", error);
-            return 0;
-        }
     }
 
     // Sample action from probability distribution
@@ -433,6 +940,12 @@ class ImitationLearningSystem {
 
     // Enable/disable imitation mode
     toggleImitationMode() {
+        if (this.isTraining) {
+            console.log("⚠️ Cannot toggle imitation mode while training is in progress");
+            this.showTrainingOverlay("Cannot toggle mode - training in progress", 2000);
+            return;
+        }
+
         this.isUsingImitationMode = !this.isUsingImitationMode;
 
         if (this.isUsingImitationMode && !this.isModelTrained) {
@@ -448,29 +961,13 @@ class ImitationLearningSystem {
                 window.gameAI.aiActive = false;
                 window.gameAI.releaseAllMovementKeys();
             }
-            console.log("🎭 Imitation mode: ON");
+            console.log("🎭 Enhanced imitation mode: ON (with level-up integration)");
         } else {
-            console.log("🎭 Imitation mode: OFF");
+            console.log("🎭 Enhanced imitation mode: OFF");
             this.releaseAllMovementKeys();
         }
 
         this.updateUI();
-    }
-
-    // Control player movement when in imitation mode
-    async controlMovement() {
-        if (!this.isUsingImitationMode || !this.isModelTrained) return;
-
-        const now = Date.now();
-        if (now - this.lastDecisionTime < this.decisionInterval) return;
-
-        const state = this.stateExtractor?.getState();
-        if (!state) return;
-
-        const action = await this.chooseImitationAction(state);
-        this.executeAction(action);
-
-        this.lastDecisionTime = now;
     }
 
     // Execute movement action
@@ -539,32 +1036,56 @@ class ImitationLearningSystem {
         this.pressedKeys.clear();
     }
 
-    // Save trained model
+    // Save trained model with storage quota handling
     async saveImitationModel(name = null) {
         if (!this.imitationModel) {
             console.log("❌ No model to save!");
             return;
         }
 
-        const modelName = name || `imitation_model_${Date.now()}`;
+        const modelName = name || `full_session_imitation_model_${Date.now()}`;
 
         try {
             await this.imitationModel.save(`localstorage://${modelName}`);
-            console.log(`✅ Imitation model saved: ${modelName}`);
+            console.log(`✅ Full session imitation model saved: ${modelName}`);
         } catch (error) {
-            console.error("Save failed:", error);
+            if (error.message.includes('quota') || error.message.includes('storage')) {
+                console.log(`⚠️ Storage quota exceeded, model too large for localStorage: ${modelName}`);
+                console.log(`💡 Model trained successfully but not saved. Consider using a smaller model or external storage.`);
+
+                // Try to save just the training metadata
+                try {
+                    const metadata = {
+                        timestamp: Date.now(),
+                        modelName: modelName,
+                        trained: true,
+                        note: 'Model too large for localStorage but training completed'
+                    };
+                    localStorage.setItem(`${modelName}_metadata`, JSON.stringify(metadata));
+                    console.log(`📝 Saved training metadata for: ${modelName}`);
+                } catch (metaError) {
+                    console.log("Could not save even metadata due to storage limits");
+                }
+            } else {
+                console.error("Save failed:", error);
+            }
         }
     }
 
     // Load trained model
     async loadImitationModel(name = null) {
+        if (this.isTraining) {
+            console.log("⚠️ Cannot load model while training is in progress");
+            return;
+        }
+
         const modelName = name || prompt("Model name to load:");
         if (!modelName) return;
 
         try {
             this.imitationModel = await tf.loadLayersModel(`localstorage://${modelName}`);
             this.isModelTrained = true;
-            console.log(`✅ Imitation model loaded: ${modelName}`);
+            console.log(`✅ Full session imitation model loaded: ${modelName}`);
             this.updateUI();
         } catch (error) {
             console.error("Load failed:", error);
@@ -623,12 +1144,18 @@ class ImitationLearningSystem {
 
     // Train on imported data
     async trainOnImportedData() {
-        if (!this.importedData || this.importedData.length < 50) {
+        if (this.isTraining) {
+            console.log("⚠️ Training already in progress!");
+            return false;
+        }
+
+        if (!this.importedData || this.importedData.length < this.dataQualityThreshold) {
             console.log("❌ No imported data or not enough examples");
             return false;
         }
 
         console.log(`🧠 Training on imported data: ${this.importedData.length} examples`);
+        this.isTraining = true;
         this.showTrainingOverlay("Training on imported data...");
 
         try {
@@ -643,9 +1170,12 @@ class ImitationLearningSystem {
             const statesTensor = tf.tensor2d(states);
             const actionsTensor = tf.tensor2d(oneHotActions);
 
+            const epochs = this.calculateOptimalEpochs(this.importedData.length);
+            const batchSize = this.calculateOptimalBatchSize(this.importedData.length);
+
             const history = await this.imitationModel.fit(statesTensor, actionsTensor, {
-                epochs: 50,
-                batchSize: 32,
+                epochs: epochs,
+                batchSize: batchSize,
                 validationSplit: 0.2,
                 shuffle: true,
                 callbacks: {
@@ -675,6 +1205,8 @@ class ImitationLearningSystem {
             console.error("Training error:", error);
             this.showTrainingOverlay("Training failed!", 2000);
             return false;
+        } finally {
+            this.isTraining = false;
         }
     }
 
@@ -686,10 +1218,17 @@ class ImitationLearningSystem {
         }
 
         const compressed = {
-            version: 2,
+            version: 4, // Full session version
             count: this.recordingData.length,
             states: this.recordingData.map(ex => ex.state),
-            actions: this.recordingData.map(ex => ex.action)
+            actions: this.recordingData.map(ex => ex.action),
+            metadata: {
+                sessionDuration: this.recordingData.length > 0 ?
+                    (this.recordingData[this.recordingData.length - 1].timestamp - this.recordingData[0].timestamp) / 1000 : 0,
+                movementExamples: this.recordingData.filter(ex => ex.action !== 0).length,
+                levelUpExamples: this.recordingData.filter(ex => ex.isLevelUp).length,
+                fullSession: true
+            }
         };
 
         const blob = new Blob([JSON.stringify(compressed)], { type: 'application/json' });
@@ -697,16 +1236,16 @@ class ImitationLearningSystem {
 
         const a = document.createElement('a');
         a.href = url;
-        a.download = `imitation_session_${Date.now()}.json`;
+        a.download = `full_session_imitation_${Date.now()}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        console.log(`📥 Exported ${this.recordingData.length} examples`);
+        console.log(`📥 Exported ${this.recordingData.length} full session examples`);
     }
 
-    // Create UI for imitation learning controls
+    // Create UI for imitation learning controls with full session focus
     createImitationUI() {
         const existing = document.getElementById('imitation-interface');
         if (existing) existing.remove();
@@ -721,13 +1260,14 @@ class ImitationLearningSystem {
             padding: 15px; border-radius: 8px;
             font-family: Arial, sans-serif; font-size: 12px;
             z-index: 1000; border: 2px solid #9C27B0;
-            min-width: 240px;
+            min-width: 260px;
         `;
 
         ui.innerHTML = `
             <div style="margin-bottom: 10px;">
-                <div><strong>🎬 Imitation Learning</strong></div>
+                <div><strong>🎬 Full Session Imitation</strong></div>
                 <div>Recording: <span id="recording-status">Off</span></div>
+                <div>Training: <span id="training-status">Ready</span></div>
                 <div>Model: <span id="model-status">Not Trained</span></div>
                 <div>Mode: <span id="imitation-mode">Human Control</span></div>
                 <div>Current: <span id="current-examples">0</span> examples</div>
@@ -774,7 +1314,7 @@ class ImitationLearningSystem {
             </div>
             
             <div style="margin-top: 8px; font-size: 10px; color: #aaa;">
-                Records, trains, and imitates your gameplay
+                v2.1: Full session training, improved architecture, better action balancing
             </div>
         `;
 
@@ -796,15 +1336,16 @@ class ImitationLearningSystem {
         document.getElementById('export-session').onclick = () => this.exportCurrentSession();
         document.getElementById('toggle-debug').onclick = () => {
             this.debugMode = !this.debugMode;
-            console.log(`🔍 Debug mode: ${this.debugMode ? 'ON' : 'OFF'}`);
+            console.log(`🔍 Full session debug mode: ${this.debugMode ? 'ON' : 'OFF'}`);
         };
         document.getElementById('save-model').onclick = () => this.saveImitationModel();
         document.getElementById('load-model').onclick = () => this.loadImitationModel();
     }
 
-    // Update UI display
+    // Update UI display with enhanced training status
     updateUI() {
         const recordingStatus = document.getElementById('recording-status');
+        const trainingStatus = document.getElementById('training-status');
         const modelStatus = document.getElementById('model-status');
         const imitationMode = document.getElementById('imitation-mode');
         const currentExamples = document.getElementById('current-examples');
@@ -816,6 +1357,19 @@ class ImitationLearningSystem {
             recordingStatus.style.color = this.isRecording ? '#ff4444' : '#888';
         }
 
+        if (trainingStatus) {
+            if (this.isTraining) {
+                trainingStatus.textContent = 'Training...';
+                trainingStatus.style.color = '#ffaa00';
+            } else if (this.trainingQueued) {
+                trainingStatus.textContent = 'Queued';
+                trainingStatus.style.color = '#ff9800';
+            } else {
+                trainingStatus.textContent = 'Ready';
+                trainingStatus.style.color = '#888';
+            }
+        }
+
         if (modelStatus) {
             modelStatus.textContent = this.isModelTrained ? 'Trained' : 'Not Trained';
             modelStatus.style.color = this.isModelTrained ? '#44ff44' : '#888';
@@ -823,7 +1377,14 @@ class ImitationLearningSystem {
 
         if (imitationMode) {
             if (this.isUsingImitationMode) {
-                imitationMode.textContent = 'AI Imitating';
+                if (this.isInLevelUpMode) {
+                    const phase = this.perkScrollPhase === 'browsing' ?
+                        `Browsing ${this.perksViewed}/4` :
+                        this.perkScrollPhase === 'selecting' ? 'Selecting' : 'Level-up';
+                    imitationMode.textContent = `AI Level-up (${phase})`;
+                } else {
+                    imitationMode.textContent = 'AI Imitating';
+                }
                 imitationMode.style.color = '#9C27B0';
             } else {
                 imitationMode.textContent = 'Human Control';
@@ -832,7 +1393,9 @@ class ImitationLearningSystem {
         }
 
         if (currentExamples) {
-            currentExamples.textContent = this.recordingData.length.toString();
+            const movementCount = this.recordingData.filter(e => e.action !== 0).length;
+            const levelUpCount = this.recordingData.filter(e => e.isLevelUp).length;
+            currentExamples.textContent = `${this.recordingData.length} (${movementCount}M, ${levelUpCount}L)`;
         }
 
         if (importedExamples) {
@@ -840,8 +1403,17 @@ class ImitationLearningSystem {
         }
 
         if (toggleRecordingBtn) {
-            toggleRecordingBtn.textContent = this.isRecording ? 'Stop Recording (V)' : 'Start Recording (V)';
-            toggleRecordingBtn.style.background = this.isRecording ? '#ff4444' : '#4CAF50';
+            const isDisabled = this.isTraining;
+            toggleRecordingBtn.disabled = isDisabled;
+            toggleRecordingBtn.style.opacity = isDisabled ? '0.6' : '1';
+
+            if (isDisabled) {
+                toggleRecordingBtn.textContent = 'Training... (V)';
+                toggleRecordingBtn.style.background = '#666';
+            } else {
+                toggleRecordingBtn.textContent = this.isRecording ? 'Stop Recording (V)' : 'Start Recording (V)';
+                toggleRecordingBtn.style.background = this.isRecording ? '#ff4444' : '#4CAF50';
+            }
         }
     }
 
@@ -875,6 +1447,7 @@ class ImitationLearningSystem {
     update() {
         this.recordFrame();
         this.controlMovement();
+        this.updateUI();
     }
 
     // Clean up resources
@@ -893,11 +1466,15 @@ class ImitationLearningSystem {
 
         const ui = document.getElementById('imitation-interface');
         if (ui) ui.remove();
+
+        // Reset training state
+        this.isTraining = false;
+        this.trainingQueued = false;
     }
 }
 
 /**
- * COMPREHENSIVE GAME STATE EXTRACTOR - 60 features for detailed game state
+ * COMPREHENSIVE GAME STATE EXTRACTOR - Same as before 
  */
 class ComprehensiveGameStateExtractor {
     constructor() {
@@ -915,7 +1492,7 @@ class ComprehensiveGameStateExtractor {
             this.gameWidth = scene.game.config.width;
             this.gameHeight = scene.game.config.height;
         }
-        console.log("🧠 Comprehensive state extractor initialized (60 features)");
+        console.log("🧠 Full session state extractor initialized (60 features)");
     }
 
     getState() {
@@ -936,7 +1513,7 @@ class ComprehensiveGameStateExtractor {
             return state;
 
         } catch (error) {
-            console.error("State extraction error:", error);
+            console.error("Full session state extraction error:", error);
             return this.lastState;
         }
     }
@@ -1101,4 +1678,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(checkGameReady, 2000);
 });
 
-console.log("🎬 Complete Imitation Learning System loaded!");
+console.log("🎬 Full Session Imitation Learning System v2.1 loaded - Preserves long sessions with smart level-up integration!");

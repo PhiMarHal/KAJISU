@@ -188,6 +188,25 @@ const UI = {
             fontSize: function () {
                 return UI.buttons.common.fontSize();
             }
+        },
+
+        // Imitation learning button configuration
+        imitation: {
+            symbol: "習", // Kanji for "learning/practice" - perfect for imitation learning
+            x: function () {
+                // Position to the right of AI button
+                const aiX = UI.buttons.ai.x();
+                const buttonSize = UI.buttons.common.size();
+                const spacing = UI.buttons.common.margin() * 0.5; // Half margin for closer spacing
+                return aiX + buttonSize + spacing;
+            },
+            y: function () {
+                // Same Y position as AI button (bottom left area)
+                return UI.buttons.ai.y();
+            },
+            fontSize: function () {
+                return UI.buttons.common.fontSize();
+            }
         }
     },
 
@@ -253,6 +272,10 @@ const ButtonDisplay = {
         if (scene.aiButton) scene.aiButton.destroy();
         if (scene.aiButtonBg) scene.aiButtonBg.destroy();
         if (scene.aiButtonBorder) scene.aiButtonBorder.destroy();
+        // Clean up existing imitation button elements if they exist
+        if (scene.imitationButton) scene.imitationButton.destroy();
+        if (scene.imitationButtonBg) scene.imitationButtonBg.destroy();
+        if (scene.imitationButtonBorder) scene.imitationButtonBorder.destroy();
 
         // Get button configurations
         const pauseConfig = UI.buttons.pause;
@@ -463,6 +486,66 @@ const ButtonDisplay = {
             }
         });
 
+        // Create imitation learning button background and border
+        scene.imitationButtonBorder = scene.add.rectangle(
+            UI.buttons.imitation.x(),
+            UI.buttons.imitation.y(),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(UI.depth.ui);
+
+        scene.imitationButtonBg = scene.add.rectangle(
+            UI.buttons.imitation.x(),
+            UI.buttons.imitation.y(),
+            commonConfig.size(),
+            commonConfig.size(),
+            UI.colors.black
+        ).setDepth(UI.depth.ui);
+
+        // Create imitation learning button
+        scene.imitationButton = scene.add.text(
+            UI.buttons.imitation.x(),
+            UI.buttons.imitation.y(),
+            UI.buttons.imitation.symbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: `${UI.buttons.imitation.fontSize()}px`,
+                color: '#ffffff',
+                fontStyle: 'bold',
+            }
+        ).setOrigin(0.5).setDepth(UI.depth.ui);
+        scene.imitationButton.setAlpha(1);
+
+        // Make imitation learning button interactive
+        scene.imitationButtonBorder.setInteractive({ useHandCursor: true });
+
+        scene.imitationButtonBorder.on('pointerover', function () {
+            scene.imitationButton.setColor('#ffff00'); // Yellow on hover
+            scene.imitationButton.setScale(1.1);
+        });
+
+        scene.imitationButtonBorder.on('pointerout', function () {
+            scene.imitationButton.setColor('#ffffff'); // White normally
+            scene.imitationButton.setScale(1);
+        });
+
+        scene.imitationButtonBorder.on('pointerdown', function () {
+            // Toggle imitation learning interface visibility
+            const imitationInterface = document.getElementById('imitation-interface');
+            if (imitationInterface) {
+                const isVisible = imitationInterface.style.display !== 'none';
+                imitationInterface.style.display = isVisible ? 'none' : 'block';
+
+                // Update button color to show state
+                scene.imitationButton.setColor(isVisible ? '#ffffff' : '#9C27B0');
+
+                console.log(`🎬 Imitation Learning interface ${isVisible ? 'hidden' : 'shown'}`);
+            } else {
+                console.log("🎬 Imitation Learning system not initialized yet");
+            }
+        });
+
         // Initial update
         this.update(scene);
     },
@@ -505,6 +588,26 @@ const ButtonDisplay = {
                 scene.aiButton.setColor('#00ff00'); // Green when AI is enabled
             } else {
                 scene.aiButton.setColor('#ffffff'); // White when AI is disabled
+            }
+        }
+
+        // Update imitation learning button positions if needed
+        if (scene.imitationButton && scene.imitationButtonBg && scene.imitationButtonBorder) {
+            const imitationConfig = UI.buttons.imitation;
+            scene.imitationButton.setPosition(imitationConfig.x(), imitationConfig.y());
+            scene.imitationButtonBg.setPosition(imitationConfig.x(), imitationConfig.y());
+            scene.imitationButtonBorder.setPosition(imitationConfig.x(), imitationConfig.y());
+
+            // Update button color based on imitation learning state
+            const imitationInterface = document.getElementById('imitation-interface');
+            const isInterfaceVisible = imitationInterface && imitationInterface.style.display !== 'none';
+
+            if (window.imitationLearning?.isUsingImitationMode) {
+                scene.imitationButton.setColor('#9C27B0'); // Purple when AI is imitating
+            } else if (isInterfaceVisible) {
+                scene.imitationButton.setColor('#9C27B0'); // Purple when interface is shown
+            } else {
+                scene.imitationButton.setColor('#ffffff'); // White when inactive
             }
         }
     }

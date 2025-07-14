@@ -1,5 +1,5 @@
-// Canvas Texture Rendering System for Kanji Enemies
-// Generates optimized sprite textures for kanji characters
+// Canvas Texture Rendering System for Kanji Enemies and Projectiles
+// Generates optimized sprite textures for kanji characters and projectiles
 
 const KanjiTextureSystem = {
     // Cache for generated textures
@@ -22,6 +22,12 @@ const KanjiTextureSystem = {
     generateTextureKey: function (kanji, fontSize, color) {
         const normalizedColor = color.replace('#', '').toLowerCase();
         return `kanji_${kanji}_${fontSize}_${normalizedColor}`;
+    },
+
+    // Generate a unique texture key for projectiles
+    generateProjectileTextureKey: function (symbol, fontSize, color) {
+        const normalizedColor = color.replace('#', '').toLowerCase();
+        return `projectile_${symbol}_${fontSize}_${normalizedColor}`;
     },
 
     // Create a canvas texture for a kanji character
@@ -79,6 +85,80 @@ const KanjiTextureSystem = {
         }
     },
 
+    // Create a canvas texture for a projectile
+    createProjectileTexture: function (symbol, fontSize, color) {
+        const textureKey = this.generateProjectileTextureKey(symbol, fontSize, color);
+
+        // Return existing texture if already cached
+        if (this.textureCache.has(textureKey)) {
+            return textureKey;
+        }
+
+        // Calculate texture size based on font size
+        const textureSize = Math.max(this.config.textureSize, fontSize * 2);
+
+        try {
+            // Create canvas texture in Phaser
+            const canvas = this.scene.textures.createCanvas(textureKey, textureSize, textureSize);
+            const context = canvas.getContext();
+
+            // Check if this is an invisible projectile
+            const isInvisible = this.isInvisibleSymbol(symbol);
+
+            if (isInvisible) {
+                // For invisible projectiles, just create a transparent texture
+                // Clear canvas (already transparent by default)
+                context.clearRect(0, 0, textureSize, textureSize);
+                // Don't draw anything - leave it transparent
+            } else {
+                // Configure text rendering with bold style for projectiles
+                context.font = `bold ${fontSize}px Arial`;
+                context.fillStyle = color;
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+
+                if (this.config.antiAlias) {
+                    context.imageSmoothingEnabled = true;
+                    context.imageSmoothingQuality = 'high';
+                }
+
+                // Clear canvas
+                context.clearRect(0, 0, textureSize, textureSize);
+
+                // Calculate position with baseline adjustment
+                const centerX = textureSize / 2;
+                const centerY = textureSize / 2;
+                const baselineAdjustment = fontSize * 0.05;
+                const adjustedY = centerY + baselineAdjustment;
+
+                // Draw the projectile symbol
+                context.fillText(symbol, centerX, adjustedY);
+            }
+
+            // Refresh the canvas texture
+            canvas.refresh();
+
+            // Cache the texture
+            this.textureCache.set(textureKey, textureKey);
+            this.sessionTextures.add(textureKey);
+
+            return textureKey;
+
+        } catch (error) {
+            console.error(`Failed to create texture for projectile ${symbol}:`, error);
+            return null;
+        }
+    },
+
+    // Helper function to check if a symbol should be invisible
+    isInvisibleSymbol: function (symbol) {
+        // Check for invisible characters or empty strings
+        return !symbol ||
+            symbol === '' ||
+            symbol === '　' || // Full-width space (invisible character)
+            symbol.trim() === '';
+    },
+
     // Create an enemy sprite using canvas texture
     createEnemySprite: function (scene, enemyType, x, y) {
         const enemyData = getEnemyData(enemyType);
@@ -116,6 +196,44 @@ const KanjiTextureSystem = {
         enemy.english = enemyData.english;
 
         return enemy;
+    },
+
+    // Create a projectile sprite using canvas texture
+    createProjectileSprite: function (scene, config) {
+        const defaults = {
+            symbol: '★',
+            color: '#ffff00',
+            fontSize: 16
+        };
+
+        const projConfig = { ...defaults, ...config };
+
+        // Generate texture
+        const textureKey = this.createProjectileTexture(
+            projConfig.symbol,
+            projConfig.fontSize,
+            projConfig.color
+        );
+
+        if (!textureKey) {
+            throw new Error(`Failed to create texture for projectile: ${projConfig.symbol}`);
+        }
+
+        // Create sprite
+        const projectile = scene.add.sprite(projConfig.x, projConfig.y, textureKey);
+        projectile.setOrigin(0.5);
+
+        // Store properties for compatibility
+        projectile.text = projConfig.symbol; // For compatibility with existing systems
+        projectile.actualWidth = projConfig.fontSize;
+        projectile.actualHeight = projConfig.fontSize;
+        projectile.projectileType = 'sprite';
+        projectile.originalTint = 0xffffff;
+
+        // Store the original texture key for effect helpers
+        projectile.originalTexture = textureKey;
+
+        return projectile;
     },
 
     // Clean up session textures
@@ -205,28 +323,114 @@ const SpriteEffectHelpers = {
         }
     },
 
+    // Apply effect color to projectiles (similar to enemies)
+    applyEffectColorProjectile: function (projectile, color, scene) {
+        if (projectile.projectileType === 'sprite') {
+            // Store original texture
+            if (!projectile.originalTexture) {
+                projectile.originalTexture = projectile.texture.key;
+            }
+
+            // Create a new tinted texture key
+            const tintedKey = `${projectile.originalTexture}_${color.replace('#', '')}`;
+
+            // Check if we already have this tinted texture
+            if (!scene.textures.exists(tintedKey)) {
+                // Parse the original texture key more robustly
+                // Format: projectile_SYMBOL_FONTSIZE_COLOR
+                const parts = projectile.originalTexture.split('_');
+
+                if (parts.length >= 4 && parts[0] === 'projectile') {
+                    // Get the last two parts (fontSize and originalColor)
+                    const originalColor = parts[parts.length - 1];
+                    const fontSize = parseInt(parts[parts.length - 2]);
+
+                    // Everything between 'projectile_' and the last two parts is the symbol
+                    const symbol = parts.slice(1, parts.length - 2).join('_');
+
+                    if (!isNaN(fontSize) && symbol) {
+                        // Create new colored texture
+                        const canvas = scene.textures.createCanvas(tintedKey,
+                            Math.max(KanjiTextureSystem.config.textureSize, fontSize * 2),
+                            Math.max(KanjiTextureSystem.config.textureSize, fontSize * 2)
+                        );
+                        const context = canvas.getContext();
+
+                        // Check if this should be invisible
+                        const isInvisible = KanjiTextureSystem.isInvisibleSymbol(symbol);
+
+                        if (isInvisible) {
+                            // For invisible projectiles, just create a transparent texture
+                            context.clearRect(0, 0, canvas.width, canvas.height);
+                        } else {
+                            // Configure text rendering with the new color
+                            context.font = `bold ${fontSize}px Arial`;
+                            context.fillStyle = color;
+                            context.textAlign = 'center';
+                            context.textBaseline = 'middle';
+
+                            if (KanjiTextureSystem.config.antiAlias) {
+                                context.imageSmoothingEnabled = true;
+                                context.imageSmoothingQuality = 'high';
+                            }
+
+                            // Clear and draw
+                            context.clearRect(0, 0, canvas.width, canvas.height);
+                            const centerX = canvas.width / 2;
+                            const centerY = canvas.height / 2;
+                            const baselineAdjustment = fontSize * 0.05;
+                            const adjustedY = centerY + baselineAdjustment;
+
+                            context.fillText(symbol, centerX, adjustedY);
+                        }
+
+                        canvas.refresh();
+
+                        // Track this texture for cleanup
+                        KanjiTextureSystem.sessionTextures.add(tintedKey);
+                    } else {
+                        console.warn('Failed to parse projectile texture key:', projectile.originalTexture);
+                        return; // Don't change texture if parsing failed
+                    }
+                } else {
+                    console.warn('Invalid projectile texture key format:', projectile.originalTexture);
+                    return; // Don't change texture if format is invalid
+                }
+            }
+
+            // Switch to the tinted texture
+            projectile.setTexture(tintedKey);
+        } else {
+            // Fallback for text projectiles
+            if (!projectile.originalColor) {
+                projectile.originalColor = projectile.style.color || '#ffffff';
+            }
+            projectile.setColor(color);
+        }
+    },
+
     // Reset to original appearance
-    resetEffectColor: function (enemy) {
-        if (enemy.enemyType === 'sprite') {
+    resetEffectColor: function (entity) {
+        if (entity.enemyType === 'sprite' || entity.projectileType === 'sprite') {
             // Reset blend mode method
-            if (enemy.originalBlendMode !== undefined) {
-                enemy.setBlendMode(enemy.originalBlendMode);
-                enemy.setTint(enemy.originalTint);
+            if (entity.originalBlendMode !== undefined) {
+                entity.setBlendMode(entity.originalBlendMode);
+                entity.setTint(entity.originalTint);
             }
 
             // Reset overlay method
-            if (enemy.colorOverlay) {
-                enemy.colorOverlay.destroy();
-                enemy.colorOverlay = null;
-                enemy.updateOverlay = null;
+            if (entity.colorOverlay) {
+                entity.colorOverlay.destroy();
+                entity.colorOverlay = null;
+                entity.updateOverlay = null;
             }
 
             // Reset texture method
-            if (enemy.originalTexture) {
-                enemy.setTexture(enemy.originalTexture);
+            if (entity.originalTexture) {
+                entity.setTexture(entity.originalTexture);
             }
-        } else if (enemy.originalColor) {
-            enemy.setColor(enemy.originalColor);
+        } else if (entity.originalColor) {
+            entity.setColor(entity.originalColor);
         }
     },
 
@@ -254,4 +458,4 @@ window.cleanupKanjiOptimization = function () {
     KanjiTextureSystem.clearSessionTextures();
 };
 
-console.log("Lean canvas texture system loaded");
+console.log("Enhanced canvas texture system loaded");

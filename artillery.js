@@ -50,6 +50,19 @@ const ProjectileComponentSystem = {
                 component[eventName](projectile, ...[...args, projectile.scene]);
             }
         });
+    },
+
+    // Helper function to set projectile color (works for both text and sprite projectiles)
+    setProjectileColor: function (projectile, color, scene) {
+        if (projectile.projectileType === 'sprite') {
+            // Use sprite helper for canvas texture projectiles
+            SpriteEffectHelpers.applyEffectColorProjectile(projectile, color, scene || projectile.scene);
+        } else {
+            // Use setColor for text projectiles
+            if (projectile.setColor) {
+                projectile.setColor(color);
+            }
+        }
     }
 };
 
@@ -101,7 +114,7 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
 ProjectileComponentSystem.registerComponent('slowEffect', {
     initialize: function (projectile) {
         // Apply cyan color to projectile to indicate slow effect
-        projectile.setColor('#00ffff');
+        ProjectileComponentSystem.setProjectileColor(projectile, '#00ffff', projectile.scene);
     },
 
     onHit: function (projectile, enemy, scene) {
@@ -126,7 +139,7 @@ ProjectileComponentSystem.registerComponent('slowEffect', {
 ProjectileComponentSystem.registerComponent('explosionEffect', {
     initialize: function (projectile) {
         // Visual indicator for the projectile
-        projectile.setColor('#FF9500'); // Orange color for explosive feel
+        ProjectileComponentSystem.setProjectileColor(projectile, '#FF9500', projectile.scene); // Orange color for explosive feel
 
         // Set default properties
         this.damageMultiplier = 1; // 100% of player damage in AOE
@@ -255,7 +268,7 @@ window.applyPoisonEffect = applyPoisonEffect;
 ProjectileComponentSystem.registerComponent('poisonEffect', {
     initialize: function (projectile) {
         // Visual indicator
-        projectile.setColor('#2aad27');
+        ProjectileComponentSystem.setProjectileColor(projectile, '#2aad27', projectile.scene);
     },
 
     onHit: function (projectile, enemy, scene) {
@@ -270,7 +283,7 @@ ProjectileComponentSystem.registerComponent('poisonEffect', {
 ProjectileComponentSystem.registerComponent('splitEffect', {
     initialize: function (projectile) {
         // Visual indicator
-        projectile.setColor('#1E90FF');
+        ProjectileComponentSystem.setProjectileColor(projectile, '#1E90FF', projectile.scene);
     },
 
     onHit: function (projectile, enemy, scene) {
@@ -489,7 +502,7 @@ window.createPersistentEffect = createPersistentEffect;
 ProjectileComponentSystem.registerComponent('fireEffect', {
     initialize: function (projectile) {
         // Visual indicator for the projectile itself
-        projectile.setColor('#FF4500');
+        ProjectileComponentSystem.setProjectileColor(projectile, '#FF4500', projectile.scene);
         this.fireDamage = playerDamage / 10; // Default fire damage
         this.fireDuration = 4000; // 4s default duration
         this.fireTickInterval = 200; // 0.2 seconds default tick interval
@@ -520,7 +533,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
 ProjectileComponentSystem.registerComponent('magmaDropEffect', {
     initialize: function (projectile) {
         // Visual indicator for the projectile itself
-        projectile.setColor('#FF6600');
+        ProjectileComponentSystem.setProjectileColor(projectile, '#FF6600', projectile.scene);
         this.magmaDamage = playerDamage; // Full damage for magma
         this.magmaDuration = playerLuck * 1000; // Duration scales with luck
         this.magmaTickInterval = 1000; // 1 second between ticks
@@ -557,7 +570,7 @@ ProjectileComponentSystem.registerComponent('piercingEffect', {
 ProjectileComponentSystem.registerComponent('healingAuraEffect', {
     initialize: function (projectile) {
         // Visual indicator for healing projectile
-        projectile.setColor('#00ff00'); // Light green color
+        ProjectileComponentSystem.setProjectileColor(projectile, '#00ff00', projectile.scene); // Light green color
 
         // Set default properties
         this.healRadius = 128; // 128px healing radius
@@ -727,11 +740,23 @@ ProjectileComponentSystem.registerComponent('stasisEffect', {
 
         // Update projectile size to reflect the doubled damage
         const newSize = getEffectiveSize(null, projectile.damage);
-        projectile.setFontSize(newSize);
+
+        // Handle both text and sprite projectiles for size updates
+        if (projectile.projectileType === 'sprite') {
+            // For sprites, we'd need to create a new texture with the new size
+            // For now, just use scale
+            const scaleFactor = newSize / (projectile.actualWidth || 16);
+            projectile.setScale(scaleFactor);
+        } else if (projectile.setFontSize) {
+            // For text projectiles
+            projectile.setFontSize(newSize);
+        }
 
         // Update physics body size to match new visual size
         if (projectile.body) {
-            projectile.body.setSize(projectile.width / 2, projectile.height / 2);
+            const collisionWidth = projectile.actualWidth || projectile.width / 2;
+            const collisionHeight = projectile.actualHeight || projectile.height / 2;
+            projectile.body.setSize(collisionWidth, collisionHeight);
         }
 
         // Force this projectile to be non-piercing for balance reasons
@@ -801,4 +826,3 @@ ProjectileComponentSystem.registerComponent('stasisEffect', {
         );
     }
 });
-

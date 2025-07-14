@@ -32,7 +32,6 @@ const FamiliarBehaviors = {
         // Calculate shot properties
         const damage = playerDamage * 0.5; // Half player damage
 
-
         // Find the closest enemy to the player
         const target = findClosestVisibleEnemy(scene);
 
@@ -80,13 +79,13 @@ const FamiliarBehaviors = {
         const damage = playerDamage * 0.5; // Half player damage
         const speed = 400; // Normal speed
 
-        // Available effect components with their colors
+        // Available effect components with their colors and symbols
         const availableEffects = [
-            { component: 'slowEffect', color: '#00FFFF' },         // Cyan for slow
-            { component: 'poisonEffect', color: '#2AAD27' },       // Green for poison
-            { component: 'fireEffect', color: '#FF4500' },         // Orange-red for fire
-            { component: 'explosionEffect', color: '#FF9500' },    // Amber for explosion
-            { component: 'splitEffect', color: '#1E90FF' }          // Blue for split
+            { component: 'slowEffect', color: '#00FFFF', symbol: '❄' },         // Snowflake for slow
+            { component: 'poisonEffect', color: '#2AAD27', symbol: '☠' },       // Skull for poison
+            { component: 'fireEffect', color: '#FF4500', symbol: '🔥' },         // Fire for fire
+            { component: 'explosionEffect', color: '#FF9500', symbol: '💥' },    // Explosion for explosion
+            { component: 'splitEffect', color: '#1E90FF', symbol: '✧' }          // Star for split
         ];
 
         // Select a random effect
@@ -172,7 +171,7 @@ const FamiliarBehaviors = {
             damage: playerDamage,    // Default to full damage
             speed: 1000,             // Very fast speed
             color: '#FFFF00',        // Default to yellow
-            symbol: '　',             // Invisible character by default
+            symbol: '　',            // Use invisible character as intended
             componentName: null      // No component by default
         };
 
@@ -215,7 +214,7 @@ const FamiliarBehaviors = {
             damage: playerDamage / 2,
             speed: 1000,
             color: '#FFFF00',
-            symbol: '　',
+            symbol: '　',            // Invisible character as intended
             componentName: null
         });
     },
@@ -225,8 +224,8 @@ const FamiliarBehaviors = {
         return FamiliarBehaviors.finger(scene, orbital, time, {
             damage: playerDamage * 0.2,
             speed: 1000,
-            color: '#FFFF00',
-            symbol: '　',
+            color: '#88AA22',
+            symbol: '　',            // Invisible character as intended
             componentName: 'poisonEffect'
         });
     },
@@ -282,18 +281,22 @@ function findClosestVisibleEnemy(scene, maxDistance = 400) {
     return closestEnemy;
 }
 
-
 // Helper function to fire a projectile from a familiar
 function fireFamiliarProjectile(scene, orbital, target, options = {}) {
-    // Default options
+    // Default options with explicit symbol
     const config = {
         damage: playerDamage * 0.5, // Default to half player damage for familiars
         speed: 400,
         color: '#ffff00',
-        symbol: '★',
-        piercing: false, // Add piercing option with default false
+        symbol: '★',           // Default star symbol
+        piercing: false,       // Add piercing option with default false
         ...options
     };
+
+    // Ensure we have a valid symbol - handle undefined/null cases
+    if (config.symbol === undefined || config.symbol === null) {
+        config.symbol = '★';
+    }
 
     // Calculate direction to the target or use overrideAngle if provided
     const angle = target ? Phaser.Math.Angle.Between(
@@ -304,18 +307,28 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
     // Calculate the appropriate size based on the actual damage
     const familiarProjectileSize = getEffectiveSize(projectileSizeFactor, config.damage);
 
-    // Create the projectile using WeaponSystem
+    // Ensure we have a reasonable minimum size
+    const minSize = 12;
+    const finalSize = Math.max(minSize, familiarProjectileSize);
+
+    // Create the projectile using WeaponSystem with validated config
     const projectile = WeaponSystem.createProjectile(scene, {
         x: orbital.entity.x,
         y: orbital.entity.y,
         angle: angle,
-        symbol: config.symbol,
+        symbol: config.symbol,      // Use validated symbol
         color: config.color,
         speed: config.speed,
         damage: config.damage,
-        fontSize: familiarProjectileSize,
-        skipComponents: true // Skip components for familiar projectiles, apply them manually if needed
+        fontSize: finalSize,        // Use validated size
+        skipComponents: true        // Skip components for familiar projectiles, apply them manually if needed
     });
+
+    // Validate that projectile was created successfully
+    if (!projectile) {
+        console.warn('Failed to create familiar projectile:', config);
+        return null;
+    }
 
     // Store the original velocity before any group changes
     const originalVelocityX = projectile.body.velocity.x;

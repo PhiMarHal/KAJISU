@@ -1,4 +1,4 @@
-// Updated weapons.js with consolidated collision handling
+// Updated weapons.js with canvas texture support for projectiles
 
 const WeaponSystem = {
     // Currently active weapon type
@@ -218,25 +218,21 @@ const WeaponSystem = {
             angle: 0,
             speed: 400,
             damage: getEffectiveDamage(),
-            fontSize: getEffectiveSize(), // Add fontSize with getEffectiveSize
+            fontSize: getEffectiveSize(),
             skipComponents: false
         };
 
         // Merge config with defaults
         const projConfig = { ...defaults, ...config };
 
-        // Create the projectile text object
-        const projectile = scene.add.text(
-            projConfig.x,
-            projConfig.y,
-            projConfig.symbol,
-            {
-                fontFamily: 'Arial',
-                fontSize: `${projConfig.fontSize}px`, // Use the calculated or provided fontSize
-                color: projConfig.color,
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5);
+        // Create the projectile sprite using the texture system
+        const projectile = KanjiTextureSystem.createProjectileSprite(scene, {
+            x: projConfig.x,
+            y: projConfig.y,
+            symbol: projConfig.symbol,
+            color: projConfig.color,
+            fontSize: projConfig.fontSize
+        });
 
         // Default to non-piercing
         projectile.piercing = false;
@@ -258,7 +254,10 @@ const WeaponSystem = {
         }
 
         // NOW we can safely set physics body properties
-        projectile.body.setSize(projectile.width / 2, projectile.height / 2);
+        // Use actualWidth/actualHeight for proper collision detection with sprites
+        const collisionWidth = projectile.actualWidth || projectile.width / 2;
+        const collisionHeight = projectile.actualHeight || projectile.height / 2;
+        projectile.body.setSize(collisionWidth, collisionHeight);
         projectile.damage = projConfig.damage;
 
         // Set velocity based on angle

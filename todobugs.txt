@@ -13,7 +13,7 @@ after 100 perks we need 1000 kills of a new kanji for a perk unlock. good for lo
 ideal system would mesh learning and unlocks by "retiring" kanjis with unlocks and rotating in favor of new one.
 fixed at high value (perhaps 1k) would make more sense with that latter design
 - allow card/challenge navigation with keyboard only (select first card by default, up/down move to input box, left/right between cards, highlight in gold)
-
+- score should be clarified ("kill boss fast" over "survive forever")
 
 
 

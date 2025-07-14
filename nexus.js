@@ -152,13 +152,13 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
             collisionType: 'projectile', // Destroyed on hit
             damage: playerDamage,
             damageInterval: 0, // Not used for projectiles
-            lifespan: 20000, // Delete after 20 seconds, to avoid infinite stacking
+            lifespan: 16000, // Delete after 20 seconds, to avoid infinite stacking
             options: {}
         };
     },
     count: 1,
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 1000, // Base cooldown for Teal Octopus
+    cooldown: 1200, // Base cooldown for Teal Octopus
     cooldownStat: 'fireRate',
     cooldownFormula: 'sqrt',
     activationMethod: 'timer'
@@ -191,13 +191,13 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
             collisionType: 'projectile', // Destroyed on hit
             damage: playerDamage,
             damageInterval: 0, // Not used for projectiles
-            lifespan: 20000, //
+            lifespan: 16000, //
             options: {}
         };
     },
     count: 1,
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 1000, // Base cooldown for Inverted Octopus
+    cooldown: 1200, // Base cooldown for Inverted Octopus
     cooldownStat: 'fireRate',
     cooldownFormula: 'sqrt',
     activationMethod: 'timer'
@@ -943,7 +943,7 @@ OrbitalPerkRegistry.registerPerkOrbital('COMET', {
         };
     },
     count: 1,
-    cooldown: 1600, // Base cooldown
+    cooldown: 2000, // Base cooldown
     cooldownStat: 'fireRate',
     cooldownFormula: 'sqrt',
     activationMethod: 'timer'
@@ -984,7 +984,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_COMET', {
         };
     },
     count: 1,
-    cooldown: 1600, // Base cooldown
+    cooldown: 2000, // Base cooldown
     cooldownStat: 'fireRate',
     cooldownFormula: 'sqrt',
     activationMethod: 'timer'

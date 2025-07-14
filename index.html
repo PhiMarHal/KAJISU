@@ -548,7 +548,6 @@
 
         }
 
-        // Add this to your update function
         function update(time, delta) {
             if (!gameStarted) return; // Exit early if game hasn't started yet
             if (gameOver) return;
@@ -574,7 +573,6 @@
 
             // Player movement
             InputSystem.updateMovement(player, delta);
-
 
             // Update enemies
             EnemySystem.updateEnemies();

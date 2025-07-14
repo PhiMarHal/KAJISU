@@ -443,14 +443,12 @@ function setupFairyColorChanger(scene, orbital) {
             // Move to next color
             colorIndex = (colorIndex + 1) % colors.length;
 
-            // Apply new color with tween for smooth transition
-            scene.tweens.add({
-                targets: orbital.entity,
-                duration: 500,
-                onUpdate: function () {
-                    orbital.entity.setColor(colors[colorIndex]);
-                }
-            });
+            // Apply new color directly - much simpler and more reliable
+            try {
+                orbital.entity.setColor(colors[colorIndex]);
+            } catch (error) {
+                console.warn('Failed to change fairy color:', error);
+            }
         },
         callbackScope: scene,
         loop: true
@@ -462,6 +460,7 @@ function setupFairyColorChanger(scene, orbital) {
     // Store reference to timer on orbital for cleanup
     orbital.colorTimer = colorTimer;
 
+    console.log('Fun Fairy color changer set up successfully');
     return colorTimer;
 }
 

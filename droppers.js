@@ -76,14 +76,26 @@ const DropBehaviors = {
 
     // Player pushable behavior - entities that can be pushed by player
     playerPushable: function (scene, drop, enemy) {
-        // Apply damage to the enemy using the contact damage system
-        applyContactDamage.call(
-            scene,
-            drop.entity,
-            enemy,
-            drop.entity.damage,
-            drop.damageInterval
-        );
+        // Check if the pushable object is actually moving
+        const body = drop.entity.body;
+        if (!body) return; // Safety check
+
+        // Calculate velocity magnitude (very low compute)
+        const velocityMagnitude = Math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y);
+
+        // Only apply damage if moving faster than threshold
+        const velocityThreshold = drop.options?.velocityThreshold ?? 1; // Default 1px/second
+
+        if (velocityMagnitude > velocityThreshold) {
+            // Apply damage to the enemy using the contact damage system
+            applyContactDamage.call(
+                scene,
+                drop.entity,
+                enemy,
+                drop.entity.damage,
+                drop.damageInterval
+            );
+        }
     }
 };
 
@@ -591,6 +603,16 @@ const DropperSystem = {
 
             // Create lightning strike
             createLightningStrike(scene, clampedX, clampedY);
+        }
+
+        // Hammer Queen effect
+        else if (drop.options && drop.options.isHammerQueen) {
+            // Call god hammer with range checking (192px radius from crown)
+            dropGodHammer.call(scene, {
+                originX: drop.entity.x,
+                originY: drop.entity.y,
+                maxRange: 192
+            });
         }
 
         // Existing flower logic

@@ -492,7 +492,7 @@ DropperPerkRegistry.registerDropperPerk('CLOUD_KING', {
             color: '#00DDFF', // Blue color like Storm Beacon
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: playerDamage * 0.1, // Very low damage
+            damage: playerDamage * 0.4, // Very low damage
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
@@ -529,6 +529,53 @@ window.activateCloudKing = function () {
 
     // Apply the dropper perk (will create one crown immediately)
     DropperPerkRegistry.applyDropperPerk(scene, 'CLOUD_KING');
+};
+
+// Add to entrapments.js - HAMMER_QUEEN perk registration
+DropperPerkRegistry.registerDropperPerk('HAMMER_QUEEN', {
+    getConfig: function () {
+        return {
+            symbol: '位', // Same kanji for "crown" as CLOUD_KING
+            color: '#FFD700', // Gold color like God Hammer
+            fontSize: 32, // Same size as player
+            behaviorType: 'playerPushable',
+            damage: playerDamage * 0.4, // Very low damage (same as CLOUD_KING)
+            damageInterval: 400,
+            colliderSize: 1.0, // Full size collision
+            lifespan: null, // Permanent
+            health: 999999999, // Effectively indestructible
+            options: {
+                hasPeriodicEffect: true, // Enable periodic hammers
+                periodicEffectCooldown: 20000, // Base 20 second cooldown
+                fireImmediately: false, // Don't fire immediately on spawn
+                isHammerQueen: true, // Flag to identify this as a hammer queen
+                // Same physics configuration as CLOUD_KING
+                physics: {
+                    bounce: 0.5, // Lower bounce than GOLDEN_AGE
+                    drag: 100, // Higher drag to slow it down more
+                    mass: 0.1,
+                    maxVelocity: 200 // Lower max velocity
+                }
+            }
+        };
+    },
+    cooldown: null, // No periodic spawning
+    cooldownStat: null,
+    cooldownFormula: null,
+    positionMode: 'player', // Spawn near player
+    activationMethod: 'immediate' // Create once immediately
+});
+
+// Add to entrapments.js - activation function
+window.activateHammerQueen = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Setup periodic effects for drops (only needs to be done once)
+    setupPeriodicEffectsSystem(scene);
+
+    // Apply the dropper perk (will create one crown immediately)
+    DropperPerkRegistry.applyDropperPerk(scene, 'HAMMER_QUEEN');
 };
 
 // Export the registry for use in other files

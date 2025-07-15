@@ -807,19 +807,37 @@ PlayerComponentSystem.registerComponent('godHammerAbility', {
 });
 
 // Function to drop the God Hammer on enemies
-function dropGodHammer() {
+function dropGodHammer(options = {}) {
+    // Extract options with defaults
+    const {
+        originX = null,
+        originY = null,
+        maxRange = null
+    } = options;
+
     // Skip if no enemies
     if (!EnemySystem.enemiesGroup || EnemySystem.enemiesGroup.getChildren().length === 0) return;
 
     // Get all active enemies on screen
-    const activeEnemies = EnemySystem.enemiesGroup.getChildren().filter(enemy =>
+    let activeEnemies = EnemySystem.enemiesGroup.getChildren().filter(enemy =>
         enemy.active &&
         enemy.x >= 0 && enemy.x <= game.config.width && enemy.y >= 0 && enemy.y <= game.config.height
     );
 
+    // If range checking is requested, filter enemies by distance from origin
+    if (originX !== null && originY !== null && maxRange !== null) {
+        activeEnemies = activeEnemies.filter(enemy => {
+            const dx = enemy.x - originX;
+            const dy = enemy.y - originY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance <= maxRange;
+        });
+    }
+
+    // If no valid enemies found (either none on screen or none in range), return
     if (activeEnemies.length === 0) return;
 
-    // Select a random enemy to target
+    // Select a random enemy to target from the filtered list
     const targetEnemy = Phaser.Utils.Array.GetRandom(activeEnemies);
 
     // Create the hammer at a position above the enemy

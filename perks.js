@@ -1199,7 +1199,7 @@ const PERKS = {
         kana: "ぜんせいき",
         romaji: "zenseiki",
         english: "Golden Age",
-        description: "Spawns a golden ball you can push into enemies",
+        description: "Let's go bowling",
         color: "#ffff00", // Gold/yellow color
         hoverColor: 0xdddd00,
         onAcquire: function () {
@@ -1211,11 +1211,23 @@ const PERKS = {
         kana: 'くもおう',
         romaji: 'kumoou',
         english: 'Cloud King',
-        description: 'Spawns a mystical crown that follows you and creates lightning storms',
+        description: 'Carry the crown to your foes to smite them with lightning',
         color: '#00DDFF',
         hoverColor: 0x00BBDD,
         onAcquire: function () {
             window.activateCloudKing();
+        }
+    },
+    "HAMMER_QUEEN": {
+        kanji: '鎚王',
+        kana: 'つちおう',
+        romaji: 'tsuchiou',
+        english: 'Hammer Queen',
+        description: 'Carry the crown to your enemies to bring the hammer down',
+        color: '#FFD700',
+        hoverColor: 0xDAA520,
+        onAcquire: function () {
+            window.activateHammerQueen();
         }
     },
     "GREEN_DEER": {

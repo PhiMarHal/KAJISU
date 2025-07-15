@@ -944,20 +944,25 @@ function createLightningStrike(scene, x, y, options = {}) {
     // Create unique ID for this lightning strike
     const strikeId = `lightning_${Date.now()}_${Math.random()}`;
 
-    // Apply damage to all enemies in radius
+    // Apply damage to all enemies in radius, but filter to only actual enemies
     targets.forEach(body => {
         if (body.gameObject && body.gameObject.active) {
-            applyContactDamage.call(
-                scene,
-                {
-                    damageSourceId: strikeId,
-                    damage: damage,
-                    active: true
-                },
-                body.gameObject,
-                damage,
-                0 // No cooldown needed for one-time effect
-            );
+            // Check if this game object is actually an enemy by seeing if it's in the enemies group
+            const isEnemy = EnemySystem.enemiesGroup.children.entries.includes(body.gameObject);
+
+            if (isEnemy) {
+                applyContactDamage.call(
+                    scene,
+                    {
+                        damageSourceId: strikeId,
+                        damage: damage,
+                        active: true
+                    },
+                    body.gameObject,
+                    damage,
+                    0 // No cooldown needed for one-time effect
+                );
+            }
         }
     });
 

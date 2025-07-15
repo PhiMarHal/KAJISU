@@ -1206,6 +1206,18 @@ const PERKS = {
             window.activateGoldenAge();
         }
     },
+    "CLOUD_KING": {
+        kanji: '雲王',
+        kana: 'くもおう',
+        romaji: 'kumoou',
+        english: 'Cloud King',
+        description: 'Spawns a mystical crown that follows you and creates lightning storms',
+        color: '#00DDFF',
+        hoverColor: 0x00BBDD,
+        onAcquire: function () {
+            window.activateCloudKing();
+        }
+    },
     "GREEN_DEER": {
         kanji: "緑鹿",
         kana: "みどりしか",

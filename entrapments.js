@@ -484,5 +484,52 @@ window.activateGoldenAge = function () {
     DropperPerkRegistry.applyDropperPerk(scene, 'GOLDEN_AGE');
 };
 
+// Update CLOUD_KING config in entrapments.js to include physics options
+DropperPerkRegistry.registerDropperPerk('CLOUD_KING', {
+    getConfig: function () {
+        return {
+            symbol: '位', // Kanji for "crown"
+            color: '#00DDFF', // Blue color like Storm Beacon
+            fontSize: 32, // Same size as player
+            behaviorType: 'playerPushable',
+            damage: playerDamage * 0.1, // Very low damage
+            damageInterval: 400,
+            colliderSize: 1.0, // Full size collision
+            lifespan: null, // Permanent
+            health: 999999999, // Effectively indestructible
+            options: {
+                hasPeriodicEffect: true, // Enable periodic lightning
+                periodicEffectCooldown: 2000, // Base 2 second cooldown
+                fireImmediately: false, // Don't fire immediately on spawn
+                isCloudKing: true, // Flag to identify this as a cloud king
+                // Physics configuration for more ponderous movement
+                physics: {
+                    bounce: 0.5, // Lower bounce than GOLDEN_AGE
+                    drag: 100, // Higher drag to slow it down more
+                    mass: 0.1, //
+                    maxVelocity: 200 // Lower max velocity
+                }
+            }
+        };
+    },
+    cooldown: null, // No periodic spawning
+    cooldownStat: null,
+    cooldownFormula: null,
+    positionMode: 'player', // Spawn near player
+    activationMethod: 'immediate' // Create once immediately
+});
+
+// Add to entrapments.js - activation function
+window.activateCloudKing = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Setup periodic effects for drops (only needs to be done once)
+    setupPeriodicEffectsSystem(scene);
+
+    // Apply the dropper perk (will create one crown immediately)
+    DropperPerkRegistry.applyDropperPerk(scene, 'CLOUD_KING');
+};
+
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

@@ -74,7 +74,7 @@ const DropBehaviors = {
         }
     },
 
-    // Player pushable behavior - entities that can be pushed by player and bounce off enemies
+    // Player pushable behavior - entities that can be pushed by player
     playerPushable: function (scene, drop, enemy) {
         // Apply damage to the enemy using the contact damage system
         applyContactDamage.call(
@@ -144,10 +144,18 @@ const DropperSystem = {
             // Override immovable setting - these entities should move when hit
             entity.body.setImmovable(false);
             entity.body.setCollideWorldBounds(true);
-            entity.body.setBounce(0.8, 0.8);
-            entity.body.setDrag(10, 10);
-            entity.body.setMass(0.04);
-            entity.body.setMaxVelocity(800, 800);
+
+            // Get physics configuration from options, with defaults
+            const physics = dropConfig.options?.physics || {};
+            const bounce = physics.bounce ?? 0.8;
+            const drag = physics.drag ?? 10;
+            const mass = physics.mass ?? 0.04;
+            const maxVelocity = physics.maxVelocity ?? 800;
+
+            entity.body.setBounce(bounce, bounce);
+            entity.body.setDrag(drag, drag);
+            entity.body.setMass(mass);
+            entity.body.setMaxVelocity(maxVelocity, maxVelocity);
 
             // Add physics collider with player (for pushing with random deflection)
             scene.physics.add.collider(entity, player, function (ballEntity, player) {
@@ -173,6 +181,7 @@ const DropperSystem = {
                 }
             }, null, scene);
         }
+
         // Store unique ID for damage source (used for cooldown tracking)
         entity.damageSourceId = `drop_${Date.now()}_${Math.random()}`;
 
@@ -566,6 +575,24 @@ const DropperSystem = {
             // Advance to next direction (clockwise)
             drop.currentDirectionIndex = (drop.currentDirectionIndex + 1) % directionSequence.length;
         }
+
+        // Cloud King lightning effect
+        else if (drop.options && drop.options.isCloudKing) {
+            // Create lightning strike at random position within radius
+            const radius = 192;
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * radius;
+            const x = drop.entity.x + Math.cos(angle) * distance;
+            const y = drop.entity.y + Math.sin(angle) * distance;
+
+            // Ensure position is within game bounds
+            const clampedX = Math.max(0, Math.min(game.config.width, x));
+            const clampedY = Math.max(0, Math.min(game.config.height, y));
+
+            // Create lightning strike
+            createLightningStrike(scene, clampedX, clampedY);
+        }
+
         // Existing flower logic
         else if (drop.entity.text === '花') { // Regular blooming flower
             // Fire defensive burst for flowers

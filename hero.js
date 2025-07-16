@@ -1166,6 +1166,106 @@ window.activateMeteor = function () {
     PlayerComponentSystem.addComponent('meteorAbility');
 };
 
+// Add this to hero.js - Generic factory function for HP-based multiplier perks
+function createHealthMultiplierComponent(multiplierName, getMultiplierRef, setMultiplierRef) {
+    return {
+        // Track our contribution to the specified multiplier
+        currentContribution: 0,
+        multiplierName: multiplierName,
+
+        initialize: function (player) {
+            // Calculate initial contribution based on current health
+            this.currentContribution = playerHealth * 0.1;
+
+            // Add our contribution to the specified multiplier
+            setMultiplierRef(getMultiplierRef() + this.currentContribution);
+
+            console.log(`${this.multiplierName} activated! Initial contribution: +${this.currentContribution.toFixed(1)} (${playerHealth} HP)`);
+
+            // Update player stats display
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                GameUI.updateStatCircles(scene);
+            }
+        },
+
+        update: function (player) {
+            // Calculate what our contribution should be based on current health
+            const newContribution = playerHealth * 0.1;
+
+            // Only update if there's a meaningful change
+            if (Math.abs(this.currentContribution - newContribution) > 0.01) {
+                // Remove our old contribution
+                setMultiplierRef(getMultiplierRef() - this.currentContribution);
+
+                // Apply our new contribution
+                this.currentContribution = newContribution;
+                setMultiplierRef(getMultiplierRef() + this.currentContribution);
+
+                // Update player stats display
+                const scene = game.scene.scenes[0];
+                if (scene) {
+                    GameUI.updateStatCircles(scene);
+                }
+            }
+        },
+
+        cleanup: function (player) {
+            // Remove our contribution from the multiplier
+            setMultiplierRef(getMultiplierRef() - this.currentContribution);
+
+            // Ensure multiplier doesn't go below 1.0
+            const currentValue = getMultiplierRef();
+            if (currentValue < 1.0) {
+                setMultiplierRef(1.0);
+            }
+
+            // Update player stats display
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                GameUI.updateStatCircles(scene);
+            }
+
+            this.currentContribution = 0;
+        }
+    };
+}
+
+// Register components using the factory function
+PlayerComponentSystem.registerComponent('judokaState',
+    createHealthMultiplierComponent(
+        'JUDOKA',
+        () => berserkMultiplier,
+        (value) => { berserkMultiplier = value; }
+    )
+);
+
+PlayerComponentSystem.registerComponent('karatekaState',
+    createHealthMultiplierComponent(
+        'KARATEKA',
+        () => archerMultiplier,
+        (value) => { archerMultiplier = value; }
+    )
+);
+
+// Register the JUDOKA perk with the PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('JUDOKA', {
+    componentName: 'judokaState',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
+// Register the KARATEKA perk with the PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('KARATEKA', {
+    componentName: 'karatekaState',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
 
 PlayerComponentSystem.registerComponent('divineBeaconAbility',
     BeaconSystem.createBeaconComponent(BeaconConfigs.DIVINE_BEACON)

@@ -1230,6 +1230,30 @@ const PERKS = {
             window.activateHammerQueen();
         }
     },
+    "JUDOKA": {
+        kanji: "柔道家",
+        kana: "じゅうどうか",
+        romaji: "juudouka",
+        english: "Judoka",
+        description: "+10% damage per current HP",
+        color: "#4169E1",
+        hoverColor: 0x2E59C1,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
+    "KARATEKA": {
+        kanji: "空手家",
+        kana: "からてか",
+        romaji: "karateka",
+        english: "Karateka",
+        description: "+10% fire speed per current HP",
+        color: "#DC143C",
+        hoverColor: 0xBC042C,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
     "GREEN_DEER": {
         kanji: "緑鹿",
         kana: "みどりしか",

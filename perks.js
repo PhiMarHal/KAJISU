@@ -98,7 +98,7 @@ const PERKS = {
         hoverColor: 0xDD0000,
         onAcquire: function () {
             window.modifyStat('damage', 4);
-            window.modifyStat('health', -49);
+            window.modifyStat('health', -4);
         }
     },
     "DEATH_FINGER": {
@@ -982,7 +982,7 @@ const PERKS = {
         kana: "ばくとびょうけん",
         romaji: "bakutobyuuken",
         english: "Gambler Fallacy",
-        description: "8% chance to gain +1 LUK when hit",
+        description: "When hit, (60% / LUK) chance to gain +1 LUK",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {

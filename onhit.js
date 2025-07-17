@@ -885,9 +885,6 @@ OnHitPerkRegistry.registerPerkEffect('ANGER_RISING', {
 });
 
 OnHitEffectSystem.registerComponent('gamblerFallacyEffect', {
-    // Store the trigger chance
-    triggerChance: 0.08, // 8% chance
-
     // Initialize component
     initialize: function () {
         // Nothing needed here
@@ -895,8 +892,11 @@ OnHitEffectSystem.registerComponent('gamblerFallacyEffect', {
 
     // Handle the player being hit
     onHit: function (scene, enemy) {
-        // Check if the 8% chance triggers
-        if (Math.random() < this.triggerChance) {
+        // Calculate dynamic chance based on current playerLuck (60% / playerLuck)
+        const triggerChance = 0.6 / playerLuck;
+
+        // Check if the dynamic chance triggers
+        if (Math.random() < triggerChance) {
             // Apply +1 LUK
             window.modifyStat('luck', 1);
 

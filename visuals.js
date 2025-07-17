@@ -453,6 +453,64 @@ const VisualEffects = {
 
         // Default to white if conversion fails
         return 0xFFFFFF;
+    },
+
+    createLuckBurst: function (scene, x, y, options = {}) {
+        // Default options
+        const symbol = options.symbol ?? '運'; // "un" kanji for luck
+        const fontSize = options.fontSize ?? '16px';
+        const color = options.color ?? '#9370db'; // Purple color like other luck perks
+        const moveDistance = options.moveDistance ?? 32;
+        const duration = options.duration ?? 1000;
+
+        // 8 cardinal directions (N, NE, E, SE, S, SW, W, NW)
+        const directions = [
+            { x: 0, y: -1 },   // North
+            { x: 1, y: -1 },   // Northeast
+            { x: 1, y: 0 },    // East
+            { x: 1, y: 1 },    // Southeast
+            { x: 0, y: 1 },    // South
+            { x: -1, y: 1 },   // Southwest
+            { x: -1, y: 0 },   // West
+            { x: -1, y: -1 }   // Northwest
+        ];
+
+        // Create 8 kanjis, one for each direction
+        const kanjis = [];
+
+        directions.forEach((dir, index) => {
+            // Create the kanji text
+            const kanji = scene.add.text(x, y, symbol, {
+                fontFamily: 'Arial',
+                fontSize: fontSize,
+                color: color,
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(100);
+
+            // Store in array for potential cleanup
+            kanjis.push(kanji);
+
+            // Calculate target position
+            const targetX = x + (dir.x * moveDistance);
+            const targetY = y + (dir.y * moveDistance);
+
+            // Create movement and fade animation
+            scene.tweens.add({
+                targets: kanji,
+                x: targetX,
+                y: targetY,
+                alpha: { from: 1, to: 0 },
+                scale: { from: 1, to: 1.2 }, // Slight scale up for visual impact
+                duration: duration,
+                ease: 'Quad.easeOut',
+                onComplete: function () {
+                    kanji.destroy();
+                }
+            });
+        });
+
+        // Return the kanjis array for any additional manipulation
+        return kanjis;
     }
 
     // Additional visual effects can be added here

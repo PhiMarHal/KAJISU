@@ -93,15 +93,12 @@ const PERKS = {
         kana: "がらすほう",
         romaji: "garasuhou",
         english: "Glass Cannon",
-        description: "+5 POW. Reduces END to 1",
+        description: "+4 POW / -4 END",
         color: "#FF0000",
         hoverColor: 0xDD0000,
         onAcquire: function () {
-            // Increase POW by 5
-            window.modifyStat('damage', 5);
-
-            // Simply use a large negative value, the minimum check will handle it
-            window.modifyStat('health', -999);
+            window.modifyStat('damage', 4);
+            window.modifyStat('health', -49);
         }
     },
     "DEATH_FINGER": {
@@ -980,6 +977,17 @@ const PERKS = {
         onAcquire: function () {
         }
     },
+    "GAMBLER_FALLACY": {
+        kanji: "博徒謬見",
+        kana: "ばくとびょうけん",
+        romaji: "bakutobyuuken",
+        english: "Gambler Fallacy",
+        description: "8% chance to gain +1 LUK when hit",
+        color: "#9370db",
+        hoverColor: 0x7350bb,
+        onAcquire: function () {
+        }
+    },
     "FINAL_CATASTROPHE": {
         kanji: "終焉",
         kana: "しゅうえん",
@@ -1021,19 +1029,25 @@ const PERKS = {
         kana: "いきのこ",
         romaji: "ikinoko",
         english: "Alien Mushroom",
-        description: "+1 to all stats and a brief time dilation",
+        description: "+1 to two random stats, and a brief time dilation",
         color: "#9966FF", // Purple-blue color
         hoverColor: 0x7744DD,
         onAcquire: function () {
-            // +1 to all stats
-            window.modifyStat('damage', 1);
-            window.modifyStat('fireRate', 1);
-            window.modifyStat('luck', 1);
-            window.modifyStat('health', 1);
+            // Define all available stats
+            const allStats = ['damage', 'fireRate', 'luck', 'health'];
+
+            // Randomly shuffle and select 2 stats
+            const shuffledStats = shuffleArray([...allStats]);
+            const selectedStats = shuffledStats.slice(0, 2);
+
+            // Apply +1 to each selected stat
+            selectedStats.forEach(stat => {
+                window.modifyStat(stat, 1);
+            });
 
             // Activate time dilation once (if available)
             if (window.TimeDilationSystem && window.activateTimeDilation) {
-                window.activateTimeDilation(2000); // 4 seconds of time dilation (2s / 50%)
+                window.activateTimeDilation();
             }
         }
     },
@@ -1421,14 +1435,14 @@ const PERKS = {
         kana: "いぬきんじとう",
         romaji: "inukinjitou",
         english: "Dog Pyramid",
-        description: "+2 POW / -4 AGI / +2 LUK / +2 END",
+        description: "+1 POW / -1 AGI / +1 LUK / +1 END",
         color: "#FFD700",
         hoverColor: 0xB8860B,
         onAcquire: function () {
-            window.modifyStat('damage', 2);
-            window.modifyStat('fireRate', -4);
-            window.modifyStat('luck', 2);
-            window.modifyStat('health', 2);
+            window.modifyStat('damage', 1);
+            window.modifyStat('fireRate', -1);
+            window.modifyStat('luck', 1);
+            window.modifyStat('health', 1);
         }
     },
     "CAT_PYRAMID": {
@@ -1436,14 +1450,14 @@ const PERKS = {
         kana: "ねこきんじとう",
         romaji: "nekokinjitou",
         english: "Cat Pyramid",
-        description: "+2 POW / +2 AGI / +2 LUK / -4 END",
+        description: "+1 POW / +1 AGI / +1 LUK / -1 END",
         color: "#FFD700",
         hoverColor: 0xB8860B,
         onAcquire: function () {
-            window.modifyStat('damage', 2);
-            window.modifyStat('fireRate', 2);
-            window.modifyStat('luck', 2);
-            window.modifyStat('health', -4);
+            window.modifyStat('damage', 1);
+            window.modifyStat('fireRate', 1);
+            window.modifyStat('luck', 1);
+            window.modifyStat('health', -1);
         }
     },
     "BIRD_PYRAMID": {
@@ -1451,14 +1465,14 @@ const PERKS = {
         kana: "とりきんじとう",
         romaji: "torikinjitou",
         english: "Bird Pyramid",
-        description: "-4 POW / +2 AGI / +2 LUK / +2 END",
+        description: "-1 POW / +1 AGI / +1 LUK / +1 END",
         color: "#FFD700",
         hoverColor: 0xB8860B,
         onAcquire: function () {
-            window.modifyStat('damage', -4);
-            window.modifyStat('fireRate', 2);
-            window.modifyStat('luck', 2);
-            window.modifyStat('health', 2);
+            window.modifyStat('damage', -1);
+            window.modifyStat('fireRate', 1);
+            window.modifyStat('luck', 1);
+            window.modifyStat('health', 1);
         }
     },
     "FISH_PYRAMID": {
@@ -1466,14 +1480,14 @@ const PERKS = {
         kana: "さかなきんじとう",
         romaji: "sakanakinjitou",
         english: "Fish Pyramid",
-        description: "+2 POW / +2 AGI / -4 LUK / +2 END",
+        description: "+1 POW / +1 AGI / -1 LUK / +1 END",
         color: "#FFD700",
         hoverColor: 0xB8860B,
         onAcquire: function () {
-            window.modifyStat('damage', 2);
-            window.modifyStat('fireRate', 2);
-            window.modifyStat('luck', -4);
-            window.modifyStat('health', 2);
+            window.modifyStat('damage', 1);
+            window.modifyStat('fireRate', 1);
+            window.modifyStat('luck', -1);
+            window.modifyStat('health', 1);
         }
     },
     "ALIEN_WORLD": {

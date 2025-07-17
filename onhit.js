@@ -884,6 +884,47 @@ OnHitPerkRegistry.registerPerkEffect('ANGER_RISING', {
     }
 });
 
+OnHitEffectSystem.registerComponent('gamblerFallacyEffect', {
+    // Store the trigger chance
+    triggerChance: 0.08, // 8% chance
+
+    // Initialize component
+    initialize: function () {
+        // Nothing needed here
+    },
+
+    // Handle the player being hit
+    onHit: function (scene, enemy) {
+        // Check if the 8% chance triggers
+        if (Math.random() < this.triggerChance) {
+            // Apply +1 LUK
+            window.modifyStat('luck', 1);
+
+            // Create visual effect at player position
+            if (window.VisualEffects && window.VisualEffects.createLuckBurst) {
+                window.VisualEffects.createLuckBurst(scene, player.x, player.y);
+            }
+
+            // Update UI to reflect new luck value
+            GameUI.updateStatCircles(scene);
+        }
+    },
+
+    // Clean up component
+    cleanup: function () {
+        // Nothing to clean up here
+    }
+});
+
+// Register the perk with the OnHitPerkRegistry
+OnHitPerkRegistry.registerPerkEffect('GAMBLER_FALLACY', {
+    componentName: 'gamblerFallacyEffect',
+    condition: function () {
+        // Always active when perk is acquired
+        return true;
+    }
+});
+
 // Main handler for player hit events - coordinates the entire hit response
 function handlePlayerHit(scene, enemy) {
     // First trigger any on-hit effects that should happen regardless of shields

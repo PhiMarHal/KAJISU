@@ -11,26 +11,25 @@ window.KAJISULI_MODE = (() => {
     return false;
 })();
 
-// Set learning challenge preference - default to true
-window.LEARNING_CHALLENGE_ENABLED = true;
+// Set learning challenge preference - default to false
+window.LEARNING_CHALLENGE_ENABLED = false;
+
+// Set hard mode preference - default to false
+window.HARD_MODE_ENABLED = false;
 
 const StartMenuSystem = {
     // Menu state
     state: {
         kajisuliMode: false,
-        learningChallengeEnabled: true,
+        learningChallengeEnabled: false,
+        hardModeEnabled: false,
         initialized: false
     },
 
     // UI elements
     elements: {
-        menuContainer: null
-    },
-
-    // Kanji definitions
-    kanji: {
-        normal: "普", // Kanji for "normal/ordinary"
-        light: "軽"   // Kanji for "light/lightweight"
+        menuContainer: null,
+        learningToggle: null
     },
 
     // Check if we're in FARCADE mode
@@ -44,16 +43,15 @@ const StartMenuSystem = {
         const screenHeight = window.innerHeight;
         const minDimension = Math.min(screenWidth, screenHeight);
 
-        // Base scaling factor - smaller screens get smaller text
-        const scaleFactor = Math.max(0.5, Math.min(1.2, minDimension / 600));
+        // Reduced scaling factor - keep text closer to desktop size on mobile
+        const scaleFactor = Math.max(0.85, Math.min(1.2, minDimension / 600));
 
         return {
             titleSize: Math.floor(48 * scaleFactor),
-            kanjiSize: Math.floor(64 * scaleFactor),
-            descSize: Math.floor(16 * scaleFactor),
-            toggleSize: Math.floor(18 * scaleFactor),
-            spacing: Math.floor(120 * scaleFactor),
-            padding: Math.floor(20 * scaleFactor)
+            toggleSize: 24, // Fixed size for consistent toggle text
+            spacing: Math.floor(60 * scaleFactor),
+            padding: Math.floor(20 * scaleFactor),
+            lineSpacing: 12
         };
     },
 
@@ -61,6 +59,7 @@ const StartMenuSystem = {
     init: function () {
         this.state.kajisuliMode = window.KAJISULI_MODE;
         this.state.learningChallengeEnabled = window.LEARNING_CHALLENGE_ENABLED;
+        this.state.hardModeEnabled = window.HARD_MODE_ENABLED;
         this.applyCSSMode();
         this.createHTMLMenu();
         this.state.initialized = true;
@@ -115,16 +114,17 @@ const StartMenuSystem = {
             text-align: center;
             line-height: 1.1;
             max-width: 90%;
+            box-shadow: 0 0 0 0 #FFD700;
         `;
 
         title.addEventListener('mouseenter', () => {
             title.style.color = '#FFFFFF';
-            title.style.borderWidth = '6px';
+            title.style.boxShadow = '0 0 0 2px #FFD700';
         });
 
         title.addEventListener('mouseleave', () => {
             title.style.color = '#FFD700';
-            title.style.borderWidth = '4px';
+            title.style.boxShadow = '0 0 0 0 #FFD700';
         });
 
         title.addEventListener('click', () => {
@@ -133,45 +133,40 @@ const StartMenuSystem = {
 
         this.elements.menuContainer.appendChild(title);
 
-        // Only show mode selector if not in FARCADE mode
+        // Create toggles container
+        const togglesContainer = document.createElement('div');
+        togglesContainer.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: ${sizes.lineSpacing}px;
+            margin-top: ${sizes.padding}px;
+            width: 600px;
+            max-width: 90%;
+        `;
+
+        // Only show portrait screen and learning challenge toggles if not in FARCADE mode
         if (!this.isFarcadeMode()) {
-            // Create mode selector container
-            const modeContainer = document.createElement('div');
-            modeContainer.style.cssText = `
-                display: flex;
-                gap: ${sizes.spacing}px;
-                align-items: center;
-                margin-top: ${sizes.padding}px;
-                flex-wrap: wrap;
-                justify-content: center;
-            `;
-
-            // Create normal mode option
-            const normalOption = this.createModeOption(
-                this.kanji.normal,
-                'better for desktops',
-                !this.state.kajisuliMode,
-                () => this.selectMode(false),
-                sizes
-            );
-
-            // Create light mode option
-            const lightOption = this.createModeOption(
-                this.kanji.light,
-                'better for phones',
-                this.state.kajisuliMode,
-                () => this.selectMode(true),
-                sizes
-            );
-
-            modeContainer.appendChild(normalOption);
-            modeContainer.appendChild(lightOption);
-            this.elements.menuContainer.appendChild(modeContainer);
+            // Create portrait screen toggle
+            const portraitToggle = this.createToggle('Portrait Screen', this.state.kajisuliMode, (enabled) => {
+                this.selectMode(enabled);
+            }, sizes);
+            togglesContainer.appendChild(portraitToggle);
 
             // Create learning challenge toggle
-            const learningToggle = this.createLearningToggle(sizes);
-            this.elements.menuContainer.appendChild(learningToggle);
+            const learningToggle = this.createToggle('Learning Challenge', this.state.learningChallengeEnabled, (enabled) => {
+                this.toggleLearningChallenge(enabled);
+            }, sizes);
+            this.elements.learningToggle = learningToggle;
+            togglesContainer.appendChild(learningToggle);
         }
+
+        // Create hard mode toggle (always show)
+        const hardModeToggle = this.createToggle('Hard Mode', this.state.hardModeEnabled, (enabled) => {
+            this.toggleHardMode(enabled);
+        }, sizes);
+        togglesContainer.appendChild(hardModeToggle);
+
+        this.elements.menuContainer.appendChild(togglesContainer);
 
         // Add to page
         document.body.appendChild(this.elements.menuContainer);
@@ -181,137 +176,101 @@ const StartMenuSystem = {
         this.startAnimations();
     },
 
-    // Create a mode option (kanji + description)
-    createModeOption: function (kanji, description, isSelected, clickHandler, sizes) {
+    // Create a unified toggle component
+    createToggle: function (label, isEnabled, onToggle, sizes) {
         const container = document.createElement('div');
         container.style.cssText = `
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
             cursor: pointer;
             transition: all 0.2s ease;
-            margin: ${sizes.padding / 2}px;
+            width: 100%;
         `;
 
-        const kanjiElement = document.createElement('div');
-        kanjiElement.textContent = kanji;
-        kanjiElement.style.cssText = `
-            font-size: ${sizes.kanjiSize}px;
-            font-weight: bold;
-            color: ${isSelected ? '#FFD700' : '#FFFFFF'};
-            transition: all 0.2s ease;
-            animation: pulse 2s ease-in-out infinite alternate;
+        // Toggle label (left aligned)
+        const toggleLabel = document.createElement('div');
+        toggleLabel.textContent = label;
+        toggleLabel.style.cssText = `
+            font-size: ${sizes.toggleSize}px;
+            color: ${isEnabled ? '#FFD700' : '#FFFFFF'};
+            transition: all 0.3s ease;
         `;
 
-        const descElement = document.createElement('div');
-        descElement.textContent = description;
-        descElement.style.cssText = `
-            font-size: ${sizes.descSize}px;
-            color: #FFFFFF;
-            opacity: 0.5;
-            margin-top: ${sizes.padding / 2}px;
-            text-align: center;
-        `;
-
-        container.appendChild(kanjiElement);
-        container.appendChild(descElement);
-        container.addEventListener('click', clickHandler);
-        container.kanjiElement = kanjiElement;
-
-        return container;
-    },
-
-    // Create learning challenge toggle
-    createLearningToggle: function (sizes) {
-        const container = document.createElement('div');
-        container.style.cssText = `
+        // Toggle switch container (right aligned)
+        const toggleContainer = document.createElement('div');
+        toggleContainer.style.cssText = `
             display: flex;
             align-items: center;
-            margin-top: ${sizes.padding * 2}px;
-            cursor: pointer;
-            transition: all 0.2s ease;
         `;
 
         // Toggle switch background
         const toggleBg = document.createElement('div');
         toggleBg.style.cssText = `
-            width: ${sizes.toggleSize * 3}px;
-            height: ${sizes.toggleSize * 1.5}px;
-            background-color: ${this.state.learningChallengeEnabled ? '#FFD700' : '#666666'};
+            width: ${sizes.toggleSize * 2.5}px;
+            height: ${sizes.toggleSize * 1.2}px;
+            background-color: ${isEnabled ? '#FFD700' : '#666666'};
             border-radius: ${sizes.toggleSize}px;
             position: relative;
             transition: all 0.3s ease;
-            margin-right: ${sizes.padding}px;
-            opacity: ${this.state.kajisuliMode ? '0.5' : '1'};
         `;
 
         // Toggle switch circle
         const toggleCircle = document.createElement('div');
         toggleCircle.style.cssText = `
-            width: ${sizes.toggleSize}px;
-            height: ${sizes.toggleSize}px;
+            width: ${sizes.toggleSize * 0.8}px;
+            height: ${sizes.toggleSize * 0.8}px;
             background-color: #FFFFFF;
             border-radius: 50%;
             position: absolute;
-            top: ${sizes.toggleSize * 0.25}px;
-            left: ${this.state.learningChallengeEnabled ? sizes.toggleSize * 1.75 : sizes.toggleSize * 0.25}px;
+            top: ${sizes.toggleSize * 0.2}px;
+            left: ${isEnabled ? sizes.toggleSize * 1.5 : sizes.toggleSize * 0.2}px;
             transition: all 0.3s ease;
         `;
 
         toggleBg.appendChild(toggleCircle);
+        toggleContainer.appendChild(toggleBg);
 
-        // Toggle label
-        const toggleLabel = document.createElement('div');
-        toggleLabel.textContent = 'Learning Challenge';
-        toggleLabel.style.cssText = `
-            font-size: ${sizes.toggleSize}px;
-            color: #FFFFFF;
-            opacity: ${this.state.kajisuliMode ? '0.5' : '1'};
-            transition: all 0.3s ease;
-        `;
-
-        container.appendChild(toggleBg);
         container.appendChild(toggleLabel);
+        container.appendChild(toggleContainer);
 
         // Store references for updates
         container.toggleBg = toggleBg;
         container.toggleCircle = toggleCircle;
         container.toggleLabel = toggleLabel;
+        container.isEnabled = isEnabled;
 
         // Click handler
         container.addEventListener('click', () => {
-            // Only allow toggle if in desktop mode
-            if (!this.state.kajisuliMode) {
-                this.toggleLearningChallenge(container, sizes);
-            }
+            const newState = !container.isEnabled;
+            this.updateToggleState(container, newState, sizes);
+            onToggle(newState);
         });
 
         return container;
     },
 
-    // Toggle learning challenge setting
-    toggleLearningChallenge: function (container, sizes) {
-        this.state.learningChallengeEnabled = !this.state.learningChallengeEnabled;
-        window.LEARNING_CHALLENGE_ENABLED = this.state.learningChallengeEnabled;
-
-        // Update visual state
-        container.toggleBg.style.backgroundColor = this.state.learningChallengeEnabled ? '#FFD700' : '#666666';
-        container.toggleCircle.style.left = this.state.learningChallengeEnabled ?
-            `${sizes.toggleSize * 1.75}px` : `${sizes.toggleSize * 0.25}px`;
-
-        console.log(`Learning Challenge: ${this.state.learningChallengeEnabled ? 'ENABLED' : 'DISABLED'}`);
+    // Update toggle visual state
+    updateToggleState: function (toggle, isEnabled, sizes) {
+        toggle.isEnabled = isEnabled;
+        toggle.toggleBg.style.backgroundColor = isEnabled ? '#FFD700' : '#666666';
+        toggle.toggleCircle.style.left = isEnabled ?
+            `${sizes.toggleSize * 1.5}px` : `${sizes.toggleSize * 0.2}px`;
+        toggle.toggleLabel.style.color = isEnabled ? '#FFD700' : '#FFFFFF';
     },
 
-    // Update learning toggle state based on mode
-    updateLearningToggleState: function (container, sizes) {
-        if (!container) return;
+    // Toggle learning challenge setting
+    toggleLearningChallenge: function (enabled) {
+        this.state.learningChallengeEnabled = enabled;
+        window.LEARNING_CHALLENGE_ENABLED = enabled;
+        console.log(`Learning Challenge: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    },
 
-        const isDisabled = this.state.kajisuliMode;
-        const opacity = isDisabled ? '0.5' : '1';
-
-        container.toggleBg.style.opacity = opacity;
-        container.toggleLabel.style.opacity = opacity;
-        container.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
+    // Toggle hard mode setting
+    toggleHardMode: function (enabled) {
+        this.state.hardModeEnabled = enabled;
+        window.HARD_MODE_ENABLED = enabled;
+        console.log(`Hard Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
     },
 
     // Select a mode
@@ -322,20 +281,6 @@ const StartMenuSystem = {
         window.KAJISULI_MODE = isKajisuliMode;
         this.applyCSSMode();
 
-        // Update kanji colors
-        const modeContainer = this.elements.menuContainer.children[1];
-        const normalOption = modeContainer.children[0];
-        const lightOption = modeContainer.children[1];
-
-        normalOption.kanjiElement.style.color = isKajisuliMode ? '#FFFFFF' : '#FFD700';
-        lightOption.kanjiElement.style.color = isKajisuliMode ? '#FFD700' : '#FFFFFF';
-
-        // Update learning toggle state
-        const learningToggle = this.elements.menuContainer.children[2];
-        if (learningToggle) {
-            this.updateLearningToggleState(learningToggle, this.getResponsiveSizes());
-        }
-
         console.log(`Mode selected: ${isKajisuliMode ? 'KAJISULI (mobile)' : 'Normal (desktop)'}`);
     },
 
@@ -344,6 +289,7 @@ const StartMenuSystem = {
         this.cleanup();
         window.KAJISULI_MODE = this.state.kajisuliMode;
         window.LEARNING_CHALLENGE_ENABLED = this.state.learningChallengeEnabled;
+        window.HARD_MODE_ENABLED = this.state.hardModeEnabled;
 
         const config = {
             type: Phaser.AUTO,

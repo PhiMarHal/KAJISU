@@ -10,25 +10,25 @@ let bossMode = false;
 let activeBoss = null;
 let bossSpawned = false;
 
-// Consolidated rank configurations
-const rankConfigs = {
+// Base rank configurations (before hard mode modifications)
+const baseRankConfigs = {
     1: {
         startTime: 0,           // Start immediately
         baseDelay: 4000,        // Base spawn delay in ms
         minDelay: 400,          // Minimum spawn delay in ms
-        scaleMinutes: 16         // Scale over 8 minutes
+        scaleMinutes: 16         // Scale over 16 minutes
     },
     2: {
         startTime: 8 * 60,      // Start after 8 minutes
         baseDelay: 8000,        // Base spawn delay in ms
         minDelay: 800,          // Minimum spawn delay in ms
-        scaleMinutes: 16         // Scale over 8 minutes
+        scaleMinutes: 16         // Scale over 16 minutes
     },
     3: {
         startTime: 14 * 60,     // Start after 14 minutes
         baseDelay: 16000,       // Base spawn delay in ms
         minDelay: 1600,         // Minimum spawn delay in ms
-        scaleMinutes: 16         // Scale over 8 minutes
+        scaleMinutes: 16         // Scale over 16 minutes
     },
     4: {
         startTime: 20 * 60,     // Start after 20 minutes
@@ -49,6 +49,32 @@ const rankConfigs = {
         scaleMinutes: 8         // Scale over 8 minutes
     }
 };
+
+// Get current rank configurations with hard mode applied if enabled
+function getRankConfigs() {
+    const isHardMode = window.HARD_MODE_ENABLED ?? false;
+
+    if (!isHardMode) {
+        return baseRankConfigs;
+    }
+
+    // Apply hard mode modifications: halve baseDelay and scaleMinutes
+    const hardModeConfigs = {};
+
+    Object.keys(baseRankConfigs).forEach(rank => {
+        const baseConfig = baseRankConfigs[rank];
+        hardModeConfigs[rank] = {
+            ...baseConfig,
+            baseDelay: Math.max(100, Math.floor(baseConfig.baseDelay / 2)), // Halve baseDelay, minimum 100ms
+            //scaleMinutes: Math.max(1, Math.floor(baseConfig.scaleMinutes / 2)) // Halve scaleMinutes, minimum 1 minute
+        };
+    });
+
+    return hardModeConfigs;
+}
+
+// Current rank configurations - updated when needed
+let rankConfigs = getRankConfigs();
 
 // Calculate dynamic scale factor for each rank
 function getRankScaleFactor(rank) {
@@ -80,6 +106,9 @@ const EnemySystem = {
         // Store scene reference
         this.scene = scene;
 
+        // Update rank configs based on current hard mode setting
+        rankConfigs = getRankConfigs();
+
         // Create enemy group (or use existing one)
         this.enemiesGroup = scene.physics.add.group();
 
@@ -89,7 +118,7 @@ const EnemySystem = {
         // Initialize enemy tier assignments
         initializeEnemyTiers();
 
-        console.log("Enemy system initialized");
+        console.log("Enemy system initialized" + (window.HARD_MODE_ENABLED ? " (HARD MODE)" : ""));
 
         return this;
     },
@@ -846,6 +875,9 @@ const EnemySystem = {
 
     // Reset the enemy system
     reset: function () {
+        // Update rank configs based on current hard mode setting
+        rankConfigs = getRankConfigs();
+
         // Clear existing enemies
         if (this.enemiesGroup) {
             this.enemiesGroup.clear(true, true);
@@ -884,7 +916,7 @@ const EnemySystem = {
         // Initialize enemy tiers with dynamic assignments
         initializeEnemyTiers();
 
-        console.log("Enemy system reset");
+        console.log("Enemy system reset" + (window.HARD_MODE_ENABLED ? " (HARD MODE)" : ""));
     }
 };
 
@@ -895,7 +927,9 @@ window.EnemySystem = EnemySystem;
 window.enemySpeedFactor = enemySpeedFactor;
 window.currentEnemyRank = currentEnemyRank;
 window.currentEnemyHealth = currentEnemyHealth;
-window.rankConfigs = rankConfigs; // Export the consolidated config
+window.rankConfigs = rankConfigs; // Export current configs
+window.baseRankConfigs = baseRankConfigs; // Export base configs for reference
+window.getRankConfigs = getRankConfigs; // Export function for getting current configs
 
 // Make boss variables accessible globally
 window.bossMode = bossMode;

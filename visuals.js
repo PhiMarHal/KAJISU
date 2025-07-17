@@ -460,25 +460,17 @@ const VisualEffects = {
         const symbol = options.symbol ?? '運'; // "un" kanji for luck
         const fontSize = options.fontSize ?? '16px';
         const color = options.color ?? '#9370db'; // Purple color like other luck perks
-        const moveDistance = options.moveDistance ?? 32;
-        const duration = options.duration ?? 1000;
+        const moveDistance = options.moveDistance ?? 64;
+        const duration = options.duration ?? 2000;
 
-        // 8 cardinal directions (N, NE, E, SE, S, SW, W, NW)
-        const directions = [
-            { x: 0, y: -1 },   // North
-            { x: 1, y: -1 },   // Northeast
-            { x: 1, y: 0 },    // East
-            { x: 1, y: 1 },    // Southeast
-            { x: 0, y: 1 },    // South
-            { x: -1, y: 1 },   // Southwest
-            { x: -1, y: 0 },   // West
-            { x: -1, y: -1 }   // Northwest
-        ];
-
-        // Create 8 kanjis, one for each direction
+        // Create 8 kanjis evenly distributed in a circle
         const kanjis = [];
+        const kanjiCount = 8;
 
-        directions.forEach((dir, index) => {
+        for (let i = 0; i < kanjiCount; i++) {
+            // Calculate angle for this kanji (evenly distributed around circle)
+            const angle = (i / kanjiCount) * Math.PI * 2;
+
             // Create the kanji text
             const kanji = scene.add.text(x, y, symbol, {
                 fontFamily: 'Arial',
@@ -490,9 +482,9 @@ const VisualEffects = {
             // Store in array for potential cleanup
             kanjis.push(kanji);
 
-            // Calculate target position
-            const targetX = x + (dir.x * moveDistance);
-            const targetY = y + (dir.y * moveDistance);
+            // Calculate target position using trigonometry for true circle
+            const targetX = x + Math.cos(angle) * moveDistance;
+            const targetY = y + Math.sin(angle) * moveDistance;
 
             // Create movement and fade animation
             scene.tweens.add({
@@ -507,7 +499,7 @@ const VisualEffects = {
                     kanji.destroy();
                 }
             });
-        });
+        }
 
         // Return the kanjis array for any additional manipulation
         return kanjis;

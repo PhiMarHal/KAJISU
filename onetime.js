@@ -1,10 +1,50 @@
 // One-Time Effect System for Word Survivors
 // Handles effects that occur once when a perk is acquired
 
+// Utility functions for stat manipulation
+const StatManipulation = {
+    // Get current stats as a structured object
+    getCurrentStats: function () {
+        return {
+            damage: { value: playerDamage, name: 'damage' },
+            fireRate: { value: playerFireRate, name: 'fireRate' },
+            luck: { value: playerLuck, name: 'luck' },
+            health: { value: maxPlayerHealth, name: 'health' }
+        };
+    },
+
+    // Find highest and lowest stats (with deterministic priority)
+    findExtremeStats: function () {
+        const stats = this.getCurrentStats();
+        const statArray = Object.values(stats);
+
+        let highest = statArray[0];
+        let lowest = statArray[0];
+
+        for (let i = 1; i < statArray.length; i++) {
+            if (statArray[i].value > highest.value) {
+                highest = statArray[i];
+            }
+            if (statArray[i].value < lowest.value) {
+                lowest = statArray[i];
+            }
+        }
+
+        return { highest, lowest };
+    },
+
+    // Apply multiple stat changes efficiently
+    applyStatChanges: function (changes) {
+        Object.entries(changes).forEach(([statName, change]) => {
+            window.modifyStat(statName, change);
+        });
+    },
+
+
+};
+
 // Registry of one-time effects
 const OneTimeEffects = {
-    // Renamed to 終焉 (The End/Final Catastrophe)
-    // Renamed to 終焉 (The End/Final Catastrophe)
     shuuen: function (scene) {
         if (!scene) return;
 
@@ -16,7 +56,7 @@ const OneTimeEffects = {
             game.config.height,
             0xFFFFFF, 0.8
         );
-        flash.setDepth(1000); // Ensure it appears on top
+        flash.setDepth(1000);
 
         // Flash animation
         scene.tweens.add({
@@ -35,7 +75,7 @@ const OneTimeEffects = {
             if (!allEnemies || allEnemies.length === 0) return;
 
             // Calculate massive damage
-            const megaDamage = playerDamage * 50; // Extremely high damage
+            const megaDamage = playerDamage * 50;
 
             // Calculate shockwave origin (player position)
             const originX = player.x;
@@ -50,7 +90,7 @@ const OneTimeEffects = {
             // Expand shockwave
             scene.tweens.add({
                 targets: shockwave,
-                radius: Math.max(game.config.width, game.config.height) * 1.2, // 1.2x to ensure full coverage
+                radius: Math.max(game.config.width, game.config.height) * 1.2,
                 alpha: 0,
                 duration: 1600,
                 onComplete: function () {
@@ -68,7 +108,7 @@ const OneTimeEffects = {
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 // Create a small delay based on distance for wave effect
-                const delay = distance / 2; // 2 pixels per ms propagation
+                const delay = distance / 2;
 
                 // Apply damage after delay
                 scene.time.delayedCall(delay, function () {
@@ -87,10 +127,10 @@ const OneTimeEffects = {
                         },
                         enemy,
                         megaDamage,
-                        0 // No cooldown needed for one-time catastrophic event
+                        0
                     );
 
-                    // The visual effects will still run regardless of whether the enemy dies
+                    // Visual effects
                     scene.tweens.add({
                         targets: enemy,
                         alpha: 0.2,
@@ -142,63 +182,50 @@ const OneTimeEffects = {
         });
     },
 
-    // Purple Chaos effect - moved from perks.js
     purpleChaos: function (scene) {
-        // Store current stat values
-        const stats = {
-            damage: playerDamage,
-            health: maxPlayerHealth,
-            luck: playerLuck,
-            fireRate: playerFireRate
-        };
-
-        // Create an array of stat names
+        // Get current stats
+        const stats = StatManipulation.getCurrentStats();
         const statNames = Object.keys(stats);
+        const statValues = Object.values(stats).map(s => s.value);
 
-        // Shuffle the array
-        for (let i = statNames.length - 1; i > 0; i--) {
+        // Shuffle the values
+        for (let i = statValues.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [statNames[i], statNames[j]] = [statNames[j], statNames[i]];
+            [statValues[i], statValues[j]] = [statValues[j], statValues[i]];
         }
 
-        // Create a shuffled mapping
-        const newValues = {};
-        const originalOrder = ['damage', 'health', 'luck', 'fireRate'];
+        // Create change map
+        const changes = {};
+        statNames.forEach((name, i) => {
+            changes[name] = statValues[i] - stats[name].value;
+        });
 
-        for (let i = 0; i < originalOrder.length; i++) {
-            newValues[originalOrder[i]] = stats[statNames[i]];
-        }
+        // Add +2 luck bonus
+        changes.luck += 2;
 
-        // Apply the new values (need to reset first)
-        window.modifyStat('damage', newValues.damage - playerDamage);
-        window.modifyStat('health', newValues.health - maxPlayerHealth);
-        window.modifyStat('luck', newValues.luck - playerLuck);
-        window.modifyStat('fireRate', newValues.fireRate - playerFireRate);
+        // Apply all changes
+        StatManipulation.applyStatChanges(changes);
 
-        // Now add +2 to luck
-        window.modifyStat('luck', 2);
+        // Visual effect
+        VisualEffects.createStatChangeEffect(scene, '⚡ CHAOS! ⚡', '#9932cc');
+    },
 
-        // Visual effect for chaos
-        if (scene) {
-            const chaosEffect = scene.add.text(player.x, player.y, '⚡ CHAOS! ⚡', {
-                fontFamily: 'Arial',
-                fontSize: '24px',
-                color: '#9932cc',
-                stroke: '#ffffff',
-                strokeThickness: 2
-            }).setOrigin(0.5);
+    indigoSwitch: function (scene) {
+        // Find highest and lowest stats
+        const { highest, lowest } = StatManipulation.findExtremeStats();
 
-            scene.tweens.add({
-                targets: chaosEffect,
-                alpha: { from: 1, to: 0 },
-                y: chaosEffect.y - 50,
-                scale: { from: 1, to: 2 },
-                duration: 1500,
-                onComplete: function () {
-                    chaosEffect.destroy();
-                }
-            });
-        }
+        // Calculate the changes needed to swap values and add +1 to both
+        const changes = {};
+        changes[highest.name] = (lowest.value + 1) - highest.value;
+        changes[lowest.name] = (highest.value + 1) - lowest.value;
+
+        // Apply the changes
+        StatManipulation.applyStatChanges(changes);
+
+        // Visual effect
+        VisualEffects.createStatChangeEffect(scene, '藍切替', '#4B0082');
+
+        console.log(`Indigo Switch: Swapped ${highest.name} (${highest.value}) with ${lowest.name} (${lowest.value}), added +1 to both`);
     },
 
     oblivionBlossom: function (scene) {
@@ -243,7 +270,6 @@ const OneTimeEffects = {
         }
 
         // Create a visual effect for the transformation
-        // Create a memory fade effect
         const forgottenText = scene.add.text(player.x, player.y, '忘', {
             fontFamily: 'Arial',
             fontSize: '64px',
@@ -272,7 +298,7 @@ const OneTimeEffects = {
             const memory = scene.add.text(
                 player.x + Math.cos(angle) * distance,
                 player.y + Math.sin(angle) * distance,
-                '記憶', // Memory in kanji
+                '記憶',
                 {
                     fontFamily: 'Arial',
                     fontSize: '24px',
@@ -304,14 +330,12 @@ const OneTimeEffects = {
         DropperSystem.clearAll();
         BeamSystem.clearAll();
 
-        // Add this line to reinitialize the player hit system:
+        // Reinitialize the player hit system
         PlayerHitSystem.init(scene);
 
         // Set perk array to just this perk
         acquiredPerks = ['OBLIVION_BLOSSOM'];
     }
-
-    // Add more one-time effects here as needed
 };
 
 // Main interface function to trigger one-time effects
@@ -329,5 +353,6 @@ window.triggerOneTimeEffect = function (effectName) {
     return false;
 };
 
-// Export the effects registry if needed
+// Export the effects registry and utilities
 window.OneTimeEffects = OneTimeEffects;
+window.StatManipulation = StatManipulation;

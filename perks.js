@@ -1012,6 +1012,20 @@ const PERKS = {
             window.triggerOneTimeEffect('purpleChaos');
         }
     },
+    // Add this to the PERKS object in perks.js
+
+    "INDIGO_SWITCH": {
+        kanji: "藍切替",
+        kana: "あいきりかえ",
+        romaji: "aikirikae",
+        english: "Indigo Switch",
+        description: "Swap highest and lowest stats, then +1 to both",
+        color: "#4B0082", // Indigo color
+        hoverColor: 0x301934,
+        onAcquire: function () {
+            window.triggerOneTimeEffect('indigoSwitch');
+        }
+    },
     "ANGER_RISING": {
         kanji: "怒上昇",
         kana: "いかりじょうしょう",

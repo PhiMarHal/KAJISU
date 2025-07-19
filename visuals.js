@@ -455,6 +455,31 @@ const VisualEffects = {
         return 0xFFFFFF;
     },
 
+    createStatChangeEffect: function (scene, text, color = '#FFFFFF') {
+        if (!scene) return;
+
+        const effect = scene.add.text(player.x, player.y, text, {
+            fontFamily: 'Arial',
+            fontSize: '32px',
+            color: color,
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+
+        scene.tweens.add({
+            targets: effect,
+            alpha: { from: 1, to: 0 },
+            y: effect.y - 60,
+            scale: { from: 1, to: 1.5 },
+            duration: 1500,
+            onComplete: function () {
+                effect.destroy();
+            }
+        });
+
+        return effect;
+    },
+
     createLuckBurst: function (scene, x, y, options = {}) {
         // Default options
         const symbol = options.symbol ?? '運'; // "un" kanji for luck

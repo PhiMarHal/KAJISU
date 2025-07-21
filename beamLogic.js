@@ -344,7 +344,7 @@ const BeamSystem = {
         return physicsBody;
     },
 
-    // Handle beam hitting an enemy
+    // Handle beam hitting an enemy - now with components
     handleBeamHit: function (beam, enemy, scene) {
         if (beam.destroyed || !enemy.active) return;
 
@@ -356,6 +356,11 @@ const BeamSystem = {
             beam.config.damage,
             beam.config.damageInterval
         );
+
+        // Process component events (like onHit for poison effect)
+        if (beam.physics.components && Object.keys(beam.physics.components).length > 0) {
+            ProjectileComponentSystem.processEvent(beam.physics, 'onHit', enemy, scene);
+        }
     },
 
     // Update all active beams

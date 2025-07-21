@@ -176,6 +176,18 @@ const PERKS = {
             window.activateEyeBeam();
         }
     },
+    "CAUSTIC_RAY": {
+        kanji: "腐食薬線",
+        kana: "ふしょくやくせん",
+        romaji: "fushokuyakusen",
+        english: "Caustic Ray",
+        description: "Charges up and fires a corrosive beam that poisons enemies",
+        color: "#2aad27",        // Green color to match poison theme
+        hoverColor: 0x1a8d17,    // Darker green for hover
+        onAcquire: function () {
+            window.activateCausticRay();
+        }
+    },
     "DENIAL_OF_FATE": {
         kanji: "運命否定",
         kana: "うんめいひてい",

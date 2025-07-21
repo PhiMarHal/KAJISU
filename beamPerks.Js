@@ -164,5 +164,53 @@ window.activateEyeBeam = function () {
     BeamPerkRegistry.applyPerkBeam(scene, 'EYE_BEAM');
 };
 
+// Register the CAUSTIC_RAY perk
+BeamPerkRegistry.registerPerkBeam('CAUSTIC_RAY', {
+    getConfig: function () {
+        return {
+            symbol: '線線',             // Line/beam kanji
+            color: '#2aad27',         // Green color to match poison theme
+            fontSize: 24,             // Medium beam thickness
+            damage: playerDamage * 0.2, // 60% damage per laser tick in total due to poison
+            damageInterval: 200,      // Damage every 200ms
+            duration: 4000,           // 4 second beam duration
+            beamWidth: 24,            // 32px beam width
+            followPlayer: true,
+            chargeTime: 2000,         // 2 second charge time
+            physicsComponents: ['poisonEffect'], // Apply poison effect to hit enemies
+            onChargeStart: function (scene) {
+                // Green charging effect to match caustic theme
+                VisualEffects.createChargingEffect(scene, {
+                    color: '#2aad27',     // Green to match beam color
+                    duration: 2000        // Match charge time
+                });
+            },
+            onBeamStart: function (scene, beam) {
+                // Optional: Add beam start effect here
+            },
+            onBeamEnd: function (scene, beam) {
+                // Optional: Add beam end effect here
+            }
+        };
+    },
+    cooldown: function () {
+        return 36000;
+    },
+    activationMethod: 'timer'
+});
+
+// Function to activate the CAUSTIC_RAY perk
+window.activateCausticRay = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Fire the first beam immediately
+    const beamConfig = BeamPerkRegistry.perkBeamConfigs['CAUSTIC_RAY'].getConfig();
+    BeamSystem.create(scene, beamConfig);
+
+    // Set up the timer system for future beams
+    BeamPerkRegistry.applyPerkBeam(scene, 'CAUSTIC_RAY');
+};
+
 // Export the registry for use in other files
 window.BeamPerkRegistry = BeamPerkRegistry;

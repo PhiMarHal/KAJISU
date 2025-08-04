@@ -1,44 +1,123 @@
-// score.js - Score calculation and animation system for Word Survivors
-// Handles score calculation and animated display on game end screens
+// Updated score.js - Universal dynamic scoring system
 
-// Score System namespace
+// Add to score.js global variables
+let freeLevelUpsUsed = 0;
+let scoreUpdateTimer = null;
+let freeUsePenalty = 100;
+let versionBonus = 4;
+
+// Enhanced Score System
 const ScoreSystem = {
-    // Calculate final score based on game outcome (victory or defeat)
-    calculateScore: function (isVictory) {
-        // Get boss spawn time from global configuration
-        const bossSpawnTime = rankConfigs[BOSS_CONFIG.max_rank]?.startTime || 1200; // Default to 20 minutes (1200 seconds)
-        const maximumScoreTime = bossSpawnTime * 2; // Cap at twice the boss spawn time
+    // Calculate score continuously (universal) 
+    calculateCurrentScore: function (isVictory = false, timeOverride = null) {
+        const currentTime = timeOverride ?? elapsedTime;
 
-        let finalScore;
-        let versionBonus = 3;
+        // Get boss spawn time from global configuration
+        const bossSpawnTime = rankConfigs[BOSS_CONFIG.max_rank]?.startTime || 1200;
+        const maximumScoreTime = bossSpawnTime * 2;
+
+        let baseScore;
 
         if (isVictory) {
-            // For victory:
-            // 1. Calculate maximum possible points (time-capped score * 3)
+            // Victory: use original victory calculation as baseline
             const maximumPoints = maximumScoreTime * 3;
-
-            // 2. Subtract 1 point for each second on the timer (faster = better)
-            // But ensure we don't go below 2x the maximum death score
-            const timeDeduction = Math.min(elapsedTime - bossSpawnTime, maximumScoreTime);
-
-            finalScore = Math.floor(versionBonus * (maximumPoints - timeDeduction));
+            const timeDeduction = Math.min(currentTime - bossSpawnTime, maximumScoreTime);
+            baseScore = Math.floor(versionBonus * (maximumPoints - timeDeduction));
         } else {
-            // For defeat: 1 point per second survived, capped at twice boss spawn time
-            const cappedTime = Math.min(elapsedTime, maximumScoreTime);
-            finalScore = Math.floor(versionBonus * cappedTime);
+            // Defeat: use defeat calculation as baseline
+            const cappedTime = Math.min(currentTime, maximumScoreTime);
+            baseScore = Math.floor(versionBonus * cappedTime);
         }
 
-        // Debug log the calculation
-        console.log(
-            "Score calculation:",
-            isVictory ? "Victory" : "Defeat",
-            "Boss spawn time:", bossSpawnTime,
-            "Maximum score time:", maximumScoreTime,
-            "Elapsed time:", elapsedTime,
-            "Final score:", finalScore
-        );
+        // Subtract penalties for free levelups (Boss Rush only)
+        if (window.BOSS_RUSH_MODE) {
+            const levelUpPenalty = freeLevelUpsUsed * freeUsePenalty * versionBonus;
+            baseScore -= levelUpPenalty;
+        }
 
-        return finalScore;
+        return baseScore;
+    },
+
+    // Calculate victory bonus that decreases over time
+    calculateVictoryBonus: function (currentTime, bossSpawnTime, maximumScoreTime) {
+        const timeSinceBoss = currentTime - bossSpawnTime;
+        const maxBonusTime = maximumScoreTime - bossSpawnTime; // Time window for bonus
+
+        // Victory bonus starts high and decreases linearly
+        const maxBonus = maximumScoreTime * 2; // 2x the maximum defeat score
+        const bonusRatio = Math.max(0, 1 - (timeSinceBoss / maxBonusTime));
+
+        return Math.floor(maxBonus * bonusRatio);
+    },
+
+    // Initialize dynamic scoring (universal)
+    initializeDynamicScoring: function (scene) {
+        // Reset counter
+        freeLevelUpsUsed = 0;
+
+        console.log("Initializing dynamic scoring, scene:", scene ? "found" : "missing");
+
+        // Start score update timer
+        scoreUpdateTimer = scene.time.addEvent({
+            delay: 1000, // Update every second
+            callback: this.updateCurrentScore,
+            callbackScope: this,
+            loop: true
+        });
+
+        console.log("Score update timer created:", scoreUpdateTimer ? "success" : "failed");
+        console.log("Dynamic scoring initialized");
+    },
+
+    // Update current score every second
+    updateCurrentScore: function () {
+        if (gameOver || gamePaused) return;
+
+        // Just calculate the score, don't update UI here
+        // The UI will get updated by the main game loop calling GameUI.updateStatusDisplay
+        const score = this.calculateCurrentScore();
+    },
+
+    // Update score display in the UI
+    updateScoreDisplay: function (scoreValue) {
+        const scene = game.scene.scenes[0];
+        if (!scene || !scene.statusText) return;
+
+        const timeText = formatTime(elapsedTime);
+        scene.statusText.setText(`Survived: ${timeText}  Score: ${scoreValue}`);
+    },
+
+    // Apply penalty for free levelup (Boss Rush only)
+    applyFreeLeveUpPenalty: function () {
+        if (!window.BOSS_RUSH_MODE) return;
+
+        freeLevelUpsUsed++;
+        console.log(`Free levelup used. Total penalties: ${freeLevelUpsUsed * freeUsePenalty * versionBonus}`);
+
+        // Don't update UI here - let the main game loop handle it
+    },
+
+    // Get final score (for game end)
+    getFinalScore: function (isVictory) {
+        const finalScore = this.calculateCurrentScore(isVictory);
+        // Normalize negative scores to 0 at game end
+        return Math.max(0, finalScore);
+    },
+
+    // Cleanup dynamic scoring
+    cleanupDynamicScoring: function () {
+        if (scoreUpdateTimer) {
+            scoreUpdateTimer.remove();
+            scoreUpdateTimer = null;
+        }
+        freeLevelUpsUsed = 0;
+    },
+
+    // Calculate final score based on game outcome (legacy method for compatibility)
+    calculateScore: function (isVictory) {
+        const finalScore = this.calculateCurrentScore(isVictory);
+        // Normalize negative scores to 0 at game end
+        return Math.max(0, finalScore);
     },
 
     // Animate the score with a counting effect where digits animate at different speeds
@@ -63,14 +142,14 @@ const ScoreSystem = {
         const originalDepth = statsText.depth || 0;
         const originalContainer = statsText.parentContainer;
 
-        // Parse the text to get the two segments (survived/in time and defeated/freed count)
+        // Parse the text to get the two segments (survived/in time and score)
         const textParts = originalText.split(/\s{2,}/); // Split on multiple spaces
         if (textParts.length !== 2) {
             console.error("Stats text doesn't have expected format:", originalText);
             return;
         }
 
-        // Create two separate text objects for the stats (time and kills)
+        // Create two separate text objects for the stats (time and score)
         const leftSegment = scene.add.text(
             originalX - 150, // Position left of center
             originalY,
@@ -135,7 +214,7 @@ const ScoreSystem = {
                     {
                         fontFamily: 'Arial',
                         fontSize: parseInt(statsText.style.fontSize) * 2, // Twice as large
-                        color: '#FFD700', // Gold color
+                        color: finalScore < 0 ? '#FF4444' : '#FFD700', // Red for negative, gold for positive
                         fontStyle: 'bold'
                     }
                 ).setOrigin(0.5).setAlpha(0);
@@ -174,6 +253,9 @@ const ScoreSystem = {
 
         // Set the final score immediately
         textObject.setText(finalScore.toString());
+
+        // Update color based on score
+        textObject.setColor(finalScore < 0 ? '#FF4444' : '#FFD700');
 
         // Add celebration effect (scaling pulse)
         scene.tweens.add({
@@ -222,7 +304,7 @@ const ScoreSystem = {
 
         // Create counter object and configure animation
         const counter = { value: 0 };
-        const duration = Math.min(2000, 1000 + finalScore * 10);
+        const duration = Math.min(2000, 1000 + Math.abs(finalScore) * 2);
 
         // Create the tween
         const scoreTween = scene.tweens.add({
@@ -235,6 +317,11 @@ const ScoreSystem = {
                 if (textObject && textObject.active !== false) {
                     const currentValue = Math.floor(counter.value);
                     textObject.setText(currentValue.toString());
+
+                    // Update color during animation for negative scores
+                    if (finalScore < 0) {
+                        textObject.setColor('#FF4444');
+                    }
                 }
             },
             onComplete: () => {
@@ -270,5 +357,8 @@ const ScoreSystem = {
     }
 };
 
-// Export the score system for use in other files
+// Export additional functions
 window.ScoreSystem = ScoreSystem;
+window.applyFreeLeveUpPenalty = ScoreSystem.applyFreeLeveUpPenalty.bind(ScoreSystem);
+window.initializeDynamicScoring = ScoreSystem.initializeDynamicScoring.bind(ScoreSystem);
+window.cleanupDynamicScoring = ScoreSystem.cleanupDynamicScoring.bind(ScoreSystem);

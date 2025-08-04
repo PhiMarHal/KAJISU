@@ -23,6 +23,7 @@ const StartMenuSystem = {
         kajisuliMode: false,
         learningChallengeEnabled: false,
         hardModeEnabled: false,
+        bossRushMode: false,
         initialized: false
     },
 
@@ -60,6 +61,7 @@ const StartMenuSystem = {
         this.state.kajisuliMode = window.KAJISULI_MODE;
         this.state.learningChallengeEnabled = window.LEARNING_CHALLENGE_ENABLED;
         this.state.hardModeEnabled = window.HARD_MODE_ENABLED;
+        this.state.bossRushMode = window.BOSS_RUSH_MODE;
         this.applyCSSMode();
         this.createHTMLMenu();
         this.state.initialized = true;
@@ -168,6 +170,14 @@ const StartMenuSystem = {
 
         this.elements.menuContainer.appendChild(togglesContainer);
 
+        // Create Boss Rush toggle (always show)
+        const bossRushToggle = this.createToggle('Boss Rush', this.state.bossRushMode, (enabled) => {
+            this.toggleBossRush(enabled);
+        }, sizes);
+        togglesContainer.appendChild(bossRushToggle);
+
+        this.elements.menuContainer.appendChild(togglesContainer);
+
         // Add to page
         document.body.appendChild(this.elements.menuContainer);
 
@@ -273,6 +283,13 @@ const StartMenuSystem = {
         console.log(`Hard Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
     },
 
+    // Toggle boss rush setting
+    toggleBossRush: function (enabled) {
+        this.state.bossRushMode = enabled;
+        window.BOSS_RUSH_MODE = enabled;
+        console.log(`Boss Rush Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    },
+
     // Select a mode
     selectMode: function (isKajisuliMode) {
         if (this.state.kajisuliMode === isKajisuliMode) return;
@@ -290,6 +307,7 @@ const StartMenuSystem = {
         window.KAJISULI_MODE = this.state.kajisuliMode;
         window.LEARNING_CHALLENGE_ENABLED = this.state.learningChallengeEnabled;
         window.HARD_MODE_ENABLED = this.state.hardModeEnabled;
+        window.BOSS_RUSH_MODE = this.state.bossRushMode;
 
         const config = {
             type: Phaser.AUTO,

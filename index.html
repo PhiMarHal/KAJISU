@@ -11,7 +11,7 @@
 
     <script>
         // Set this manually as needed
-        const DEBUG_MODE = true;
+        const DEBUG_MODE = false;
         const FARCADE_MODE = false;
     </script>
 
@@ -568,8 +568,8 @@
             WeaponSystem.updateFiringRate(this);
             WeaponSystem.updateProjectiles(this);
 
-            // Update the level display to show time survived
-            GameUI.updateStatusDisplay(this, elapsedTime, score);
+            // Update the level display to show time survived and score
+            GameUI.updateStatusDisplay(this, elapsedTime, 0);
 
             // Player movement
             InputSystem.updateMovement(player, delta);
@@ -810,6 +810,23 @@
 
             // Update player stats text
             GameUI.updateStatCircles(this);
+
+            // Cleanup any existing dynamic scoring
+            if (typeof ScoreSystem !== 'undefined' && ScoreSystem.cleanupDynamicScoring) {
+                ScoreSystem.cleanupDynamicScoring();
+            }
+
+            // Initialize dynamic scoring for all game modes
+            if (typeof ScoreSystem !== 'undefined' && ScoreSystem.initializeDynamicScoring) {
+                ScoreSystem.initializeDynamicScoring(this);
+            }
+
+            // If Boss Rush mode, set elapsed time to boss spawn time
+            if (window.BOSS_RUSH_MODE) {
+                const bossSpawnTime = rankConfigs[BOSS_CONFIG.max_rank]?.startTime || 1200;
+                elapsedTime = bossSpawnTime;
+                console.log(`Boss Rush mode: Time set to ${bossSpawnTime} seconds`);
+            }
         }
     </script>
 </body>

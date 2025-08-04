@@ -82,19 +82,19 @@ const UI = {
         bgColor: 0x333333
     },
 
-    // Status display (timer and kills)
+    // Timer and Score
     statusDisplay: {
         timerY: function () { return UI.rel.y(3.75); },        // 3.75% from top
-        killsY: function () { return UI.rel.y(3.75); },        // Same Y as timer
+        scoreY: function () { return UI.rel.y(3.75); },        // Same Y as timer (renamed from killsY)
         x: function () { return UI.rel.x(1.33); },             // 1.33% from left
         timerWidth: function () { return UI.rel.width(10); },  // 10% of screen width
-        killsWidth: function () { return UI.rel.width(10); },  // Same width as timer
-        killsX: function () { return UI.rel.x(13.33); },       // Position to right of timer
+        scoreWidth: function () { return UI.rel.width(10); },  // Same width as timer (renamed from killsWidth)
+        scoreX: function () { return UI.rel.x(13.33); },       // Position to right of timer (renamed from killsX)
         height: function () { return UI.rel.height(2.5); },    // 2.5% of screen height
         borderWidth: 2,
         textPadding: function () { return UI.rel.width(0.33); }, // 0.33% of screen width
         clockSymbol: "時",  // Kanji for time/clock
-        deathSymbol: "殺",  // Kanji for kill/death
+        scoreSymbol: "点",  // Kanji for score/points (changed from deathSymbol)
         fontSize: function () { return UI.rel.fontSize(2); }   // 2% of screen height
     },
 
@@ -223,165 +223,184 @@ const ButtonDisplay = {
         // Initialize relative dimensions
         UI.game.init(scene);
 
-        // Clean up existing buttons and backgrounds
-        if (scene.pauseButton) scene.pauseButton.destroy();
-        if (scene.pauseButtonBg) scene.pauseButtonBg.destroy();
-        if (scene.pauseButtonBorder) scene.pauseButtonBorder.destroy();
-        if (scene.musicButton) scene.musicButton.destroy();
-        if (scene.musicButtonBg) scene.musicButtonBg.destroy();
-        if (scene.musicButtonBorder) scene.musicButtonBorder.destroy();
+        // Clean up existing elements if they exist
+        if (scene.timerBox) scene.timerBox.destroy();
+        if (scene.timerBoxInner) scene.timerBoxInner.destroy();
+        if (scene.timerText) scene.timerText.destroy();
+        if (scene.timerSymbol) scene.timerSymbol.destroy();
 
-        // Get button configurations
-        const pauseConfig = UI.buttons.pause;
-        const musicConfig = UI.buttons.music;
-        const commonConfig = UI.buttons.common;
+        if (scene.scoreBox) scene.scoreBox.destroy(); // Renamed from killsBox
+        if (scene.scoreBoxInner) scene.scoreBoxInner.destroy(); // Renamed from killsBoxInner
+        if (scene.scoreText) scene.scoreText.destroy(); // Renamed from killsText
+        if (scene.scoreSymbol) scene.scoreSymbol.destroy(); // Renamed from killsSymbol
 
-        // Create pause button background and border
-        scene.pauseButtonBorder = scene.add.rectangle(
-            pauseConfig.x(),
-            pauseConfig.y(),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
+        // Size and position adjustments for kajisuli mode
+        const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1; // 40% wider in kajisuli mode
+        const fontSizeScale = UI.kajisuli.enabled() ? 0.9 : 1; // Slightly smaller font in kajisuli mode
+
+        // Edge margin - further from edges in kajisuli mode
+        const edgeMargin = UI.kajisuli.enabled() ?
+            UI.rel.x(6) : // 6% from edges in kajisuli mode
+            UI.statusDisplay.x(); // Default in normal mode
+
+        // Create timer display with gold border
+        const timerX = UI.kajisuli.enabled() ?
+            edgeMargin + (UI.statusDisplay.timerWidth() * kajisuliScale / 2) : // Left side in kajisuli mode
+            UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale / 2); // Standard position
+
+        scene.timerBox = scene.add.rectangle(
+            timerX,
+            UI.statusDisplay.timerY(),
+            UI.statusDisplay.timerWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
-        ).setDepth(UI.depth.ui);
+        ).setDepth(UI.depth.ui).setOrigin(0.5);
 
-        scene.pauseButtonBg = scene.add.rectangle(
-            pauseConfig.x(),
-            pauseConfig.y(),
-            commonConfig.size(),
-            commonConfig.size(),
+        // Create inner black background for timer
+        scene.timerBoxInner = scene.add.rectangle(
+            timerX,
+            UI.statusDisplay.timerY(),
+            UI.statusDisplay.timerWidth() * kajisuliScale,
+            UI.statusDisplay.height(),
             UI.colors.black
-        ).setDepth(UI.depth.ui);
+        ).setDepth(UI.depth.ui).setOrigin(0.5);
 
-        // Create pause button
-        scene.pauseButton = scene.add.text(
-            pauseConfig.x(),
-            pauseConfig.y(),
-            pauseConfig.symbol,
-            {
-                fontFamily: 'Arial',
-                fontSize: `${pauseConfig.fontSize()}px`,
-                color: '#ffffff',
-                fontStyle: 'bold',
-            }
-        ).setOrigin(0.5).setDepth(UI.depth.ui);
-        scene.pauseButton.setAlpha(1);
-
-        // Make pause button interactive
-        scene.pauseButtonBorder.setInteractive({ useHandCursor: true });
-
-        scene.pauseButtonBorder.on('pointerover', function () {
-            scene.pauseButton.setColor('#ffff00'); // Yellow on hover
-            scene.pauseButton.setScale(1.1);
-        });
-
-        scene.pauseButtonBorder.on('pointerout', function () {
-            scene.pauseButton.setColor('#ffffff'); // White normally
-            scene.pauseButton.setScale(1);
-        });
-
-        scene.pauseButtonBorder.on('pointerdown', function () {
-            if (!gameOver) {
-                if (gamePaused) {
-                    PauseSystem.resumeGame();
-                } else {
-                    PauseSystem.pauseGameWithOverlay();
+        // Create the timer text - centered in kajisuli mode
+        if (UI.kajisuli.enabled()) {
+            // Center time text in kajisuli mode without kanji
+            scene.timerText = scene.add.text(
+                timerX,
+                UI.statusDisplay.timerY(),
+                "00:00", // Shorter time format
+                {
+                    fontFamily: UI.fonts.timer.family,
+                    fontSize: parseInt(UI.fonts.timer.size()) * fontSizeScale + 'px',
+                    color: UI.fonts.timer.color
                 }
-            }
-        });
+            ).setDepth(UI.depth.ui).setOrigin(0.5);
+        } else {
+            // Create the timer kanji symbol in normal mode
+            scene.timerSymbol = scene.add.text(
+                UI.statusDisplay.x() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.timerY(),
+                UI.statusDisplay.clockSymbol,
+                {
+                    fontFamily: UI.fonts.timer.family,
+                    fontSize: UI.fonts.timer.size(),
+                    color: UI.fonts.timer.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
 
+            // Create the timer text
+            scene.timerText = scene.add.text(
+                UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.timerY(),
+                "00:00", // Shorter time format
+                {
+                    fontFamily: UI.fonts.timer.family,
+                    fontSize: UI.fonts.timer.size(),
+                    color: UI.fonts.timer.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+        }
 
-        // Create music button background and border
-        scene.musicButtonBorder = scene.add.rectangle(
-            musicConfig.x(),
-            musicConfig.y(),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
+        // Adjust score display positioning for kajisuli mode
+        let scoreX = UI.kajisuli.enabled() ?
+            // Right side in kajisuli mode - further from edge
+            UI.game.getWidth() - edgeMargin - (UI.statusDisplay.scoreWidth() * kajisuliScale / 2) :
+            // Normal position
+            UI.statusDisplay.scoreX() + (UI.statusDisplay.scoreWidth() * kajisuliScale / 2);
+
+        // Create score display with gold border
+        scene.scoreBox = scene.add.rectangle(
+            scoreX,
+            UI.statusDisplay.scoreY(),
+            UI.statusDisplay.scoreWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
+            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
-        ).setDepth(UI.depth.ui);
+        ).setDepth(UI.depth.ui).setOrigin(0.5);
 
-        scene.musicButtonBg = scene.add.rectangle(
-            musicConfig.x(),
-            musicConfig.y(),
-            commonConfig.size(),
-            commonConfig.size(),
+        // Create inner black background for score
+        scene.scoreBoxInner = scene.add.rectangle(
+            scoreX,
+            UI.statusDisplay.scoreY(),
+            UI.statusDisplay.scoreWidth() * kajisuliScale,
+            UI.statusDisplay.height(),
             UI.colors.black
-        ).setDepth(UI.depth.ui);
+        ).setDepth(UI.depth.ui).setOrigin(0.5);
 
-        // Create music button
-        const initialSymbol = (window.MusicSystem && window.MusicSystem.musicEnabled) ?
-            musicConfig.symbol : musicConfig.mutedSymbol;
+        if (UI.kajisuli.enabled()) {
+            // Create centered score text in kajisuli mode
+            scene.scoreText = scene.add.text(
+                scoreX,
+                UI.statusDisplay.scoreY(),
+                "0",
+                {
+                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
+                    fontSize: parseInt(UI.fonts.kills.size()) * fontSizeScale + 'px',
+                    color: UI.fonts.kills.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(0.5);
+        } else {
+            // Create the score kanji symbol
+            scene.scoreSymbol = scene.add.text(
+                UI.statusDisplay.scoreX() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreY(),
+                UI.statusDisplay.scoreSymbol,
+                {
+                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
+                    fontSize: UI.fonts.kills.size(),
+                    color: UI.fonts.kills.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
 
-        scene.musicButton = scene.add.text(
-            musicConfig.x(),
-            musicConfig.y(),
-            initialSymbol,
-            {
-                fontFamily: 'Arial',
-                fontSize: `${musicConfig.fontSize()}px`,
-                color: '#ffffff',
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5).setDepth(UI.depth.ui);
-        scene.musicButton.setAlpha(1);
-
-        // Make music button interactive
-        scene.musicButtonBorder.setInteractive({ useHandCursor: true });
-
-        scene.musicButtonBorder.on('pointerover', function () {
-            scene.musicButton.setColor('#ffff00'); // Yellow on hover
-            scene.musicButton.setScale(1.1);
-        });
-
-        scene.musicButtonBorder.on('pointerout', function () {
-            scene.musicButton.setColor('#ffffff'); // White normally
-            scene.musicButton.setScale(1);
-        });
-
-        scene.musicButtonBorder.on('pointerdown', function () {
-            if (window.MusicSystem) {
-                // Toggle music state
-                const newState = !window.MusicSystem.musicEnabled;
-                window.MusicSystem.setMusicEnabled(newState);
-
-                // Update button symbol to show new state immediately
-                const symbol = newState ? musicConfig.symbol : musicConfig.mutedSymbol;
-                scene.musicButton.setText(symbol);
-
-                console.log(`Music ${newState ? 'enabled' : 'disabled'}`);
-            }
-        });
+            // Create the score text
+            scene.scoreText = scene.add.text(
+                UI.statusDisplay.scoreX() + UI.statusDisplay.scoreWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreY(),
+                "0",
+                {
+                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
+                    fontSize: UI.fonts.kills.size(),
+                    color: UI.fonts.kills.color
+                }
+            ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+        }
 
         // Initial update
         this.update(scene);
     },
 
-    update: function (scene) {
-        // Get configurations
-        const pauseConfig = UI.buttons.pause;
-        const musicConfig = UI.buttons.music;
-
-        // Update pause button positions if needed (for responsive design)
-        if (scene.pauseButton && scene.pauseButtonBg && scene.pauseButtonBorder) {
-            scene.pauseButton.setPosition(pauseConfig.x(), pauseConfig.y());
-            scene.pauseButtonBg.setPosition(pauseConfig.x(), pauseConfig.y());
-            scene.pauseButtonBorder.setPosition(pauseConfig.x(), pauseConfig.y());
+    update: function (scene, time, scoreValue) {
+        // Update timer text if it exists
+        if (scene.timerText) {
+            scene.timerText.setText(formatTime(time ?? elapsedTime));
         }
 
-        // Update music button positions if needed
-        if (scene.musicButton && scene.musicButtonBg && scene.musicButtonBorder) {
-            scene.musicButton.setPosition(musicConfig.x(), musicConfig.y());
-            scene.musicButtonBg.setPosition(musicConfig.x(), musicConfig.y());
-            scene.musicButtonBorder.setPosition(musicConfig.x(), musicConfig.y());
+        // Update score text if it exists - get current dynamic score
+        if (scene.scoreText) {
+            let currentScore = 0;
 
-            // Ensure music button shows correct state
-            if (window.MusicSystem) {
-                const symbol = window.MusicSystem.musicEnabled ?
-                    musicConfig.symbol : musicConfig.mutedSymbol;
-                scene.musicButton.setText(symbol);
+            // Get dynamic score from ScoreSystem if available
+            if (window.ScoreSystem && typeof window.ScoreSystem.calculateCurrentScore === 'function') {
+                currentScore = window.ScoreSystem.calculateCurrentScore();
+            } else {
+                // Fallback to passed scoreValue or global score
+                currentScore = scoreValue ?? score ?? 0;
+            }
+
+            // Format and display the score
+            scene.scoreText.setText(formatLargeNumber(currentScore));
+
+            // Color the score red if negative (Boss Rush penalties)
+            if (currentScore < 0) {
+                scene.scoreText.setColor('#FF4444');
+            } else {
+                scene.scoreText.setColor(UI.fonts.kills.color);
             }
         }
     }
+
 };
 
 // Health bar functions
@@ -684,10 +703,10 @@ const StatusDisplay = {
         if (scene.timerText) scene.timerText.destroy();
         if (scene.timerSymbol) scene.timerSymbol.destroy();
 
-        if (scene.killsBox) scene.killsBox.destroy();
-        if (scene.killsBoxInner) scene.killsBoxInner.destroy();
-        if (scene.killsText) scene.killsText.destroy();
-        if (scene.killsSymbol) scene.killsSymbol.destroy();
+        if (scene.scoreBox) scene.scoreBox.destroy(); // Renamed from killsBox
+        if (scene.scoreBoxInner) scene.scoreBoxInner.destroy(); // Renamed from killsBoxInner
+        if (scene.scoreText) scene.scoreText.destroy(); // Renamed from killsText
+        if (scene.scoreSymbol) scene.scoreSymbol.destroy(); // Renamed from killsSymbol
 
         // Size and position adjustments for kajisuli mode
         const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1; // 40% wider in kajisuli mode
@@ -759,63 +778,65 @@ const StatusDisplay = {
             ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
         }
 
-        // Adjust kills display positioning for kajisuli mode
-        let killsX = UI.kajisuli.enabled() ?
+        // Adjust score display positioning for kajisuli mode
+        let scoreX = UI.kajisuli.enabled() ?
             // Right side in kajisuli mode - further from edge
-            UI.game.getWidth() - edgeMargin - (UI.statusDisplay.killsWidth() * kajisuliScale / 2) :
+            UI.game.getWidth() - edgeMargin - (UI.statusDisplay.scoreWidth() * kajisuliScale / 2) :
             // Normal position
-            UI.statusDisplay.killsX() + (UI.statusDisplay.killsWidth() * kajisuliScale / 2);
+            UI.statusDisplay.scoreX() + (UI.statusDisplay.scoreWidth() * kajisuliScale / 2);
 
-        // Create kills display with gold border
-        scene.killsBox = scene.add.rectangle(
-            killsX,
-            UI.statusDisplay.killsY(),
-            UI.statusDisplay.killsWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
+        // Create score display with gold border
+        scene.scoreBox = scene.add.rectangle(
+            scoreX,
+            UI.statusDisplay.scoreY(),
+            UI.statusDisplay.scoreWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
             UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
-        // Create inner black background for kills
-        scene.killsBoxInner = scene.add.rectangle(
-            killsX,
-            UI.statusDisplay.killsY(),
-            UI.statusDisplay.killsWidth() * kajisuliScale,
+        // Create inner black background for score
+        scene.scoreBoxInner = scene.add.rectangle(
+            scoreX,
+            UI.statusDisplay.scoreY(),
+            UI.statusDisplay.scoreWidth() * kajisuliScale,
             UI.statusDisplay.height(),
             UI.colors.black
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
         if (UI.kajisuli.enabled()) {
-            // Create centered kills text in kajisuli mode
-            scene.killsText = scene.add.text(
-                killsX,
-                UI.statusDisplay.killsY(),
+            // Create centered score text in kajisuli mode
+            scene.scoreText = scene.add.text(
+                scoreX,
+                UI.statusDisplay.scoreY(),
                 "0",
                 {
-                    fontFamily: UI.fonts.kills.family,
+                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
                     fontSize: parseInt(UI.fonts.kills.size()) * fontSizeScale + 'px',
                     color: UI.fonts.kills.color
                 }
             ).setDepth(UI.depth.ui).setOrigin(0.5);
+            // Also need to update the references in the else block:
+
         } else {
-            // Create the kills kanji symbol
-            scene.killsSymbol = scene.add.text(
-                UI.statusDisplay.killsX() + UI.statusDisplay.textPadding(),
-                UI.statusDisplay.killsY(),
-                UI.statusDisplay.deathSymbol,
+            // Create the score kanji symbol
+            scene.scoreSymbol = scene.add.text(
+                UI.statusDisplay.scoreX() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreY(),
+                UI.statusDisplay.scoreSymbol,
                 {
-                    fontFamily: UI.fonts.kills.family,
+                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
                     fontSize: UI.fonts.kills.size(),
                     color: UI.fonts.kills.color
                 }
             ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
 
-            // Create the kills text
-            scene.killsText = scene.add.text(
-                UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth() - UI.statusDisplay.textPadding(),
-                UI.statusDisplay.killsY(),
+            // Create the score text
+            scene.scoreText = scene.add.text(
+                UI.statusDisplay.scoreX() + UI.statusDisplay.scoreWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreY(),
                 "0",
                 {
-                    fontFamily: UI.fonts.kills.family,
+                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
                     fontSize: UI.fonts.kills.size(),
                     color: UI.fonts.kills.color
                 }
@@ -826,15 +847,26 @@ const StatusDisplay = {
         this.update(scene);
     },
 
-    update: function (scene, time, kills) {
+    update: function (scene, time, scoreValue) {
         // Update timer text if it exists
         if (scene.timerText) {
             scene.timerText.setText(formatTime(time ?? elapsedTime));
         }
 
-        // Update kills text if it exists
-        if (scene.killsText) {
-            scene.killsText.setText(formatLargeNumber(kills ?? score));
+        // Update score text if it exists
+        if (scene.scoreText) {
+            // Get current dynamic score
+            const currentScore = window.ScoreSystem ? window.ScoreSystem.calculateCurrentScore() : 0;
+
+            // Display it
+            scene.scoreText.setText(formatLargeNumber(currentScore));
+
+            // Color red if negative
+            if (currentScore < 0) {
+                scene.scoreText.setColor('#FF4444');
+            } else {
+                scene.scoreText.setColor('#FFFFFF');
+            }
         }
     }
 };

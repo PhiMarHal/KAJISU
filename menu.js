@@ -219,187 +219,7 @@ const UI = {
 
 // Button display functions
 const ButtonDisplay = {
-    create: function (scene) {
-        // Initialize relative dimensions
-        UI.game.init(scene);
 
-        // Clean up existing elements if they exist
-        if (scene.timerBox) scene.timerBox.destroy();
-        if (scene.timerBoxInner) scene.timerBoxInner.destroy();
-        if (scene.timerText) scene.timerText.destroy();
-        if (scene.timerSymbol) scene.timerSymbol.destroy();
-
-        if (scene.scoreBox) scene.scoreBox.destroy(); // Renamed from killsBox
-        if (scene.scoreBoxInner) scene.scoreBoxInner.destroy(); // Renamed from killsBoxInner
-        if (scene.scoreText) scene.scoreText.destroy(); // Renamed from killsText
-        if (scene.scoreSymbol) scene.scoreSymbol.destroy(); // Renamed from killsSymbol
-
-        // Size and position adjustments for kajisuli mode
-        const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1; // 40% wider in kajisuli mode
-        const fontSizeScale = UI.kajisuli.enabled() ? 0.9 : 1; // Slightly smaller font in kajisuli mode
-
-        // Edge margin - further from edges in kajisuli mode
-        const edgeMargin = UI.kajisuli.enabled() ?
-            UI.rel.x(6) : // 6% from edges in kajisuli mode
-            UI.statusDisplay.x(); // Default in normal mode
-
-        // Create timer display with gold border
-        const timerX = UI.kajisuli.enabled() ?
-            edgeMargin + (UI.statusDisplay.timerWidth() * kajisuliScale / 2) : // Left side in kajisuli mode
-            UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale / 2); // Standard position
-
-        scene.timerBox = scene.add.rectangle(
-            timerX,
-            UI.statusDisplay.timerY(),
-            UI.statusDisplay.timerWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(UI.depth.ui).setOrigin(0.5);
-
-        // Create inner black background for timer
-        scene.timerBoxInner = scene.add.rectangle(
-            timerX,
-            UI.statusDisplay.timerY(),
-            UI.statusDisplay.timerWidth() * kajisuliScale,
-            UI.statusDisplay.height(),
-            UI.colors.black
-        ).setDepth(UI.depth.ui).setOrigin(0.5);
-
-        // Create the timer text - centered in kajisuli mode
-        if (UI.kajisuli.enabled()) {
-            // Center time text in kajisuli mode without kanji
-            scene.timerText = scene.add.text(
-                timerX,
-                UI.statusDisplay.timerY(),
-                "00:00", // Shorter time format
-                {
-                    fontFamily: UI.fonts.timer.family,
-                    fontSize: parseInt(UI.fonts.timer.size()) * fontSizeScale + 'px',
-                    color: UI.fonts.timer.color
-                }
-            ).setDepth(UI.depth.ui).setOrigin(0.5);
-        } else {
-            // Create the timer kanji symbol in normal mode
-            scene.timerSymbol = scene.add.text(
-                UI.statusDisplay.x() + UI.statusDisplay.textPadding(),
-                UI.statusDisplay.timerY(),
-                UI.statusDisplay.clockSymbol,
-                {
-                    fontFamily: UI.fonts.timer.family,
-                    fontSize: UI.fonts.timer.size(),
-                    color: UI.fonts.timer.color
-                }
-            ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
-
-            // Create the timer text
-            scene.timerText = scene.add.text(
-                UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding(),
-                UI.statusDisplay.timerY(),
-                "00:00", // Shorter time format
-                {
-                    fontFamily: UI.fonts.timer.family,
-                    fontSize: UI.fonts.timer.size(),
-                    color: UI.fonts.timer.color
-                }
-            ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
-        }
-
-        // Adjust score display positioning for kajisuli mode
-        let scoreX = UI.kajisuli.enabled() ?
-            // Right side in kajisuli mode - further from edge
-            UI.game.getWidth() - edgeMargin - (UI.statusDisplay.scoreWidth() * kajisuliScale / 2) :
-            // Normal position
-            UI.statusDisplay.scoreX() + (UI.statusDisplay.scoreWidth() * kajisuliScale / 2);
-
-        // Create score display with gold border
-        scene.scoreBox = scene.add.rectangle(
-            scoreX,
-            UI.statusDisplay.scoreY(),
-            UI.statusDisplay.scoreWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(UI.depth.ui).setOrigin(0.5);
-
-        // Create inner black background for score
-        scene.scoreBoxInner = scene.add.rectangle(
-            scoreX,
-            UI.statusDisplay.scoreY(),
-            UI.statusDisplay.scoreWidth() * kajisuliScale,
-            UI.statusDisplay.height(),
-            UI.colors.black
-        ).setDepth(UI.depth.ui).setOrigin(0.5);
-
-        if (UI.kajisuli.enabled()) {
-            // Create centered score text in kajisuli mode
-            scene.scoreText = scene.add.text(
-                scoreX,
-                UI.statusDisplay.scoreY(),
-                "0",
-                {
-                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
-                    fontSize: parseInt(UI.fonts.kills.size()) * fontSizeScale + 'px',
-                    color: UI.fonts.kills.color
-                }
-            ).setDepth(UI.depth.ui).setOrigin(0.5);
-        } else {
-            // Create the score kanji symbol
-            scene.scoreSymbol = scene.add.text(
-                UI.statusDisplay.scoreX() + UI.statusDisplay.textPadding(),
-                UI.statusDisplay.scoreY(),
-                UI.statusDisplay.scoreSymbol,
-                {
-                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
-                    fontSize: UI.fonts.kills.size(),
-                    color: UI.fonts.kills.color
-                }
-            ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
-
-            // Create the score text
-            scene.scoreText = scene.add.text(
-                UI.statusDisplay.scoreX() + UI.statusDisplay.scoreWidth() - UI.statusDisplay.textPadding(),
-                UI.statusDisplay.scoreY(),
-                "0",
-                {
-                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
-                    fontSize: UI.fonts.kills.size(),
-                    color: UI.fonts.kills.color
-                }
-            ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
-        }
-
-        // Initial update
-        this.update(scene);
-    },
-
-    update: function (scene, time, scoreValue) {
-        // Update timer text if it exists
-        if (scene.timerText) {
-            scene.timerText.setText(formatTime(time ?? elapsedTime));
-        }
-
-        // Update score text if it exists - get current dynamic score
-        if (scene.scoreText) {
-            let currentScore = 0;
-
-            // Get dynamic score from ScoreSystem if available
-            if (window.ScoreSystem && typeof window.ScoreSystem.calculateCurrentScore === 'function') {
-                currentScore = window.ScoreSystem.calculateCurrentScore();
-            } else {
-                // Fallback to passed scoreValue or global score
-                currentScore = scoreValue ?? score ?? 0;
-            }
-
-            // Format and display the score
-            scene.scoreText.setText(formatLargeNumber(currentScore));
-
-            // Color the score red if negative (Boss Rush penalties)
-            if (currentScore < 0) {
-                scene.scoreText.setColor('#FF4444');
-            } else {
-                scene.scoreText.setColor(UI.fonts.kills.color);
-            }
-        }
-    }
 
 };
 
@@ -815,8 +635,6 @@ const StatusDisplay = {
                     color: UI.fonts.kills.color
                 }
             ).setDepth(UI.depth.ui).setOrigin(0.5);
-            // Also need to update the references in the else block:
-
         } else {
             // Create the score kanji symbol
             scene.scoreSymbol = scene.add.text(
@@ -853,19 +671,26 @@ const StatusDisplay = {
             scene.timerText.setText(formatTime(time ?? elapsedTime));
         }
 
-        // Update score text if it exists
+        // Update score text if it exists - get current dynamic score
         if (scene.scoreText) {
-            // Get current dynamic score
-            const currentScore = window.ScoreSystem ? window.ScoreSystem.calculateCurrentScore() : 0;
+            let currentScore = 0;
 
-            // Display it
+            // Get dynamic score from ScoreSystem if available
+            if (window.ScoreSystem && typeof window.ScoreSystem.calculateCurrentScore === 'function') {
+                currentScore = window.ScoreSystem.calculateCurrentScore();
+            } else {
+                // Fallback to passed scoreValue or global score
+                currentScore = scoreValue ?? score ?? 0;
+            }
+
+            // Format and display the score
             scene.scoreText.setText(formatLargeNumber(currentScore));
 
-            // Color red if negative
+            // Color the score red if negative (Boss Rush penalties)
             if (currentScore < 0) {
                 scene.scoreText.setColor('#FF4444');
             } else {
-                scene.scoreText.setColor('#FFFFFF');
+                scene.scoreText.setColor(UI.fonts.kills.color);
             }
         }
     }

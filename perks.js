@@ -1024,16 +1024,14 @@ const PERKS = {
             window.triggerOneTimeEffect('purpleChaos');
         }
     },
-    // Add this to the PERKS object in perks.js
-
     "INDIGO_SWITCH": {
         kanji: "藍切替",
         kana: "あいきりかえ",
         romaji: "aikirikae",
         english: "Indigo Switch",
         description: "Swap highest and lowest stats, then +1 to both",
-        color: "#4B0082", // Indigo color
-        hoverColor: 0x301934,
+        color: "#B19CD9", // Light purple color
+        hoverColor: 0x9A7BC8, // Slightly darker purple for hover
         onAcquire: function () {
             window.triggerOneTimeEffect('indigoSwitch');
         }

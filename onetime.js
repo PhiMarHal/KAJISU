@@ -13,22 +13,23 @@ const StatManipulation = {
         };
     },
 
-    // Find highest and lowest stats (with deterministic priority)
+    // Find highest and lowest stats with improved logic
     findExtremeStats: function () {
         const stats = this.getCurrentStats();
         const statArray = Object.values(stats);
 
-        let highest = statArray[0];
-        let lowest = statArray[0];
+        // Sort stats by value, maintaining original order for ties
+        const sortedStats = [...statArray].sort((a, b) => {
+            if (a.value !== b.value) {
+                return a.value - b.value;
+            }
+            // For ties, maintain deterministic order based on stat name
+            const nameOrder = ['damage', 'fireRate', 'luck', 'health'];
+            return nameOrder.indexOf(a.name) - nameOrder.indexOf(b.name);
+        });
 
-        for (let i = 1; i < statArray.length; i++) {
-            if (statArray[i].value > highest.value) {
-                highest = statArray[i];
-            }
-            if (statArray[i].value < lowest.value) {
-                lowest = statArray[i];
-            }
-        }
+        const lowest = sortedStats[0];
+        const highest = sortedStats[sortedStats.length - 1];
 
         return { highest, lowest };
     },
@@ -38,10 +39,9 @@ const StatManipulation = {
         Object.entries(changes).forEach(([statName, change]) => {
             window.modifyStat(statName, change);
         });
-    },
-
-
+    }
 };
+
 
 // Registry of one-time effects
 const OneTimeEffects = {
@@ -214,7 +214,26 @@ const OneTimeEffects = {
         // Find highest and lowest stats
         const { highest, lowest } = StatManipulation.findExtremeStats();
 
-        // Calculate the changes needed to swap values and add +1 to both
+        // Handle edge case where all stats are equal
+        if (highest.value === lowest.value) {
+            // If all stats are equal, just give +1 to two different stats
+            const changes = {};
+            changes[highest.name] = 1;
+            // Pick a different stat for the second bonus
+            const statNames = ['damage', 'fireRate', 'luck', 'health'];
+            const secondStat = statNames.find(name => name !== highest.name);
+            changes[secondStat] = 1;
+
+            StatManipulation.applyStatChanges(changes);
+
+            // Visual effect
+            VisualEffects.createStatChangeEffect(scene, '藍切替', '#B19CD9');
+
+            console.log(`Indigo Switch: All stats equal (${highest.value}), gave +1 to ${highest.name} and ${secondStat}`);
+            return;
+        }
+
+        // Normal case: swap values and add +1 to both
         const changes = {};
         changes[highest.name] = (lowest.value + 1) - highest.value;
         changes[lowest.name] = (highest.value + 1) - lowest.value;
@@ -222,8 +241,8 @@ const OneTimeEffects = {
         // Apply the changes
         StatManipulation.applyStatChanges(changes);
 
-        // Visual effect
-        VisualEffects.createStatChangeEffect(scene, '藍切替', '#4B0082');
+        // Visual effect with new color
+        VisualEffects.createStatChangeEffect(scene, '藍切替', '#B19CD9');
 
         console.log(`Indigo Switch: Swapped ${highest.name} (${highest.value}) with ${lowest.name} (${lowest.value}), added +1 to both`);
     },

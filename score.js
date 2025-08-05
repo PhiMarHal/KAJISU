@@ -3,7 +3,7 @@
 // Add to score.js global variables
 let freeLevelUpsUsed = 0;
 let scoreUpdateTimer = null;
-let freeUsePenalty = 100;
+let freeUsePenalty = 20;
 let versionBonus = 4;
 
 // Enhanced Score System
@@ -19,12 +19,10 @@ const ScoreSystem = {
         let baseScore;
 
         if (isVictory) {
-            // Victory: use original victory calculation as baseline
-            const maximumPoints = maximumScoreTime * 3;
-            const timeDeduction = Math.min(currentTime - bossSpawnTime, maximumScoreTime);
-            baseScore = Math.floor(versionBonus * (maximumPoints - timeDeduction));
+            // Victory: use the original high-base calculation
+            baseScore = this.calculateVictoryBonus(currentTime, bossSpawnTime, maximumScoreTime);
         } else {
-            // Defeat: use defeat calculation as baseline
+            // Defeat: use time-based calculation
             const cappedTime = Math.min(currentTime, maximumScoreTime);
             baseScore = Math.floor(versionBonus * cappedTime);
         }
@@ -32,7 +30,7 @@ const ScoreSystem = {
         // Subtract penalties for free levelups (Boss Rush only)
         if (window.BOSS_RUSH_MODE) {
             const levelUpPenalty = freeLevelUpsUsed * freeUsePenalty * versionBonus;
-            baseScore -= levelUpPenalty;
+            baseScore -= levelUpPenalty + Math.floor(versionBonus * bossSpawnTime);
         }
 
         return baseScore;
@@ -40,14 +38,10 @@ const ScoreSystem = {
 
     // Calculate victory bonus that decreases over time
     calculateVictoryBonus: function (currentTime, bossSpawnTime, maximumScoreTime) {
-        const timeSinceBoss = currentTime - bossSpawnTime;
-        const maxBonusTime = maximumScoreTime - bossSpawnTime; // Time window for bonus
-
-        // Victory bonus starts high and decreases linearly
-        const maxBonus = maximumScoreTime * 2; // 2x the maximum defeat score
-        const bonusRatio = Math.max(0, 1 - (timeSinceBoss / maxBonusTime));
-
-        return Math.floor(maxBonus * bonusRatio);
+        // Use the original victory calculation logic
+        const maximumPoints = maximumScoreTime * 3;
+        const timeDeduction = Math.min(currentTime - bossSpawnTime, maximumScoreTime);
+        return Math.floor(versionBonus * (maximumPoints - timeDeduction));
     },
 
     // Initialize dynamic scoring (universal)
@@ -100,8 +94,8 @@ const ScoreSystem = {
     // Get final score (for game end)
     getFinalScore: function (isVictory) {
         const finalScore = this.calculateCurrentScore(isVictory);
-        // Normalize negative scores to 0 at game end
-        return Math.max(0, finalScore);
+        // Don't normalize negative scores here - let the animation handle it
+        return finalScore;
     },
 
     // Cleanup dynamic scoring
@@ -115,9 +109,7 @@ const ScoreSystem = {
 
     // Calculate final score based on game outcome (legacy method for compatibility)
     calculateScore: function (isVictory) {
-        const finalScore = this.calculateCurrentScore(isVictory);
-        // Normalize negative scores to 0 at game end
-        return Math.max(0, finalScore);
+        return this.calculateCurrentScore(isVictory);
     },
 
     // Animate the score with a counting effect where digits animate at different speeds
@@ -206,15 +198,24 @@ const ScoreSystem = {
                 // Both segments now merged and faded out
                 console.log("Segments merged, creating score text");
 
+                // Calculate starting value and final display value
+                // For defeats: show the journey from negative to 0 (if negative)
+                // For victories: show the journey from penalty to final positive score
+                const baseScore = this.calculateCurrentScore(false); // Get score without victory bonus
+                const startValue = Math.min(baseScore, 0);
+
+                // For defeats with negative scores, normalize final display to 0
+                const displayScore = finalScore < 0 ? 0 : finalScore;
+
                 // Create score text with larger font
                 const scoreText = scene.add.text(
                     originalX,
                     originalY,
-                    "0", // Start with 0
+                    startValue.toString(), // Start with the minimum value
                     {
                         fontFamily: 'Arial',
                         fontSize: parseInt(statsText.style.fontSize) * 2, // Twice as large
-                        color: finalScore < 0 ? '#FF4444' : '#FFD700', // Red for negative, gold for positive
+                        color: startValue < 0 ? '#FF4444' : '#FFD700', // Red for negative, gold for positive
                         fontStyle: 'bold'
                     }
                 ).setOrigin(0.5).setAlpha(0);
@@ -236,8 +237,8 @@ const ScoreSystem = {
                     onComplete: () => {
                         console.log("Score text fade-in complete, starting counter animation");
 
-                        // Use a simple tween to count up from 0 to finalScore
-                        this.animateScoreCounter(scene, scoreText, finalScore, createdObjects);
+                        // Animate from startValue to displayScore
+                        this.animateScoreCounter(scene, scoreText, displayScore, createdObjects, startValue);
                     }
                 });
             }
@@ -255,7 +256,7 @@ const ScoreSystem = {
         textObject.setText(finalScore.toString());
 
         // Update color based on score
-        textObject.setColor(finalScore < 0 ? '#FF4444' : '#FFD700');
+        textObject.setColor(finalScore <= 0 ? '#FF4444' : '#FFD700');
 
         // Add celebration effect (scaling pulse)
         scene.tweens.add({
@@ -282,7 +283,7 @@ const ScoreSystem = {
         this.showFinalScore(
             scene,
             this.activeAnimation.textObject,
-            this.activeAnimation.finalScore
+            this.activeAnimation.displayScore
         );
 
         // Clear animation reference
@@ -291,37 +292,38 @@ const ScoreSystem = {
         return true;
     },
 
-    // Simplified animateScoreCounter that uses the shared showFinalScore method
-    animateScoreCounter: function (scene, textObject, finalScore, createdObjects) {
+    // Updated animateScoreCounter that accepts a custom start value
+    animateScoreCounter: function (scene, textObject, finalScore, createdObjects, startValue = 0) {
         if (!scene || !textObject) {
             console.error("Missing scene or textObject in animateScoreCounter");
             return;
         }
 
-        // Round finalScore to an integer
+        // Round values to integers
         finalScore = Math.floor(finalScore);
-        console.log("Starting counter animation to:", finalScore);
+        startValue = Math.floor(startValue);
+        console.log("Starting counter animation from:", startValue, "to:", finalScore);
 
         // Create counter object and configure animation
-        const counter = { value: 0 };
-        const duration = Math.min(2000, 1000 + Math.abs(finalScore) * 2);
+        const counter = { value: startValue };
+        const totalChange = Math.abs(finalScore - startValue);
+        const duration = Math.min(3000, 1000 + totalChange * 2);
 
         // Create the tween
         const scoreTween = scene.tweens.add({
             targets: counter,
             value: finalScore,
             duration: duration,
-            ease: 'Linear',
+            ease: 'Cubic.easeOut',
             onUpdate: function () {
                 // Only update if the text object is still valid
                 if (textObject && textObject.active !== false) {
                     const currentValue = Math.floor(counter.value);
                     textObject.setText(currentValue.toString());
 
-                    // Update color during animation for negative scores
-                    if (finalScore < 0) {
-                        textObject.setColor('#FF4444');
-                    }
+                    // Update color during animation
+                    const color = currentValue <= 0 ? '#FF4444' : '#FFD700';
+                    textObject.setColor(color);
                 }
             },
             onComplete: () => {
@@ -339,7 +341,8 @@ const ScoreSystem = {
         this.activeAnimation = {
             tween: scoreTween,
             textObject: textObject,
-            finalScore: finalScore
+            finalScore: finalScore,
+            displayScore: finalScore // Store the display score for skipping
         };
 
         return scoreTween;

@@ -122,7 +122,7 @@ const UI = {
         }
     },
 
-    // Pause/Music buttons
+    // Pause/Music/Levelup buttons
     buttons: {
         // Common button styling configuration
         common: {
@@ -169,10 +169,24 @@ const UI = {
             fontSize: function () {
                 return UI.buttons.common.fontSize();
             }
+        },
+
+        // Levelup button configuration (Boss Rush mode)
+        levelup: {
+            symbol: "UP", // Letters for level up
+            x: function () {
+                // Same position as music button (bottom right)
+                return UI.game.getWidth() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
+            },
+            y: function () {
+                // Same position as music button (bottom positioning)
+                return UI.game.getHeight() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
+            },
+            fontSize: function () {
+                return UI.buttons.common.fontSize() * 0.7; // Slightly smaller for "UP" text
+            }
         }
     },
-
-
 
     // Color constants
     colors: {
@@ -219,134 +233,254 @@ const UI = {
 
 // Button display functions
 const ButtonDisplay = {
-
-
-};
-
-// Health bar functions
-const HealthBar = {
     create: function (scene) {
         // Initialize relative dimensions
         UI.game.init(scene);
 
-        // Remove old health bar elements if they exist
-        if (scene.healthBar) scene.healthBar.destroy();
-        if (scene.healthBarBg) scene.healthBarBg.destroy();
-        if (scene.healthText) scene.healthText.destroy();
+        // Clean up existing buttons and backgrounds
+        if (scene.pauseButton) scene.pauseButton.destroy();
+        if (scene.pauseButtonBg) scene.pauseButtonBg.destroy();
+        if (scene.pauseButtonBorder) scene.pauseButtonBorder.destroy();
+        if (scene.musicButton) scene.musicButton.destroy();
+        if (scene.musicButtonBg) scene.musicButtonBg.destroy();
+        if (scene.musicButtonBorder) scene.musicButtonBorder.destroy();
+        if (scene.levelupButton) scene.levelupButton.destroy();
+        if (scene.levelupButtonBg) scene.levelupButtonBg.destroy();
+        if (scene.levelupButtonBorder) scene.levelupButtonBorder.destroy();
 
-        // Get kajisuli scale factors - wider not thicker
-        const kajisuliScaleWidth = UI.kajisuli.enabled() ? 1.5 : 1;
-        const kajisuliScaleHeight = 1; // Keep the same height
+        // Get button configurations
+        const pauseConfig = UI.buttons.pause;
+        const musicConfig = UI.buttons.music;
+        const levelupConfig = UI.buttons.levelup;
+        const commonConfig = UI.buttons.common;
 
-        // Store the scale factors for later use
-        scene.healthBarScales = {
-            width: kajisuliScaleWidth,
-            height: kajisuliScaleHeight
-        };
-
-        // Get calculated dimensions
-        const width = UI.healthBar.width() * kajisuliScaleWidth;
-        const height = UI.healthBar.height() * kajisuliScaleHeight;
-        const borderWidth = UI.healthBar.borderWidth;
-        const innerMargin = UI.healthBar.innerMargin;
-        const centerX = UI.healthBar.centerX();
-        const y = UI.healthBar.y();
-
-        // Create new container with golden border
-        scene.healthBarBg = scene.add.rectangle(
-            centerX,
-            y,
-            width + (borderWidth * 2),
-            height + (borderWidth * 2),
+        // Create pause button background and border
+        scene.pauseButtonBorder = scene.add.rectangle(
+            pauseConfig.x(),
+            pauseConfig.y(),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
             UI.colors.gold
-        ).setDepth(UI.depth.ui);
+        ).setDepth(2001);
 
-        // Create inner black background
-        scene.healthBarInnerBg = scene.add.rectangle(
-            centerX,
-            y,
-            width,
-            height,
+        scene.pauseButtonBg = scene.add.rectangle(
+            pauseConfig.x(),
+            pauseConfig.y(),
+            commonConfig.size(),
+            commonConfig.size(),
             UI.colors.black
-        ).setDepth(UI.depth.ui);
+        ).setDepth(2001);
 
-        // Create a container for segments
-        scene.healthSegments = scene.add.group();
+        // Create pause button
+        scene.pauseButton = scene.add.text(
+            pauseConfig.x(),
+            pauseConfig.y(),
+            pauseConfig.symbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: `${pauseConfig.fontSize()}px`,
+                color: '#ffffff',
+                fontStyle: 'bold',
+            }
+        ).setOrigin(0.5).setDepth(2001);
 
-        // Container for separators
-        scene.healthSeparators = scene.add.group();
+        // Make pause button interactive
+        scene.pauseButtonBorder.setInteractive({ useHandCursor: true });
 
-        // Initial health segments
+        scene.pauseButtonBorder.on('pointerover', function () {
+            scene.pauseButton.setColor('#ffff00'); // Yellow on hover
+            scene.pauseButton.setScale(1.1);
+        });
+
+        scene.pauseButtonBorder.on('pointerout', function () {
+            scene.pauseButton.setColor('#ffffff'); // White normally
+            scene.pauseButton.setScale(1);
+        });
+
+        scene.pauseButtonBorder.on('pointerdown', function () {
+            if (!gameOver) {
+                if (gamePaused) {
+                    PauseSystem.resumeGame();
+                } else {
+                    PauseSystem.pauseGameWithOverlay();
+                }
+            }
+        });
+
+        // Create music button background and border
+        scene.musicButtonBorder = scene.add.rectangle(
+            musicConfig.x(),
+            musicConfig.y(),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            commonConfig.size() + (commonConfig.borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(2001);;
+
+        scene.musicButtonBg = scene.add.rectangle(
+            musicConfig.x(),
+            musicConfig.y(),
+            commonConfig.size(),
+            commonConfig.size(),
+            UI.colors.black
+        ).setDepth(2001);;
+
+        // Create music button
+        const initialSymbol = (window.MusicSystem && window.MusicSystem.musicEnabled) ?
+            musicConfig.symbol : musicConfig.mutedSymbol;
+
+        scene.musicButton = scene.add.text(
+            musicConfig.x(),
+            musicConfig.y(),
+            initialSymbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: `${musicConfig.fontSize()}px`,
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(2001);;
+
+        // Make music button interactive
+        scene.musicButtonBorder.setInteractive({ useHandCursor: true });
+
+        scene.musicButtonBorder.on('pointerover', function () {
+            scene.musicButton.setColor('#ffff00'); // Yellow on hover
+            scene.musicButton.setScale(1.1);
+        });
+
+        scene.musicButtonBorder.on('pointerout', function () {
+            scene.musicButton.setColor('#ffffff'); // White normally
+            scene.musicButton.setScale(1);
+        });
+
+        scene.musicButtonBorder.on('pointerdown', function () {
+            if (window.MusicSystem) {
+                // Toggle music state
+                const newState = !window.MusicSystem.musicEnabled;
+                window.MusicSystem.setMusicEnabled(newState);
+
+                // Update button symbol to show new state immediately
+                const symbol = newState ? musicConfig.symbol : musicConfig.mutedSymbol;
+                scene.musicButton.setText(symbol);
+
+                console.log(`Music ${newState ? 'enabled' : 'disabled'}`);
+            }
+        });
+
+        // Only create levelup button if Boss Rush mode is enabled
+        if (window.BOSS_RUSH_MODE) {
+            // Create levelup button background and border
+            scene.levelupButtonBorder = scene.add.rectangle(
+                levelupConfig.x(),
+                levelupConfig.y(),
+                commonConfig.size() + (commonConfig.borderWidth * 2),
+                commonConfig.size() + (commonConfig.borderWidth * 2),
+                UI.colors.gold
+            ).setDepth(UI.depth.ui);
+
+            scene.levelupButtonBg = scene.add.rectangle(
+                levelupConfig.x(),
+                levelupConfig.y(),
+                commonConfig.size(),
+                commonConfig.size(),
+                UI.colors.black
+            ).setDepth(UI.depth.ui);
+
+            // Create levelup button
+            scene.levelupButton = scene.add.text(
+                levelupConfig.x(),
+                levelupConfig.y(),
+                levelupConfig.symbol,
+                {
+                    fontFamily: 'Arial',
+                    fontSize: `${levelupConfig.fontSize()}px`,
+                    color: '#ffffff',
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5).setDepth(2001);
+
+            // Make levelup button interactive
+            scene.levelupButtonBorder.setInteractive({ useHandCursor: true });
+
+            scene.levelupButtonBorder.on('pointerover', function () {
+                scene.levelupButton.setColor('#ffff00'); // Yellow on hover
+                scene.levelupButton.setScale(1.1);
+            });
+
+            scene.levelupButtonBorder.on('pointerout', function () {
+                scene.levelupButton.setColor('#ffffff'); // White normally
+                scene.levelupButton.setScale(1);
+            });
+
+            scene.levelupButtonBorder.on('pointerdown', function () {
+                // Same logic as the R key debug function
+                if (!gamePaused && !gameOver && window.BOSS_RUSH_MODE) {
+                    // Apply penalty for any debug levelup usage
+                    if (window.applyFreeLeveUpPenalty) {
+                        window.applyFreeLeveUpPenalty();
+                    }
+
+                    // Add enough XP to level up
+                    const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
+                    heroExp += xpNeeded;
+                    GameUI.updateExpBar(scene);
+
+                    console.log("Boss Rush: Free level up used (penalty applied)");
+                }
+            });
+        }
+
+        // Initial update
         this.update(scene);
     },
 
     update: function (scene) {
-        // If segments don't exist yet or scene is not available, exit
-        if (!scene.healthSegments || !scene.healthSegments.scene) return;
+        // Get configurations
+        const pauseConfig = UI.buttons.pause;
+        const musicConfig = UI.buttons.music;
+        const levelupConfig = UI.buttons.levelup;
 
-        // Clear existing segments and separators
-        scene.healthSegments.clear(true, true);
-        if (scene.healthSeparators) scene.healthSeparators.clear(true, true);
+        // Update pause button positions if needed (for responsive design)
+        if (scene.pauseButton && scene.pauseButtonBg && scene.pauseButtonBorder) {
+            scene.pauseButton.setPosition(pauseConfig.x(), pauseConfig.y());
+            scene.pauseButtonBg.setPosition(pauseConfig.x(), pauseConfig.y());
+            scene.pauseButtonBorder.setPosition(pauseConfig.x(), pauseConfig.y());
+        }
 
-        // Get the scale factors from the scene
-        const kajisuliScaleWidth = scene.healthBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
-        const kajisuliScaleHeight = scene.healthBarScales?.height ?? 1;
+        // Update music button positions if needed
+        if (scene.musicButton && scene.musicButtonBg && scene.musicButtonBorder) {
+            // Don't show music button if Boss Rush and game is not paused
+            if (window.BOSS_RUSH_MODE && !gamePaused) {
+                scene.musicButton.setVisible(false);
+                scene.musicButtonBg.setVisible(false);
+                scene.musicButtonBorder.setVisible(false);
+            } else {
+                // Show and update music button normally
+                scene.musicButton.setVisible(true);
+                scene.musicButtonBg.setVisible(true);
+                scene.musicButtonBorder.setVisible(true);
 
-        // Get calculated dimensions
-        const width = UI.healthBar.width() * kajisuliScaleWidth;
-        const height = UI.healthBar.height() * kajisuliScaleHeight;
-        const innerMargin = UI.healthBar.innerMargin;
-        const centerX = UI.healthBar.centerX();
-        const y = UI.healthBar.y();
+                scene.musicButton.setPosition(musicConfig.x(), musicConfig.y());
+                scene.musicButtonBg.setPosition(musicConfig.x(), musicConfig.y());
+                scene.musicButtonBorder.setPosition(musicConfig.x(), musicConfig.y());
 
-        // Calculate content dimensions (accounting for margin)
-        const contentWidth = width - (innerMargin * 2);
-        const contentHeight = height - (innerMargin * 2);
-
-        // Calculate segment dimensions
-        const segmentGapWidth = UI.healthBar.segmentGap() * kajisuliScaleWidth;
-        const totalGapWidth = (maxPlayerHealth - 1) * segmentGapWidth;
-        const segmentWidth = (contentWidth - totalGapWidth) / maxPlayerHealth;
-
-        // Calculate the starting position for the first segment (like the boss health bar)
-        const startX = centerX - (width / 2) + innerMargin;
-
-        // Create each segment
-        for (let i = 0; i < maxPlayerHealth; i++) {
-            // Only create filled segments for current health
-            const isFilled = i < playerHealth;
-
-            // Calculate segment position - important: this is where the proper spacing happens
-            const segmentX = startX + (i * (segmentWidth + segmentGapWidth));
-
-            // Create segment with high depth
-            const segment = scene.add.rectangle(
-                segmentX + (segmentWidth / 2), // Center the segment at its position
-                y,
-                segmentWidth,
-                contentHeight,
-                isFilled ? UI.colors.green : UI.colors.grey
-            ).setDepth(UI.depth.ui);
-
-            // Add to group for easy management
-            scene.healthSegments.add(segment);
-
-            // Add golden separator after each segment (except the last one)
-            if (i < maxPlayerHealth - 1) {
-                const separatorX = segmentX + segmentWidth + (segmentGapWidth / 2);
-                const separator = scene.add.rectangle(
-                    separatorX,
-                    y,
-                    2, // Fixed width for separator
-                    contentHeight,
-                    UI.colors.gold
-                ).setDepth(UI.depth.ui);
-                scene.healthSeparators.add(separator);
+                // Ensure music button shows correct state
+                if (window.MusicSystem) {
+                    const symbol = window.MusicSystem.musicEnabled ?
+                        musicConfig.symbol : musicConfig.mutedSymbol;
+                    scene.musicButton.setText(symbol);
+                }
             }
+        }
+
+        // Update levelup button positions if needed (only if it exists)
+        if (scene.levelupButton && scene.levelupButtonBg && scene.levelupButtonBorder) {
+            scene.levelupButton.setPosition(levelupConfig.x(), levelupConfig.y());
+            scene.levelupButtonBg.setPosition(levelupConfig.x(), levelupConfig.y());
+            scene.levelupButtonBorder.setPosition(levelupConfig.x(), levelupConfig.y());
         }
     }
 };
-
 
 // Helper function to format large numbers with 4 significant digits + kanji
 function formatLargeNumber(number) {
@@ -508,6 +642,130 @@ const ExpBar = {
         // Calculate and update the XP REMAINING text with formatting for large numbers
         const xpRemaining = xpForNextLevel(playerLevel) - heroExp;
         scene.xpNeededText.setText(formatLargeNumber(xpRemaining));
+    }
+};
+
+// Health bar functions
+const HealthBar = {
+    create: function (scene) {
+        // Initialize relative dimensions
+        UI.game.init(scene);
+
+        // Remove old health bar elements if they exist
+        if (scene.healthBar) scene.healthBar.destroy();
+        if (scene.healthBarBg) scene.healthBarBg.destroy();
+        if (scene.healthText) scene.healthText.destroy();
+
+        // Get kajisuli scale factors - wider not thicker
+        const kajisuliScaleWidth = UI.kajisuli.enabled() ? 1.5 : 1;
+        const kajisuliScaleHeight = 1; // Keep the same height
+
+        // Store the scale factors for later use
+        scene.healthBarScales = {
+            width: kajisuliScaleWidth,
+            height: kajisuliScaleHeight
+        };
+
+        // Get calculated dimensions
+        const width = UI.healthBar.width() * kajisuliScaleWidth;
+        const height = UI.healthBar.height() * kajisuliScaleHeight;
+        const borderWidth = UI.healthBar.borderWidth;
+        const innerMargin = UI.healthBar.innerMargin;
+        const centerX = UI.healthBar.centerX();
+        const y = UI.healthBar.y();
+
+        // Create new container with golden border
+        scene.healthBarBg = scene.add.rectangle(
+            centerX,
+            y,
+            width + (borderWidth * 2),
+            height + (borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(UI.depth.ui);
+
+        // Create inner black background
+        scene.healthBarInnerBg = scene.add.rectangle(
+            centerX,
+            y,
+            width,
+            height,
+            UI.colors.black
+        ).setDepth(UI.depth.ui);
+
+        // Create a container for segments
+        scene.healthSegments = scene.add.group();
+
+        // Container for separators
+        scene.healthSeparators = scene.add.group();
+
+        // Initial health segments
+        this.update(scene);
+    },
+
+    update: function (scene) {
+        // If segments don't exist yet or scene is not available, exit
+        if (!scene.healthSegments || !scene.healthSegments.scene) return;
+
+        // Clear existing segments and separators
+        scene.healthSegments.clear(true, true);
+        if (scene.healthSeparators) scene.healthSeparators.clear(true, true);
+
+        // Get the scale factors from the scene
+        const kajisuliScaleWidth = scene.healthBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
+        const kajisuliScaleHeight = scene.healthBarScales?.height ?? 1;
+
+        // Get calculated dimensions
+        const width = UI.healthBar.width() * kajisuliScaleWidth;
+        const height = UI.healthBar.height() * kajisuliScaleHeight;
+        const innerMargin = UI.healthBar.innerMargin;
+        const centerX = UI.healthBar.centerX();
+        const y = UI.healthBar.y();
+
+        // Calculate content dimensions (accounting for margin)
+        const contentWidth = width - (innerMargin * 2);
+        const contentHeight = height - (innerMargin * 2);
+
+        // Calculate segment dimensions
+        const segmentGapWidth = UI.healthBar.segmentGap() * kajisuliScaleWidth;
+        const totalGapWidth = (maxPlayerHealth - 1) * segmentGapWidth;
+        const segmentWidth = (contentWidth - totalGapWidth) / maxPlayerHealth;
+
+        // Calculate the starting position for the first segment (like the boss health bar)
+        const startX = centerX - (width / 2) + innerMargin;
+
+        // Create each segment
+        for (let i = 0; i < maxPlayerHealth; i++) {
+            // Only create filled segments for current health
+            const isFilled = i < playerHealth;
+
+            // Calculate segment position - important: this is where the proper spacing happens
+            const segmentX = startX + (i * (segmentWidth + segmentGapWidth));
+
+            // Create segment with high depth
+            const segment = scene.add.rectangle(
+                segmentX + (segmentWidth / 2), // Center the segment at its position
+                y,
+                segmentWidth,
+                contentHeight,
+                isFilled ? UI.colors.green : UI.colors.grey
+            ).setDepth(UI.depth.ui);
+
+            // Add to group for easy management
+            scene.healthSegments.add(segment);
+
+            // Add golden separator after each segment (except the last one)
+            if (i < maxPlayerHealth - 1) {
+                const separatorX = segmentX + segmentWidth + (segmentGapWidth / 2);
+                const separator = scene.add.rectangle(
+                    separatorX,
+                    y,
+                    2, // Fixed width for separator
+                    contentHeight,
+                    UI.colors.gold
+                ).setDepth(UI.depth.ui);
+                scene.healthSeparators.add(separator);
+            }
+        }
     }
 };
 

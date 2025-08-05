@@ -288,9 +288,7 @@ const BeaconConfigs = {
         symbol: '猛',
         fontSize: '20px',
         color: '#FF4500', // Orange-red for power
-        baseCooldown: 60000, // Fixed 60 seconds
-        cooldownStat: 'luck', // Doesn't matter for fixed cooldown
-        cooldownFormula: 'fixed', // Uses fixed formula
+        baseCooldown: 60000, // Removed fixed cooldown
         maxBeacons: null, // Use playerLuck
         onCollect: function (beacon) {
             // Apply power boost effect

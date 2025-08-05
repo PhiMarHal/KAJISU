@@ -578,6 +578,70 @@ const PERKS = {
             // The component is added through PlayerPerkRegistry
         }
     },
+    "BERSERK_SHRINE": {
+        kanji: "怒神社",
+        kana: "いかりじんじゃ",
+        romaji: "ikarijinja",
+        english: "Berserk Shrine",
+        description: "Spawns shrines that boost damage while standing in them",
+        color: "#FF0000",
+        hoverColor: 0xCC0000,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
+
+    "ARCHER_SHRINE": {
+        kanji: "弓神社",
+        kana: "ゆみじんじゃ",
+        romaji: "yumijinja",
+        english: "Archer Shrine",
+        description: "Spawns shrines that boost fire rate while standing in them",
+        color: "#00FF00",
+        hoverColor: 0x00CC00,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
+
+    "HEALING_SHRINE": {
+        kanji: "癒神社",
+        kana: "いやしじんじゃ",
+        romaji: "iyashijinja",
+        english: "Healing Shrine",
+        description: "Spawns shrines that heal you while standing in them",
+        color: "#00FFFF",
+        hoverColor: 0x00CCCC,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
+
+    "STORM_SHRINE": {
+        kanji: "雷神社",
+        kana: "らいじんじゃ",
+        romaji: "raijinja",
+        english: "Storm Shrine",
+        description: "Spawns shrines that rain lightning while standing in them",
+        color: "#FFFF00",
+        hoverColor: 0xCCCC00,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
+
+    "GOD_HAMMER_SHRINE": {
+        kanji: "鎚神社",
+        kana: "つちじんじゃ",
+        romaji: "tsuchijinja",
+        english: "God Hammer Shrine",
+        description: "Spawns shrines that drop divine hammers while standing in them",
+        color: "#FFD700",
+        hoverColor: 0xDAA520,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
 
     // Red animal perks (damage focused)
     "RED_TIGER": {

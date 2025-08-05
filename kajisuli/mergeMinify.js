@@ -77,6 +77,7 @@ const config = {
         'perks.js',
         'playerhit.js',
         'score.js',
+        'shrines.js',
         'statdefs.js',
         'visuals.js',
         'weapons.js',

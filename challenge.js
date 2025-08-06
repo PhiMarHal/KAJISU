@@ -74,12 +74,20 @@ const RomajiChallengeSystem = {
 
     // Show the level up challenge
     showLevelUpChallenge: function (scene) {
-        // Pause the game
+        // Safety check: clean up any existing level-up container
+        if (this.elements.levelUpContainer && this.elements.levelUpContainer.active) {
+            console.warn("Cleaning up existing level-up container");
+            this.elements.levelUpContainer.destroy();
+            this.elements.levelUpContainer = null;
+            this.resetState();
+        }
+
+        // Pause the game (PauseSystem handles redundant calls safely)
         PauseSystem.pauseGame();
 
         // Create a container with high depth for all level-up elements
         this.elements.levelUpContainer = scene.add.container(0, 0);
-        this.elements.levelUpContainer.setDepth(1000); // Same depth as pause screen for consistency
+        this.elements.levelUpContainer.setDepth(1000);
 
         // Create semi-transparent background
         const centerX = game.config.width / 2;
@@ -595,48 +603,43 @@ const RomajiChallengeSystem = {
 
     // Function to select a card and acquire the perk
     selectCard: function (scene, perkType) {
-        //console.log("Card selected with perk: " + perkType);
-
         // Acquire the selected perk
         acquirePerk(scene, perkType);
 
-        // Update player stats text
+        // Update player stats
         GameUI.updateStatCircles(scene);
-
-        // Update health bar
         GameUI.updateHealthBar(scene);
 
-        // First make all the elements invisible for cleaner transition
-        levelUpCards.forEach(element => {
-            if (element && element.setVisible) {
-                element.setVisible(false);
-            }
-        });
-
-        if (this.elements.perkCardContainer) {
-            this.elements.perkCardContainer.setVisible(false);
+        // Clean up UI elements
+        if (this.elements.levelUpContainer) {
+            this.elements.levelUpContainer.destroy();
+            this.elements.levelUpContainer = null;
         }
 
-        // Close the cards and resume the game
-        this.closeLevelUpCards(scene);
+        // Reset state
+        this.resetState();
+        levelUpCards = [];
 
-        // Reset the level up lock
+        // Reset level-up flag
         window.levelUpInProgress = false;
 
-        // Give temp invincibility so player has time to get their bearings
+        // Give temp invincibility
         PlayerHitSystem.makePlayerInvincible(scene);
 
-        // Check if we have enough XP for another level up
-        if (heroExp >= xpForNextLevel(playerLevel)) {
-            // Use the scene parameter passed to selectCard instead of looking up game.scene
-            setTimeout(() => {
-                if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
-                    window.levelUpInProgress = true;
-                    levelUp.call(scene);
-                }
-            }, 100);
-        }
-        console.log("Level up complete, game resumed");
+        // Check if we need another level-up after a brief delay
+        // Keep the game paused during this check
+        setTimeout(() => {
+            if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
+                // Trigger next level-up while still paused
+                window.levelUpInProgress = true;
+                levelUp.call(scene);
+            } else {
+                // Only resume if no more level-ups are pending
+                PauseSystem.resumeGame();
+            }
+        }, 100);
+
+        console.log("Level up complete, checking for chain...");
     },
 
     // Function to close level up cards and clean up resources

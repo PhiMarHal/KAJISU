@@ -330,7 +330,14 @@ function generateRandomPerkCards(count, excludeIds = []) {
  * @param {Phaser.Scene} scene - The active game scene
  */
 function showMobileLevelUpScreen(scene) {
-    // Pause the game
+    // Safety check: clean up any existing level-up container
+    if (levelUpContainer && levelUpContainer.active) {
+        console.warn("Cleaning up existing level-up container");
+        levelUpContainer.destroy();
+        levelUpCards = [];
+    }
+
+    // Pause the game (PauseSystem handles redundant calls safely)
     PauseSystem.pauseGame();
 
     // Number of perk options to offer
@@ -698,26 +705,34 @@ function showMobileLevelUpScreen(scene) {
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
 
-        window.levelUpInProgress = false;
-        PlayerHitSystem.makePlayerInvincible(scene);
-
-        if (heroExp >= xpForNextLevel(playerLevel)) {
-            setTimeout(() => {
-                if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
-                    window.levelUpInProgress = true;
-                    levelUp.call(scene);
-                }
-            }, 100);
-        }
-
+        // Clean up current level-up UI
         levelUpContainer.destroy();
         levelUpCards = [];
-        PauseSystem.resumeGame();
 
-        if (window.ButtonStateManager) {
-            window.ButtonStateManager.onGameResume(scene);
-        }
+        // Reset level-up flag
+        window.levelUpInProgress = false;
+
+        // Give temp invincibility
+        PlayerHitSystem.makePlayerInvincible(scene);
+
+        // Check if we need another level-up after a brief delay
+        // Keep the game paused during this check
+        setTimeout(() => {
+            if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
+                // Trigger next level-up while still paused
+                window.levelUpInProgress = true;
+                levelUp.call(scene);
+            } else {
+                // Only resume if no more level-ups are pending
+                PauseSystem.resumeGame();
+
+                if (window.ButtonStateManager) {
+                    window.ButtonStateManager.onGameResume(scene);
+                }
+            }
+        }, 100);
     }
+
 
     // Initial display setup
     viewedPerks.add(currentPerkIndex);

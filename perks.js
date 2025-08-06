@@ -597,8 +597,8 @@ const PERKS = {
         romaji: "yumijinja",
         english: "Archer Shrine",
         description: "Spawns shrines that boost fire rate while standing in them",
-        color: "#00FF00",
-        hoverColor: 0x00CC00,
+        color: "#00FFFF",
+        hoverColor: 0x00CCCC,
         onAcquire: function () {
             // The component is added through PlayerPerkRegistry
         }
@@ -610,8 +610,8 @@ const PERKS = {
         romaji: "iyashijinja",
         english: "Healing Shrine",
         description: "Spawns shrines that heal you while standing in them",
-        color: "#00FFFF",
-        hoverColor: 0x00CCCC,
+        color: "#00FF00",
+        hoverColor: 0x00CC00,
         onAcquire: function () {
             // The component is added through PlayerPerkRegistry
         }
@@ -623,8 +623,8 @@ const PERKS = {
         romaji: "raijinja",
         english: "Storm Shrine",
         description: "Spawns shrines that rain lightning while standing in them",
-        color: "#FFFF00",
-        hoverColor: 0xCCCC00,
+        color: "#9966FF",
+        hoverColor: 0x7744CC,
         onAcquire: function () {
             // The component is added through PlayerPerkRegistry
         }

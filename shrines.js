@@ -19,7 +19,7 @@ const ShrineSystem = {
             lifespan: null, // Will be calculated as playerLuck * 1000
             baseAuraRadius: 64, // Base radius for 4 luck (halved from 128)
             auraColor: 0xFFD700, // Color of aura visual
-            auraAlpha: 0.3, // Transparency of aura
+            auraAlpha: 0.1, // Transparency of aura
             effectInterval: 1000, // How often effect triggers (ms)
             onEnterAura: function () { }, // Called when player enters aura
             onExitAura: function () { }, // Called when player exits aura
@@ -73,7 +73,7 @@ const ShrineSystem = {
                 if (gameOver || gamePaused) return;
 
                 // Calculate dynamic values based on current player stats
-                const actualLifespan = config.lifespan ?? (playerLuck * 1000);
+                const actualLifespan = config.lifespan ?? 4000 * Math.sqrt(playerLuck / BASE_STATS.LUK);
                 const actualAuraRadius = config.baseAuraRadius * Math.sqrt(playerLuck / BASE_STATS.LUK);
 
                 // Calculate spawn position with padding
@@ -98,7 +98,7 @@ const ShrineSystem = {
 
                 // Create aura visual using calculated radius
                 const aura = this.add.circle(x, y, actualAuraRadius, config.auraColor, config.auraAlpha);
-                aura.setStrokeStyle(2, config.auraColor, 0.6);
+                aura.setStrokeStyle(2, config.auraColor, 0.4);
 
                 // Add physics body to shrine
                 this.physics.world.enable(shrine);
@@ -322,7 +322,6 @@ const ShrineConfigs = {
         fontSize: '40px',
         color: '#FF0000',
         baseCooldown: 16000, // 16 seconds
-        baseAuraRadius: 64, // Base radius for luck scaling (halved)
         auraColor: 0xFF0000,
         effectInterval: 0, // No periodic effect, just enter/exit
         onEnterAura: function (shrine) {
@@ -342,10 +341,9 @@ const ShrineConfigs = {
         shrineType: 'archer',
         symbol: '弓',
         fontSize: '40px',
-        color: '#00FF00',
+        color: '#00FFFF',
         baseCooldown: 16000, // 16 seconds
-        baseAuraRadius: 64, // Base radius for luck scaling (halved)
-        auraColor: 0x00FF00,
+        auraColor: 0x00FFFF,
         effectInterval: 0, // No periodic effect, just enter/exit
         onEnterAura: function (shrine) {
             archerMultiplier += 1.0;
@@ -366,10 +364,9 @@ const ShrineConfigs = {
         shrineType: 'healing',
         symbol: '癒',
         fontSize: '40px',
-        color: '#00FFFF',
+        color: '#00FF00',
         baseCooldown: 24000,
-        baseAuraRadius: 64, // Base radius for luck scaling (halved)
-        auraColor: 0x00FFFF,
+        auraColor: 0x00FF00,
         effectInterval: 1000, // Heal every second
         onEnterAura: function (shrine) {
             console.log("Entered healing shrine - regeneration active!");
@@ -407,10 +404,9 @@ const ShrineConfigs = {
         shrineType: 'storm',
         symbol: '雷',
         fontSize: '40px',
-        color: '#FFFF00',
+        color: '#9966FF',
         baseCooldown: 16000, // 16 seconds
-        baseAuraRadius: 64, // Base radius for luck scaling (halved)
-        auraColor: 0xFFFF00,
+        auraColor: 0x9966FF,
         effectInterval: 200, // Lightning every 200ms
         onEnterAura: function (shrine) {
             console.log("Entered storm shrine - lightning storm active!");
@@ -439,7 +435,6 @@ const ShrineConfigs = {
         fontSize: '40px',
         color: '#FFD700',
         baseCooldown: 24000,
-        baseAuraRadius: 64, // Base radius for luck scaling (halved)
         auraColor: 0xFFD700,
         effectInterval: 2000, // God hammer every 2 seconds
         onEnterAura: function (shrine) {

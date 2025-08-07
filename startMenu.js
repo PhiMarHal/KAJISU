@@ -34,7 +34,32 @@ const StartMenuSystem = {
     // UI elements
     elements: {
         menuContainer: null,
-        learningToggle: null
+        learningToggle: null,
+        infoMessage: null
+    },
+
+    // Info messages for each toggle state
+    infoMessages: {
+        portraitScreen: {
+            on: "Better for phones",
+            off: "Better for desktops"
+        },
+        learningChallenge: {
+            on: "Type to unlock each perk on levelup. Gain extra EXP for success",
+            off: "Select perks freely on levelup. No extra EXP"
+        },
+        hardMode: {
+            on: "Enemies spawn faster",
+            off: "Normal spawn rate for enemies"
+        },
+        bossRush: {
+            on: "Warp to the boss fight. Trade score penalties for levelups",
+            off: "Start at the beginning"
+        },
+        strangeMusic: {
+            on: "Early suno.ai experiments. Only for the strongest ears",
+            off: "Back to the regular tunes"
+        }
     },
 
     // Check if we're in FARCADE mode
@@ -48,15 +73,18 @@ const StartMenuSystem = {
         const screenHeight = window.innerHeight;
         const minDimension = Math.min(screenWidth, screenHeight);
 
-        // Reduced scaling factor - keep text closer to desktop size on mobile
-        const scaleFactor = Math.max(0.85, Math.min(1.2, minDimension / 600));
+        // More aggressive scaling for actual mobile devices
+        // Use screen width for title scaling to handle narrow screens better
+        const titleScaleFactor = Math.max(0.6, Math.min(1.2, screenWidth / 800));
+        const generalScaleFactor = Math.max(0.7, Math.min(1.2, minDimension / 600));
 
         return {
-            titleSize: Math.floor(48 * scaleFactor),
-            toggleSize: 24, // Fixed size for consistent toggle text
-            spacing: Math.floor(60 * scaleFactor),
-            padding: Math.floor(20 * scaleFactor),
-            lineSpacing: 12
+            titleSize: Math.floor(48 * titleScaleFactor),
+            toggleSize: Math.floor(24 * generalScaleFactor),
+            infoSize: Math.floor(16 * generalScaleFactor),
+            spacing: Math.floor(60 * generalScaleFactor),
+            padding: Math.floor(20 * generalScaleFactor),
+            lineSpacing: Math.floor(12 * generalScaleFactor)
         };
     },
 
@@ -81,9 +109,27 @@ const StartMenuSystem = {
         }
     },
 
+    // Show info message
+    showInfoMessage: function (message) {
+        if (this.elements.infoMessage) {
+            this.elements.infoMessage.textContent = message;
+            this.elements.infoMessage.style.opacity = '1';
+            this.elements.infoMessage.style.transform = 'translateX(-50%) translateY(0)';
+        }
+    },
+
+    // Hide info message
+    hideInfoMessage: function () {
+        if (this.elements.infoMessage) {
+            this.elements.infoMessage.style.opacity = '0';
+            this.elements.infoMessage.style.transform = 'translateX(-50%) translateY(10px)';
+        }
+    },
+
     // Create HTML-based start menu
     createHTMLMenu: function () {
         const sizes = this.getResponsiveSizes();
+        const screenWidth = window.innerWidth;
 
         // Create main menu container
         this.elements.menuContainer = document.createElement('div');
@@ -109,6 +155,11 @@ const StartMenuSystem = {
         // Create title
         const title = document.createElement('div');
         title.textContent = 'ENTER THE LOOP';
+        // Use responsive width on mobile screens, natural width on desktop
+        const titleWidthStyle = screenWidth <= 768 ?
+            `width: ${Math.min(600, screenWidth * 0.9)}px; max-width: 95%;` :
+            `max-width: 95%;`;
+
         title.style.cssText = `
             font-size: ${sizes.titleSize}px;
             font-weight: bold;
@@ -120,8 +171,9 @@ const StartMenuSystem = {
             transition: all 0.2s ease;
             text-align: center;
             line-height: 1.1;
-            max-width: 90%;
+            ${titleWidthStyle}
             box-shadow: 0 0 0 0 #FFD700;
+            box-sizing: border-box;
         `;
 
         title.addEventListener('mouseenter', () => {
@@ -142,13 +194,14 @@ const StartMenuSystem = {
 
         // Create toggles container
         const togglesContainer = document.createElement('div');
+        const containerWidth = Math.min(600, screenWidth * 0.9); // More responsive container width
         togglesContainer.style.cssText = `
             display: flex;
             flex-direction: column;
             gap: ${sizes.lineSpacing}px;
             margin-top: ${sizes.padding}px;
-            width: 600px;
-            max-width: 90%;
+            width: ${containerWidth}px;
+            max-width: 95%;
         `;
 
         // Only show portrait screen and learning challenge toggles if not in FARCADE mode
@@ -156,12 +209,14 @@ const StartMenuSystem = {
             // Create portrait screen toggle
             const portraitToggle = this.createToggle('Portrait Screen', this.state.kajisuliMode, (enabled) => {
                 this.selectMode(enabled);
+                this.showInfoMessage(this.infoMessages.portraitScreen[enabled ? 'on' : 'off']);
             }, sizes);
             togglesContainer.appendChild(portraitToggle);
 
             // Create learning challenge toggle
             const learningToggle = this.createToggle('Learning Challenge', this.state.learningChallengeEnabled, (enabled) => {
                 this.toggleLearningChallenge(enabled);
+                this.showInfoMessage(this.infoMessages.learningChallenge[enabled ? 'on' : 'off']);
             }, sizes);
             this.elements.learningToggle = learningToggle;
             togglesContainer.appendChild(learningToggle);
@@ -170,22 +225,52 @@ const StartMenuSystem = {
         // Create hard mode toggle (always show)
         const hardModeToggle = this.createToggle('Hard Mode', this.state.hardModeEnabled, (enabled) => {
             this.toggleHardMode(enabled);
+            this.showInfoMessage(this.infoMessages.hardMode[enabled ? 'on' : 'off']);
         }, sizes);
         togglesContainer.appendChild(hardModeToggle);
 
         // Create Boss Rush toggle (always show)
         const bossRushToggle = this.createToggle('Boss Rush', this.state.bossRushMode, (enabled) => {
             this.toggleBossRush(enabled);
+            this.showInfoMessage(this.infoMessages.bossRush[enabled ? 'on' : 'off']);
         }, sizes);
         togglesContainer.appendChild(bossRushToggle);
 
         // Create Strangerer Music toggle (always show)
         const strangeMusicToggle = this.createToggle('Strange Music', this.state.strangeMusicEnabled, (enabled) => {
             this.toggleStrangeMusic(enabled);
+            this.showInfoMessage(this.infoMessages.strangeMusic[enabled ? 'on' : 'off']);
         }, sizes);
         togglesContainer.appendChild(strangeMusicToggle);
 
         this.elements.menuContainer.appendChild(togglesContainer);
+
+        // Create info message element
+        const infoContainerWidth = Math.min(600, screenWidth * 0.9); // Match toggles container width
+        this.elements.infoMessage = document.createElement('div');
+        this.elements.infoMessage.style.cssText = `
+            position: fixed;
+            bottom: ${sizes.padding * 2}px;
+            left: 50%;
+            width: ${infoContainerWidth}px;
+            max-width: 95%;
+            transform: translateX(-50%) translateY(10px);
+            font-size: ${sizes.infoSize}px;
+            color: #FFD700;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            line-height: 1.4;
+            padding: ${sizes.padding / 2}px ${sizes.padding}px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 1px solid #FFD700;
+            border-radius: 4px;
+            box-sizing: border-box;
+        `;
+        this.elements.infoMessage.textContent = 'Welcome, Looper';
+
+        this.elements.menuContainer.appendChild(this.elements.infoMessage);
 
         // Add to page
         document.body.appendChild(this.elements.menuContainer);
@@ -193,6 +278,11 @@ const StartMenuSystem = {
         // Setup keyboard handler and start animations
         this.setupKeyboardHandler();
         this.startAnimations();
+
+        // Show initial info message after a short delay
+        setTimeout(() => {
+            this.showInfoMessage('Welcome, Looper');
+        }, 1000);
     },
 
     // Create a unified toggle component

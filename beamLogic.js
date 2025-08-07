@@ -344,6 +344,7 @@ const BeamSystem = {
         return physicsBody;
     },
 
+    /* Old handleBeamHit for reference, commented out
     // Handle beam hitting an enemy - now with components
     handleBeamHit: function (beam, enemy, scene) {
         if (beam.destroyed || !enemy.active) return;
@@ -360,6 +361,41 @@ const BeamSystem = {
         // Process component events (like onHit for poison effect)
         if (beam.physics.components && Object.keys(beam.physics.components).length > 0) {
             ProjectileComponentSystem.processEvent(beam.physics, 'onHit', enemy, scene);
+        }
+    },
+    */
+    // Fixed handleBeamHit that respects damage interval for components too
+    handleBeamHit: function (beam, enemy, scene) {
+        if (beam.destroyed || !enemy.active) return;
+
+        const currentTime = scene.time.now;
+        const enemyId = enemy.damageSourceId ?? enemy.id ?? enemy;
+
+        // Initialize cooldown tracking for this beam if needed
+        beam.componentCooldowns = beam.componentCooldowns ?? {};
+
+        // Check if this enemy is on cooldown for component effects
+        const lastComponentHit = beam.componentCooldowns[enemyId] ?? 0;
+        const componentCooldown = beam.config.damageInterval ?? 200;
+
+        // Apply contact damage (this has its own cooldown handling)
+        applyContactDamage.call(
+            scene,
+            beam.physics,
+            enemy,
+            beam.config.damage,
+            beam.config.damageInterval
+        );
+
+        // Only process component events if cooldown has elapsed
+        if (currentTime - lastComponentHit >= componentCooldown) {
+            // Process component events (like onHit for poison effect)
+            if (beam.physics.components && Object.keys(beam.physics.components).length > 0) {
+                ProjectileComponentSystem.processEvent(beam.physics, 'onHit', enemy, scene);
+
+                // Update cooldown timestamp
+                beam.componentCooldowns[enemyId] = currentTime;
+            }
         }
     },
 

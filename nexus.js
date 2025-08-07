@@ -146,7 +146,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
         return {
             symbol: '★',
             fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
-            radius: 16 * playerLuck, // Scale radius with luck
+            radius: 64 * (Math.sqrt(playerLuck / BASE_STATS.LUK)),
             speed: 0.02,
             pattern: 'standard',
             collisionType: 'projectile', // Destroyed on hit
@@ -184,7 +184,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
         return {
             symbol: '★',
             fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
-            radius: 16 * playerLuck, // Scale radius with luck - same as TEAL_OCTOPUS
+            radius: 64 * (Math.sqrt(playerLuck / BASE_STATS.LUK)),
             speed: 0.02,
             direction: 'counterclockwise', // Key difference: counter-clockwise rotation
             pattern: 'standard',
@@ -1001,6 +1001,44 @@ window.activateInvertedComet = function () {
 
     // Set up timer for subsequent inverted comets
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'INVERTED_COMET');
+};
+
+// Three Stars
+OrbitalPerkRegistry.registerPerkOrbital('THREE_STARS', {
+    getConfig: function () {
+        return {
+            symbol: '★',
+            color: '#ffff00',
+            fontSize: 32,
+            radius: 96,
+            speed: 0.04,
+            direction: 'clockwise',
+            pattern: 'standard',
+            collisionType: 'persistent',
+            damage: playerDamage,
+            damageInterval: 200,
+            lifespan: 6000,
+            options: {}
+        };
+    },
+    count: 3, // Will create 3 orbitals with createMultiple
+    cooldown: 60000,
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
+    activationMethod: 'timer'
+});
+
+// Activation function
+window.activateThreeStars = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create initial three stars immediately using createMultiple
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['THREE_STARS'].getConfig();
+    OrbitalSystem.createMultiple(scene, 3, orbitalConfig);
+
+    // Set up timer for subsequent spawns
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'THREE_STARS');
 };
 
 

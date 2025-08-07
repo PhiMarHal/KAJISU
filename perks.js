@@ -1175,6 +1175,18 @@ const PERKS = {
             window.triggerOneTimeEffect('oblivionBlossom');
         }
     },
+    "THREE_STARS": {
+        kanji: "三つ星",
+        kana: "みつぼし",
+        romaji: "mitsuboshi",
+        english: "Three Stars",
+        description: "Spinning perfection",
+        color: "#FFD700",
+        hoverColor: 0xCCA700,
+        onAcquire: function () {
+            window.activateThreeStars();
+        }
+    },
     "COPY_FAIRY": {
         kanji: "写精",
         kana: "うつしせい",

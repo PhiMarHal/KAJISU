@@ -364,12 +364,18 @@ const BeamSystem = {
         }
     },
     */
-    // Fixed handleBeamHit that respects damage interval for components too
+    // Fixed handleBeamHit that properly identifies unique enemies
     handleBeamHit: function (beam, enemy, scene) {
         if (beam.destroyed || !enemy.active) return;
 
         const currentTime = scene.time.now;
-        const enemyId = enemy.damageSourceId ?? enemy.id ?? enemy;
+
+        // Create a unique identifier for this enemy
+        // Use Phaser's built-in unique ID system, or create one if it doesn't exist
+        if (!enemy.uniqueId) {
+            enemy.uniqueId = `enemy_${Date.now()}_${Math.random()}`;
+        }
+        const enemyId = enemy.uniqueId;
 
         // Initialize cooldown tracking for this beam if needed
         beam.componentCooldowns = beam.componentCooldowns ?? {};
@@ -393,7 +399,7 @@ const BeamSystem = {
             if (beam.physics.components && Object.keys(beam.physics.components).length > 0) {
                 ProjectileComponentSystem.processEvent(beam.physics, 'onHit', enemy, scene);
 
-                // Update cooldown timestamp
+                // Update cooldown timestamp for this specific enemy
                 beam.componentCooldowns[enemyId] = currentTime;
             }
         }

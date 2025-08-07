@@ -377,25 +377,6 @@ const ShrineConfigs = {
         onEffectTrigger: function (shrine) {
             if (playerHealth < maxPlayerHealth) {
                 LifeSystem.heal(1);
-
-                // Create heal visual effect
-                const healText = shrine.scene.add.text(player.x, player.y - 30, '+1', {
-                    fontFamily: 'Arial',
-                    fontSize: '20px',
-                    color: '#00FFFF',
-                    stroke: '#000000',
-                    strokeThickness: 2
-                }).setOrigin(0.5);
-
-                shrine.scene.tweens.add({
-                    targets: healText,
-                    y: healText.y - 50,
-                    alpha: 0,
-                    duration: 1000,
-                    onComplete: function () {
-                        healText.destroy();
-                    }
-                });
             }
         }
     },

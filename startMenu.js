@@ -17,6 +17,9 @@ window.LEARNING_CHALLENGE_ENABLED = false;
 // Set hard mode preference - default to false
 window.HARD_MODE_ENABLED = false;
 
+// Set stranger music preference - default to false
+window.STRANGE_MUSIC_ENABLED = false;
+
 const StartMenuSystem = {
     // Menu state
     state: {
@@ -24,6 +27,7 @@ const StartMenuSystem = {
         learningChallengeEnabled: false,
         hardModeEnabled: false,
         bossRushMode: false,
+        strangedMusicEnabled: false,
         initialized: false
     },
 
@@ -62,6 +66,7 @@ const StartMenuSystem = {
         this.state.learningChallengeEnabled = window.LEARNING_CHALLENGE_ENABLED;
         this.state.hardModeEnabled = window.HARD_MODE_ENABLED;
         this.state.bossRushMode = window.BOSS_RUSH_MODE;
+        this.state.strangeMusicEnabled = window.STRANGE_MUSIC_ENABLED;
         this.applyCSSMode();
         this.createHTMLMenu();
         this.state.initialized = true;
@@ -168,13 +173,17 @@ const StartMenuSystem = {
         }, sizes);
         togglesContainer.appendChild(hardModeToggle);
 
-        this.elements.menuContainer.appendChild(togglesContainer);
-
         // Create Boss Rush toggle (always show)
         const bossRushToggle = this.createToggle('Boss Rush', this.state.bossRushMode, (enabled) => {
             this.toggleBossRush(enabled);
         }, sizes);
         togglesContainer.appendChild(bossRushToggle);
+
+        // Create Strangerer Music toggle (always show)
+        const strangeMusicToggle = this.createToggle('Strange Music', this.state.strangeMusicEnabled, (enabled) => {
+            this.toggleStrangeMusic(enabled);
+        }, sizes);
+        togglesContainer.appendChild(strangeMusicToggle);
 
         this.elements.menuContainer.appendChild(togglesContainer);
 
@@ -290,6 +299,13 @@ const StartMenuSystem = {
         console.log(`Boss Rush Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
     },
 
+    // Toggle stranger music setting
+    toggleStrangeMusic: function (enabled) {
+        this.state.strangeMusicEnabled = enabled;
+        window.STRANGE_MUSIC_ENABLED = enabled;
+        console.log(`Stranger Music: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    },
+
     // Select a mode
     selectMode: function (isKajisuliMode) {
         if (this.state.kajisuliMode === isKajisuliMode) return;
@@ -308,6 +324,7 @@ const StartMenuSystem = {
         window.LEARNING_CHALLENGE_ENABLED = this.state.learningChallengeEnabled;
         window.HARD_MODE_ENABLED = this.state.hardModeEnabled;
         window.BOSS_RUSH_MODE = this.state.bossRushMode;
+        window.STRANGE_MUSIC_ENABLED = this.state.strangeMusicEnabled;
 
         const config = {
             type: Phaser.AUTO,

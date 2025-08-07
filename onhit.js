@@ -432,13 +432,7 @@ window.TimeDilationSystem = {
         const scene = game.scene.scenes[0];
         if (!scene) return;
 
-        // Reset time scale
-        scene.time.timeScale = 1.0;
-
-        // Reset enemy speed factor
-        EnemySystem.setEnemySpeedFactor(this.enemySlowdown);
-
-        // Clear any tween
+        // Stop any active tween first
         if (this.slowMoTween) {
             this.slowMoTween.stop();
             this.slowMoTween = null;
@@ -450,7 +444,20 @@ window.TimeDilationSystem = {
             this.exitTimer = null;
         }
 
+        // Reset time scale
+        scene.time.timeScale = 1.0;
+
+        // Reset enemy speed factor (use 1.0 directly, not this.enemySlowdown which might be mid-tween)
+        EnemySystem.setEnemySpeedFactor(1.0);
+
+        // CRITICAL: Reset player speed to base value
+        // This is necessary because the tween's onUpdate was modifying playerSpeed
+        // and stopping the tween mid-progress leaves playerSpeed at an intermediate value
+        playerSpeed = basePlayerSpeed;
+
+        // Reset the instance variables
         this.isActive = false;
+        this.isExiting = false;
         this.currentTimeScale = 1.0;
         this.playerSpeedFactor = 1.0;
         this.enemySlowdown = 1.0;

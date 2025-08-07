@@ -18,6 +18,7 @@ fixed at high value (perhaps 1k) would make more sense with that latter design
 - score should be clarified ("kill boss fast" over "survive forever")
 - BUG: on multiple levelups in a row, game seems to unpause. 4 in a row? At the 3rd screen darkens, then on complete it unpauses while still showing the 4th
 - BOSS RUSH is strange in that optimal score strategy may be to roll for a great perk at lvl 2, then farm. Then again, the clock is ticking!
+- picking up oblivion blossom while time is slowed down can leave player movement slowed down
 
 POSSIBLY FIXED BUT NEEDS TESTING
 -

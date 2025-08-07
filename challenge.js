@@ -74,9 +74,19 @@ const RomajiChallengeSystem = {
 
     // Show the level up challenge
     showLevelUpChallenge: function (scene) {
-        // Safety check: clean up any existing level-up container
-        if (this.elements.levelUpContainer && this.elements.levelUpContainer.active) {
-            console.warn("Cleaning up existing level-up container");
+        // Safety check: clean up any existing level-up UI
+        if (levelUpCards && levelUpCards.length > 0) {
+            console.warn("Cleaning up existing level-up UI from challenge system");
+            levelUpCards.forEach(element => {
+                if (element && element.destroy) {
+                    element.destroy();
+                }
+            });
+            levelUpCards = [];
+        }
+
+        // Also clean up any existing container from this system
+        if (this.elements.levelUpContainer) {
             this.elements.levelUpContainer.destroy();
             this.elements.levelUpContainer = null;
             this.resetState();

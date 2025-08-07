@@ -330,10 +330,14 @@ function generateRandomPerkCards(count, excludeIds = []) {
  * @param {Phaser.Scene} scene - The active game scene
  */
 function showMobileLevelUpScreen(scene) {
-    // Safety check: clean up any existing level-up container
-    if (levelUpContainer && levelUpContainer.active) {
-        console.warn("Cleaning up existing level-up container");
-        levelUpContainer.destroy();
+    // Safety check: clean up any existing level-up UI
+    if (levelUpCards && levelUpCards.length > 0) {
+        console.warn("Cleaning up existing level-up UI");
+        levelUpCards.forEach(element => {
+            if (element && element.destroy) {
+                element.destroy();
+            }
+        });
         levelUpCards = [];
     }
 

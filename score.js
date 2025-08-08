@@ -5,6 +5,7 @@ let freeLevelUpsUsed = 0;
 let scoreUpdateTimer = null;
 let freeUsePenalty = 20;
 let versionBonus = 4;
+let victoryBonus = 3;
 
 // Enhanced Score System
 const ScoreSystem = {
@@ -30,7 +31,7 @@ const ScoreSystem = {
         // Subtract penalties for free levelups (Boss Rush only)
         if (window.BOSS_RUSH_MODE) {
             const levelUpPenalty = freeLevelUpsUsed * freeUsePenalty * versionBonus;
-            baseScore -= levelUpPenalty + Math.floor(versionBonus * bossSpawnTime);
+            baseScore -= levelUpPenalty + Math.floor(versionBonus * (bossSpawnTime - 120));
         }
 
         return baseScore;
@@ -39,9 +40,8 @@ const ScoreSystem = {
     // Calculate victory bonus that decreases over time
     calculateVictoryBonus: function (currentTime, bossSpawnTime, maximumScoreTime) {
         // Use the original victory calculation logic
-        const maximumPoints = maximumScoreTime * 3;
         const timeDeduction = Math.min(currentTime - bossSpawnTime, maximumScoreTime);
-        return Math.floor(versionBonus * (maximumPoints - timeDeduction));
+        return Math.floor(versionBonus * victoryBonus * (maximumScoreTime - timeDeduction));
     },
 
     // Initialize dynamic scoring (universal)

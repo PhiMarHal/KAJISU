@@ -314,7 +314,7 @@ const ButtonDisplay = {
             commonConfig.size() + (commonConfig.borderWidth * 2),
             commonConfig.size() + (commonConfig.borderWidth * 2),
             UI.colors.gold
-        ).setDepth(2001);;
+        ).setDepth(2001);
 
         scene.musicButtonBg = scene.add.rectangle(
             musicConfig.x(),
@@ -322,7 +322,7 @@ const ButtonDisplay = {
             commonConfig.size(),
             commonConfig.size(),
             UI.colors.black
-        ).setDepth(2001);;
+        ).setDepth(2001);
 
         // Create music button
         const initialSymbol = (window.MusicSystem && window.MusicSystem.musicEnabled) ?
@@ -338,7 +338,7 @@ const ButtonDisplay = {
                 color: '#ffffff',
                 fontStyle: 'bold'
             }
-        ).setOrigin(0.5).setDepth(2001);;
+        ).setOrigin(0.5).setDepth(2001);
 
         // Make music button interactive
         scene.musicButtonBorder.setInteractive({ useHandCursor: true });
@@ -366,6 +366,14 @@ const ButtonDisplay = {
                 console.log(`Music ${newState ? 'enabled' : 'disabled'}`);
             }
         });
+
+        // ADDED: Handle Farcade mode - hide music button after it's created
+        if (window.FARCADE_MODE) {
+            scene.musicButton.setVisible(false);
+            scene.musicButtonBg.setVisible(false);
+            scene.musicButtonBorder.setVisible(false);
+            console.log("Music button hidden for Farcade deployment");
+        }
 
         // Only create levelup button if Boss Rush mode is enabled
         if (window.BOSS_RUSH_MODE) {
@@ -413,49 +421,56 @@ const ButtonDisplay = {
             });
 
             scene.levelupButtonBorder.on('pointerdown', function () {
-                // Same logic as the R key debug function
                 if (!gamePaused && !gameOver && window.BOSS_RUSH_MODE) {
-                    // Apply penalty for any debug levelup usage
+                    // Apply penalty if the function exists
                     if (window.applyFreeLeveUpPenalty) {
                         window.applyFreeLeveUpPenalty();
                     }
 
-                    // Add enough XP to level up
+                    // Add remaining XP needed for this level
                     const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
                     heroExp += xpNeeded;
+
+                    // Update the experience bar
                     GameUI.updateExpBar(scene);
 
-                    console.log("Boss Rush: Free level up used (penalty applied)");
+                    console.log('Boss Rush: Free level up used (penalty applied)');
                 }
             });
         }
 
-        // Initial update
+        // Initial update to set positions
         this.update(scene);
     },
 
     update: function (scene) {
-        // Get configurations
+        // Update button positions (useful for dynamic resizing)
         const pauseConfig = UI.buttons.pause;
         const musicConfig = UI.buttons.music;
         const levelupConfig = UI.buttons.levelup;
 
-        // Update pause button positions if needed (for responsive design)
+        // Update pause button position
         if (scene.pauseButton && scene.pauseButtonBg && scene.pauseButtonBorder) {
             scene.pauseButton.setPosition(pauseConfig.x(), pauseConfig.y());
             scene.pauseButtonBg.setPosition(pauseConfig.x(), pauseConfig.y());
             scene.pauseButtonBorder.setPosition(pauseConfig.x(), pauseConfig.y());
         }
 
-        // Update music button positions if needed
+        // Update music button position and visibility
         if (scene.musicButton && scene.musicButtonBg && scene.musicButtonBorder) {
-            // Don't show music button if Boss Rush and game is not paused
+            // Handle special visibility rules for Boss Rush mode
             if (window.BOSS_RUSH_MODE && !gamePaused) {
+                // Hide music button during active Boss Rush gameplay
+                scene.musicButton.setVisible(false);
+                scene.musicButtonBg.setVisible(false);
+                scene.musicButtonBorder.setVisible(false);
+            } else if (window.FARCADE_MODE) {
+                // ADDED: Always hide music button in Farcade mode
                 scene.musicButton.setVisible(false);
                 scene.musicButtonBg.setVisible(false);
                 scene.musicButtonBorder.setVisible(false);
             } else {
-                // Show and update music button normally
+                // Show music button and update its position and state
                 scene.musicButton.setVisible(true);
                 scene.musicButtonBg.setVisible(true);
                 scene.musicButtonBorder.setVisible(true);
@@ -464,7 +479,7 @@ const ButtonDisplay = {
                 scene.musicButtonBg.setPosition(musicConfig.x(), musicConfig.y());
                 scene.musicButtonBorder.setPosition(musicConfig.x(), musicConfig.y());
 
-                // Ensure music button shows correct state
+                // Update music button symbol if MusicSystem is available
                 if (window.MusicSystem) {
                     const symbol = window.MusicSystem.musicEnabled ?
                         musicConfig.symbol : musicConfig.mutedSymbol;
@@ -473,7 +488,7 @@ const ButtonDisplay = {
             }
         }
 
-        // Update levelup button positions if needed (only if it exists)
+        // Update levelup button position
         if (scene.levelupButton && scene.levelupButtonBg && scene.levelupButtonBorder) {
             scene.levelupButton.setPosition(levelupConfig.x(), levelupConfig.y());
             scene.levelupButtonBg.setPosition(levelupConfig.x(), levelupConfig.y());
@@ -527,7 +542,7 @@ const ExpBar = {
         // Initialize relative dimensions
         UI.game.init(scene);
 
-        // Remove old exp bar elements if they exist
+        // Remove old experience bar elements if they exist
         if (scene.expBar) scene.expBar.destroy();
         if (scene.expBarBg) scene.expBarBg.destroy();
         if (scene.expText) scene.expText.destroy();
@@ -599,6 +614,8 @@ const ExpBar = {
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
 
+        // REMOVED PROBLEMATIC LINE: scene.musicButton.setVisible(false);
+
         // Create XP needed text to the right of the bar
         scene.xpNeededText = scene.add.text(
             centerX + (width / 2) + textSpacing,
@@ -644,6 +661,7 @@ const ExpBar = {
         scene.xpNeededText.setText(formatLargeNumber(xpRemaining));
     }
 };
+
 
 // Health bar functions
 const HealthBar = {

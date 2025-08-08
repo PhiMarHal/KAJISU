@@ -502,51 +502,63 @@ const HelpButtonManager = {
         });
     },
 
-    // Show help button (hide pause if needed)
+    // Show help button (hide pause if needed) - FIXED VERSION
     showHelpButton: function (scene) {
         if (!this.isFarcadeMode()) {
-            // In normal mode, hide pause button elements
-            if (scene.pauseButton) scene.pauseButton.setVisible(false);
-            if (scene.pauseButtonBg) scene.pauseButtonBg.setVisible(false);
-            if (scene.pauseButtonBorder) scene.pauseButtonBorder.setVisible(false);
+            // In normal mode, hide pause button elements - ADD PROPER CHECKS
+            if (scene.pauseButton && typeof scene.pauseButton.setVisible === 'function') {
+                scene.pauseButton.setVisible(false);
+            }
+            if (scene.pauseButtonBg && typeof scene.pauseButtonBg.setVisible === 'function') {
+                scene.pauseButtonBg.setVisible(false);
+            }
+            if (scene.pauseButtonBorder && typeof scene.pauseButtonBorder.setVisible === 'function') {
+                scene.pauseButtonBorder.setVisible(false);
+            }
         }
 
-        // Show help button elements and ensure they're not darkened
-        if (scene.helpButton) {
+        // Show help button elements and ensure they're not darkened - ADD PROPER CHECKS
+        if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
             scene.helpButton.setVisible(true);
             scene.helpButton.setDepth(2001); // Higher than help screen container
             scene.helpButton.setAlpha(1); // Ensure full opacity
         }
-        if (scene.helpButtonBg) {
+        if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
             scene.helpButtonBg.setVisible(true);
             scene.helpButtonBg.setDepth(2001); // Higher than help screen container
             scene.helpButtonBg.setAlpha(1); // Ensure full opacity
         }
-        if (scene.helpButtonBorder) {
+        if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
             scene.helpButtonBorder.setVisible(true);
             scene.helpButtonBorder.setDepth(2001); // Higher than help screen container
             scene.helpButtonBorder.setAlpha(1); // Ensure full opacity
         }
     },
 
-    // Show pause button (hide help if needed)
+    // Show pause button (hide help if needed) - FIXED VERSION
     showPauseButton: function (scene) {
         if (!this.isFarcadeMode()) {
-            // In normal mode, hide help button elements
-            if (scene.helpButton) scene.helpButton.setVisible(false);
-            if (scene.helpButtonBg) scene.helpButtonBg.setVisible(false);
-            if (scene.helpButtonBorder) scene.helpButtonBorder.setVisible(false);
+            // In normal mode, hide help button elements - ADD PROPER CHECKS
+            if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
+                scene.helpButton.setVisible(false);
+            }
+            if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
+                scene.helpButtonBg.setVisible(false);
+            }
+            if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
+                scene.helpButtonBorder.setVisible(false);
+            }
 
-            // Show pause button elements
-            if (scene.pauseButton) {
+            // Show pause button elements - ADD PROPER CHECKS
+            if (scene.pauseButton && typeof scene.pauseButton.setVisible === 'function') {
                 scene.pauseButton.setVisible(true);
                 scene.pauseButton.setAlpha(1); // Ensure full opacity
             }
-            if (scene.pauseButtonBg) {
+            if (scene.pauseButtonBg && typeof scene.pauseButtonBg.setVisible === 'function') {
                 scene.pauseButtonBg.setVisible(true);
                 scene.pauseButtonBg.setAlpha(1); // Ensure full opacity
             }
-            if (scene.pauseButtonBorder) {
+            if (scene.pauseButtonBorder && typeof scene.pauseButtonBorder.setVisible === 'function') {
                 scene.pauseButtonBorder.setVisible(true);
                 scene.pauseButtonBorder.setAlpha(1); // Ensure full opacity
             }
@@ -664,28 +676,40 @@ const LevelupButtonManager = {
     showLevelupButton: function (scene) {
         if (!this.isBossRushMode()) return;
 
-        // Hide music button elements
-        if (scene.musicButton) scene.musicButton.setVisible(false);
-        if (scene.musicButtonBg) scene.musicButtonBg.setVisible(false);
-        if (scene.musicButtonBorder) scene.musicButtonBorder.setVisible(false);
-
-        // Hide help button elements if they're in the music position (FARCADE mode)
-        if (HelpButtonManager.isFarcadeMode()) {
-            if (scene.helpButton) scene.helpButton.setVisible(false);
-            if (scene.helpButtonBg) scene.helpButtonBg.setVisible(false);
-            if (scene.helpButtonBorder) scene.helpButtonBorder.setVisible(false);
+        // Hide music button elements - ADD PROPER CHECKS
+        if (scene.musicButton && typeof scene.musicButton.setVisible === 'function') {
+            scene.musicButton.setVisible(false);
+        }
+        if (scene.musicButtonBg && typeof scene.musicButtonBg.setVisible === 'function') {
+            scene.musicButtonBg.setVisible(false);
+        }
+        if (scene.musicButtonBorder && typeof scene.musicButtonBorder.setVisible === 'function') {
+            scene.musicButtonBorder.setVisible(false);
         }
 
-        // Show levelup button elements
-        if (scene.levelupButton) {
+        // Hide help button elements if they're in the music position (FARCADE mode) - ADD PROPER CHECKS
+        if (HelpButtonManager.isFarcadeMode()) {
+            if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
+                scene.helpButton.setVisible(false);
+            }
+            if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
+                scene.helpButtonBg.setVisible(false);
+            }
+            if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
+                scene.helpButtonBorder.setVisible(false);
+            }
+        }
+
+        // Show levelup button elements - ADD PROPER CHECKS
+        if (scene.levelupButton && typeof scene.levelupButton.setVisible === 'function') {
             scene.levelupButton.setVisible(true);
             scene.levelupButton.setAlpha(1); // Ensure full opacity
         }
-        if (scene.levelupButtonBg) {
+        if (scene.levelupButtonBg && typeof scene.levelupButtonBg.setVisible === 'function') {
             scene.levelupButtonBg.setVisible(true);
             scene.levelupButtonBg.setAlpha(1); // Ensure full opacity
         }
-        if (scene.levelupButtonBorder) {
+        if (scene.levelupButtonBorder && typeof scene.levelupButtonBorder.setVisible === 'function') {
             scene.levelupButtonBorder.setVisible(true);
             scene.levelupButtonBorder.setAlpha(1); // Ensure full opacity
         }
@@ -693,31 +717,43 @@ const LevelupButtonManager = {
 
     // Hide levelup button (show music/help buttons in bottom right)
     hideLevelupButton: function (scene) {
-        // Hide levelup button elements
-        if (scene.levelupButton) scene.levelupButton.setVisible(false);
-        if (scene.levelupButtonBg) scene.levelupButtonBg.setVisible(false);
-        if (scene.levelupButtonBorder) scene.levelupButtonBorder.setVisible(false);
+        // Hide levelup button elements - ADD PROPER CHECKS
+        if (scene.levelupButton && typeof scene.levelupButton.setVisible === 'function') {
+            scene.levelupButton.setVisible(false);
+        }
+        if (scene.levelupButtonBg && typeof scene.levelupButtonBg.setVisible === 'function') {
+            scene.levelupButtonBg.setVisible(false);
+        }
+        if (scene.levelupButtonBorder && typeof scene.levelupButtonBorder.setVisible === 'function') {
+            scene.levelupButtonBorder.setVisible(false);
+        }
 
         // Show appropriate button for bottom right corner
         if (HelpButtonManager.isFarcadeMode()) {
-            // In FARCADE mode, show help button
-            if (scene.helpButton) {
+            // In FARCADE mode, show help button - ADD PROPER CHECKS
+            if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
                 scene.helpButton.setVisible(true);
                 scene.helpButton.setAlpha(1); // Ensure full opacity
             }
-            if (scene.helpButtonBg) {
+            if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
                 scene.helpButtonBg.setVisible(true);
                 scene.helpButtonBg.setAlpha(1); // Ensure full opacity
             }
-            if (scene.helpButtonBorder) {
+            if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
                 scene.helpButtonBorder.setVisible(true);
                 scene.helpButtonBorder.setAlpha(1); // Ensure full opacity
             }
         } else {
-            // In normal mode, show music button
-            if (scene.musicButton) scene.musicButton.setVisible(true);
-            if (scene.musicButtonBg) scene.musicButtonBg.setVisible(true);
-            if (scene.musicButtonBorder) scene.musicButtonBorder.setVisible(true);
+            // In normal mode, show music button - ADD PROPER CHECKS
+            if (scene.musicButton && typeof scene.musicButton.setVisible === 'function') {
+                scene.musicButton.setVisible(true);
+            }
+            if (scene.musicButtonBg && typeof scene.musicButtonBg.setVisible === 'function') {
+                scene.musicButtonBg.setVisible(true);
+            }
+            if (scene.musicButtonBorder && typeof scene.musicButtonBorder.setVisible === 'function') {
+                scene.musicButtonBorder.setVisible(true);
+            }
         }
     }
 };

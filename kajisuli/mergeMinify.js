@@ -47,6 +47,7 @@ const config = {
         }
     },
     jsFiles: [
+        'shrines.js',
         'startMenu.js',
         'artillery.js',
         'backgrounds.js',
@@ -77,7 +78,6 @@ const config = {
         'perks.js',
         'playerhit.js',
         'score.js',
-        'shrines.js',
         'statdefs.js',
         'visuals.js',
         'weapons.js',

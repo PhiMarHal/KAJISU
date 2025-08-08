@@ -45,8 +45,8 @@ const StartMenuSystem = {
             off: "Better for desktops"
         },
         learningChallenge: {
-            on: "Type to unlock each perk on levelup. Gain extra EXP for success",
-            off: "Select perks freely on levelup. No extra EXP"
+            on: "Type to unlock perks. Extra XP for success",
+            off: "Select perks freely on levelup. No extra XP"
         },
         hardMode: {
             on: "Enemies spawn faster",
@@ -73,18 +73,16 @@ const StartMenuSystem = {
         const screenHeight = window.innerHeight;
         const minDimension = Math.min(screenWidth, screenHeight);
 
-        // More aggressive scaling for actual mobile devices
-        // Use screen width for title scaling to handle narrow screens better
-        const titleScaleFactor = Math.max(0.6, Math.min(1.2, screenWidth / 800));
-        const generalScaleFactor = Math.max(0.7, Math.min(1.2, minDimension / 600));
+        // Simple responsive scaling
+        const scaleFactor = Math.max(0.8, Math.min(1.2, minDimension / 600));
 
         return {
-            titleSize: Math.floor(48 * titleScaleFactor),
-            toggleSize: Math.floor(24 * generalScaleFactor),
-            infoSize: Math.floor(16 * generalScaleFactor),
-            spacing: Math.floor(60 * generalScaleFactor),
-            padding: Math.floor(20 * generalScaleFactor),
-            lineSpacing: Math.floor(12 * generalScaleFactor)
+            titleSize: Math.max(24, Math.min(48, screenWidth * 0.06)), // 6% of screen width, clamped
+            toggleSize: Math.floor(24 * scaleFactor),
+            infoSize: Math.floor(18 * scaleFactor),
+            spacing: Math.floor(60 * scaleFactor),
+            padding: Math.floor(20 * scaleFactor),
+            lineSpacing: Math.floor(12 * scaleFactor)
         };
     },
 
@@ -153,13 +151,9 @@ const StartMenuSystem = {
         `;
 
         // Create title
+        const titleWidth = Math.min(600, screenWidth * 0.9); // Match other container widths
         const title = document.createElement('div');
         title.textContent = 'ENTER THE LOOP';
-        // Use responsive width on mobile screens, natural width on desktop
-        const titleWidthStyle = screenWidth <= 768 ?
-            `width: ${Math.min(600, screenWidth * 0.9)}px; max-width: 95%;` :
-            `max-width: 95%;`;
-
         title.style.cssText = `
             font-size: ${sizes.titleSize}px;
             font-weight: bold;
@@ -171,7 +165,8 @@ const StartMenuSystem = {
             transition: all 0.2s ease;
             text-align: center;
             line-height: 1.1;
-            ${titleWidthStyle}
+            width: ${titleWidth}px;
+            max-width: 95%;
             box-shadow: 0 0 0 0 #FFD700;
             box-sizing: border-box;
         `;

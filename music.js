@@ -13,7 +13,7 @@ function detectMusicUrl() {
         return 'music/';
     } else {
         // External hosting (any other platform) - use Cloudflare R2 for music
-        const cloudflareR2Url = 'https://kajisumu.loiyaa.com/music/';
+        const cloudflareR2Url = 'https://kajisu.loiyaa.com/music/';
         console.log(`External hosting detected, using Cloudflare R2: ${cloudflareR2Url}`);
         return cloudflareR2Url;
     }

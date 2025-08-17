@@ -47,6 +47,7 @@ const config = {
         }
     },
     jsFiles: [
+        'shrines.js',
         'startMenu.js',
         'artillery.js',
         'backgrounds.js',
@@ -129,14 +130,22 @@ function handleServiceWorkerForFarcade(mergedJs) {
 
     console.log('✓ Service worker registration disabled for Farcade deployment');
 
-    // Hide the in-game music button since Farcade provides its own mute control
+    // Hide the in-game music button since Farcade provides its own mute control - SAFE VERSION
     modifiedJs = modifiedJs.replace(
-        /(scene\.musicButton = scene\.add\.text\([\s\S]*?\)\.setOrigin\(0\.5\)\.setDepth\(UI\.depth\.ui\);)/,
+        /(scene\.musicButton = scene\.add\.text\([\s\S]*?\)\.setOrigin\(0\.5\)\.setDepth\(2001\);)/,
         `$1
-    
-    // Hide music button on Farcade - platform provides its own mute control
-    scene.musicButton.setVisible(false);
-    console.log('Music button hidden for Farcade deployment');`
+
+    // Hide music button on Farcade - platform provides its own mute control (with safety checks)
+    if (window.FARCADE_MODE && typeof scene.musicButton.setVisible === 'function') {
+        scene.musicButton.setVisible(false);
+        if (typeof scene.musicButtonBg.setVisible === 'function') {
+            scene.musicButtonBg.setVisible(false);
+        }
+        if (typeof scene.musicButtonBorder.setVisible === 'function') {
+            scene.musicButtonBorder.setVisible(false);
+        }
+        console.log('Music button hidden for Farcade deployment');
+    }`
     );
 
     return modifiedJs;

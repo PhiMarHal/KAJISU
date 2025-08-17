@@ -19,6 +19,7 @@
     <script src="droppers.js"></script>
     <script src="cooldown.js"></script>
     <script src="beacons.js"></script>
+    <script src="shrines.js"></script>
     <script src="hero.js"></script>
     <script src="artillery.js"></script>
     <script src="bestiary.js"></script>
@@ -568,8 +569,8 @@
             WeaponSystem.updateFiringRate(this);
             WeaponSystem.updateProjectiles(this);
 
-            // Update the level display to show time survived
-            GameUI.updateStatusDisplay(this, elapsedTime, score);
+            // Update the level display to show time survived and score
+            GameUI.updateStatusDisplay(this, elapsedTime, 0);
 
             // Player movement
             InputSystem.updateMovement(player, delta);
@@ -810,6 +811,23 @@
 
             // Update player stats text
             GameUI.updateStatCircles(this);
+
+            // Cleanup any existing dynamic scoring
+            if (typeof ScoreSystem !== 'undefined' && ScoreSystem.cleanupDynamicScoring) {
+                ScoreSystem.cleanupDynamicScoring();
+            }
+
+            // Initialize dynamic scoring for all game modes
+            if (typeof ScoreSystem !== 'undefined' && ScoreSystem.initializeDynamicScoring) {
+                ScoreSystem.initializeDynamicScoring(this);
+            }
+
+            // If Boss Rush mode, set elapsed time to boss spawn time
+            if (window.BOSS_RUSH_MODE) {
+                const bossSpawnTime = rankConfigs[BOSS_CONFIG.max_rank]?.startTime || 1200;
+                elapsedTime = bossSpawnTime - 120;
+                console.log(`Boss Rush mode: Time set to ${elapsedTime} seconds`);
+            }
         }
     </script>
 </body>

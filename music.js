@@ -314,9 +314,14 @@ const MusicSystem = {
 
     // Preload just track metadata, not actual audio content
     preload: function (scene) {
+        // Determine track prefix based on STRANGE music setting
+        const trackPrefix = window.STRANGE_MUSIC_ENABLED ? 'alt' : 'track';
+
+        console.log(`Music system using ${trackPrefix} tracks (Strange Music: ${window.STRANGE_MUSIC_ENABLED ? 'ON' : 'OFF'})`);
+
         // Just build a list of track IDs without loading them
         for (let i = 1; i <= MUSIC_CONFIG.trackCount; i++) {
-            const trackId = `track-${String(i).padStart(2, '0')}`;
+            const trackId = `${trackPrefix}-${String(i).padStart(2, '0')}`;
             this.tracks.push(trackId);
         }
 

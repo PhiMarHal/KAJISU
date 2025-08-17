@@ -578,6 +578,70 @@ const PERKS = {
             // The component is added through PlayerPerkRegistry
         }
     },
+    "BERSERK_SHRINE": {
+        kanji: "怒神社",
+        kana: "いかりじんじゃ",
+        romaji: "ikarijinja",
+        english: "Berserk Shrine",
+        description: "Spawns shrines that boost damage while standing in them",
+        color: "#FF0000",
+        hoverColor: 0xCC0000,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
+
+    "ARCHER_SHRINE": {
+        kanji: "弓神社",
+        kana: "ゆみじんじゃ",
+        romaji: "yumijinja",
+        english: "Archer Shrine",
+        description: "Spawns shrines that boost fire rate while standing in them",
+        color: "#00FFFF",
+        hoverColor: 0x00CCCC,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
+
+    "HEALING_SHRINE": {
+        kanji: "癒神社",
+        kana: "いやしじんじゃ",
+        romaji: "iyashijinja",
+        english: "Healing Shrine",
+        description: "Spawns shrines that heal you while standing in them",
+        color: "#00FF00",
+        hoverColor: 0x00CC00,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
+
+    "STORM_SHRINE": {
+        kanji: "雷神社",
+        kana: "らいじんじゃ",
+        romaji: "raijinja",
+        english: "Storm Shrine",
+        description: "Spawns shrines that rain lightning while standing in them",
+        color: "#9966FF",
+        hoverColor: 0x7744CC,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
+
+    "GOD_HAMMER_SHRINE": {
+        kanji: "鎚神社",
+        kana: "つちじんじゃ",
+        romaji: "tsuchijinja",
+        english: "God Hammer Shrine",
+        description: "Spawns shrines that drop divine hammers while standing in them",
+        color: "#FFD700",
+        hoverColor: 0xDAA520,
+        onAcquire: function () {
+            // The component is added through PlayerPerkRegistry
+        }
+    },
 
     // Red animal perks (damage focused)
     "RED_TIGER": {
@@ -1024,16 +1088,14 @@ const PERKS = {
             window.triggerOneTimeEffect('purpleChaos');
         }
     },
-    // Add this to the PERKS object in perks.js
-
     "INDIGO_SWITCH": {
         kanji: "藍切替",
         kana: "あいきりかえ",
         romaji: "aikirikae",
         english: "Indigo Switch",
         description: "Swap highest and lowest stats, then +1 to both",
-        color: "#4B0082", // Indigo color
-        hoverColor: 0x301934,
+        color: "#B19CD9", // Light purple color
+        hoverColor: 0x9A7BC8, // Slightly darker purple for hover
         onAcquire: function () {
             window.triggerOneTimeEffect('indigoSwitch');
         }
@@ -1111,6 +1173,18 @@ const PERKS = {
         hoverColor: 0x9999DD,
         onAcquire: function () {
             window.triggerOneTimeEffect('oblivionBlossom');
+        }
+    },
+    "THREE_STARS": {
+        kanji: "三つ星",
+        kana: "みつぼし",
+        romaji: "mitsuboshi",
+        english: "Three Stars",
+        description: "Spinning perfection",
+        color: "#FFD700",
+        hoverColor: 0xCCA700,
+        onAcquire: function () {
+            window.activateThreeStars();
         }
     },
     "COPY_FAIRY": {

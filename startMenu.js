@@ -17,19 +17,49 @@ window.LEARNING_CHALLENGE_ENABLED = false;
 // Set hard mode preference - default to false
 window.HARD_MODE_ENABLED = false;
 
+// Set stranger music preference - default to false
+window.STRANGE_MUSIC_ENABLED = false;
+
 const StartMenuSystem = {
     // Menu state
     state: {
         kajisuliMode: false,
         learningChallengeEnabled: false,
         hardModeEnabled: false,
+        bossRushMode: false,
+        strangedMusicEnabled: false,
         initialized: false
     },
 
     // UI elements
     elements: {
         menuContainer: null,
-        learningToggle: null
+        learningToggle: null,
+        infoMessage: null
+    },
+
+    // Info messages for each toggle state
+    infoMessages: {
+        portraitScreen: {
+            on: "Better for phones",
+            off: "Better for desktops"
+        },
+        learningChallenge: {
+            on: "Type to unlock perks. Gain XP for success",
+            off: "Select perks freely on lvlup. No extra EXP"
+        },
+        hardMode: {
+            on: "Enemies spawn faster",
+            off: "Normal spawn rate for enemies"
+        },
+        bossRush: {
+            on: "Warp to the boss fight. Trade score penalties for lvlups",
+            off: "Start at the beginning"
+        },
+        strangeMusic: {
+            on: "Early suno.ai experiments. Only for the strongest ears",
+            off: "Back to the regular tunes"
+        }
     },
 
     // Check if we're in FARCADE mode
@@ -43,15 +73,16 @@ const StartMenuSystem = {
         const screenHeight = window.innerHeight;
         const minDimension = Math.min(screenWidth, screenHeight);
 
-        // Reduced scaling factor - keep text closer to desktop size on mobile
-        const scaleFactor = Math.max(0.85, Math.min(1.2, minDimension / 600));
+        // Use the original scaling approach that worked perfectly
+        const scaleFactor = Math.max(0.5, Math.min(1.2, minDimension / 600));
 
         return {
             titleSize: Math.floor(48 * scaleFactor),
-            toggleSize: 24, // Fixed size for consistent toggle text
+            toggleSize: Math.floor(24 * scaleFactor),
+            infoSize: Math.floor(16 * scaleFactor),
             spacing: Math.floor(60 * scaleFactor),
             padding: Math.floor(20 * scaleFactor),
-            lineSpacing: 12
+            lineSpacing: Math.floor(12 * scaleFactor)
         };
     },
 
@@ -60,6 +91,8 @@ const StartMenuSystem = {
         this.state.kajisuliMode = window.KAJISULI_MODE;
         this.state.learningChallengeEnabled = window.LEARNING_CHALLENGE_ENABLED;
         this.state.hardModeEnabled = window.HARD_MODE_ENABLED;
+        this.state.bossRushMode = window.BOSS_RUSH_MODE;
+        this.state.strangeMusicEnabled = window.STRANGE_MUSIC_ENABLED;
         this.applyCSSMode();
         this.createHTMLMenu();
         this.state.initialized = true;
@@ -74,9 +107,27 @@ const StartMenuSystem = {
         }
     },
 
+    // Show info message
+    showInfoMessage: function (message) {
+        if (this.elements.infoMessage) {
+            this.elements.infoMessage.textContent = message;
+            this.elements.infoMessage.style.opacity = '1';
+            this.elements.infoMessage.style.transform = 'translateX(-50%) translateY(0)';
+        }
+    },
+
+    // Hide info message
+    hideInfoMessage: function () {
+        if (this.elements.infoMessage) {
+            this.elements.infoMessage.style.opacity = '0';
+            this.elements.infoMessage.style.transform = 'translateX(-50%) translateY(10px)';
+        }
+    },
+
     // Create HTML-based start menu
     createHTMLMenu: function () {
         const sizes = this.getResponsiveSizes();
+        const screenWidth = window.innerWidth;
 
         // Create main menu container
         this.elements.menuContainer = document.createElement('div');
@@ -135,13 +186,14 @@ const StartMenuSystem = {
 
         // Create toggles container
         const togglesContainer = document.createElement('div');
+        const containerWidth = Math.min(600, screenWidth * 0.9); // More responsive container width
         togglesContainer.style.cssText = `
             display: flex;
             flex-direction: column;
             gap: ${sizes.lineSpacing}px;
             margin-top: ${sizes.padding}px;
-            width: 600px;
-            max-width: 90%;
+            width: ${containerWidth}px;
+            max-width: 95%;
         `;
 
         // Only show portrait screen and learning challenge toggles if not in FARCADE mode
@@ -149,12 +201,14 @@ const StartMenuSystem = {
             // Create portrait screen toggle
             const portraitToggle = this.createToggle('Portrait Screen', this.state.kajisuliMode, (enabled) => {
                 this.selectMode(enabled);
+                this.showInfoMessage(this.infoMessages.portraitScreen[enabled ? 'on' : 'off']);
             }, sizes);
             togglesContainer.appendChild(portraitToggle);
 
             // Create learning challenge toggle
             const learningToggle = this.createToggle('Learning Challenge', this.state.learningChallengeEnabled, (enabled) => {
                 this.toggleLearningChallenge(enabled);
+                this.showInfoMessage(this.infoMessages.learningChallenge[enabled ? 'on' : 'off']);
             }, sizes);
             this.elements.learningToggle = learningToggle;
             togglesContainer.appendChild(learningToggle);
@@ -163,10 +217,52 @@ const StartMenuSystem = {
         // Create hard mode toggle (always show)
         const hardModeToggle = this.createToggle('Hard Mode', this.state.hardModeEnabled, (enabled) => {
             this.toggleHardMode(enabled);
+            this.showInfoMessage(this.infoMessages.hardMode[enabled ? 'on' : 'off']);
         }, sizes);
         togglesContainer.appendChild(hardModeToggle);
 
+        // Create Boss Rush toggle (always show)
+        const bossRushToggle = this.createToggle('Boss Rush', this.state.bossRushMode, (enabled) => {
+            this.toggleBossRush(enabled);
+            this.showInfoMessage(this.infoMessages.bossRush[enabled ? 'on' : 'off']);
+        }, sizes);
+        togglesContainer.appendChild(bossRushToggle);
+
+        // Create Strangerer Music toggle (always show)
+        const strangeMusicToggle = this.createToggle('Strange Music', this.state.strangeMusicEnabled, (enabled) => {
+            this.toggleStrangeMusic(enabled);
+            this.showInfoMessage(this.infoMessages.strangeMusic[enabled ? 'on' : 'off']);
+        }, sizes);
+        togglesContainer.appendChild(strangeMusicToggle);
+
         this.elements.menuContainer.appendChild(togglesContainer);
+
+        // Create info message element
+        const infoContainerWidth = Math.min(600, screenWidth * 0.9); // Match toggles container width
+        this.elements.infoMessage = document.createElement('div');
+        this.elements.infoMessage.style.cssText = `
+            position: fixed;
+            bottom: ${sizes.padding * 2}px;
+            left: 50%;
+            width: ${infoContainerWidth}px;
+            max-width: 95%;
+            transform: translateX(-50%) translateY(10px);
+            font-size: ${sizes.infoSize}px;
+            color: #FFD700;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            line-height: 1.4;
+            padding: ${sizes.padding / 2}px ${sizes.padding}px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 1px solid #FFD700;
+            border-radius: 4px;
+            box-sizing: border-box;
+        `;
+        this.elements.infoMessage.textContent = 'Welcome, Looper';
+
+        this.elements.menuContainer.appendChild(this.elements.infoMessage);
 
         // Add to page
         document.body.appendChild(this.elements.menuContainer);
@@ -174,6 +270,11 @@ const StartMenuSystem = {
         // Setup keyboard handler and start animations
         this.setupKeyboardHandler();
         this.startAnimations();
+
+        // Show initial info message after a short delay
+        setTimeout(() => {
+            this.showInfoMessage('Welcome, Looper');
+        }, 1000);
     },
 
     // Create a unified toggle component
@@ -273,6 +374,20 @@ const StartMenuSystem = {
         console.log(`Hard Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
     },
 
+    // Toggle boss rush setting
+    toggleBossRush: function (enabled) {
+        this.state.bossRushMode = enabled;
+        window.BOSS_RUSH_MODE = enabled;
+        console.log(`Boss Rush Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    },
+
+    // Toggle stranger music setting
+    toggleStrangeMusic: function (enabled) {
+        this.state.strangeMusicEnabled = enabled;
+        window.STRANGE_MUSIC_ENABLED = enabled;
+        console.log(`Stranger Music: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    },
+
     // Select a mode
     selectMode: function (isKajisuliMode) {
         if (this.state.kajisuliMode === isKajisuliMode) return;
@@ -290,6 +405,8 @@ const StartMenuSystem = {
         window.KAJISULI_MODE = this.state.kajisuliMode;
         window.LEARNING_CHALLENGE_ENABLED = this.state.learningChallengeEnabled;
         window.HARD_MODE_ENABLED = this.state.hardModeEnabled;
+        window.BOSS_RUSH_MODE = this.state.bossRushMode;
+        window.STRANGE_MUSIC_ENABLED = this.state.strangeMusicEnabled;
 
         const config = {
             type: Phaser.AUTO,

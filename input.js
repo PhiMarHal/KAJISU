@@ -442,8 +442,9 @@ const InputSystem = {
         const directionX = deltaX / distance;
         const directionY = deltaY / distance;
 
-        const velocityX = directionX * this.tapToMove.moveSpeed;
-        const velocityY = directionY * this.tapToMove.moveSpeed;
+        // Use the same speed calculation as other movement systems
+        const velocityX = directionX * playerSpeed * 50;
+        const velocityY = directionY * playerSpeed * 50;
 
         player.body.setVelocity(velocityX, velocityY);
     },

@@ -1266,6 +1266,7 @@ PlayerPerkRegistry.registerPerkEffect('KARATEKA', {
     }
 });
 
+// BEACONS.JS
 
 PlayerComponentSystem.registerComponent('divineBeaconAbility',
     BeaconSystem.createBeaconComponent(BeaconConfigs.DIVINE_BEACON)
@@ -1311,16 +1312,73 @@ PlayerPerkRegistry.registerPerkEffect('STORM_BRINGER', {
     }
 });
 
-// Add to hero.js - register the component
 PlayerComponentSystem.registerComponent('augmentationBeaconAbility',
     BeaconSystem.createBeaconComponent(BeaconConfigs.AUGMENTATION)
 );
 
-// Add to hero.js - register the perk effect
 PlayerPerkRegistry.registerPerkEffect('AUGMENTATION', {
     componentName: 'augmentationBeaconAbility',
     condition: function () {
         return true;
+    }
+});
+
+// SHRINES.JS
+
+// Register shrine components using ShrineSystem.createShrineComponent
+PlayerComponentSystem.registerComponent('berserkShrineAbility',
+    ShrineSystem.createShrineComponent(ShrineConfigs.BERSERK_SHRINE)
+);
+
+PlayerComponentSystem.registerComponent('archerShrineAbility',
+    ShrineSystem.createShrineComponent(ShrineConfigs.ARCHER_SHRINE)
+);
+
+PlayerComponentSystem.registerComponent('healingShrineAbility',
+    ShrineSystem.createShrineComponent(ShrineConfigs.HEALING_SHRINE)
+);
+
+PlayerComponentSystem.registerComponent('stormShrineAbility',
+    ShrineSystem.createShrineComponent(ShrineConfigs.STORM_SHRINE)
+);
+
+PlayerComponentSystem.registerComponent('godHammerShrineAbility',
+    ShrineSystem.createShrineComponent(ShrineConfigs.GOD_HAMMER_SHRINE)
+);
+
+// Register perk effects with PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('BERSERK_SHRINE', {
+    componentName: 'berserkShrineAbility',
+    condition: function () {
+        return true; // Always active when perk is acquired
+    }
+});
+
+PlayerPerkRegistry.registerPerkEffect('ARCHER_SHRINE', {
+    componentName: 'archerShrineAbility',
+    condition: function () {
+        return true; // Always active when perk is acquired
+    }
+});
+
+PlayerPerkRegistry.registerPerkEffect('HEALING_SHRINE', {
+    componentName: 'healingShrineAbility',
+    condition: function () {
+        return true; // Always active when perk is acquired
+    }
+});
+
+PlayerPerkRegistry.registerPerkEffect('STORM_SHRINE', {
+    componentName: 'stormShrineAbility',
+    condition: function () {
+        return true; // Always active when perk is acquired
+    }
+});
+
+PlayerPerkRegistry.registerPerkEffect('GOD_HAMMER_SHRINE', {
+    componentName: 'godHammerShrineAbility',
+    condition: function () {
+        return true; // Always active when perk is acquired
     }
 });
 

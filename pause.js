@@ -171,6 +171,12 @@ const PauseSystem = {
 
     // Pause the game
     pauseGame: function (isLevelUpPause = false) {
+        // Don't pause again if already paused
+        if (gamePaused) {
+            console.log("Game already paused, skipping redundant pause");
+            return;
+        }
+
         // Set the flag
         gamePaused = true;
 

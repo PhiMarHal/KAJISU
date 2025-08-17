@@ -344,6 +344,7 @@ const BeamSystem = {
         return physicsBody;
     },
 
+    /* Old handleBeamHit for reference, commented out
     // Handle beam hitting an enemy - now with components
     handleBeamHit: function (beam, enemy, scene) {
         if (beam.destroyed || !enemy.active) return;
@@ -360,6 +361,47 @@ const BeamSystem = {
         // Process component events (like onHit for poison effect)
         if (beam.physics.components && Object.keys(beam.physics.components).length > 0) {
             ProjectileComponentSystem.processEvent(beam.physics, 'onHit', enemy, scene);
+        }
+    },
+    */
+    // Fixed handleBeamHit that properly identifies unique enemies
+    handleBeamHit: function (beam, enemy, scene) {
+        if (beam.destroyed || !enemy.active) return;
+
+        const currentTime = scene.time.now;
+
+        // Create a unique identifier for this enemy
+        // Use Phaser's built-in unique ID system, or create one if it doesn't exist
+        if (!enemy.uniqueId) {
+            enemy.uniqueId = `enemy_${Date.now()}_${Math.random()}`;
+        }
+        const enemyId = enemy.uniqueId;
+
+        // Initialize cooldown tracking for this beam if needed
+        beam.componentCooldowns = beam.componentCooldowns ?? {};
+
+        // Check if this enemy is on cooldown for component effects
+        const lastComponentHit = beam.componentCooldowns[enemyId] ?? 0;
+        const componentCooldown = beam.config.damageInterval ?? 200;
+
+        // Apply contact damage (this has its own cooldown handling)
+        applyContactDamage.call(
+            scene,
+            beam.physics,
+            enemy,
+            beam.config.damage,
+            beam.config.damageInterval
+        );
+
+        // Only process component events if cooldown has elapsed
+        if (currentTime - lastComponentHit >= componentCooldown) {
+            // Process component events (like onHit for poison effect)
+            if (beam.physics.components && Object.keys(beam.physics.components).length > 0) {
+                ProjectileComponentSystem.processEvent(beam.physics, 'onHit', enemy, scene);
+
+                // Update cooldown timestamp for this specific enemy
+                beam.componentCooldowns[enemyId] = currentTime;
+            }
         }
     },
 

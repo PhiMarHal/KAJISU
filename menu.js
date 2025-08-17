@@ -82,19 +82,19 @@ const UI = {
         bgColor: 0x333333
     },
 
-    // Status display (timer and kills)
+    // Timer and Score
     statusDisplay: {
         timerY: function () { return UI.rel.y(3.75); },        // 3.75% from top
-        killsY: function () { return UI.rel.y(3.75); },        // Same Y as timer
+        scoreY: function () { return UI.rel.y(3.75); },        // Same Y as timer (renamed from killsY)
         x: function () { return UI.rel.x(1.33); },             // 1.33% from left
         timerWidth: function () { return UI.rel.width(10); },  // 10% of screen width
-        killsWidth: function () { return UI.rel.width(10); },  // Same width as timer
-        killsX: function () { return UI.rel.x(13.33); },       // Position to right of timer
+        scoreWidth: function () { return UI.rel.width(10); },  // Same width as timer (renamed from killsWidth)
+        scoreX: function () { return UI.rel.x(13.33); },       // Position to right of timer (renamed from killsX)
         height: function () { return UI.rel.height(2.5); },    // 2.5% of screen height
         borderWidth: 2,
         textPadding: function () { return UI.rel.width(0.33); }, // 0.33% of screen width
         clockSymbol: "時",  // Kanji for time/clock
-        deathSymbol: "殺",  // Kanji for kill/death
+        scoreSymbol: "点",  // Kanji for score/points (changed from deathSymbol)
         fontSize: function () { return UI.rel.fontSize(2); }   // 2% of screen height
     },
 
@@ -122,7 +122,7 @@ const UI = {
         }
     },
 
-    // Pause/Music buttons
+    // Pause/Music/Levelup buttons
     buttons: {
         // Common button styling configuration
         common: {
@@ -169,10 +169,24 @@ const UI = {
             fontSize: function () {
                 return UI.buttons.common.fontSize();
             }
+        },
+
+        // Levelup button configuration (Boss Rush mode)
+        levelup: {
+            symbol: "UP", // Letters for level up
+            x: function () {
+                // Same position as music button (bottom right)
+                return UI.game.getWidth() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
+            },
+            y: function () {
+                // Same position as music button (bottom positioning)
+                return UI.game.getHeight() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
+            },
+            fontSize: function () {
+                return UI.buttons.common.fontSize() * 0.7; // Slightly smaller for "UP" text
+            }
         }
     },
-
-
 
     // Color constants
     colors: {
@@ -230,10 +244,14 @@ const ButtonDisplay = {
         if (scene.musicButton) scene.musicButton.destroy();
         if (scene.musicButtonBg) scene.musicButtonBg.destroy();
         if (scene.musicButtonBorder) scene.musicButtonBorder.destroy();
+        if (scene.levelupButton) scene.levelupButton.destroy();
+        if (scene.levelupButtonBg) scene.levelupButtonBg.destroy();
+        if (scene.levelupButtonBorder) scene.levelupButtonBorder.destroy();
 
         // Get button configurations
         const pauseConfig = UI.buttons.pause;
         const musicConfig = UI.buttons.music;
+        const levelupConfig = UI.buttons.levelup;
         const commonConfig = UI.buttons.common;
 
         // Create pause button background and border
@@ -243,7 +261,7 @@ const ButtonDisplay = {
             commonConfig.size() + (commonConfig.borderWidth * 2),
             commonConfig.size() + (commonConfig.borderWidth * 2),
             UI.colors.gold
-        ).setDepth(UI.depth.ui);
+        ).setDepth(2001);
 
         scene.pauseButtonBg = scene.add.rectangle(
             pauseConfig.x(),
@@ -251,7 +269,7 @@ const ButtonDisplay = {
             commonConfig.size(),
             commonConfig.size(),
             UI.colors.black
-        ).setDepth(UI.depth.ui);
+        ).setDepth(2001);
 
         // Create pause button
         scene.pauseButton = scene.add.text(
@@ -264,8 +282,7 @@ const ButtonDisplay = {
                 color: '#ffffff',
                 fontStyle: 'bold',
             }
-        ).setOrigin(0.5).setDepth(UI.depth.ui);
-        scene.pauseButton.setAlpha(1);
+        ).setOrigin(0.5).setDepth(2001);
 
         // Make pause button interactive
         scene.pauseButtonBorder.setInteractive({ useHandCursor: true });
@@ -290,7 +307,6 @@ const ButtonDisplay = {
             }
         });
 
-
         // Create music button background and border
         scene.musicButtonBorder = scene.add.rectangle(
             musicConfig.x(),
@@ -298,7 +314,7 @@ const ButtonDisplay = {
             commonConfig.size() + (commonConfig.borderWidth * 2),
             commonConfig.size() + (commonConfig.borderWidth * 2),
             UI.colors.gold
-        ).setDepth(UI.depth.ui);
+        ).setDepth(2001);
 
         scene.musicButtonBg = scene.add.rectangle(
             musicConfig.x(),
@@ -306,7 +322,7 @@ const ButtonDisplay = {
             commonConfig.size(),
             commonConfig.size(),
             UI.colors.black
-        ).setDepth(UI.depth.ui);
+        ).setDepth(2001);
 
         // Create music button
         const initialSymbol = (window.MusicSystem && window.MusicSystem.musicEnabled) ?
@@ -322,8 +338,7 @@ const ButtonDisplay = {
                 color: '#ffffff',
                 fontStyle: 'bold'
             }
-        ).setOrigin(0.5).setDepth(UI.depth.ui);
-        scene.musicButton.setAlpha(1);
+        ).setOrigin(0.5).setDepth(2001);
 
         // Make music button interactive
         scene.musicButtonBorder.setInteractive({ useHandCursor: true });
@@ -352,37 +367,301 @@ const ButtonDisplay = {
             }
         });
 
-        // Initial update
+        // ADDED: Handle Farcade mode - hide music button after it's created
+        if (window.FARCADE_MODE) {
+            scene.musicButton.setVisible(false);
+            scene.musicButtonBg.setVisible(false);
+            scene.musicButtonBorder.setVisible(false);
+            console.log("Music button hidden for Farcade deployment");
+        }
+
+        // Only create levelup button if Boss Rush mode is enabled
+        if (window.BOSS_RUSH_MODE) {
+            // Create levelup button background and border
+            scene.levelupButtonBorder = scene.add.rectangle(
+                levelupConfig.x(),
+                levelupConfig.y(),
+                commonConfig.size() + (commonConfig.borderWidth * 2),
+                commonConfig.size() + (commonConfig.borderWidth * 2),
+                UI.colors.gold
+            ).setDepth(UI.depth.ui);
+
+            scene.levelupButtonBg = scene.add.rectangle(
+                levelupConfig.x(),
+                levelupConfig.y(),
+                commonConfig.size(),
+                commonConfig.size(),
+                UI.colors.black
+            ).setDepth(UI.depth.ui);
+
+            // Create levelup button
+            scene.levelupButton = scene.add.text(
+                levelupConfig.x(),
+                levelupConfig.y(),
+                levelupConfig.symbol,
+                {
+                    fontFamily: 'Arial',
+                    fontSize: `${levelupConfig.fontSize()}px`,
+                    color: '#ffffff',
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5).setDepth(2001);
+
+            // Make levelup button interactive
+            scene.levelupButtonBorder.setInteractive({ useHandCursor: true });
+
+            scene.levelupButtonBorder.on('pointerover', function () {
+                scene.levelupButton.setColor('#ffff00'); // Yellow on hover
+                scene.levelupButton.setScale(1.1);
+            });
+
+            scene.levelupButtonBorder.on('pointerout', function () {
+                scene.levelupButton.setColor('#ffffff'); // White normally
+                scene.levelupButton.setScale(1);
+            });
+
+            scene.levelupButtonBorder.on('pointerdown', function () {
+                if (!gamePaused && !gameOver && window.BOSS_RUSH_MODE) {
+                    // Apply penalty if the function exists
+                    if (window.applyFreeLeveUpPenalty) {
+                        window.applyFreeLeveUpPenalty();
+                    }
+
+                    // Add remaining XP needed for this level
+                    const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
+                    heroExp += xpNeeded;
+
+                    // Update the experience bar
+                    GameUI.updateExpBar(scene);
+
+                    console.log('Boss Rush: Free level up used (penalty applied)');
+                }
+            });
+        }
+
+        // Initial update to set positions
         this.update(scene);
     },
 
     update: function (scene) {
-        // Get configurations
+        // Update button positions (useful for dynamic resizing)
         const pauseConfig = UI.buttons.pause;
         const musicConfig = UI.buttons.music;
+        const levelupConfig = UI.buttons.levelup;
 
-        // Update pause button positions if needed (for responsive design)
+        // Update pause button position
         if (scene.pauseButton && scene.pauseButtonBg && scene.pauseButtonBorder) {
             scene.pauseButton.setPosition(pauseConfig.x(), pauseConfig.y());
             scene.pauseButtonBg.setPosition(pauseConfig.x(), pauseConfig.y());
             scene.pauseButtonBorder.setPosition(pauseConfig.x(), pauseConfig.y());
         }
 
-        // Update music button positions if needed
+        // Update music button position and visibility
         if (scene.musicButton && scene.musicButtonBg && scene.musicButtonBorder) {
-            scene.musicButton.setPosition(musicConfig.x(), musicConfig.y());
-            scene.musicButtonBg.setPosition(musicConfig.x(), musicConfig.y());
-            scene.musicButtonBorder.setPosition(musicConfig.x(), musicConfig.y());
+            // Handle special visibility rules for Boss Rush mode
+            if (window.BOSS_RUSH_MODE && !gamePaused) {
+                // Hide music button during active Boss Rush gameplay
+                scene.musicButton.setVisible(false);
+                scene.musicButtonBg.setVisible(false);
+                scene.musicButtonBorder.setVisible(false);
+            } else if (window.FARCADE_MODE) {
+                // ADDED: Always hide music button in Farcade mode
+                scene.musicButton.setVisible(false);
+                scene.musicButtonBg.setVisible(false);
+                scene.musicButtonBorder.setVisible(false);
+            } else {
+                // Show music button and update its position and state
+                scene.musicButton.setVisible(true);
+                scene.musicButtonBg.setVisible(true);
+                scene.musicButtonBorder.setVisible(true);
 
-            // Ensure music button shows correct state
-            if (window.MusicSystem) {
-                const symbol = window.MusicSystem.musicEnabled ?
-                    musicConfig.symbol : musicConfig.mutedSymbol;
-                scene.musicButton.setText(symbol);
+                scene.musicButton.setPosition(musicConfig.x(), musicConfig.y());
+                scene.musicButtonBg.setPosition(musicConfig.x(), musicConfig.y());
+                scene.musicButtonBorder.setPosition(musicConfig.x(), musicConfig.y());
+
+                // Update music button symbol if MusicSystem is available
+                if (window.MusicSystem) {
+                    const symbol = window.MusicSystem.musicEnabled ?
+                        musicConfig.symbol : musicConfig.mutedSymbol;
+                    scene.musicButton.setText(symbol);
+                }
             }
+        }
+
+        // Update levelup button position
+        if (scene.levelupButton && scene.levelupButtonBg && scene.levelupButtonBorder) {
+            scene.levelupButton.setPosition(levelupConfig.x(), levelupConfig.y());
+            scene.levelupButtonBg.setPosition(levelupConfig.x(), levelupConfig.y());
+            scene.levelupButtonBorder.setPosition(levelupConfig.x(), levelupConfig.y());
         }
     }
 };
+
+// Helper function to format large numbers with 4 significant digits + kanji
+function formatLargeNumber(number) {
+    // Return original number if it's less than 5 digits
+    if (number < 10000) {
+        return number.toString();
+    }
+
+    // Kanji units for powers of 10
+    const kanjiUnits = [
+        { value: 1000000000000, kanji: '兆' },  // trillion
+        { value: 100000000000, kanji: '千億' }, // 100 billion
+        { value: 10000000000, kanji: '百億' },  // 10 billion
+        { value: 1000000000, kanji: '十億' },   // billion
+        { value: 100000000, kanji: '億' },      // 100 million
+        { value: 10000000, kanji: '千万' },     // 10 million
+        { value: 1000000, kanji: '百万' },      // million
+        { value: 100000, kanji: '十万' },       // 100 thousand
+        { value: 10000, kanji: '万' },          // 10 thousand
+        { value: 1000, kanji: '千' },           // thousand
+        { value: 100, kanji: '百' },            // hundred
+        { value: 10, kanji: '十' }              // ten
+    ];
+
+    // Find the appropriate unit
+    for (const unit of kanjiUnits) {
+        if (number >= unit.value) {
+            // Calculate the significant part (keeping 4 digits)
+            const scaleFactor = unit.value / 1000; // We want 4 significant digits (1000-9999)
+            const significantPart = Math.floor(number / scaleFactor);
+
+            // Format with the unit
+            return `${significantPart}${unit.kanji}`;
+        }
+    }
+
+    // Fallback to original number (shouldn't reach here given our units cover all cases)
+    return number.toString();
+}
+
+// Experience bar functions
+const ExpBar = {
+    create: function (scene) {
+        // Initialize relative dimensions
+        UI.game.init(scene);
+
+        // Remove old experience bar elements if they exist
+        if (scene.expBar) scene.expBar.destroy();
+        if (scene.expBarBg) scene.expBarBg.destroy();
+        if (scene.expText) scene.expText.destroy();
+        if (scene.levelText) scene.levelText.destroy();
+        if (scene.xpNeededText) scene.xpNeededText.destroy();
+
+        // Get kajisuli scale factors - wider not thicker
+        const kajisuliScaleWidth = UI.kajisuli.enabled() ? 1.5 : 1;
+        const kajisuliScaleHeight = 1; // Keep the same height
+
+        // Store the scale factors for later use
+        scene.expBarScales = {
+            width: kajisuliScaleWidth,
+            height: kajisuliScaleHeight
+        };
+
+        // Get calculated dimensions
+        const width = UI.expBar.width() * kajisuliScaleWidth;
+        const height = UI.expBar.height() * kajisuliScaleHeight;
+        const borderWidth = UI.expBar.borderWidth;
+        const innerMargin = UI.expBar.innerMargin;
+        const centerX = UI.expBar.centerX();
+        const y = UI.expBar.y();
+
+        // Create new container with golden border
+        scene.expBarBg = scene.add.rectangle(
+            centerX,
+            y,
+            width + (borderWidth * 2),
+            height + (borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(UI.depth.ui);
+
+        // Create inner black background
+        scene.expBarInnerBg = scene.add.rectangle(
+            centerX,
+            y,
+            width,
+            height,
+            UI.colors.black
+        ).setDepth(UI.depth.ui);
+
+        // Calculate the starting position for the exp bar (at the left edge)
+        const startX = centerX - (width / 2) + innerMargin;
+
+        // Create the exp bar itself (initially empty)
+        scene.expBar = scene.add.rectangle(
+            startX, // Left edge
+            y,
+            0, // Initial width is 0
+            height - (innerMargin * 2),
+            UI.expBar.barColor
+        ).setOrigin(0, 0.5).setDepth(UI.depth.ui);
+
+        // Increase spacing in kajisuli mode
+        const textSpacing = UI.kajisuli.enabled() ? UI.rel.width(5) : UI.rel.width(2.5);
+
+        // Create level text to the left of the bar
+        scene.levelText = scene.add.text(
+            centerX - (width / 2) - textSpacing,
+            y,
+            "1",
+            {
+                fontFamily: UI.fonts.level.family,
+                fontSize: UI.kajisuli.enabled() ?
+                    parseInt(UI.fonts.level.size()) * 1.2 + 'px' :
+                    UI.fonts.level.size(),
+                color: UI.fonts.level.color
+            }
+        ).setOrigin(0.5).setDepth(UI.depth.ui);
+
+        // REMOVED PROBLEMATIC LINE: scene.musicButton.setVisible(false);
+
+        // Create XP needed text to the right of the bar
+        scene.xpNeededText = scene.add.text(
+            centerX + (width / 2) + textSpacing,
+            y,
+            "5",
+            {
+                fontFamily: UI.fonts.xpNeeded.family,
+                fontSize: UI.kajisuli.enabled() ?
+                    parseInt(UI.fonts.xpNeeded.size()) * 1.2 + 'px' :
+                    UI.fonts.xpNeeded.size(),
+                color: UI.fonts.xpNeeded.color
+            }
+        ).setOrigin(0.5).setDepth(UI.depth.ui);
+
+        // Initial update
+        this.update(scene);
+    },
+
+    update: function (scene) {
+        // If elements don't exist yet, exit
+        if (!scene.expBar || !scene.levelText || !scene.xpNeededText) return;
+
+        // Get scale factors
+        const kajisuliScaleWidth = scene.expBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
+        const kajisuliScaleHeight = scene.expBarScales?.height ?? 1;
+
+        // Get width with scaling
+        const width = UI.expBar.width() * kajisuliScaleWidth;
+        const innerMargin = UI.expBar.innerMargin;
+        const contentWidth = width - (innerMargin * 2);
+
+        // Calculate experience percentage
+        const expPercentage = Math.max(0, Math.min(1, heroExp / xpForNextLevel(playerLevel)));
+
+        // Set the width of the exp bar based on percentage
+        scene.expBar.width = expPercentage * contentWidth;
+
+        // Update the level text
+        scene.levelText.setText(`${playerLevel}`);
+
+        // Calculate and update the XP REMAINING text with formatting for large numbers
+        const xpRemaining = xpForNextLevel(playerLevel) - heroExp;
+        scene.xpNeededText.setText(formatLargeNumber(xpRemaining));
+    }
+};
+
 
 // Health bar functions
 const HealthBar = {
@@ -508,170 +787,6 @@ const HealthBar = {
     }
 };
 
-
-// Helper function to format large numbers with 4 significant digits + kanji
-function formatLargeNumber(number) {
-    // Return original number if it's less than 5 digits
-    if (number < 10000) {
-        return number.toString();
-    }
-
-    // Kanji units for powers of 10
-    const kanjiUnits = [
-        { value: 1000000000000, kanji: '兆' },  // trillion
-        { value: 100000000000, kanji: '千億' }, // 100 billion
-        { value: 10000000000, kanji: '百億' },  // 10 billion
-        { value: 1000000000, kanji: '十億' },   // billion
-        { value: 100000000, kanji: '億' },      // 100 million
-        { value: 10000000, kanji: '千万' },     // 10 million
-        { value: 1000000, kanji: '百万' },      // million
-        { value: 100000, kanji: '十万' },       // 100 thousand
-        { value: 10000, kanji: '万' },          // 10 thousand
-        { value: 1000, kanji: '千' },           // thousand
-        { value: 100, kanji: '百' },            // hundred
-        { value: 10, kanji: '十' }              // ten
-    ];
-
-    // Find the appropriate unit
-    for (const unit of kanjiUnits) {
-        if (number >= unit.value) {
-            // Calculate the significant part (keeping 4 digits)
-            const scaleFactor = unit.value / 1000; // We want 4 significant digits (1000-9999)
-            const significantPart = Math.floor(number / scaleFactor);
-
-            // Format with the unit
-            return `${significantPart}${unit.kanji}`;
-        }
-    }
-
-    // Fallback to original number (shouldn't reach here given our units cover all cases)
-    return number.toString();
-}
-
-// Experience bar functions
-const ExpBar = {
-    create: function (scene) {
-        // Initialize relative dimensions
-        UI.game.init(scene);
-
-        // Remove old exp bar elements if they exist
-        if (scene.expBar) scene.expBar.destroy();
-        if (scene.expBarBg) scene.expBarBg.destroy();
-        if (scene.expText) scene.expText.destroy();
-        if (scene.levelText) scene.levelText.destroy();
-        if (scene.xpNeededText) scene.xpNeededText.destroy();
-
-        // Get kajisuli scale factors - wider not thicker
-        const kajisuliScaleWidth = UI.kajisuli.enabled() ? 1.5 : 1;
-        const kajisuliScaleHeight = 1; // Keep the same height
-
-        // Store the scale factors for later use
-        scene.expBarScales = {
-            width: kajisuliScaleWidth,
-            height: kajisuliScaleHeight
-        };
-
-        // Get calculated dimensions
-        const width = UI.expBar.width() * kajisuliScaleWidth;
-        const height = UI.expBar.height() * kajisuliScaleHeight;
-        const borderWidth = UI.expBar.borderWidth;
-        const innerMargin = UI.expBar.innerMargin;
-        const centerX = UI.expBar.centerX();
-        const y = UI.expBar.y();
-
-        // Create new container with golden border
-        scene.expBarBg = scene.add.rectangle(
-            centerX,
-            y,
-            width + (borderWidth * 2),
-            height + (borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(UI.depth.ui);
-
-        // Create inner black background
-        scene.expBarInnerBg = scene.add.rectangle(
-            centerX,
-            y,
-            width,
-            height,
-            UI.colors.black
-        ).setDepth(UI.depth.ui);
-
-        // Calculate the starting position for the exp bar (at the left edge)
-        const startX = centerX - (width / 2) + innerMargin;
-
-        // Create the exp bar itself (initially empty)
-        scene.expBar = scene.add.rectangle(
-            startX, // Left edge
-            y,
-            0, // Initial width is 0
-            height - (innerMargin * 2),
-            UI.expBar.barColor
-        ).setOrigin(0, 0.5).setDepth(UI.depth.ui);
-
-        // Increase spacing in kajisuli mode
-        const textSpacing = UI.kajisuli.enabled() ? UI.rel.width(5) : UI.rel.width(2.5);
-
-        // Create level text to the left of the bar
-        scene.levelText = scene.add.text(
-            centerX - (width / 2) - textSpacing,
-            y,
-            "1",
-            {
-                fontFamily: UI.fonts.level.family,
-                fontSize: UI.kajisuli.enabled() ?
-                    parseInt(UI.fonts.level.size()) * 1.2 + 'px' :
-                    UI.fonts.level.size(),
-                color: UI.fonts.level.color
-            }
-        ).setOrigin(0.5).setDepth(UI.depth.ui);
-
-        // Create XP needed text to the right of the bar
-        scene.xpNeededText = scene.add.text(
-            centerX + (width / 2) + textSpacing,
-            y,
-            "5",
-            {
-                fontFamily: UI.fonts.xpNeeded.family,
-                fontSize: UI.kajisuli.enabled() ?
-                    parseInt(UI.fonts.xpNeeded.size()) * 1.2 + 'px' :
-                    UI.fonts.xpNeeded.size(),
-                color: UI.fonts.xpNeeded.color
-            }
-        ).setOrigin(0.5).setDepth(UI.depth.ui);
-
-        // Initial update
-        this.update(scene);
-    },
-
-    update: function (scene) {
-        // If elements don't exist yet, exit
-        if (!scene.expBar || !scene.levelText || !scene.xpNeededText) return;
-
-        // Get scale factors
-        const kajisuliScaleWidth = scene.expBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
-        const kajisuliScaleHeight = scene.expBarScales?.height ?? 1;
-
-        // Get width with scaling
-        const width = UI.expBar.width() * kajisuliScaleWidth;
-        const innerMargin = UI.expBar.innerMargin;
-        const contentWidth = width - (innerMargin * 2);
-
-        // Calculate experience percentage
-        const expPercentage = Math.max(0, Math.min(1, heroExp / xpForNextLevel(playerLevel)));
-
-        // Set the width of the exp bar based on percentage
-        scene.expBar.width = expPercentage * contentWidth;
-
-        // Update the level text
-        scene.levelText.setText(`${playerLevel}`);
-
-        // Calculate and update the XP REMAINING text with formatting for large numbers
-        const xpRemaining = xpForNextLevel(playerLevel) - heroExp;
-        scene.xpNeededText.setText(formatLargeNumber(xpRemaining));
-    }
-};
-
 // Status display for timer and kills
 const StatusDisplay = {
     create: function (scene) {
@@ -684,10 +799,10 @@ const StatusDisplay = {
         if (scene.timerText) scene.timerText.destroy();
         if (scene.timerSymbol) scene.timerSymbol.destroy();
 
-        if (scene.killsBox) scene.killsBox.destroy();
-        if (scene.killsBoxInner) scene.killsBoxInner.destroy();
-        if (scene.killsText) scene.killsText.destroy();
-        if (scene.killsSymbol) scene.killsSymbol.destroy();
+        if (scene.scoreBox) scene.scoreBox.destroy(); // Renamed from killsBox
+        if (scene.scoreBoxInner) scene.scoreBoxInner.destroy(); // Renamed from killsBoxInner
+        if (scene.scoreText) scene.scoreText.destroy(); // Renamed from killsText
+        if (scene.scoreSymbol) scene.scoreSymbol.destroy(); // Renamed from killsSymbol
 
         // Size and position adjustments for kajisuli mode
         const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1; // 40% wider in kajisuli mode
@@ -759,63 +874,63 @@ const StatusDisplay = {
             ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
         }
 
-        // Adjust kills display positioning for kajisuli mode
-        let killsX = UI.kajisuli.enabled() ?
+        // Adjust score display positioning for kajisuli mode
+        let scoreX = UI.kajisuli.enabled() ?
             // Right side in kajisuli mode - further from edge
-            UI.game.getWidth() - edgeMargin - (UI.statusDisplay.killsWidth() * kajisuliScale / 2) :
+            UI.game.getWidth() - edgeMargin - (UI.statusDisplay.scoreWidth() * kajisuliScale / 2) :
             // Normal position
-            UI.statusDisplay.killsX() + (UI.statusDisplay.killsWidth() * kajisuliScale / 2);
+            UI.statusDisplay.scoreX() + (UI.statusDisplay.scoreWidth() * kajisuliScale / 2);
 
-        // Create kills display with gold border
-        scene.killsBox = scene.add.rectangle(
-            killsX,
-            UI.statusDisplay.killsY(),
-            UI.statusDisplay.killsWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
+        // Create score display with gold border
+        scene.scoreBox = scene.add.rectangle(
+            scoreX,
+            UI.statusDisplay.scoreY(),
+            UI.statusDisplay.scoreWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
             UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
             UI.colors.gold
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
-        // Create inner black background for kills
-        scene.killsBoxInner = scene.add.rectangle(
-            killsX,
-            UI.statusDisplay.killsY(),
-            UI.statusDisplay.killsWidth() * kajisuliScale,
+        // Create inner black background for score
+        scene.scoreBoxInner = scene.add.rectangle(
+            scoreX,
+            UI.statusDisplay.scoreY(),
+            UI.statusDisplay.scoreWidth() * kajisuliScale,
             UI.statusDisplay.height(),
             UI.colors.black
         ).setDepth(UI.depth.ui).setOrigin(0.5);
 
         if (UI.kajisuli.enabled()) {
-            // Create centered kills text in kajisuli mode
-            scene.killsText = scene.add.text(
-                killsX,
-                UI.statusDisplay.killsY(),
+            // Create centered score text in kajisuli mode
+            scene.scoreText = scene.add.text(
+                scoreX,
+                UI.statusDisplay.scoreY(),
                 "0",
                 {
-                    fontFamily: UI.fonts.kills.family,
+                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
                     fontSize: parseInt(UI.fonts.kills.size()) * fontSizeScale + 'px',
                     color: UI.fonts.kills.color
                 }
             ).setDepth(UI.depth.ui).setOrigin(0.5);
         } else {
-            // Create the kills kanji symbol
-            scene.killsSymbol = scene.add.text(
-                UI.statusDisplay.killsX() + UI.statusDisplay.textPadding(),
-                UI.statusDisplay.killsY(),
-                UI.statusDisplay.deathSymbol,
+            // Create the score kanji symbol
+            scene.scoreSymbol = scene.add.text(
+                UI.statusDisplay.scoreX() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreY(),
+                UI.statusDisplay.scoreSymbol,
                 {
-                    fontFamily: UI.fonts.kills.family,
+                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
                     fontSize: UI.fonts.kills.size(),
                     color: UI.fonts.kills.color
                 }
             ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
 
-            // Create the kills text
-            scene.killsText = scene.add.text(
-                UI.statusDisplay.killsX() + UI.statusDisplay.killsWidth() - UI.statusDisplay.textPadding(),
-                UI.statusDisplay.killsY(),
+            // Create the score text
+            scene.scoreText = scene.add.text(
+                UI.statusDisplay.scoreX() + UI.statusDisplay.scoreWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreY(),
                 "0",
                 {
-                    fontFamily: UI.fonts.kills.family,
+                    fontFamily: UI.fonts.kills.family, // Reuse kills font settings
                     fontSize: UI.fonts.kills.size(),
                     color: UI.fonts.kills.color
                 }
@@ -826,15 +941,33 @@ const StatusDisplay = {
         this.update(scene);
     },
 
-    update: function (scene, time, kills) {
+    update: function (scene, time, scoreValue) {
         // Update timer text if it exists
         if (scene.timerText) {
             scene.timerText.setText(formatTime(time ?? elapsedTime));
         }
 
-        // Update kills text if it exists
-        if (scene.killsText) {
-            scene.killsText.setText(formatLargeNumber(kills ?? score));
+        // Update score text if it exists - get current dynamic score
+        if (scene.scoreText) {
+            let currentScore = 0;
+
+            // Get dynamic score from ScoreSystem if available
+            if (window.ScoreSystem && typeof window.ScoreSystem.calculateCurrentScore === 'function') {
+                currentScore = window.ScoreSystem.calculateCurrentScore();
+            } else {
+                // Fallback to passed scoreValue or global score
+                currentScore = scoreValue ?? score ?? 0;
+            }
+
+            // Format and display the score
+            scene.scoreText.setText(formatLargeNumber(currentScore));
+
+            // Color the score red if negative (Boss Rush penalties)
+            if (currentScore < 0) {
+                scene.scoreText.setColor('#FF4444');
+            } else {
+                scene.scoreText.setColor(UI.fonts.kills.color);
+            }
         }
     }
 };

@@ -173,7 +173,7 @@ BeamPerkRegistry.registerPerkBeam('CAUSTIC_RAY', {
             fontSize: 24,             // Medium beam thickness
             damage: playerDamage * 0.2, // 60% damage per laser tick in total due to poison
             damageInterval: 200,      // Damage every 200ms
-            duration: 4000,           // 4 second beam duration
+            duration: 4000,
             beamWidth: 24,            // 32px beam width
             followPlayer: true,
             chargeTime: 2000,         // 2 second charge time

@@ -456,7 +456,7 @@ const HelpButtonManager = {
             buttonSize + (borderWidth * 2),
             buttonSize + (borderWidth * 2),
             UI.colors.gold
-        ).setDepth(2001); // High depth to stay above pause overlays
+        ).setDepth(2001).setAlpha(1); // High depth to stay above pause overlays
 
         scene.helpButtonBg = scene.add.rectangle(
             position.x,
@@ -464,7 +464,7 @@ const HelpButtonManager = {
             buttonSize,
             buttonSize,
             UI.colors.black
-        ).setDepth(2001); // High depth to stay above pause overlays
+        ).setDepth(2001).setAlpha(1); // High depth to stay above pause overlays
 
         // Create help button with ? symbol - use same font size calculation as other buttons
         scene.helpButton = scene.add.text(
@@ -477,7 +477,7 @@ const HelpButtonManager = {
                 color: '#ffffff',
                 fontStyle: 'bold'
             }
-        ).setOrigin(0.5).setDepth(2001); // High depth to stay above pause overlays
+        ).setOrigin(0.5).setDepth(2001).setAlpha(1); // High depth to stay above pause overlays
 
         // Make help button interactive - use the border for larger click area
         scene.helpButtonBorder.setInteractive({ useHandCursor: true });
@@ -502,42 +502,66 @@ const HelpButtonManager = {
         });
     },
 
-    // Show help button (hide pause if needed)
+    // Show help button (hide pause if needed) - FIXED VERSION
     showHelpButton: function (scene) {
         if (!this.isFarcadeMode()) {
-            // In normal mode, hide pause button elements
-            if (scene.pauseButton) scene.pauseButton.setVisible(false);
-            if (scene.pauseButtonBg) scene.pauseButtonBg.setVisible(false);
-            if (scene.pauseButtonBorder) scene.pauseButtonBorder.setVisible(false);
+            // In normal mode, hide pause button elements - ADD PROPER CHECKS
+            if (scene.pauseButton && typeof scene.pauseButton.setVisible === 'function') {
+                scene.pauseButton.setVisible(false);
+            }
+            if (scene.pauseButtonBg && typeof scene.pauseButtonBg.setVisible === 'function') {
+                scene.pauseButtonBg.setVisible(false);
+            }
+            if (scene.pauseButtonBorder && typeof scene.pauseButtonBorder.setVisible === 'function') {
+                scene.pauseButtonBorder.setVisible(false);
+            }
         }
 
-        // Show help button elements and ensure they're not darkened
-        if (scene.helpButton) {
+        // Show help button elements and ensure they're not darkened - ADD PROPER CHECKS
+        if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
             scene.helpButton.setVisible(true);
             scene.helpButton.setDepth(2001); // Higher than help screen container
+            scene.helpButton.setAlpha(1); // Ensure full opacity
         }
-        if (scene.helpButtonBg) {
+        if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
             scene.helpButtonBg.setVisible(true);
             scene.helpButtonBg.setDepth(2001); // Higher than help screen container
+            scene.helpButtonBg.setAlpha(1); // Ensure full opacity
         }
-        if (scene.helpButtonBorder) {
+        if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
             scene.helpButtonBorder.setVisible(true);
             scene.helpButtonBorder.setDepth(2001); // Higher than help screen container
+            scene.helpButtonBorder.setAlpha(1); // Ensure full opacity
         }
     },
 
-    // Show pause button (hide help if needed)
+    // Show pause button (hide help if needed) - FIXED VERSION
     showPauseButton: function (scene) {
         if (!this.isFarcadeMode()) {
-            // In normal mode, hide help button elements
-            if (scene.helpButton) scene.helpButton.setVisible(false);
-            if (scene.helpButtonBg) scene.helpButtonBg.setVisible(false);
-            if (scene.helpButtonBorder) scene.helpButtonBorder.setVisible(false);
+            // In normal mode, hide help button elements - ADD PROPER CHECKS
+            if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
+                scene.helpButton.setVisible(false);
+            }
+            if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
+                scene.helpButtonBg.setVisible(false);
+            }
+            if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
+                scene.helpButtonBorder.setVisible(false);
+            }
 
-            // Show pause button elements
-            if (scene.pauseButton) scene.pauseButton.setVisible(true);
-            if (scene.pauseButtonBg) scene.pauseButtonBg.setVisible(true);
-            if (scene.pauseButtonBorder) scene.pauseButtonBorder.setVisible(true);
+            // Show pause button elements - ADD PROPER CHECKS
+            if (scene.pauseButton && typeof scene.pauseButton.setVisible === 'function') {
+                scene.pauseButton.setVisible(true);
+                scene.pauseButton.setAlpha(1); // Ensure full opacity
+            }
+            if (scene.pauseButtonBg && typeof scene.pauseButtonBg.setVisible === 'function') {
+                scene.pauseButtonBg.setVisible(true);
+                scene.pauseButtonBg.setAlpha(1); // Ensure full opacity
+            }
+            if (scene.pauseButtonBorder && typeof scene.pauseButtonBorder.setVisible === 'function') {
+                scene.pauseButtonBorder.setVisible(true);
+                scene.pauseButtonBorder.setAlpha(1); // Ensure full opacity
+            }
         }
         // In Farcade mode, help button stays visible and pause button doesn't exist
     },
@@ -561,41 +585,78 @@ window.HelpButtonManager = HelpButtonManager;
 const ButtonStateManager = {
     // Called when game starts (after "ENTER THE LOOP")
     onGameStart: function (scene) {
-        if (HelpButtonManager.isFarcadeMode()) {
-            // In FARCADE mode, create and show help button immediately
+        // Check Boss Rush mode first - it takes priority over other modes
+        if (window.BOSS_RUSH_MODE) {
+            // In Boss Rush mode, we need both help and pause buttons (for switching)
+            if (!HelpButtonManager.isFarcadeMode()) {
+                // Clean up any existing help button from start screen
+                if (scene.helpButton) scene.helpButton.destroy();
+                if (scene.helpButtonBg) scene.helpButtonBg.destroy();
+                if (scene.helpButtonBorder) scene.helpButtonBorder.destroy();
+
+                // Create help button (will be hidden initially)
+                HelpButtonManager.createHelpButton(scene);
+                // Show pause button in bottom left initially
+                HelpButtonManager.showPauseButton(scene);
+            }
+            // Show levelup button in bottom right
+            if (window.LevelupButtonManager) {
+                window.LevelupButtonManager.showLevelupButton(scene);
+            }
+        } else if (HelpButtonManager.isFarcadeMode()) {
+            // In FARCADE mode (no Boss Rush), help button stays in bottom right
             HelpButtonManager.createHelpButton(scene);
             console.log('FARCADE mode: Help button created on game start');
         } else {
-            // Normal mode behavior
-            // First, clean up any existing help button from start screen
+            // Normal mode (no Boss Rush, no FARCADE)
+            // Clean up any existing help button from start screen
             if (scene.helpButton) scene.helpButton.destroy();
             if (scene.helpButtonBg) scene.helpButtonBg.destroy();
             if (scene.helpButtonBorder) scene.helpButtonBorder.destroy();
 
             // Create new help button in the game scene
             HelpButtonManager.createHelpButton(scene);
-
-            // Then switch to pause button
+            // Show pause button in bottom left, music button in bottom right
             HelpButtonManager.showPauseButton(scene);
         }
     },
 
     // Called when game is paused (manual pause or level up)
     onGamePause: function (scene) {
-        if (HelpButtonManager.isFarcadeMode()) {
+        if (window.BOSS_RUSH_MODE) {
+            // Hide levelup button, show music/help button in bottom right
+            if (window.LevelupButtonManager) {
+                window.LevelupButtonManager.hideLevelupButton(scene);
+            }
+            // Show help button in bottom left (unless FARCADE mode)
+            if (!HelpButtonManager.isFarcadeMode()) {
+                HelpButtonManager.showHelpButton(scene);
+            }
+        } else if (HelpButtonManager.isFarcadeMode()) {
             // In FARCADE mode, help button stays visible (do nothing)
             console.log('FARCADE mode: Help button remains visible during pause');
         } else {
+            // Normal mode - show help button in bottom left
             HelpButtonManager.showHelpButton(scene);
         }
     },
 
     // Called when game resumes from pause
     onGameResume: function (scene) {
-        if (HelpButtonManager.isFarcadeMode()) {
+        if (window.BOSS_RUSH_MODE) {
+            // Show levelup button in bottom right
+            if (window.LevelupButtonManager) {
+                window.LevelupButtonManager.showLevelupButton(scene);
+            }
+            // Show pause button in bottom left (unless FARCADE mode)
+            if (!HelpButtonManager.isFarcadeMode()) {
+                HelpButtonManager.showPauseButton(scene);
+            }
+        } else if (HelpButtonManager.isFarcadeMode()) {
             // In FARCADE mode, help button stays visible (do nothing)
             console.log('FARCADE mode: Help button remains visible after resume');
         } else {
+            // Normal mode - show pause button in bottom left, music in bottom right
             HelpButtonManager.showPauseButton(scene);
         }
     }
@@ -603,3 +664,99 @@ const ButtonStateManager = {
 
 // Export button state manager
 window.ButtonStateManager = ButtonStateManager;
+
+// Levelup button manager for Boss Rush mode
+const LevelupButtonManager = {
+    // Check if Boss Rush mode is enabled
+    isBossRushMode: function () {
+        return window.BOSS_RUSH_MODE === true;
+    },
+
+    // Show levelup button (hide music/help buttons in bottom right)
+    showLevelupButton: function (scene) {
+        if (!this.isBossRushMode()) return;
+
+        // Hide music button elements - ADD PROPER CHECKS
+        if (scene.musicButton && typeof scene.musicButton.setVisible === 'function') {
+            scene.musicButton.setVisible(false);
+        }
+        if (scene.musicButtonBg && typeof scene.musicButtonBg.setVisible === 'function') {
+            scene.musicButtonBg.setVisible(false);
+        }
+        if (scene.musicButtonBorder && typeof scene.musicButtonBorder.setVisible === 'function') {
+            scene.musicButtonBorder.setVisible(false);
+        }
+
+        // Hide help button elements if they're in the music position (FARCADE mode) - ADD PROPER CHECKS
+        if (HelpButtonManager.isFarcadeMode()) {
+            if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
+                scene.helpButton.setVisible(false);
+            }
+            if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
+                scene.helpButtonBg.setVisible(false);
+            }
+            if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
+                scene.helpButtonBorder.setVisible(false);
+            }
+        }
+
+        // Show levelup button elements - ADD PROPER CHECKS
+        if (scene.levelupButton && typeof scene.levelupButton.setVisible === 'function') {
+            scene.levelupButton.setVisible(true);
+            scene.levelupButton.setAlpha(1); // Ensure full opacity
+        }
+        if (scene.levelupButtonBg && typeof scene.levelupButtonBg.setVisible === 'function') {
+            scene.levelupButtonBg.setVisible(true);
+            scene.levelupButtonBg.setAlpha(1); // Ensure full opacity
+        }
+        if (scene.levelupButtonBorder && typeof scene.levelupButtonBorder.setVisible === 'function') {
+            scene.levelupButtonBorder.setVisible(true);
+            scene.levelupButtonBorder.setAlpha(1); // Ensure full opacity
+        }
+    },
+
+    // Hide levelup button (show music/help buttons in bottom right)
+    hideLevelupButton: function (scene) {
+        // Hide levelup button elements - ADD PROPER CHECKS
+        if (scene.levelupButton && typeof scene.levelupButton.setVisible === 'function') {
+            scene.levelupButton.setVisible(false);
+        }
+        if (scene.levelupButtonBg && typeof scene.levelupButtonBg.setVisible === 'function') {
+            scene.levelupButtonBg.setVisible(false);
+        }
+        if (scene.levelupButtonBorder && typeof scene.levelupButtonBorder.setVisible === 'function') {
+            scene.levelupButtonBorder.setVisible(false);
+        }
+
+        // Show appropriate button for bottom right corner
+        if (HelpButtonManager.isFarcadeMode()) {
+            // In FARCADE mode, show help button - ADD PROPER CHECKS
+            if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
+                scene.helpButton.setVisible(true);
+                scene.helpButton.setAlpha(1); // Ensure full opacity
+            }
+            if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
+                scene.helpButtonBg.setVisible(true);
+                scene.helpButtonBg.setAlpha(1); // Ensure full opacity
+            }
+            if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
+                scene.helpButtonBorder.setVisible(true);
+                scene.helpButtonBorder.setAlpha(1); // Ensure full opacity
+            }
+        } else {
+            // In normal mode, show music button - ADD PROPER CHECKS
+            if (scene.musicButton && typeof scene.musicButton.setVisible === 'function') {
+                scene.musicButton.setVisible(true);
+            }
+            if (scene.musicButtonBg && typeof scene.musicButtonBg.setVisible === 'function') {
+                scene.musicButtonBg.setVisible(true);
+            }
+            if (scene.musicButtonBorder && typeof scene.musicButtonBorder.setVisible === 'function') {
+                scene.musicButtonBorder.setVisible(true);
+            }
+        }
+    }
+};
+
+// Export levelup button manager
+window.LevelupButtonManager = LevelupButtonManager;

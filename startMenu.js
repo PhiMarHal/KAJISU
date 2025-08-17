@@ -45,15 +45,15 @@ const StartMenuSystem = {
             off: "Better for desktops"
         },
         learningChallenge: {
-            on: "Type to unlock perks. Extra XP for success",
-            off: "Select perks freely on levelup. No extra XP"
+            on: "Type to unlock perks. Gain XP for success",
+            off: "Select perks freely on lvlup. No extra EXP"
         },
         hardMode: {
             on: "Enemies spawn faster",
             off: "Normal spawn rate for enemies"
         },
         bossRush: {
-            on: "Warp to the boss fight. Trade score penalties for levelups",
+            on: "Warp to the boss fight. Trade score penalties for lvlups",
             off: "Start at the beginning"
         },
         strangeMusic: {
@@ -73,13 +73,13 @@ const StartMenuSystem = {
         const screenHeight = window.innerHeight;
         const minDimension = Math.min(screenWidth, screenHeight);
 
-        // Simple responsive scaling
-        const scaleFactor = Math.max(0.8, Math.min(1.2, minDimension / 600));
+        // Use the original scaling approach that worked perfectly
+        const scaleFactor = Math.max(0.5, Math.min(1.2, minDimension / 600));
 
         return {
-            titleSize: Math.max(24, Math.min(48, screenWidth * 0.06)), // 6% of screen width, clamped
+            titleSize: Math.floor(48 * scaleFactor),
             toggleSize: Math.floor(24 * scaleFactor),
-            infoSize: Math.floor(18 * scaleFactor),
+            infoSize: Math.floor(16 * scaleFactor),
             spacing: Math.floor(60 * scaleFactor),
             padding: Math.floor(20 * scaleFactor),
             lineSpacing: Math.floor(12 * scaleFactor)
@@ -151,7 +151,6 @@ const StartMenuSystem = {
         `;
 
         // Create title
-        const titleWidth = Math.min(600, screenWidth * 0.9); // Match other container widths
         const title = document.createElement('div');
         title.textContent = 'ENTER THE LOOP';
         title.style.cssText = `
@@ -165,10 +164,8 @@ const StartMenuSystem = {
             transition: all 0.2s ease;
             text-align: center;
             line-height: 1.1;
-            width: ${titleWidth}px;
-            max-width: 95%;
+            max-width: 90%;
             box-shadow: 0 0 0 0 #FFD700;
-            box-sizing: border-box;
         `;
 
         title.addEventListener('mouseenter', () => {

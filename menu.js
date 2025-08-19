@@ -646,7 +646,7 @@ const HealthBar = {
     }
 };
 
-// Experience bar functions with transparency
+// Experience bar, no transparency
 const ExpBar = {
     create: function (scene) {
         // Initialize relative dimensions
@@ -655,17 +655,21 @@ const ExpBar = {
         // Remove old experience bar elements if they exist
         if (scene.expBar) scene.expBar.destroy();
         if (scene.expBarBg) scene.expBarBg.destroy();
+        if (scene.expText) scene.expText.destroy();
         if (scene.levelText) scene.levelText.destroy();
         if (scene.xpNeededText) scene.xpNeededText.destroy();
 
+        // Get kajisuli scale factors - wider not thicker
         const kajisuliScaleWidth = UI.kajisuli.enabled() ? 1.5 : 1;
-        const kajisuliScaleHeight = 1;
+        const kajisuliScaleHeight = 1; // Keep the same height
 
+        // Store the scale factors for later use
         scene.expBarScales = {
             width: kajisuliScaleWidth,
             height: kajisuliScaleHeight
         };
 
+        // Get calculated dimensions
         const width = UI.expBar.width() * kajisuliScaleWidth;
         const height = UI.expBar.height() * kajisuliScaleHeight;
         const borderWidth = UI.expBar.borderWidth;
@@ -673,38 +677,40 @@ const ExpBar = {
         const centerX = UI.expBar.centerX();
         const y = UI.expBar.y();
 
-        // Create ONLY the background with transparency (separate from fill)
-        scene.expBarBg = scene.add.graphics();
-        scene.expBarBg.x = centerX;
-        scene.expBarBg.y = y;
+        // Create new container with golden border
+        scene.expBarBg = scene.add.rectangle(
+            centerX,
+            y,
+            width + (borderWidth * 2),
+            height + (borderWidth * 2),
+            UI.colors.gold
+        ).setDepth(UI.depth.ui);
 
-        // Draw transparent black fill FIRST
-        scene.expBarBg.fillStyle(UI.colors.black, 0.5);
-        scene.expBarBg.fillRect(
-            -(width / 2),
-            -(height / 2),
+        // Create inner black background
+        scene.expBarInnerBg = scene.add.rectangle(
+            centerX,
+            y,
             width,
-            height
-        );
+            height,
+            UI.colors.black
+        ).setDepth(UI.depth.ui);
 
-        // Draw ONLY border lines on top
-        scene.expBarBg.lineStyle(borderWidth, UI.colors.gold);
-        scene.expBarBg.strokeRect(
-            -(width / 2),
-            -(height / 2),
-            width,
-            height
-        );
-        scene.expBarBg.setDepth(UI.depth.ui);
+        // Calculate the starting position for the exp bar (at the left edge)
+        const startX = centerX - (width / 2) + innerMargin;
 
-        // Create SEPARATE graphics object for the exp fill
-        scene.expBar = scene.add.graphics();
-        scene.expBar.setDepth(UI.depth.ui + 1); // Above background
+        // Create the exp bar itself (initially empty)
+        scene.expBar = scene.add.rectangle(
+            startX, // Left edge
+            y,
+            0, // Initial width is 0
+            height - (innerMargin * 2),
+            UI.expBar.barColor
+        ).setOrigin(0, 0.5).setDepth(UI.depth.ui);
 
-        // Text spacing
+        // Increase spacing in kajisuli mode
         const textSpacing = UI.kajisuli.enabled() ? UI.rel.width(5) : UI.rel.width(2.5);
 
-        // Create level text
+        // Create level text to the left of the bar
         scene.levelText = scene.add.text(
             centerX - (width / 2) - textSpacing,
             y,
@@ -718,7 +724,7 @@ const ExpBar = {
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
 
-        // Create XP needed text
+        // Create XP needed text to the right of the bar
         scene.xpNeededText = scene.add.text(
             centerX + (width / 2) + textSpacing,
             y,
@@ -732,43 +738,32 @@ const ExpBar = {
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
 
-        // Store positioning info
-        scene.expBarInfo = {
-            centerX: centerX,
-            y: y,
-            width: width,
-            contentWidth: width - (innerMargin * 2),
-            contentHeight: height - (innerMargin * 2),
-            innerMargin: innerMargin
-        };
-
         // Initial update
         this.update(scene);
     },
 
     update: function (scene) {
-        if (!scene.expBar || !scene.levelText || !scene.xpNeededText || !scene.expBarInfo) return;
+        // If elements don't exist yet, exit
+        if (!scene.expBar || !scene.levelText || !scene.xpNeededText) return;
 
-        const { centerX, y, width, contentWidth, contentHeight, innerMargin } = scene.expBarInfo;
+        // Get scale factors
+        const kajisuliScaleWidth = scene.expBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
+
+        // Get width with scaling
+        const width = UI.expBar.width() * kajisuliScaleWidth;
+        const innerMargin = UI.expBar.innerMargin;
+        const contentWidth = width - (innerMargin * 2);
 
         // Calculate experience percentage
         const expPercentage = Math.max(0, Math.min(1, heroExp / xpForNextLevel(playerLevel)));
 
-        // Clear and redraw the exp bar fill on SEPARATE graphics object
-        scene.expBar.clear();
-        if (expPercentage > 0) {
-            const startX = centerX - (width / 2) + innerMargin;
-            scene.expBar.fillStyle(UI.expBar.barColor, 1.0); // FULL opacity for blue fill!
-            scene.expBar.fillRect(
-                startX,
-                y - contentHeight / 2,
-                expPercentage * contentWidth,
-                contentHeight
-            );
-        }
+        // Set the width of the exp bar based on percentage
+        scene.expBar.width = expPercentage * contentWidth;
 
-        // Update texts
+        // Update the level text
         scene.levelText.setText(`${playerLevel}`);
+
+        // Calculate and update the XP REMAINING text with formatting for large numbers
         const xpRemaining = xpForNextLevel(playerLevel) - heroExp;
         scene.xpNeededText.setText(formatLargeNumber(xpRemaining));
     }

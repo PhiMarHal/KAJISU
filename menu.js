@@ -185,6 +185,23 @@ const UI = {
             fontSize: function () {
                 return UI.buttons.common.fontSize() * 0.7; // Slightly smaller for "UP" text
             }
+        },
+
+        // Resume button configuration (for pause screen)
+        resume: {
+            symbol: "続", // Kanji for "continue"
+            x: function () {
+                return UI.game.getWidth() / 2; // Center horizontally
+            },
+            y: function () {
+                return UI.game.getHeight() * 0.875; // Same position as old resume button
+            },
+            fontSize: function () {
+                return UI.buttons.common.fontSize() * 1.2; // Slightly larger for resume
+            },
+            size: function () {
+                return UI.buttons.common.size() * 1.5; // Larger hexagon for resume
+            }
         }
     },
 
@@ -269,7 +286,7 @@ const ButtonDisplay = {
         // Create pause button text
         scene.pauseButtonText = scene.add.text(
             pauseConfig.x(),
-            pauseConfig.y() - 2, // Adjusted for better centering
+            pauseConfig.y(), // Adjusted for better centering
             pauseConfig.symbol,
             {
                 fontFamily: 'Arial',
@@ -319,7 +336,7 @@ const ButtonDisplay = {
 
         scene.musicButtonText = scene.add.text(
             musicConfig.x(),
-            musicConfig.y() - 2, // Adjusted for better centering
+            musicConfig.y(), // Adjusted for better centering
             initialSymbol,
             {
                 fontFamily: 'Arial',
@@ -379,7 +396,7 @@ const ButtonDisplay = {
             // Create levelup button text
             scene.levelupButtonText = scene.add.text(
                 levelupConfig.x(),
-                levelupConfig.y() - 2, // Adjusted for better centering
+                levelupConfig.y(), // Adjusted for better centering
                 levelupConfig.symbol,
                 {
                     fontFamily: 'Arial',
@@ -425,6 +442,86 @@ const ButtonDisplay = {
         this.update(scene);
     },
 
+    // Create a single button (for use by other systems like pause screen)
+    createButton: function (scene, buttonType, onClickCallback, options = {}) {
+        // Initialize relative dimensions if not already done
+        UI.game.init(scene);
+
+        // Get button configuration
+        const buttonConfig = UI.buttons[buttonType];
+        if (!buttonConfig) {
+            console.error(`Unknown button type: ${buttonType}`);
+            return null;
+        }
+
+        // Set up default options
+        const defaults = {
+            depth: 1002,
+            visible: true,
+            size: buttonConfig.size ? buttonConfig.size() : UI.buttons.common.size() * 1.32
+        };
+        const config = { ...defaults, ...options };
+
+        // Create hexagon
+        const hexagon = createHexagon(
+            scene,
+            buttonConfig.x(),
+            buttonConfig.y(),
+            config.size,
+            0x000000,
+            0.5
+        );
+        hexagon.setDepth(config.depth - 1);
+        hexagon.setVisible(config.visible);
+
+        // Create button text
+        const buttonText = scene.add.text(
+            buttonConfig.x(),
+            buttonConfig.y(),
+            buttonConfig.symbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: `${buttonConfig.fontSize()}px`,
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(config.depth);
+        buttonText.setVisible(config.visible);
+
+        // Make interactive
+        buttonText.setInteractive({ useHandCursor: true });
+
+        // Add hover effects
+        buttonText.on('pointerover', function () {
+            this.setColor('#ffff00'); // Yellow on hover
+            this.setScale(1.1);
+        });
+
+        buttonText.on('pointerout', function () {
+            this.setColor('#ffffff'); // White normally
+            this.setScale(1);
+        });
+
+        // Add click handler
+        if (onClickCallback) {
+            buttonText.on('pointerdown', onClickCallback);
+        }
+
+        // Return both elements so they can be managed together
+        return {
+            hexagon: hexagon,
+            text: buttonText,
+            setVisible: function (visible) {
+                hexagon.setVisible(visible);
+                buttonText.setVisible(visible);
+            },
+            destroy: function () {
+                if (hexagon) hexagon.destroy();
+                if (buttonText) buttonText.destroy();
+            }
+        };
+    },
+
     update: function (scene) {
         // Update button positions and visibility (similar to original)
         const pauseConfig = UI.buttons.pause;
@@ -435,7 +532,7 @@ const ButtonDisplay = {
         if (scene.pauseHexagon && scene.pauseButtonText) {
             scene.pauseHexagon.x = pauseConfig.x();
             scene.pauseHexagon.y = pauseConfig.y();
-            scene.pauseButtonText.setPosition(pauseConfig.x(), pauseConfig.y() - 2);
+            scene.pauseButtonText.setPosition(pauseConfig.x(), pauseConfig.y());
         }
 
         // Update music button position and visibility
@@ -456,7 +553,7 @@ const ButtonDisplay = {
 
                 scene.musicHexagon.x = musicConfig.x();
                 scene.musicHexagon.y = musicConfig.y();
-                scene.musicButtonText.setPosition(musicConfig.x(), musicConfig.y() - 2);
+                scene.musicButtonText.setPosition(musicConfig.x(), musicConfig.y());
 
                 // Update music button symbol if MusicSystem is available
                 if (window.MusicSystem) {
@@ -471,7 +568,7 @@ const ButtonDisplay = {
         if (scene.levelupHexagon && scene.levelupButtonText) {
             scene.levelupHexagon.x = levelupConfig.x();
             scene.levelupHexagon.y = levelupConfig.y();
-            scene.levelupButtonText.setPosition(levelupConfig.x(), levelupConfig.y() - 2);
+            scene.levelupButtonText.setPosition(levelupConfig.x(), levelupConfig.y());
         }
     }
 };
@@ -1069,27 +1166,29 @@ const StatDisplay = {
             // Create the symbol text (background, semi-transparent)
             const symbolText = scene.add.text(
                 x,
-                y - 2, // Slightly up for better centering
+                y, // Slightly up for better centering
                 UI.statDisplay.symbols[stat],
                 {
                     fontFamily: 'Arial',
-                    fontSize: UI.statDisplay.fontSize(),
+                    fontSize: UI.statDisplay.fontSize() * 1.25,
                     color: UI.statDisplay.symbolColors[stat]
                 }
             ).setOrigin(0.5).setDepth(UI.depth.ui);
-            symbolText.setAlpha(0.8); // Higher opacity for kanji
+            symbolText.setAlpha(0.5); // Higher opacity for kanji
 
             // Create the value text (foreground, full opacity, same position)
             const valueText = scene.add.text(
                 x,
-                y - 2, // Same position as symbol
+                y, // Same position as symbol
                 "0",
                 {
                     fontFamily: 'Arial',
                     fontSize: UI.fonts.stats.size(),
-                    color: UI.fonts.stats.color
+                    color: UI.fonts.stats.color,
+                    stroke: '#000000',        // Black stroke
+                    strokeThickness: 4,
                 }
-            ).setOrigin(0.5).setDepth(UI.depth.ui + 1); // Higher depth so it's in front
+            ).setOrigin(0.5).setDepth(UI.depth.ui + 1);
 
             // Make hexagon interactive for hover effects
             const hitArea = new Phaser.Geom.Rectangle(-size / 2, -size * 0.433, size, size * 0.866);
@@ -1201,6 +1300,9 @@ window.GameUI = {
     updateButtons: ButtonDisplay.update,
     resize: resizeUI
 };
+
+// Export ButtonDisplay for use by other systems
+window.ButtonDisplay = ButtonDisplay;
 
 // Game End Menu System for Word Survivors
 // Manages both victory and defeat end screens

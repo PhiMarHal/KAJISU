@@ -413,6 +413,68 @@ const HelpSystem = {
 // Export the help system
 window.HelpSystem = HelpSystem;
 
+// Helper function to create hexagon (import from menu.js logic)
+function createHexagonButton(scene, x, y, size, fillColor = 0x000000, fillAlpha = 0.5) {
+    const graphics = scene.add.graphics();
+
+    // Calculate hexagon points - make it narrower (same as menu.js)
+    const width = size * 0.85; // Reduced width
+    const height = size * 0.866; // Proper hexagon aspect ratio
+
+    // Hexagon vertices (pointy-top orientation)
+    const points = [
+        { x: 0, y: -height / 2 },           // Top
+        { x: width / 2, y: -height / 4 },     // Top-right
+        { x: width / 2, y: height / 4 },      // Bottom-right
+        { x: 0, y: height / 2 },            // Bottom
+        { x: -width / 2, y: height / 4 },     // Bottom-left
+        { x: -width / 2, y: -height / 4 }     // Top-left
+    ];
+
+    // Position the graphics at the center
+    graphics.x = x;
+    graphics.y = y;
+
+    // Draw filled hexagon
+    graphics.fillStyle(fillColor, fillAlpha);
+    graphics.beginPath();
+    graphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        graphics.lineTo(points[i].x, points[i].y);
+    }
+    graphics.closePath();
+    graphics.fillPath();
+
+    // Draw the 4 L borders (left + bottom-left + right + top-right)
+    graphics.lineStyle(3, 0xFFD700);
+
+    // Left side (bottom-left point to top-left point)
+    graphics.beginPath();
+    graphics.moveTo(points[4].x, points[4].y);
+    graphics.lineTo(points[5].x, points[5].y);
+    graphics.strokePath();
+
+    // Bottom-left side (bottom point to bottom-left point)
+    graphics.beginPath();
+    graphics.moveTo(points[3].x, points[3].y);
+    graphics.lineTo(points[4].x, points[4].y);
+    graphics.strokePath();
+
+    // Right side (top-right point to bottom-right point)
+    graphics.beginPath();
+    graphics.moveTo(points[1].x, points[1].y);
+    graphics.lineTo(points[2].x, points[2].y);
+    graphics.strokePath();
+
+    // Top-right side (top point to top-right point)
+    graphics.beginPath();
+    graphics.moveTo(points[0].x, points[0].y);
+    graphics.lineTo(points[1].x, points[1].y);
+    graphics.strokePath();
+
+    return graphics;
+}
+
 // Add help button management to ButtonDisplay
 const HelpButtonManager = {
     // Check if we're in Farcade mode (would be detected by mergeMinify.js)
@@ -437,62 +499,57 @@ const HelpButtonManager = {
         }
     },
 
-    // Create help button elements
+    // Create help button elements using hexagon
     createHelpButton: function (scene) {
         const position = this.getButtonPosition();
 
-        // Match the actual size used by pause/music buttons
-        // UI.buttons.common.size() = UI.rel.height(5) = 5% of screen height
-        // In KAJISULI mode (1280px height): 5% = 64px
-        // In normal mode (800px height): 5% = 40px
-        const buttonSize = Math.floor(game.config.height * 0.05); // 5% of screen height
-        const borderWidth = 2; // UI.buttons.common.borderWidth
-        const fontSize = Math.floor(buttonSize * 0.6); // 60% of button size (same as commonConfig.fontSize)
+        // Use the same size calculation as other buttons in menu.js
+        const buttonSize = UI.buttons.common.size() * 1.32; // Same scaling as other hexagons
+        const fontSize = UI.buttons.common.fontSize(); // Same font size calculation
 
-        // Create help button background and border (same style as other buttons)
-        scene.helpButtonBorder = scene.add.rectangle(
-            position.x,
-            position.y,
-            buttonSize + (borderWidth * 2),
-            buttonSize + (borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(2001).setAlpha(1); // High depth to stay above pause overlays
-
-        scene.helpButtonBg = scene.add.rectangle(
+        // Create hexagonal help button
+        scene.helpButtonHexagon = createHexagonButton(
+            scene,
             position.x,
             position.y,
             buttonSize,
-            buttonSize,
-            UI.colors.black
-        ).setDepth(2001).setAlpha(1); // High depth to stay above pause overlays
+            0x000000,
+            0.5  // 50% opacity so game elements show through
+        );
+        scene.helpButtonHexagon.setDepth(2001); // High depth to stay above pause overlays
 
-        // Create help button with ? symbol - use same font size calculation as other buttons
-        scene.helpButton = scene.add.text(
+        // Create help button text with ? symbol
+        scene.helpButtonText = scene.add.text(
             position.x,
             position.y,
             '?',
             {
                 fontFamily: 'Arial',
-                fontSize: `${fontSize}px`, // 60% of button size, same as other buttons
+                fontSize: `${fontSize}px`,
                 color: '#ffffff',
                 fontStyle: 'bold'
             }
-        ).setOrigin(0.5).setDepth(2001).setAlpha(1); // High depth to stay above pause overlays
+        ).setOrigin(0.5).setDepth(2001);
 
-        // Make help button interactive - use the border for larger click area
-        scene.helpButtonBorder.setInteractive({ useHandCursor: true });
+        // Make help button interactive using the hexagon (same pattern as menu.js)
+        const hitAreaRadius = buttonSize * 0.6; // Circular hit area that fits within hexagon
+        scene.helpButtonHexagon.setInteractive(
+            new Phaser.Geom.Circle(0, 0, hitAreaRadius),
+            Phaser.Geom.Circle.Contains,
+            { useHandCursor: true }
+        );
 
-        scene.helpButtonBorder.on('pointerover', function () {
-            scene.helpButton.setColor('#ffff00'); // Yellow on hover
-            scene.helpButton.setScale(1.1);
+        scene.helpButtonHexagon.on('pointerover', function () {
+            scene.helpButtonText.setColor('#ffff00'); // Yellow on hover
+            scene.helpButtonText.setScale(1.1);
         });
 
-        scene.helpButtonBorder.on('pointerout', function () {
-            scene.helpButton.setColor('#ffffff'); // White normally
-            scene.helpButton.setScale(1);
+        scene.helpButtonHexagon.on('pointerout', function () {
+            scene.helpButtonText.setColor('#ffffff'); // White normally
+            scene.helpButtonText.setScale(1);
         });
 
-        scene.helpButtonBorder.on('pointerdown', function () {
+        scene.helpButtonHexagon.on('pointerdown', function () {
             // Toggle the help screen
             if (HelpSystem.elements.container && HelpSystem.elements.container.visible) {
                 HelpSystem.hide();
@@ -502,65 +559,42 @@ const HelpButtonManager = {
         });
     },
 
-    // Show help button (hide pause if needed) - FIXED VERSION
+    // Show help button (hide pause if needed)
     showHelpButton: function (scene) {
         if (!this.isFarcadeMode()) {
-            // In normal mode, hide pause button elements - ADD PROPER CHECKS
-            if (scene.pauseButton && typeof scene.pauseButton.setVisible === 'function') {
-                scene.pauseButton.setVisible(false);
-            }
-            if (scene.pauseButtonBg && typeof scene.pauseButtonBg.setVisible === 'function') {
-                scene.pauseButtonBg.setVisible(false);
-            }
-            if (scene.pauseButtonBorder && typeof scene.pauseButtonBorder.setVisible === 'function') {
-                scene.pauseButtonBorder.setVisible(false);
-            }
+            // In normal mode, hide pause button elements
+            if (scene.pauseHexagon) scene.pauseHexagon.setVisible(false);
+            if (scene.pauseButtonText) scene.pauseButtonText.setVisible(false);
         }
 
-        // Show help button elements and ensure they're not darkened - ADD PROPER CHECKS
-        if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
-            scene.helpButton.setVisible(true);
-            scene.helpButton.setDepth(2001); // Higher than help screen container
-            scene.helpButton.setAlpha(1); // Ensure full opacity
+        // Show help button elements
+        if (scene.helpButtonHexagon) {
+            scene.helpButtonHexagon.setVisible(true);
+            scene.helpButtonHexagon.setDepth(2001);
+            scene.helpButtonHexagon.setAlpha(1);
         }
-        if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
-            scene.helpButtonBg.setVisible(true);
-            scene.helpButtonBg.setDepth(2001); // Higher than help screen container
-            scene.helpButtonBg.setAlpha(1); // Ensure full opacity
-        }
-        if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
-            scene.helpButtonBorder.setVisible(true);
-            scene.helpButtonBorder.setDepth(2001); // Higher than help screen container
-            scene.helpButtonBorder.setAlpha(1); // Ensure full opacity
+        if (scene.helpButtonText) {
+            scene.helpButtonText.setVisible(true);
+            scene.helpButtonText.setDepth(2001);
+            scene.helpButtonText.setAlpha(1);
         }
     },
 
-    // Show pause button (hide help if needed) - FIXED VERSION
+    // Show pause button (hide help if needed)
     showPauseButton: function (scene) {
         if (!this.isFarcadeMode()) {
-            // In normal mode, hide help button elements - ADD PROPER CHECKS
-            if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
-                scene.helpButton.setVisible(false);
-            }
-            if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
-                scene.helpButtonBg.setVisible(false);
-            }
-            if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
-                scene.helpButtonBorder.setVisible(false);
-            }
+            // In normal mode, hide help button elements
+            if (scene.helpButtonHexagon) scene.helpButtonHexagon.setVisible(false);
+            if (scene.helpButtonText) scene.helpButtonText.setVisible(false);
 
-            // Show pause button elements - ADD PROPER CHECKS
-            if (scene.pauseButton && typeof scene.pauseButton.setVisible === 'function') {
-                scene.pauseButton.setVisible(true);
-                scene.pauseButton.setAlpha(1); // Ensure full opacity
+            // Show pause button elements
+            if (scene.pauseHexagon) {
+                scene.pauseHexagon.setVisible(true);
+                scene.pauseHexagon.setAlpha(1);
             }
-            if (scene.pauseButtonBg && typeof scene.pauseButtonBg.setVisible === 'function') {
-                scene.pauseButtonBg.setVisible(true);
-                scene.pauseButtonBg.setAlpha(1); // Ensure full opacity
-            }
-            if (scene.pauseButtonBorder && typeof scene.pauseButtonBorder.setVisible === 'function') {
-                scene.pauseButtonBorder.setVisible(true);
-                scene.pauseButtonBorder.setAlpha(1); // Ensure full opacity
+            if (scene.pauseButtonText) {
+                scene.pauseButtonText.setVisible(true);
+                scene.pauseButtonText.setAlpha(1);
             }
         }
         // In Farcade mode, help button stays visible and pause button doesn't exist
@@ -570,10 +604,10 @@ const HelpButtonManager = {
     updatePosition: function (scene) {
         const position = this.getButtonPosition();
 
-        if (scene.helpButton && scene.helpButtonBg && scene.helpButtonBorder) {
-            scene.helpButton.setPosition(position.x, position.y);
-            scene.helpButtonBg.setPosition(position.x, position.y);
-            scene.helpButtonBorder.setPosition(position.x, position.y);
+        if (scene.helpButtonText && scene.helpButtonHexagon) {
+            scene.helpButtonText.setPosition(position.x, position.y);
+            scene.helpButtonHexagon.x = position.x;
+            scene.helpButtonHexagon.y = position.y;
         }
     }
 };
@@ -590,9 +624,8 @@ const ButtonStateManager = {
             // In Boss Rush mode, we need both help and pause buttons (for switching)
             if (!HelpButtonManager.isFarcadeMode()) {
                 // Clean up any existing help button from start screen
-                if (scene.helpButton) scene.helpButton.destroy();
-                if (scene.helpButtonBg) scene.helpButtonBg.destroy();
-                if (scene.helpButtonBorder) scene.helpButtonBorder.destroy();
+                if (scene.helpButtonHexagon) scene.helpButtonHexagon.destroy();
+                if (scene.helpButtonText) scene.helpButtonText.destroy();
 
                 // Create help button (will be hidden initially)
                 HelpButtonManager.createHelpButton(scene);
@@ -610,9 +643,8 @@ const ButtonStateManager = {
         } else {
             // Normal mode (no Boss Rush, no FARCADE)
             // Clean up any existing help button from start screen
-            if (scene.helpButton) scene.helpButton.destroy();
-            if (scene.helpButtonBg) scene.helpButtonBg.destroy();
-            if (scene.helpButtonBorder) scene.helpButtonBorder.destroy();
+            if (scene.helpButtonHexagon) scene.helpButtonHexagon.destroy();
+            if (scene.helpButtonText) scene.helpButtonText.destroy();
 
             // Create new help button in the game scene
             HelpButtonManager.createHelpButton(scene);
@@ -676,84 +708,48 @@ const LevelupButtonManager = {
     showLevelupButton: function (scene) {
         if (!this.isBossRushMode()) return;
 
-        // Hide music button elements - ADD PROPER CHECKS
-        if (scene.musicButton && typeof scene.musicButton.setVisible === 'function') {
-            scene.musicButton.setVisible(false);
-        }
-        if (scene.musicButtonBg && typeof scene.musicButtonBg.setVisible === 'function') {
-            scene.musicButtonBg.setVisible(false);
-        }
-        if (scene.musicButtonBorder && typeof scene.musicButtonBorder.setVisible === 'function') {
-            scene.musicButtonBorder.setVisible(false);
-        }
+        // Hide music button elements (hexagon version)
+        if (scene.musicHexagon) scene.musicHexagon.setVisible(false);
+        if (scene.musicButtonText) scene.musicButtonText.setVisible(false);
 
-        // Hide help button elements if they're in the music position (FARCADE mode) - ADD PROPER CHECKS
+        // Hide help button elements if they're in the music position (FARCADE mode)
         if (HelpButtonManager.isFarcadeMode()) {
-            if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
-                scene.helpButton.setVisible(false);
-            }
-            if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
-                scene.helpButtonBg.setVisible(false);
-            }
-            if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
-                scene.helpButtonBorder.setVisible(false);
-            }
+            if (scene.helpButtonHexagon) scene.helpButtonHexagon.setVisible(false);
+            if (scene.helpButtonText) scene.helpButtonText.setVisible(false);
         }
 
-        // Show levelup button elements - ADD PROPER CHECKS
-        if (scene.levelupButton && typeof scene.levelupButton.setVisible === 'function') {
-            scene.levelupButton.setVisible(true);
-            scene.levelupButton.setAlpha(1); // Ensure full opacity
+        // Show levelup button elements (hexagon version)
+        if (scene.levelupHexagon) {
+            scene.levelupHexagon.setVisible(true);
+            scene.levelupHexagon.setAlpha(1);
         }
-        if (scene.levelupButtonBg && typeof scene.levelupButtonBg.setVisible === 'function') {
-            scene.levelupButtonBg.setVisible(true);
-            scene.levelupButtonBg.setAlpha(1); // Ensure full opacity
-        }
-        if (scene.levelupButtonBorder && typeof scene.levelupButtonBorder.setVisible === 'function') {
-            scene.levelupButtonBorder.setVisible(true);
-            scene.levelupButtonBorder.setAlpha(1); // Ensure full opacity
+        if (scene.levelupButtonText) {
+            scene.levelupButtonText.setVisible(true);
+            scene.levelupButtonText.setAlpha(1);
         }
     },
 
     // Hide levelup button (show music/help buttons in bottom right)
     hideLevelupButton: function (scene) {
-        // Hide levelup button elements - ADD PROPER CHECKS
-        if (scene.levelupButton && typeof scene.levelupButton.setVisible === 'function') {
-            scene.levelupButton.setVisible(false);
-        }
-        if (scene.levelupButtonBg && typeof scene.levelupButtonBg.setVisible === 'function') {
-            scene.levelupButtonBg.setVisible(false);
-        }
-        if (scene.levelupButtonBorder && typeof scene.levelupButtonBorder.setVisible === 'function') {
-            scene.levelupButtonBorder.setVisible(false);
-        }
+        // Hide levelup button elements (hexagon version)
+        if (scene.levelupHexagon) scene.levelupHexagon.setVisible(false);
+        if (scene.levelupButtonText) scene.levelupButtonText.setVisible(false);
 
         // Show appropriate button for bottom right corner
         if (HelpButtonManager.isFarcadeMode()) {
-            // In FARCADE mode, show help button - ADD PROPER CHECKS
-            if (scene.helpButton && typeof scene.helpButton.setVisible === 'function') {
-                scene.helpButton.setVisible(true);
-                scene.helpButton.setAlpha(1); // Ensure full opacity
+            // In FARCADE mode, show help button
+            if (scene.helpButtonHexagon) {
+                scene.helpButtonHexagon.setVisible(true);
+                scene.helpButtonHexagon.setAlpha(1);
             }
-            if (scene.helpButtonBg && typeof scene.helpButtonBg.setVisible === 'function') {
-                scene.helpButtonBg.setVisible(true);
-                scene.helpButtonBg.setAlpha(1); // Ensure full opacity
-            }
-            if (scene.helpButtonBorder && typeof scene.helpButtonBorder.setVisible === 'function') {
-                scene.helpButtonBorder.setVisible(true);
-                scene.helpButtonBorder.setAlpha(1); // Ensure full opacity
+            if (scene.helpButtonText) {
+                scene.helpButtonText.setVisible(true);
+                scene.helpButtonText.setAlpha(1);
             }
         } else {
-            // In normal mode, show music button - ADD PROPER CHECKS
-            if (scene.musicButton && typeof scene.musicButton.setVisible === 'function') {
-                scene.musicButton.setVisible(true);
-            }
-            if (scene.musicButtonBg && typeof scene.musicButtonBg.setVisible === 'function') {
-                scene.musicButtonBg.setVisible(true);
-            }
-            if (scene.musicButtonBorder && typeof scene.musicButtonBorder.setVisible === 'function') {
-                scene.musicButtonBorder.setVisible(true);
-            }
+            // In normal mode, show music button
+            if (scene.musicHexagon) scene.musicHexagon.setVisible(true);
+            if (scene.musicButtonText) scene.musicButtonText.setVisible(true);
         }
     }
 };

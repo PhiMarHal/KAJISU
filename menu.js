@@ -231,22 +231,21 @@ const UI = {
     }
 };
 
-// Button display functions
 const ButtonDisplay = {
     create: function (scene) {
         // Initialize relative dimensions
         UI.game.init(scene);
 
-        // Clean up existing buttons and backgrounds
-        if (scene.pauseButton) scene.pauseButton.destroy();
-        if (scene.pauseButtonBg) scene.pauseButtonBg.destroy();
-        if (scene.pauseButtonBorder) scene.pauseButtonBorder.destroy();
-        if (scene.musicButton) scene.musicButton.destroy();
-        if (scene.musicButtonBg) scene.musicButtonBg.destroy();
-        if (scene.musicButtonBorder) scene.musicButtonBorder.destroy();
-        if (scene.levelupButton) scene.levelupButton.destroy();
-        if (scene.levelupButtonBg) scene.levelupButtonBg.destroy();
-        if (scene.levelupButtonBorder) scene.levelupButtonBorder.destroy();
+        // Clean up existing buttons and hit areas
+        if (scene.pauseHexagon) scene.pauseHexagon.destroy();
+        if (scene.pauseButtonText) scene.pauseButtonText.destroy();
+        if (scene.pauseHitArea) scene.pauseHitArea.destroy();
+        if (scene.musicHexagon) scene.musicHexagon.destroy();
+        if (scene.musicButtonText) scene.musicButtonText.destroy();
+        if (scene.musicHitArea) scene.musicHitArea.destroy();
+        if (scene.levelupHexagon) scene.levelupHexagon.destroy();
+        if (scene.levelupButtonText) scene.levelupButtonText.destroy();
+        if (scene.levelupHitArea) scene.levelupHitArea.destroy();
 
         // Get button configurations
         const pauseConfig = UI.buttons.pause;
@@ -254,27 +253,23 @@ const ButtonDisplay = {
         const levelupConfig = UI.buttons.levelup;
         const commonConfig = UI.buttons.common;
 
-        // Create pause button background and border
-        scene.pauseButtonBorder = scene.add.rectangle(
-            pauseConfig.x(),
-            pauseConfig.y(),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(2001);
+        const hexSize = commonConfig.size() * 1.32; // Even bigger hexagons (110% of previous)
 
-        scene.pauseButtonBg = scene.add.rectangle(
+        // Create pause button hexagon
+        scene.pauseHexagon = createHexagon(
+            scene,
             pauseConfig.x(),
             pauseConfig.y(),
-            commonConfig.size(),
-            commonConfig.size(),
-            UI.colors.black
-        ).setDepth(2001);
+            hexSize,
+            0x000000,
+            0.5  // 50% opacity so game elements show through
+        );
+        scene.pauseHexagon.setDepth(2001);
 
-        // Create pause button
-        scene.pauseButton = scene.add.text(
+        // Create pause button text
+        scene.pauseButtonText = scene.add.text(
             pauseConfig.x(),
-            pauseConfig.y(),
+            pauseConfig.y() - 2, // Adjusted for better centering
             pauseConfig.symbol,
             {
                 fontFamily: 'Arial',
@@ -284,20 +279,20 @@ const ButtonDisplay = {
             }
         ).setOrigin(0.5).setDepth(2001);
 
-        // Make pause button interactive
-        scene.pauseButtonBorder.setInteractive({ useHandCursor: true });
+        // Create pause button hit area - use the button text as the interactive element
+        scene.pauseButtonText.setInteractive({ useHandCursor: true });
 
-        scene.pauseButtonBorder.on('pointerover', function () {
-            scene.pauseButton.setColor('#ffff00'); // Yellow on hover
-            scene.pauseButton.setScale(1.1);
+        scene.pauseButtonText.on('pointerover', function () {
+            this.setColor('#ffff00'); // Yellow on hover
+            this.setScale(1.1);
         });
 
-        scene.pauseButtonBorder.on('pointerout', function () {
-            scene.pauseButton.setColor('#ffffff'); // White normally
-            scene.pauseButton.setScale(1);
+        scene.pauseButtonText.on('pointerout', function () {
+            this.setColor('#ffffff'); // White normally
+            this.setScale(1);
         });
 
-        scene.pauseButtonBorder.on('pointerdown', function () {
+        scene.pauseButtonText.on('pointerdown', function () {
             if (!gameOver) {
                 if (gamePaused) {
                     PauseSystem.resumeGame();
@@ -307,30 +302,24 @@ const ButtonDisplay = {
             }
         });
 
-        // Create music button background and border
-        scene.musicButtonBorder = scene.add.rectangle(
+        // Create music button hexagon
+        scene.musicHexagon = createHexagon(
+            scene,
             musicConfig.x(),
             musicConfig.y(),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(2001);
+            hexSize,
+            0x000000,
+            0.5  // 50% opacity so game elements show through
+        );
+        scene.musicHexagon.setDepth(2001);
 
-        scene.musicButtonBg = scene.add.rectangle(
-            musicConfig.x(),
-            musicConfig.y(),
-            commonConfig.size(),
-            commonConfig.size(),
-            UI.colors.black
-        ).setDepth(2001);
-
-        // Create music button
+        // Create music button text
         const initialSymbol = (window.MusicSystem && window.MusicSystem.musicEnabled) ?
             musicConfig.symbol : musicConfig.mutedSymbol;
 
-        scene.musicButton = scene.add.text(
+        scene.musicButtonText = scene.add.text(
             musicConfig.x(),
-            musicConfig.y(),
+            musicConfig.y() - 2, // Adjusted for better centering
             initialSymbol,
             {
                 fontFamily: 'Arial',
@@ -340,20 +329,20 @@ const ButtonDisplay = {
             }
         ).setOrigin(0.5).setDepth(2001);
 
-        // Make music button interactive
-        scene.musicButtonBorder.setInteractive({ useHandCursor: true });
+        // Create music button hit area - use the button text as the interactive element
+        scene.musicButtonText.setInteractive({ useHandCursor: true });
 
-        scene.musicButtonBorder.on('pointerover', function () {
-            scene.musicButton.setColor('#ffff00'); // Yellow on hover
-            scene.musicButton.setScale(1.1);
+        scene.musicButtonText.on('pointerover', function () {
+            this.setColor('#ffff00'); // Yellow on hover
+            this.setScale(1.1);
         });
 
-        scene.musicButtonBorder.on('pointerout', function () {
-            scene.musicButton.setColor('#ffffff'); // White normally
-            scene.musicButton.setScale(1);
+        scene.musicButtonText.on('pointerout', function () {
+            this.setColor('#ffffff'); // White normally
+            this.setScale(1);
         });
 
-        scene.musicButtonBorder.on('pointerdown', function () {
+        scene.musicButtonText.on('pointerdown', function () {
             if (window.MusicSystem) {
                 // Toggle music state
                 const newState = !window.MusicSystem.musicEnabled;
@@ -361,43 +350,36 @@ const ButtonDisplay = {
 
                 // Update button symbol to show new state immediately
                 const symbol = newState ? musicConfig.symbol : musicConfig.mutedSymbol;
-                scene.musicButton.setText(symbol);
+                this.setText(symbol);
 
                 console.log(`Music ${newState ? 'enabled' : 'disabled'}`);
             }
         });
 
-        // ADDED: Handle Farcade mode - hide music button after it's created
+        // Handle Farcade mode - hide music button after it's created
         if (window.FARCADE_MODE) {
-            scene.musicButton.setVisible(false);
-            scene.musicButtonBg.setVisible(false);
-            scene.musicButtonBorder.setVisible(false);
+            scene.musicHexagon.setVisible(false);
+            scene.musicButtonText.setVisible(false);
             console.log("Music button hidden for Farcade deployment");
         }
 
         // Only create levelup button if Boss Rush mode is enabled
         if (window.BOSS_RUSH_MODE) {
-            // Create levelup button background and border
-            scene.levelupButtonBorder = scene.add.rectangle(
+            // Create levelup button hexagon
+            scene.levelupHexagon = createHexagon(
+                scene,
                 levelupConfig.x(),
                 levelupConfig.y(),
-                commonConfig.size() + (commonConfig.borderWidth * 2),
-                commonConfig.size() + (commonConfig.borderWidth * 2),
-                UI.colors.gold
-            ).setDepth(UI.depth.ui);
+                hexSize,
+                0x000000,
+                0.5  // 50% opacity so game elements show through
+            );
+            scene.levelupHexagon.setDepth(2001);
 
-            scene.levelupButtonBg = scene.add.rectangle(
+            // Create levelup button text
+            scene.levelupButtonText = scene.add.text(
                 levelupConfig.x(),
-                levelupConfig.y(),
-                commonConfig.size(),
-                commonConfig.size(),
-                UI.colors.black
-            ).setDepth(UI.depth.ui);
-
-            // Create levelup button
-            scene.levelupButton = scene.add.text(
-                levelupConfig.x(),
-                levelupConfig.y(),
+                levelupConfig.y() - 2, // Adjusted for better centering
                 levelupConfig.symbol,
                 {
                     fontFamily: 'Arial',
@@ -407,20 +389,20 @@ const ButtonDisplay = {
                 }
             ).setOrigin(0.5).setDepth(2001);
 
-            // Make levelup button interactive
-            scene.levelupButtonBorder.setInteractive({ useHandCursor: true });
+            // Create levelup button hit area - use the button text as the interactive element
+            scene.levelupButtonText.setInteractive({ useHandCursor: true });
 
-            scene.levelupButtonBorder.on('pointerover', function () {
-                scene.levelupButton.setColor('#ffff00'); // Yellow on hover
-                scene.levelupButton.setScale(1.1);
+            scene.levelupButtonText.on('pointerover', function () {
+                this.setColor('#ffff00'); // Yellow on hover
+                this.setScale(1.1);
             });
 
-            scene.levelupButtonBorder.on('pointerout', function () {
-                scene.levelupButton.setColor('#ffffff'); // White normally
-                scene.levelupButton.setScale(1);
+            scene.levelupButtonText.on('pointerout', function () {
+                this.setColor('#ffffff'); // White normally
+                this.setScale(1);
             });
 
-            scene.levelupButtonBorder.on('pointerdown', function () {
+            scene.levelupButtonText.on('pointerdown', function () {
                 if (!gamePaused && !gameOver && window.BOSS_RUSH_MODE) {
                     // Apply penalty if the function exists
                     if (window.applyFreeLeveUpPenalty) {
@@ -444,55 +426,52 @@ const ButtonDisplay = {
     },
 
     update: function (scene) {
-        // Update button positions (useful for dynamic resizing)
+        // Update button positions and visibility (similar to original)
         const pauseConfig = UI.buttons.pause;
         const musicConfig = UI.buttons.music;
         const levelupConfig = UI.buttons.levelup;
 
         // Update pause button position
-        if (scene.pauseButton && scene.pauseButtonBg && scene.pauseButtonBorder) {
-            scene.pauseButton.setPosition(pauseConfig.x(), pauseConfig.y());
-            scene.pauseButtonBg.setPosition(pauseConfig.x(), pauseConfig.y());
-            scene.pauseButtonBorder.setPosition(pauseConfig.x(), pauseConfig.y());
+        if (scene.pauseHexagon && scene.pauseButtonText) {
+            scene.pauseHexagon.x = pauseConfig.x();
+            scene.pauseHexagon.y = pauseConfig.y();
+            scene.pauseButtonText.setPosition(pauseConfig.x(), pauseConfig.y() - 2);
         }
 
         // Update music button position and visibility
-        if (scene.musicButton && scene.musicButtonBg && scene.musicButtonBorder) {
+        if (scene.musicHexagon && scene.musicButtonText) {
             // Handle special visibility rules for Boss Rush mode
             if (window.BOSS_RUSH_MODE && !gamePaused) {
                 // Hide music button during active Boss Rush gameplay
-                scene.musicButton.setVisible(false);
-                scene.musicButtonBg.setVisible(false);
-                scene.musicButtonBorder.setVisible(false);
+                scene.musicHexagon.setVisible(false);
+                scene.musicButtonText.setVisible(false);
             } else if (window.FARCADE_MODE) {
-                // ADDED: Always hide music button in Farcade mode
-                scene.musicButton.setVisible(false);
-                scene.musicButtonBg.setVisible(false);
-                scene.musicButtonBorder.setVisible(false);
+                // Always hide music button in Farcade mode
+                scene.musicHexagon.setVisible(false);
+                scene.musicButtonText.setVisible(false);
             } else {
                 // Show music button and update its position and state
-                scene.musicButton.setVisible(true);
-                scene.musicButtonBg.setVisible(true);
-                scene.musicButtonBorder.setVisible(true);
+                scene.musicHexagon.setVisible(true);
+                scene.musicButtonText.setVisible(true);
 
-                scene.musicButton.setPosition(musicConfig.x(), musicConfig.y());
-                scene.musicButtonBg.setPosition(musicConfig.x(), musicConfig.y());
-                scene.musicButtonBorder.setPosition(musicConfig.x(), musicConfig.y());
+                scene.musicHexagon.x = musicConfig.x();
+                scene.musicHexagon.y = musicConfig.y();
+                scene.musicButtonText.setPosition(musicConfig.x(), musicConfig.y() - 2);
 
                 // Update music button symbol if MusicSystem is available
                 if (window.MusicSystem) {
                     const symbol = window.MusicSystem.musicEnabled ?
                         musicConfig.symbol : musicConfig.mutedSymbol;
-                    scene.musicButton.setText(symbol);
+                    scene.musicButtonText.setText(symbol);
                 }
             }
         }
 
         // Update levelup button position
-        if (scene.levelupButton && scene.levelupButtonBg && scene.levelupButtonBorder) {
-            scene.levelupButton.setPosition(levelupConfig.x(), levelupConfig.y());
-            scene.levelupButtonBg.setPosition(levelupConfig.x(), levelupConfig.y());
-            scene.levelupButtonBorder.setPosition(levelupConfig.x(), levelupConfig.y());
+        if (scene.levelupHexagon && scene.levelupButtonText) {
+            scene.levelupHexagon.x = levelupConfig.x();
+            scene.levelupHexagon.y = levelupConfig.y();
+            scene.levelupButtonText.setPosition(levelupConfig.x(), levelupConfig.y() - 2);
         }
     }
 };
@@ -972,17 +951,78 @@ const StatusDisplay = {
     }
 };
 
-// Stat display rectangles for POW, AGI, LUK, END
+// Hexagon creation helper function
+function createHexagon(scene, x, y, size, fillColor = 0x000000, fillAlpha = 1.0) {
+    const graphics = scene.add.graphics();
+
+    // Calculate hexagon points - make it narrower
+    const width = size * 0.85; // Reduced width
+    const height = size * 0.866; // Proper hexagon aspect ratio
+
+    // Hexagon vertices (pointy-top orientation)
+    const points = [
+        { x: 0, y: -height / 2 },           // Top
+        { x: width / 2, y: -height / 4 },     // Top-right
+        { x: width / 2, y: height / 4 },      // Bottom-right
+        { x: 0, y: height / 2 },            // Bottom
+        { x: -width / 2, y: height / 4 },     // Bottom-left
+        { x: -width / 2, y: -height / 4 }     // Top-left
+    ];
+
+    // Position the graphics at the center
+    graphics.x = x;
+    graphics.y = y;
+
+    // Draw filled hexagon
+    graphics.fillStyle(fillColor, fillAlpha);
+    graphics.beginPath();
+    graphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        graphics.lineTo(points[i].x, points[i].y);
+    }
+    graphics.closePath();
+    graphics.fillPath();
+
+    // Draw the 4 L borders (left + bottom-left + right + top-right)
+    graphics.lineStyle(3, 0xFFD700);
+
+    // Left side (bottom-left point to top-left point)
+    graphics.beginPath();
+    graphics.moveTo(points[4].x, points[4].y);
+    graphics.lineTo(points[5].x, points[5].y);
+    graphics.strokePath();
+
+    // Bottom-left side (bottom point to bottom-left point)
+    graphics.beginPath();
+    graphics.moveTo(points[3].x, points[3].y);
+    graphics.lineTo(points[4].x, points[4].y);
+    graphics.strokePath();
+
+    // Right side (top-right point to bottom-right point)
+    graphics.beginPath();
+    graphics.moveTo(points[1].x, points[1].y);
+    graphics.lineTo(points[2].x, points[2].y);
+    graphics.strokePath();
+
+    // Top-right side (top point to top-right point)
+    graphics.beginPath();
+    graphics.moveTo(points[0].x, points[0].y);
+    graphics.lineTo(points[1].x, points[1].y);
+    graphics.strokePath();
+
+    return graphics;
+}
+
+// Updated StatDisplay with hexagons
 const StatDisplay = {
     create: function (scene) {
         // Initialize relative dimensions
         UI.game.init(scene);
 
         // Clean up existing elements
-        if (scene.statRects) {
-            scene.statRects.forEach(stat => {
-                if (stat.rectBg) stat.rectBg.destroy();
-                if (stat.rectInner) stat.rectInner.destroy();
+        if (scene.statHexagons) {
+            scene.statHexagons.forEach(stat => {
+                if (stat.hexagon) stat.hexagon.destroy();
                 if (stat.symbolText) stat.symbolText.destroy();
                 if (stat.valueText) stat.valueText.destroy();
             });
@@ -990,85 +1030,94 @@ const StatDisplay = {
 
         // If in kajisuli mode, don't show stats on main screen
         if (UI.kajisuli.enabled()) {
-            scene.statRects = [];
+            scene.statHexagons = [];
             return;
         }
 
-        // Initialize the stat rectangles array
-        scene.statRects = [];
+        // Initialize the stat hexagons array
+        scene.statHexagons = [];
 
         // Define stat order
         const stats = ['POW', 'AGI', 'LUK', 'END'];
 
-        // Create each stat rectangle
+        // Create each stat hexagon
         stats.forEach((stat, index) => {
-            const x = UI.statDisplay.x() + (index * UI.statDisplay.spacing());
+            const x = UI.statDisplay.x() + (index * UI.statDisplay.spacing()) + UI.statDisplay.width() / 2;
+            const y = UI.statDisplay.y();
+            const size = UI.statDisplay.width() * 0.8; // Slightly smaller than the old rectangle
 
-            // Create gold border rectangle
-            const rectBg = scene.add.rectangle(
-                x + UI.statDisplay.width() / 2,
-                UI.statDisplay.y(),
-                UI.statDisplay.width() + (UI.statDisplay.borderWidth * 2),
-                UI.statDisplay.height() + (UI.statDisplay.borderWidth * 2),
-                UI.colors.gold
-            ).setDepth(UI.depth.ui).setOrigin(0.5);
+            // Create hexagon with 4 L borders
+            const hexagon = createHexagon(scene, x, y, size, 0x000000, 0.5);
+            hexagon.setDepth(UI.depth.ui);
 
-            // Create inner black rectangle
-            const rectInner = scene.add.rectangle(
-                x + UI.statDisplay.width() / 2,
-                UI.statDisplay.y(),
-                UI.statDisplay.width(),
-                UI.statDisplay.height(),
-                UI.colors.black
-            ).setDepth(UI.depth.ui).setOrigin(0.5);
-
-            // Create the symbol text
+            // Create the symbol text (background, semi-transparent)
             const symbolText = scene.add.text(
-                x + UI.statDisplay.textPadding(),
-                UI.statDisplay.y(),
+                x,
+                y - 2, // Slightly up for better centering
                 UI.statDisplay.symbols[stat],
                 {
                     fontFamily: 'Arial',
                     fontSize: UI.statDisplay.fontSize(),
                     color: UI.statDisplay.symbolColors[stat]
                 }
-            ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
+            ).setOrigin(0.5).setDepth(UI.depth.ui);
+            symbolText.setAlpha(0.8); // Higher opacity for kanji
 
-            // Create the value text
+            // Create the value text (foreground, full opacity, same position)
             const valueText = scene.add.text(
-                x + UI.statDisplay.width() - UI.statDisplay.textPadding(),
-                UI.statDisplay.y(),
+                x,
+                y - 2, // Same position as symbol
                 "0",
                 {
                     fontFamily: 'Arial',
                     fontSize: UI.fonts.stats.size(),
                     color: UI.fonts.stats.color
                 }
-            ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+            ).setOrigin(0.5).setDepth(UI.depth.ui + 1); // Higher depth so it's in front
 
-            // Store references
-            scene.statRects[index] = {
-                stat: stat,
-                rectBg: rectBg,
-                rectInner: rectInner,
-                symbolText: symbolText,
-                valueText: valueText
-            };
+            // Make hexagon interactive for hover effects
+            const hitArea = new Phaser.Geom.Rectangle(-size / 2, -size * 0.433, size, size * 0.866);
+            hexagon.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+            hexagon.on('pointerover', function () {
+                symbolText.setAlpha(1.0); // Full opacity on hover
+                valueText.setScale(1.1);  // Scale number on hover
+            });
+
+            hexagon.on('pointerout', function () {
+                symbolText.setAlpha(0.8); // Reset kanji transparency
+                valueText.setScale(1);    // Reset number scale
+            });
 
             // Add hover interaction for tooltips if StatTooltipSystem is available
             if (window.StatTooltipSystem) {
-                // Make the background rectangle interactive for hover
-                StatTooltipSystem.addStatHoverInteraction(scene, rectBg, stat, {
+                // Create a getBounds method for the graphics object so StatTooltipSystem can use it
+                hexagon.getBounds = function () {
+                    return new Phaser.Geom.Rectangle(
+                        this.x - size * 0.425, // Half of narrowed width
+                        this.y - size * 0.433, // Half of height
+                        size * 0.85,           // Narrowed width
+                        size * 0.866           // Height
+                    );
+                };
+
+                StatTooltipSystem.addStatHoverInteraction(scene, hexagon, stat, {
                     onHover: (element) => {
-                        // Highlight border on hover
-                        element.setStrokeStyle(UI.statDisplay.borderWidth * 2, UI.colors.gold);
+                        // Additional hover effects handled above
                     },
                     onHoverOut: (element) => {
-                        // Reset border
-                        element.setStrokeStyle(UI.statDisplay.borderWidth, UI.colors.gold);
+                        // Additional hover out effects handled above
                     }
                 });
             }
+
+            // Store references
+            scene.statHexagons[index] = {
+                stat: stat,
+                hexagon: hexagon,
+                symbolText: symbolText,
+                valueText: valueText
+            };
         });
 
         // Initial update
@@ -1077,10 +1126,10 @@ const StatDisplay = {
 
     update: function (scene) {
         // Exit if elements don't exist
-        if (!scene.statRects) return;
+        if (!scene.statHexagons) return;
 
         // Update each stat value
-        scene.statRects.forEach(item => {
+        scene.statHexagons.forEach(item => {
             if (!item || !item.valueText) return;
 
             let value = 0;
@@ -1106,6 +1155,7 @@ const StatDisplay = {
         });
     }
 };
+
 
 // Function to create all UI elements
 function createUI(scene) {

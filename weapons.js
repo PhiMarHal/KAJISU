@@ -177,7 +177,7 @@ const WeaponSystem = {
     },
 
     // Fire the current weapon
-    fireWeapon: function (scene) {
+    fireWeapon: function (scene) {/*
         // Find the closest enemy
         distance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * 400;
         const closestEnemy = this.findClosestEnemy(scene, distance);
@@ -193,7 +193,7 @@ const WeaponSystem = {
             if (this.activeWeaponType === 'BASIC_PROJECTILE') {
                 this.fireBasicProjectile(scene, angle);
             }
-        }
+        }*/
     },
 
     // Fire a basic projectile

@@ -225,12 +225,22 @@ const CollisionBehaviors = {
         // Process onhit components if any
         processOrbitalComponentEvent(scene, orbital, enemy, 'onHit');
 
+        // Calculate current damage based on stored multiplier and current player stats
+        let currentDamage;
+        if (orbital.damageMultiplier !== undefined) {
+            // Use multiplier with current player damage
+            currentDamage = playerDamage * orbital.damageMultiplier;
+        } else {
+            // Fallback to stored damage (for backward compatibility)
+            currentDamage = orbital.entity.damage;
+        }
+
         // Apply contact damage with the specified cooldown interval
         applyContactDamage.call(
             scene,
             orbital.entity,
             enemy,
-            orbital.entity.damage,
+            currentDamage,
             orbital.entity.damageInterval
         );
     },
@@ -387,7 +397,7 @@ const OrbitalSystem = {
         // Store unique ID for damage source (used for cooldown tracking)
         entity.damageSourceId = `orbital_${Date.now()}_${Math.random()}`;
 
-        // Store damage value and interval on the entity
+        // Store damage
         entity.damage = orbitalConfig.damage;
         entity.damageInterval = orbitalConfig.damageInterval;
 
@@ -418,6 +428,7 @@ const OrbitalSystem = {
             pattern: orbitalConfig.pattern,
             collisionType: orbitalConfig.collisionType,
             damageInterval: orbitalConfig.damageInterval,
+            damageMultiplier: orbitalConfig.damageMultiplier,
             createdAt: scene.time.now,
             lifespan: orbitalConfig.lifespan,
             options: orbitalConfig.options,

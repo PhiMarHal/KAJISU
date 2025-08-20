@@ -44,101 +44,38 @@ const StatTooltipSystem = {
 
     // Create a stat explanation card
     createStatCard: function (statKey, x, y, options = {}) {
-        const stat = STAT_DEFINITIONS[statKey];
-        if (!stat) {
-            console.error('Invalid stat key:', statKey);
-            return null;
-        }
+        const scene = game.scene.scenes[0];
+        if (!scene) return null;
 
-        // Format stat as a perk-like object for the card system
-        const statAsPerk = {
-            id: statKey,
-            kanji: stat.kanji,
-            kana: stat.kana,
-            romaji: stat.romaji,
-            english: stat.english,
-            description: stat.description,
-            color: stat.color
-        };
-
-        // Create card using the existing card system
-        return CardSystem.createPerkCardElements(
-            statAsPerk,
-            x,
-            y,
-            {
-                container: options.container,
-                showBackground: true,
-                showKana: true,
-                showRomaji: true,
-                showEnglish: true,
-                showDescription: true,
-                backgroundColor: 0x222222,
-                width: options.width ?? 180,
-                height: options.height ?? 240,
-                strokeWidth: 2,
-                strokeColor: stat.color.replace('#', '0x'),
-                makeInteractive: false,
-                fontSize: options.fontSize ?? 0.9
-            }
-        );
+        return UnifiedCardSystem.createCard(scene, statKey, { x, y }, 'tooltip', {
+            cardType: UnifiedCardSystem.CARD_TYPES.STAT,
+            container: options.container,
+            width: options.width,
+            height: options.height,
+            fontSize: options.fontSize
+        });
     },
 
     // Show tooltip for a stat
     showTooltip: function (scene, statKey, x, y, container = null, isKajisuli = false, isLevelUp = false) {
-        // Hide any existing tooltip
+        // Hide existing
         this.hideTooltip();
 
-        // Fixed position approach
-        let tooltipX;
-        if (isKajisuli) {
-            // KAJISULI mode - center of screen
-            tooltipX = scene.game.config.width / 2;
-        } else {
-            // Desktop mode - center of the stat display area
-            // POW starts at x=76.7% 
-            // Each stat is spaced 5.83% apart, and each stat is 4.17% wide
-            // So END starts at 76.7% + (3 * 5.83%) = 94.19%
-            // END ends at 94.19% + 4.17% = 98.36%
-            // Center between POW start and END end: (76.7% + 98.36%) / 2 = 87.53%
-            const statDisplayStart = scene.game.config.width * 0.767;
-            const statDisplayEnd = scene.game.config.width * 0.9836;
-            tooltipX = (statDisplayStart + statDisplayEnd) / 2;
-        }
+        // Create tooltip using unified system
+        const mockElement = {
+            x,
+            y,
+            getBounds: () => ({ centerX: x, centerY: y })
+        };
 
-        // Position below the stats with more clearance
-        let tooltipY;
-        if (isKajisuli) {
-            // Check if this is level-up context (where stats are at bottom)
-            if (isLevelUp) {
-                // Level-up mode - position ABOVE the stats with 20px gap
-                tooltipY = y - 140; // Show above instead of below
-            } else {
-                // Pause mode - position below as before
-                tooltipY = y + 196;
-            }
-        } else {
-            // Desktop mode - position below stats
-            tooltipY = y + 150;
-        }
-
-        // Ensure tooltip stays within screen bounds
-        const adjustedY = Math.min(tooltipY, scene.game.config.height - 150);
-
-        // Scale factor for KAJISULI mode
-        const fontSize = isKajisuli ? 1.25 : 0.9;
-        const cardHeight = isKajisuli ? 300 : 240;
-        const cardWidth = isKajisuli ? 225 : 180;
-
-        // Create the tooltip at fixed position
-        this.activeTooltip = this.createStatCard(statKey, tooltipX, adjustedY, {
-            container: container,
-            fontSize: fontSize,
-            height: cardHeight,
-            width: cardWidth
+        const card = UnifiedCardSystem.createTooltip(scene, statKey, mockElement, {
+            container,
+            cardType: UnifiedCardSystem.CARD_TYPES.STAT,
+            isKajisuli,
+            isLevelUp
         });
 
-        // Store reference to container if provided
+        this.activeTooltip = card.elements;
         this.activeTooltipContainer = container;
     },
 
@@ -159,43 +96,25 @@ const StatTooltipSystem = {
     addStatHoverInteraction: function (scene, element, statKey, options = {}) {
         if (!element || !element.setInteractive) return;
 
-        //console.log(`Adding hover interaction for stat: ${statKey}`);
-
-        // Make the element interactive
-        element.setInteractive({ useHandCursor: true });
-
-        // Hover in - show tooltip
-        element.on('pointerover', () => {
-            const bounds = element.getBounds();
-            this.showTooltip(
-                scene,
-                statKey,
-                bounds.centerX,
-                bounds.centerY,
-                options.container,
-                options.isKajisuli ?? false,
-                options.isLevelUp ?? false
-            );
-
-            // Visual feedback on the element
-            if (options.onHover) {
-                options.onHover(element);
+        return UnifiedCardSystem.hoverSystem.addHover(element, {
+            onHover: options.onHover,
+            onHoverOut: options.onHoverOut,
+            showTooltip: () => {
+                const bounds = element.getBounds();
+                this.showTooltip(
+                    scene,
+                    statKey,
+                    bounds.centerX,
+                    bounds.centerY,
+                    options.container,
+                    options.isKajisuli ?? false,
+                    options.isLevelUp ?? false
+                );
+            },
+            hideTooltip: () => {
+                this.hideTooltip();
             }
         });
-
-        // Hover out - hide tooltip
-        element.on('pointerout', () => {
-            //console.log(`Hover out ${statKey}`);
-            this.hideTooltip();
-
-            // Reset visual feedback
-            if (options.onHoverOut) {
-                options.onHoverOut(element);
-            }
-        });
-
-        // Debug: Check if events are properly attached
-        //console.log(`Events attached to ${statKey}:`, element.eventNames());
     },
 
     // Clean up all tooltips

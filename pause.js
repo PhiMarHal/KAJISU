@@ -325,37 +325,33 @@ const PauseSystem = {
 
     // Create and show stats display (for kajisuli mode)
     showStatsDisplay: function (scene, options = {}) {
-        // Default options that preserve original pause screen behavior
         const config = {
             container: options.container ?? this.elements.statsContainer,
             positionY: options.positionY ?? game.config.height * 0.2,
             storeInElements: options.storeInElements ?? true,
             clearContainer: options.clearContainer ?? true,
             setVisible: options.setVisible ?? true,
-            // Match the 150% scaling from cards.js for KAJISULI mode
             fontSize: options.fontSize ?? (KAJISULI_MODE ? '36px' : '24px')
         };
 
-        // Clear any existing stats display if requested (original behavior)
+        // Clear existing if requested
         if (config.clearContainer && config.container) {
             config.container.removeAll(true);
         }
 
         // Define stat info with kanji and values (same as original)
         const stats = [
-            { symbol: UI.statDisplay.symbols.POW, value: getEffectiveDamage(), color: UI.statDisplay.symbolColors.POW },
-            { symbol: UI.statDisplay.symbols.AGI, value: getEffectiveFireRate(), color: UI.statDisplay.symbolColors.AGI },
-            { symbol: UI.statDisplay.symbols.LUK, value: playerLuck, color: UI.statDisplay.symbolColors.LUK },
-            { symbol: UI.statDisplay.symbols.END, value: maxPlayerHealth, color: UI.statDisplay.symbolColors.END }
+            { symbol: UI.statDisplay.symbols.POW, value: this.getStatValue('POW'), color: UI.statDisplay.symbolColors.POW },
+            { symbol: UI.statDisplay.symbols.AGI, value: this.getStatValue('AGI'), color: UI.statDisplay.symbolColors.AGI },
+            { symbol: UI.statDisplay.symbols.LUK, value: this.getStatValue('LUK'), color: UI.statDisplay.symbolColors.LUK },
+            { symbol: UI.statDisplay.symbols.END, value: this.getStatValue('END'), color: UI.statDisplay.symbolColors.END }
         ];
 
         // Get center X position
         const centerX = game.config.width / 2;
-
-        // Use provided Y position
         const statsY = config.positionY;
 
-        // Set container position and visibility if using the original container
+        // Set container position and visibility
         if (config.container === this.elements.statsContainer) {
             config.container.setPosition(0, 0);
             if (config.setVisible) {
@@ -364,18 +360,17 @@ const PauseSystem = {
         }
 
         // Calculate spacing and box dimensions (same as original)
-        const boxWidth = game.config.width * 0.15;    // 15% of screen width per box
-        const boxHeight = game.config.height * 0.05;  // 5% of screen height
-        const spacing = game.config.width * 0.06;     // 6% of screen width between boxes
+        const boxWidth = game.config.width * 0.15;
+        const boxHeight = game.config.height * 0.05;
+        const spacing = game.config.width * 0.06;
         const totalWidth = (boxWidth * stats.length) + (spacing * (stats.length - 1));
         const startX = centerX - (totalWidth / 2) + (boxWidth / 2);
 
-        // Store created elements for return (new functionality)
+        // Store created elements for return
         const createdElements = [];
 
-        // Add each stat in its own gold-bordered box (same as original)
+        // Add each stat in its own gold-bordered box
         stats.forEach((stat, index) => {
-            // Calculate x position with even spacing
             const x = startX + (spacing + boxWidth) * index;
 
             // Create gold border for this stat
@@ -398,33 +393,32 @@ const PauseSystem = {
                 `${stat.symbol} ${Math.floor(stat.value)}`,
                 {
                     fontFamily: 'Arial',
-                    fontSize: config.fontSize, // Use the configurable fontSize (36px in KAJISULI mode)
+                    fontSize: config.fontSize,
                     color: stat.color,
                     fontStyle: 'bold'
                 }
             ).setOrigin(0.5);
 
-            // Store elements for return
+            // Store elements
             const statGroup = { border, background, statText };
             createdElements.push(statGroup);
 
-            // Add all elements to the container (original behavior)
+            // Add to container
             if (config.container) {
                 config.container.add([border, background, statText]);
             }
 
-            // Add hover interaction for tooltips if StatTooltipSystem is available
+            // Add hover interaction for tooltips
             if (window.StatTooltipSystem && scene) {
-                StatTooltipSystem.addStatHoverInteraction(scene, border, stats[index].stat ?? ['POW', 'AGI', 'LUK', 'END'][index], {
+                const statKey = ['POW', 'AGI', 'LUK', 'END'][index];
+                StatTooltipSystem.addStatHoverInteraction(scene, border, statKey, {
                     container: config.container,
-                    isKajisuli: true,  // Add this flag
+                    isKajisuli: true,
                     onHover: (element) => {
-                        // Highlight border on hover
                         element.setStrokeStyle(4, UI.colors.gold);
                         statText.setScale(1.1);
                     },
                     onHoverOut: (element) => {
-                        // Reset border and text
                         element.setStrokeStyle(2, UI.colors.gold);
                         statText.setScale(1);
                     }
@@ -432,8 +426,17 @@ const PauseSystem = {
             }
         });
 
-        // Return created elements for external use (new functionality)
         return createdElements;
+    },
+
+    getStatValue: function (statKey) {
+        switch (statKey) {
+            case 'POW': return getEffectiveDamage() ?? 0;
+            case 'AGI': return getEffectiveFireRate() ?? 0;
+            case 'LUK': return playerLuck ?? 0;
+            case 'END': return maxPlayerHealth ?? 0;
+            default: return 0;
+        }
     },
 
     // Update perks display in pause screen

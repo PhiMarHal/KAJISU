@@ -1009,15 +1009,15 @@ OrbitalPerkRegistry.registerPerkOrbital('THREE_STARS', {
         return {
             symbol: '★',
             color: '#ffff00',
-            fontSize: 32,
-            radius: 96,
+            fontSize: 48,
+            radius: 128,
             speed: 0.04,
             direction: 'clockwise',
             pattern: 'standard',
             collisionType: 'persistent',
-            damage: playerDamage,
-            damageInterval: 200,
-            lifespan: 6000,
+            damage: playerDamage * 2,
+            damageInterval: 240,
+            lifespan: 8000,
             options: {}
         };
     },

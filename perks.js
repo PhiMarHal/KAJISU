@@ -1168,7 +1168,7 @@ const PERKS = {
         kana: "ぼうきゃくのはな",
         romaji: "boukyakunohana",
         english: "Oblivion Blossom",
-        description: "Sacrifice all your perks, +2 STAT from each memory lost",
+        description: "Sacrifice all your perks, +1.4 STAT from each memory lost",
         color: "#BBBBFF", // Light purple/blue color
         hoverColor: 0x9999DD,
         onAcquire: function () {

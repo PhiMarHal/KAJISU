@@ -1,4 +1,4 @@
-// One-Time Effect System for Word Survivors
+// One-Time Effect System for KAJISU
 // Handles effects that occur once when a perk is acquired
 
 // Utility functions for stat manipulation

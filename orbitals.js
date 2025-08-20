@@ -1,4 +1,4 @@
-// Orbital Component System for Word Survivors
+// Orbital Component System for KAJISU
 // Manages orbital entities that circle around the player with various movement patterns
 
 // Global list to store all orbital entities

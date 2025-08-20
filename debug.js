@@ -1,4 +1,4 @@
-// debug.js - Debug utilities and performance monitoring for Word Survivors
+// debug.js - Debug utilities and performance monitoring for KAJISU
 // Manages debug mode, performance stats, and debug keyboard shortcuts
 
 // Debug System namespace

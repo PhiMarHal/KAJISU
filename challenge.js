@@ -1,4 +1,4 @@
-// challenge.js - Romaji Challenge System for Word Survivors
+// challenge.js - Romaji Challenge System for KAJISU
 // Manages the romaji typing challenge during level-up
 
 // Romaji Challenge System namespace

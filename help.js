@@ -1,4 +1,4 @@
-// help.js - Help System for Word Survivors
+// help.js - Help System for KAJISU
 
 const HELP_PAGES = [
     {

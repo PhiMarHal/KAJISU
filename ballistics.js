@@ -1,4 +1,4 @@
-// Projectile Perk Registry System for Word Survivors
+// Projectile Perk Registry System for KAJISU
 // This system maps perks to projectile components and handles their automatic application
 
 // Projectile perk registry - maps perks to their projectile effects

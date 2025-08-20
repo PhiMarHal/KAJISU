@@ -1,4 +1,4 @@
-// Music System for Word Survivors
+// Music System for KAJISU
 // Handles background music with smooth transitions and shuffled playlists
 // Uses dynamic position checking and proxy objects for reliable fading
 

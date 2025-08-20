@@ -1,4 +1,4 @@
-// Beam System for Word Survivors
+// Beam System for KAJISU
 // Manages directional beam entities that deal continuous damage
 
 // Global list to store all active beams

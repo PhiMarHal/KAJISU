@@ -1,4 +1,4 @@
-// Orbital Component Registry for Word Survivors
+// Orbital Component Registry for KAJISU
 // Maps perks to orbital effects and configurations
 
 // Registry system for orbital perks

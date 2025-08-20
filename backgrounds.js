@@ -1,4 +1,4 @@
-// backgrounds.js - Background visual effects for Word Survivors
+// backgrounds.js - Background visual effects for KAJISU
 // Uses Phaser's built-in graphics and game objects for backgrounds
 
 // Background Animation System using Phaser primitives

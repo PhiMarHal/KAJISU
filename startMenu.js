@@ -1,4 +1,4 @@
-// startMenu.js - Pre-Game Start Menu System for Word Survivors
+// startMenu.js - Pre-Game Start Menu System for KAJISU
 
 // IMMEDIATELY set the global variable before any other scripts can access it
 window.KAJISULI_MODE = (() => {

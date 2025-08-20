@@ -1,4 +1,4 @@
-// Shrine System for Word Survivors
+// Shrine System for KAJISU
 // Manages immovable shrine objects with area effects that trigger when player enters
 
 const ShrineSystem = {

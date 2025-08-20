@@ -1,4 +1,4 @@
-// visuals.js - Simple visual effects for Word Survivors
+// visuals.js - Simple visual effects for KAJISU
 // Provides reusable visual effects to reduce code duplication
 
 // Define a namespace for all visual effects

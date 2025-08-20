@@ -1,4 +1,4 @@
-// unifiedCards.js - Unified Card Generation System for Word Survivors
+// unifiedCards.js - Unified Card Generation System for KAJISULI
 
 const UnifiedCardSystem = {
     // Card type definitions
@@ -148,9 +148,13 @@ const UnifiedCardSystem = {
             if (isKajisuli) {
                 x = screenWidth / 2;
                 if (isLevelUp) {
-                    y = targetY - cardHeight / 2 - 20; // Position above
+                    // Position tooltip below level-up card but above stats
+                    // Level-up card is around centerY, stats are at bottom
+                    const centerY = screenHeight / 2;
+                    const statsY = screenHeight * 0.85; // Approximate stats position
+                    y = centerY + (statsY - centerY) * 0.85; // 30% of the way down from center to stats
                 } else {
-                    y = targetY + cardHeight / 2 + 20; // Position below
+                    y = targetY + cardHeight / 2 + 20; // Position below for pause mode
                 }
             } else {
                 // Desktop mode - center in stat display area

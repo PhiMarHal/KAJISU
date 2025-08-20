@@ -1,4 +1,4 @@
-// Enhanced Familiar System for Word Survivors
+// Enhanced Familiar System for KAJISU
 // Manages orbital entities that have firing behavior
 
 // Registry for different familiar behaviors

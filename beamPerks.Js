@@ -1,4 +1,4 @@
-// Beam Perk Registry for Word Survivors
+// Beam Perk Registry for KAJISU
 // Maps perks to their beam configurations and activation functions
 
 // Registry system for beam perks

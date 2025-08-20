@@ -1,4 +1,4 @@
-// cards.js - Enhanced Card Management System for Word Survivors
+// cards.js - Enhanced Card Management System for KAJISU
 
 // Colors for various UI elements
 const CARD_COLORS = {

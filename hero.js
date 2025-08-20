@@ -17,7 +17,7 @@ const shieldBaseCd = 80000;
 const godHammerBaseCd = 120000;
 const fatedShieldBaseCd = 60000;
 
-// Player Status Component System for Word Survivors
+// Player Status Component System for KAJISU
 // This system manages special behaviors and status effects for the player
 
 // Player status component system

@@ -1,4 +1,4 @@
-// menu.js - UI Elements for Word Survivors
+// menu.js - UI Elements for KAJISU
 
 // UI Element constants with relative positioning
 const UI = {
@@ -1304,7 +1304,7 @@ window.GameUI = {
 // Export ButtonDisplay for use by other systems
 window.ButtonDisplay = ButtonDisplay;
 
-// Game End Menu System for Word Survivors
+// Game End Menu System for KAJISU
 // Manages both victory and defeat end screens
 
 UI.gameEndScreen = {

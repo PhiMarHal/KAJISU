@@ -339,17 +339,47 @@ const PauseSystem = {
             config.container.removeAll(true);
         }
 
-        // Define stat info with kanji and values (same as original)
+        // Define stat info with kanji and values
         const stats = [
-            { symbol: UI.statDisplay.symbols.POW, value: this.getStatValue('POW'), color: UI.statDisplay.symbolColors.POW },
-            { symbol: UI.statDisplay.symbols.AGI, value: this.getStatValue('AGI'), color: UI.statDisplay.symbolColors.AGI },
-            { symbol: UI.statDisplay.symbols.LUK, value: this.getStatValue('LUK'), color: UI.statDisplay.symbolColors.LUK },
-            { symbol: UI.statDisplay.symbols.END, value: this.getStatValue('END'), color: UI.statDisplay.symbolColors.END }
+            {
+                key: 'POW',
+                symbol: UI.statDisplay.symbols.POW,
+                value: this.getStatValue('POW'),
+                color: UI.statDisplay.symbolColors.POW
+            },
+            {
+                key: 'AGI',
+                symbol: UI.statDisplay.symbols.AGI,
+                value: this.getStatValue('AGI'),
+                color: UI.statDisplay.symbolColors.AGI
+            },
+            {
+                key: 'LUK',
+                symbol: UI.statDisplay.symbols.LUK,
+                value: this.getStatValue('LUK'),
+                color: UI.statDisplay.symbolColors.LUK
+            },
+            {
+                key: 'END',
+                symbol: UI.statDisplay.symbols.END,
+                value: this.getStatValue('END'),
+                color: UI.statDisplay.symbolColors.END
+            }
         ];
+
+        // Determine if this is level-up context and adjust Y position accordingly
+        const isLevelUpContext = config.positionY > game.config.height * 0.8;
+        let statsY = config.positionY;
+
+        if (isLevelUpContext) {
+            // Align with button positioning for level-up screen
+            const buttonMargin = Math.max(UI.game.getWidth(), UI.game.getHeight()) * 0.02; // 2% margin
+            const buttonSize = UI.rel.height(5); // Button size
+            statsY = UI.game.getHeight() - buttonMargin - (buttonSize / 2);
+        }
 
         // Get center X position
         const centerX = game.config.width / 2;
-        const statsY = config.positionY;
 
         // Set container position and visibility
         if (config.container === this.elements.statsContainer) {
@@ -359,73 +389,102 @@ const PauseSystem = {
             }
         }
 
-        // Calculate spacing and box dimensions (same as original)
-        const boxWidth = game.config.width * 0.15;
-        const boxHeight = game.config.height * 0.05;
-        const spacing = game.config.width * 0.06;
-        const totalWidth = (boxWidth * stats.length) + (spacing * (stats.length - 1));
-        const startX = centerX - (totalWidth / 2) + (boxWidth / 2);
+        // Calculate spacing and hexagon dimensions for KAJISULI mode
+        const hexSize = game.config.width * 0.12;        // 12% of screen width per hexagon
+        const spacing = game.config.width * 0.05;        // 5% spacing between hexagons
+        const totalWidth = (hexSize * stats.length) + (spacing * (stats.length - 1));
+        const startX = centerX - (totalWidth / 2) + (hexSize / 2);
 
         // Store created elements for return
         const createdElements = [];
 
-        // Add each stat in its own gold-bordered box
+        // Add each stat in its own hexagon
         stats.forEach((stat, index) => {
-            const x = startX + (spacing + boxWidth) * index;
+            // Calculate x position with even spacing
+            const x = startX + (spacing + hexSize) * index;
 
-            // Create gold border for this stat
-            const border = scene.add.rectangle(
-                x, statsY,
-                boxWidth, boxHeight,
-                UI.colors.gold
-            );
+            // Create hexagon background using the existing createHexagon function
+            const hexagon = createHexagon(scene, x, statsY, hexSize, 0x000000, 0.5);
 
-            // Create inner black background
-            const background = scene.add.rectangle(
-                x, statsY,
-                boxWidth - 4, boxHeight - 4,
-                0x000000
-            );
-
-            // Create the stat text: kanji and value on the same line
-            const statText = scene.add.text(
-                x, statsY,
-                `${stat.symbol} ${Math.floor(stat.value)}`,
+            // Create the kanji symbol text (adjusted positioning)
+            const symbolText = scene.add.text(
+                x,
+                statsY,
+                stat.symbol,
                 {
                     fontFamily: 'Arial',
-                    fontSize: config.fontSize,
+                    fontSize: parseInt(config.fontSize) * 1.2 + 'px', // Larger kanji
                     color: stat.color,
                     fontStyle: 'bold'
                 }
             ).setOrigin(0.5);
+            symbolText.setAlpha(0.8);
 
-            // Store elements
-            const statGroup = { border, background, statText };
+            // Create the value text below the kanji (adjusted positioning)
+            const valueText = scene.add.text(
+                x,
+                statsY,
+                Math.floor(stat.value).toString(),
+                {
+                    fontFamily: 'Arial',
+                    fontSize: parseInt(config.fontSize) * 1.2 + 'px',
+                    color: '#ffffff',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                }
+            ).setOrigin(0.5);
+
+            // Store elements for return
+            const statGroup = { hexagon, symbolText, valueText };
             createdElements.push(statGroup);
 
-            // Add to container
+            // Add all elements to the container
             if (config.container) {
-                config.container.add([border, background, statText]);
+                config.container.add([hexagon, symbolText, valueText]);
             }
 
-            // Add hover interaction for tooltips
+            // Add hover interactions - define proper hit area for graphics object
+            const hitArea = new Phaser.Geom.Rectangle(-hexSize / 2, -hexSize * 0.433, hexSize, hexSize * 0.866);
+            hexagon.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+            hexagon.on('pointerover', function () {
+                symbolText.setAlpha(1.0); // Full opacity on hover
+                valueText.setScale(1.1);  // Scale number on hover
+            });
+
+            hexagon.on('pointerout', function () {
+                symbolText.setAlpha(0.8); // Reset transparency
+                valueText.setScale(1);    // Reset scale
+            });
+
+            // Add tooltip interaction if StatTooltipSystem is available
             if (window.StatTooltipSystem && scene) {
-                const statKey = ['POW', 'AGI', 'LUK', 'END'][index];
-                StatTooltipSystem.addStatHoverInteraction(scene, border, statKey, {
+                // Create a getBounds method for the graphics object so StatTooltipSystem can use it
+                hexagon.getBounds = function () {
+                    return new Phaser.Geom.Rectangle(
+                        this.x - hexSize * 0.425, // Half of narrowed width
+                        this.y - hexSize * 0.433, // Half of height
+                        hexSize * 0.85,           // Narrowed width
+                        hexSize * 0.866           // Height
+                    );
+                };
+
+                StatTooltipSystem.addStatHoverInteraction(scene, hexagon, stat.key, {
                     container: config.container,
                     isKajisuli: true,
+                    isLevelUp: isLevelUpContext,
                     onHover: (element) => {
-                        element.setStrokeStyle(4, UI.colors.gold);
-                        statText.setScale(1.1);
+                        // Additional hover effects handled above
                     },
                     onHoverOut: (element) => {
-                        element.setStrokeStyle(2, UI.colors.gold);
-                        statText.setScale(1);
+                        // Additional hover out effects handled above
                     }
                 });
             }
         });
 
+        // Return created elements for external use
         return createdElements;
     },
 

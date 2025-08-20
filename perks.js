@@ -1187,6 +1187,18 @@ const PERKS = {
             window.activateThreeStars();
         }
     },
+    "BLIZZARD": {
+        kanji: "吹雪",
+        kana: "ふぶき",
+        romaji: "fubuki",
+        english: "Blizzard",
+        description: "Unleashes a spiral storm of slowing projectiles",
+        color: "#87CEEB", // Sky blue color
+        hoverColor: 0x6FAACD,
+        onAcquire: function () {
+            window.activateBlizzard();
+        }
+    },
     "COPY_FAIRY": {
         kanji: "写精",
         kana: "うつしせい",

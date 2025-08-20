@@ -1041,6 +1041,67 @@ window.activateThreeStars = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'THREE_STARS');
 };
 
+// Register the BLIZZARD perk using the new staggered system
+OrbitalPerkRegistry.registerPerkOrbital('BLIZZARD', {
+    getConfig: function () {
+        return {
+            symbol: '★',
+            color: '#87CEEB', // Sky blue color
+            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
+            radius: 16, // Starting radius
+            speed: 0.02,
+            direction: 'clockwise', // Will be overridden by alternating pattern
+            pattern: 'spiralOut',
+            collisionType: 'projectile',
+            damage: playerDamage,
+            damageInterval: 0,
+            lifespan: 8000,
+            options: {
+                startRadius: 16,
+                expansionRate: 64,
+                components: [
+                    {
+                        name: 'slowEffect'
+                    }
+                ]
+            }
+        };
+    },
+    count: 1, // Ignored when using customCallback
+    cooldown: 60000, // 60 second base cooldown
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
+    activationMethod: 'timer',
+    customCallback: function (scene) {
+        launchBlizzard(scene);
+    }
+});
+
+// Simplified blizzard launch function using the generic system
+function launchBlizzard(scene) {
+    const baseConfig = OrbitalPerkRegistry.perkOrbitalConfigs['BLIZZARD'].getConfig();
+
+    // Use the new staggered system
+    OrbitalSystem.createStaggered(scene, {
+        duration: 4000,               // 4 seconds of firing
+        interval: 100,                // Every 100ms
+        baseConfig: baseConfig,       // Use BLIZZARD's orbital config
+        directionPattern: 'alternating', // Alternate clockwise/counterclockwise
+        anglePattern: 'random',       // Random starting angles for variety
+        visualEffect: false,
+        onComplete: function () {
+        }
+    });
+}
+
+// Activation function remains the same
+window.activateBlizzard = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    launchBlizzard(scene);
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'BLIZZARD');
+};
 
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

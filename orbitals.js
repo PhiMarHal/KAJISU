@@ -554,6 +554,119 @@ const OrbitalSystem = {
         }
 
         return createdOrbitals;
+    },
+
+    // Create several orbitals in a row, so we can have long cooldowns in between
+    createStaggered: function (scene, config) {
+        // Default staggered configuration
+        const defaults = {
+            count: 10,                    // Number of projectiles to create
+            interval: 200,                // Milliseconds between each projectile
+            duration: null,               // Alternative to count - fire for X milliseconds
+            baseConfig: {},               // Base orbital configuration
+            directionPattern: 'fixed',    // 'fixed', 'alternating', 'random'
+            anglePattern: 'fixed',        // 'fixed', 'increment', 'random'
+            angleIncrement: 0,            // Degrees to increment angle each shot (if anglePattern = 'increment')
+            configModifier: null,         // Function to modify config per shot: (baseConfig, shotIndex) => modifiedConfig
+            onComplete: null,             // Callback when all projectiles are fired
+            visualEffect: true            // Whether to show initial visual effect
+        };
+
+        // Merge with provided config
+        const staggerConfig = { ...defaults, ...config };
+
+        // Calculate total shots
+        let totalShots;
+        if (staggerConfig.duration !== null) {
+            totalShots = Math.floor(staggerConfig.duration / staggerConfig.interval);
+        } else {
+            totalShots = staggerConfig.count;
+        }
+
+        // State tracking
+        let shotCount = 0;
+        let isClockwise = true; // For alternating direction pattern
+        let currentAngle = staggerConfig.baseConfig.angle ?? 0;
+
+        // Create the staggered firing timer
+        const staggerTimer = scene.time.addEvent({
+            delay: staggerConfig.interval,
+            callback: function () {
+                // Check if game is paused or over
+                if (gamePaused || gameOver || !scene || !scene.scene.isActive()) {
+                    if (staggerTimer && !staggerTimer.hasOwnProperty('removed')) {
+                        staggerTimer.remove();
+                    }
+                    return;
+                }
+
+                // Start with base configuration
+                let orbitalConfig = { ...staggerConfig.baseConfig };
+
+                // Apply direction pattern
+                switch (staggerConfig.directionPattern) {
+                    case 'alternating':
+                        orbitalConfig.direction = isClockwise ? 'clockwise' : 'counterclockwise';
+                        isClockwise = !isClockwise;
+                        break;
+                    case 'random':
+                        orbitalConfig.direction = Math.random() < 0.5 ? 'clockwise' : 'counterclockwise';
+                        break;
+                    // 'fixed' uses whatever is in baseConfig
+                }
+
+                // Apply angle pattern
+                switch (staggerConfig.anglePattern) {
+                    case 'increment':
+                        orbitalConfig.angle = currentAngle;
+                        currentAngle += (staggerConfig.angleIncrement * Math.PI / 180); // Convert degrees to radians
+                        break;
+                    case 'random':
+                        orbitalConfig.angle = Math.random() * Math.PI * 2;
+                        break;
+                    // 'fixed' uses whatever is in baseConfig
+                }
+
+                // Apply custom config modifier if provided
+                if (staggerConfig.configModifier) {
+                    orbitalConfig = staggerConfig.configModifier(orbitalConfig, shotCount);
+                }
+
+                // Create the orbital
+                OrbitalSystem.create(scene, orbitalConfig);
+
+                // Increment shot counter
+                shotCount++;
+
+                // Check if we've fired all shots
+                if (shotCount >= totalShots) {
+                    staggerTimer.remove();
+
+                    // Call completion callback if provided
+                    if (staggerConfig.onComplete) {
+                        staggerConfig.onComplete();
+                    }
+                }
+            },
+            callbackScope: scene,
+            repeat: totalShots - 1
+        });
+
+        // Register timer for cleanup
+        window.registerEffect('timer', staggerTimer);
+
+        // Optional initial visual effect
+        if (staggerConfig.visualEffect && player) {
+            scene.tweens.add({
+                targets: player,
+                scale: { from: 1, to: 1.2 },
+                duration: 200,
+                yoyo: true,
+                ease: 'Cubic.easeOut'
+            });
+        }
+
+        return staggerTimer;
     }
 };
 

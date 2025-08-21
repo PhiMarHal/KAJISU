@@ -1153,5 +1153,51 @@ window.activateInfiniteGlimpse = function () {
     }
 };
 
+// Register the COLD_WIND perk
+OrbitalPerkRegistry.registerPerkOrbital('COLD_WIND', {
+    getConfig: function () {
+        return {
+            symbol: '☆', // Standard projectile symbol
+            color: '#87CEEB', // Light blue color (sky blue)
+            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
+            radius: 8, // Starting radius (will be overridden by spiralOut pattern)
+            speed: 0.02, // Rotation speed
+            direction: 'clockwise',
+            pattern: 'spiralOut', // Use spiral out pattern like COMET
+            collisionType: 'projectile', // Destroyed on hit
+            damage: playerDamage,
+            damageInterval: 0, // Not used for projectiles
+            lifespan: playerLuck * 1000, // 1 second per luck point (vs COMET's 2 seconds)
+            options: {
+                startRadius: 16, // Start close to the player
+                expansionRate: 32, // Pixels per second expansion rate
+                components: [
+                    {
+                        name: 'slowEffect'
+                    }
+                ]
+            }
+        };
+    },
+    count: 1,
+    cooldown: 4000, // 4 second base cooldown (vs COMET's 2 seconds)
+    cooldownStat: 'fireRate',
+    cooldownFormula: 'sqrt',
+    activationMethod: 'timer'
+});
+
+// Function to activate the COLD_WIND perk
+window.activateColdWind = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create initial cold wind immediately
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['COLD_WIND'].getConfig();
+    OrbitalSystem.create(scene, orbitalConfig);
+
+    // Set up timer for subsequent cold winds
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'COLD_WIND');
+};
+
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

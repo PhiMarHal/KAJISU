@@ -497,12 +497,12 @@ const PERKS = {
         kana: "どくあと",
         romaji: "dokuato",
         english: "Toxic Trail",
-        description: "A path of shared sickness. -2 END",
+        description: "A path of shared sickness. -1 END",
         color: "#33cc33", // Green color for poison
         hoverColor: 0x22aa22, // Darker green for hover effect
         onAcquire: function () {
             window.activateToxicTrail();
-            window.modifyStat('health', -2);
+            window.modifyStat('health', -1);
         }
     },
     "FINGER_OF_DECAY": {
@@ -1199,12 +1199,24 @@ const PERKS = {
             window.activateBlizzard();
         }
     },
+    "COLD_WIND": {
+        kanji: "寒風",
+        kana: "かんぷう",
+        romaji: "kanpuu",
+        english: "Cold Wind",
+        description: "Spiraling cold projectiles that slow enemies",
+        color: "#87CEEB", // Light blue color
+        hoverColor: 0x6FAACD,
+        onAcquire: function () {
+            window.activateColdWind();
+        }
+    },
     "INFINITE_GLIMPSE": {
         kanji: "無限一目",
         kana: "むげんいちもく",
         romaji: "mugenichimoku",
         english: "Infinite Glimpse",
-        description: "When you meet eternity, only LUCK matters",
+        description: "Near eternity, only LUCK matters",
         color: "#FFD700", // Gold color
         hoverColor: 0xCCA700,
         onAcquire: function () {

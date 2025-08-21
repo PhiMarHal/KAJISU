@@ -1199,6 +1199,18 @@ const PERKS = {
             window.activateBlizzard();
         }
     },
+    "INFINITE_GLIMPSE": {
+        kanji: "無限一目",
+        kana: "むげんいちもく",
+        romaji: "mugenichimoku",
+        english: "Infinite Glimpse",
+        description: "When you meet eternity, only LUCK matters",
+        color: "#FFD700", // Gold color
+        hoverColor: 0xCCA700,
+        onAcquire: function () {
+            window.activateInfiniteGlimpse();
+        }
+    },
     "COPY_FAIRY": {
         kanji: "写精",
         kana: "うつしせい",

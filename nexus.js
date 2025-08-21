@@ -1114,5 +1114,44 @@ window.activateBlizzard = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'BLIZZARD');
 };
 
+// Register the INFINITE_GLIMPSE perk
+OrbitalPerkRegistry.registerPerkOrbital('INFINITE_GLIMPSE', {
+    getConfig: function () {
+        return {
+            symbol: '★', // Standard star symbol
+            color: '#FFD700', // Gold color
+            fontSize: getEffectiveSize(projectileSizeFactor, playerLuck), // Scale with luck
+            radius: 120, // Medium orbit radius
+            speed: 0.015, // Moderate speed for figure-8
+            direction: 'clockwise',
+            pattern: 'figureEight', // Use figure-8 movement pattern
+            collisionType: 'persistent', // Stays after hitting enemies (key difference from TEAL_OCTOPUS)
+            damage: playerLuck, // This perk has stable stats, and only luck scales its damage
+            damageInterval: 1000,
+            lifespan: 16000,
+            options: {}
+        };
+    },
+    count: 1,
+    cooldown: 4000, // Fixed 4 second cooldown
+    cooldownStat: null, // No stat scaling
+    cooldownFormula: 'fixed', // Fixed cooldown - not affected by luck
+    activationMethod: 'timer' // Create periodically on a timer
+});
+
+// Function to activate the INFINITE_GLIMPSE perk
+window.activateInfiniteGlimpse = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (scene) {
+        // Create initial orbital immediately
+        const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['INFINITE_GLIMPSE'].getConfig();
+        OrbitalSystem.create(scene, orbitalConfig);
+
+        // Set up timer for subsequent orbitals
+        OrbitalPerkRegistry.applyPerkOrbital(scene, 'INFINITE_GLIMPSE');
+    }
+};
+
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

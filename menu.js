@@ -866,22 +866,128 @@ const ExpBar = {
     }
 };
 
-// Status display for timer and kills
+// Unified hexagon creation function supporting both regular and elongated hexagons
+function createHexagon(scene, x, y, size, fillColor = 0x000000, fillAlpha = 1.0, width = null, height = null) {
+    const graphics = scene.add.graphics();
+    let points;
+
+    // Position the graphics at the center
+    graphics.x = x;
+    graphics.y = y;
+
+    if (width !== null && height !== null) {
+        // Create elongated hexagon (hexagonal rectangle) with explicit dimensions
+        // Use proper 30° hexagon angles: horizontal chamfer = vertical chamfer * √3
+        const chamferY = height * 0.25; // Vertical chamfer (keep Y positions reasonable)
+        const chamferX = chamferY * Math.sqrt(3); // Horizontal chamfer for 30° angle
+
+        points = [
+            { x: -width / 2 + chamferX, y: -height / 2 },        // Top-left chamfered
+            { x: width / 2 - chamferX, y: -height / 2 },         // Top-right chamfered
+            { x: width / 2, y: -height / 2 + chamferY },         // Top-right corner
+            { x: width / 2, y: height / 2 - chamferY },          // Bottom-right corner
+            { x: width / 2 - chamferX, y: height / 2 },          // Bottom-right chamfered
+            { x: -width / 2 + chamferX, y: height / 2 },         // Bottom-left chamfered
+            { x: -width / 2, y: height / 2 - chamferY },         // Bottom-left corner
+            { x: -width / 2, y: -height / 2 + chamferY }         // Top-left corner
+        ];
+    } else {
+        // Create regular hexagon with size parameter
+        const hexWidth = size * 0.85; // Reduced width (existing behavior)
+        const hexHeight = size * 0.866; // Proper hexagon aspect ratio
+
+        points = [
+            { x: 0, y: -hexHeight / 2 },                    // Top
+            { x: hexWidth / 2, y: -hexHeight / 4 },         // Top-right
+            { x: hexWidth / 2, y: hexHeight / 4 },          // Bottom-right
+            { x: 0, y: hexHeight / 2 },                     // Bottom
+            { x: -hexWidth / 2, y: hexHeight / 4 },         // Bottom-left
+            { x: -hexWidth / 2, y: -hexHeight / 4 }         // Top-left
+        ];
+    }
+
+    // Draw filled hexagon (same for both types)
+    graphics.fillStyle(fillColor, fillAlpha);
+    graphics.beginPath();
+    graphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        graphics.lineTo(points[i].x, points[i].y);
+    }
+    graphics.closePath();
+    graphics.fillPath();
+
+    // Draw the 4 L borders (same pattern for both types)
+    graphics.lineStyle(3, 0xFFD700);
+
+    if (width !== null && height !== null) {
+        // Elongated hexagon border indices
+        // Left side (bottom-left corner to top-left corner)
+        graphics.beginPath();
+        graphics.moveTo(points[6].x, points[6].y);
+        graphics.lineTo(points[7].x, points[7].y);
+        graphics.strokePath();
+
+        // Bottom-left side (bottom-left chamfered to bottom-left corner)
+        graphics.beginPath();
+        graphics.moveTo(points[5].x, points[5].y);
+        graphics.lineTo(points[6].x, points[6].y);
+        graphics.strokePath();
+
+        // Right side (top-right corner to bottom-right corner)
+        graphics.beginPath();
+        graphics.moveTo(points[2].x, points[2].y);
+        graphics.lineTo(points[3].x, points[3].y);
+        graphics.strokePath();
+
+        // Top-right side (top-right chamfered to top-right corner)
+        graphics.beginPath();
+        graphics.moveTo(points[1].x, points[1].y);
+        graphics.lineTo(points[2].x, points[2].y);
+        graphics.strokePath();
+    } else {
+        // Regular hexagon border indices
+        // Left side (bottom-left point to top-left point)
+        graphics.beginPath();
+        graphics.moveTo(points[4].x, points[4].y);
+        graphics.lineTo(points[5].x, points[5].y);
+        graphics.strokePath();
+
+        // Bottom-left side (bottom point to bottom-left point)
+        graphics.beginPath();
+        graphics.moveTo(points[3].x, points[3].y);
+        graphics.lineTo(points[4].x, points[4].y);
+        graphics.strokePath();
+
+        // Right side (top-right point to bottom-right point)
+        graphics.beginPath();
+        graphics.moveTo(points[1].x, points[1].y);
+        graphics.lineTo(points[2].x, points[2].y);
+        graphics.strokePath();
+
+        // Top-right side (top point to top-right point)
+        graphics.beginPath();
+        graphics.moveTo(points[0].x, points[0].y);
+        graphics.lineTo(points[1].x, points[1].y);
+        graphics.strokePath();
+    }
+
+    return graphics;
+}
+
+// Updated StatusDisplay using the unified hexagon function
 const StatusDisplay = {
     create: function (scene) {
         // Initialize relative dimensions
         UI.game.init(scene);
 
         // Clean up existing elements if they exist
-        if (scene.timerBox) scene.timerBox.destroy();
-        if (scene.timerBoxInner) scene.timerBoxInner.destroy();
+        if (scene.timerHexagon) scene.timerHexagon.destroy();
         if (scene.timerText) scene.timerText.destroy();
         if (scene.timerSymbol) scene.timerSymbol.destroy();
 
-        if (scene.scoreBox) scene.scoreBox.destroy(); // Renamed from killsBox
-        if (scene.scoreBoxInner) scene.scoreBoxInner.destroy(); // Renamed from killsBoxInner
-        if (scene.scoreText) scene.scoreText.destroy(); // Renamed from killsText
-        if (scene.scoreSymbol) scene.scoreSymbol.destroy(); // Renamed from killsSymbol
+        if (scene.scoreHexagon) scene.scoreHexagon.destroy();
+        if (scene.scoreText) scene.scoreText.destroy();
+        if (scene.scoreSymbol) scene.scoreSymbol.destroy();
 
         // Size and position adjustments for kajisuli mode
         const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1; // 40% wider in kajisuli mode
@@ -892,34 +998,23 @@ const StatusDisplay = {
             UI.rel.x(6) : // 6% from edges in kajisuli mode
             UI.statusDisplay.x(); // Default in normal mode
 
-        // Create timer display with gold border
+        // Create timer display with elongated hexagon
         const timerX = UI.kajisuli.enabled() ?
             edgeMargin + (UI.statusDisplay.timerWidth() * kajisuliScale / 2) : // Left side in kajisuli mode
             UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale / 2); // Standard position
 
-        // Timer box - draw fill first, then border lines
-        scene.timerBox = scene.add.graphics();
-        scene.timerBox.x = timerX;
-        scene.timerBox.y = UI.statusDisplay.timerY();
-
-        // Draw transparent black fill FIRST (like hexagon)
-        scene.timerBox.fillStyle(UI.colors.black, 0.5);
-        scene.timerBox.fillRect(
-            -(UI.statusDisplay.timerWidth() * kajisuliScale / 2),
-            -(UI.statusDisplay.height() / 2),
-            UI.statusDisplay.timerWidth() * kajisuliScale,
-            UI.statusDisplay.height()
+        // Timer elongated hexagon using unified function
+        scene.timerHexagon = createHexagon(
+            scene,
+            timerX,
+            UI.statusDisplay.timerY(),
+            null, // size parameter not used when width/height provided
+            UI.colors.black,
+            0.5,  // 50% opacity so game elements show through
+            UI.statusDisplay.timerWidth() * kajisuliScale, // width
+            UI.buttons.common.size() * (UI.kajisuli.enabled() ? 0.8 : 1) // height - full size in normal, 80% in kajisuli
         );
-
-        // Draw ONLY border lines on top (like hexagon borders)
-        scene.timerBox.lineStyle(UI.statusDisplay.borderWidth, UI.colors.gold);
-        scene.timerBox.strokeRect(
-            -(UI.statusDisplay.timerWidth() * kajisuliScale / 2),
-            -(UI.statusDisplay.height() / 2),
-            UI.statusDisplay.timerWidth() * kajisuliScale,
-            UI.statusDisplay.height()
-        );
-        scene.timerBox.setDepth(UI.depth.ui);
+        scene.timerHexagon.setDepth(UI.depth.ui);
 
         // Create the timer text - centered in kajisuli mode
         if (UI.kajisuli.enabled()) {
@@ -937,7 +1032,7 @@ const StatusDisplay = {
         } else {
             // Create the timer kanji symbol in normal mode
             scene.timerSymbol = scene.add.text(
-                UI.statusDisplay.x() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.x() + UI.statusDisplay.textPadding() + UI.rel.width(0.75), // Add left margin
                 UI.statusDisplay.timerY(),
                 UI.statusDisplay.clockSymbol,
                 {
@@ -949,7 +1044,7 @@ const StatusDisplay = {
 
             // Create the timer text
             scene.timerText = scene.add.text(
-                UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding() - UI.rel.width(0.75), // Add right margin
                 UI.statusDisplay.timerY(),
                 "00:00", // Shorter time format
                 {
@@ -967,29 +1062,18 @@ const StatusDisplay = {
             // Normal position
             UI.statusDisplay.scoreX() + (UI.statusDisplay.scoreWidth() * kajisuliScale / 2);
 
-        // Score box - same approach
-        scene.scoreBox = scene.add.graphics();
-        scene.scoreBox.x = scoreX;
-        scene.scoreBox.y = UI.statusDisplay.scoreY();
-
-        // Draw transparent black fill FIRST
-        scene.scoreBox.fillStyle(UI.colors.black, 0.5);
-        scene.scoreBox.fillRect(
-            -(UI.statusDisplay.scoreWidth() * kajisuliScale / 2),
-            -(UI.statusDisplay.height() / 2),
-            UI.statusDisplay.scoreWidth() * kajisuliScale,
-            UI.statusDisplay.height()
+        // Score elongated hexagon using unified function
+        scene.scoreHexagon = createHexagon(
+            scene,
+            scoreX,
+            UI.statusDisplay.scoreY(),
+            null, // size parameter not used when width/height provided
+            UI.colors.black,
+            0.5,  // 50% opacity so game elements show through
+            UI.statusDisplay.scoreWidth() * kajisuliScale, // width
+            UI.buttons.common.size() * (UI.kajisuli.enabled() ? 0.8 : 1) // height - full size in normal, 80% in kajisuli
         );
-
-        // Draw ONLY border lines on top
-        scene.scoreBox.lineStyle(UI.statusDisplay.borderWidth, UI.colors.gold);
-        scene.scoreBox.strokeRect(
-            -(UI.statusDisplay.scoreWidth() * kajisuliScale / 2),
-            -(UI.statusDisplay.height() / 2),
-            UI.statusDisplay.scoreWidth() * kajisuliScale,
-            UI.statusDisplay.height()
-        );
-        scene.scoreBox.setDepth(UI.depth.ui);
+        scene.scoreHexagon.setDepth(UI.depth.ui);
 
         if (UI.kajisuli.enabled()) {
             // Create centered score text in kajisuli mode
@@ -1006,7 +1090,7 @@ const StatusDisplay = {
         } else {
             // Create the score kanji symbol
             scene.scoreSymbol = scene.add.text(
-                UI.statusDisplay.scoreX() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreX() + UI.statusDisplay.textPadding() + UI.rel.width(0.75), // Add left margin
                 UI.statusDisplay.scoreY(),
                 UI.statusDisplay.scoreSymbol,
                 {
@@ -1018,7 +1102,7 @@ const StatusDisplay = {
 
             // Create the score text
             scene.scoreText = scene.add.text(
-                UI.statusDisplay.scoreX() + UI.statusDisplay.scoreWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreX() + UI.statusDisplay.scoreWidth() - UI.statusDisplay.textPadding() - UI.rel.width(0.75), // Add right margin
                 UI.statusDisplay.scoreY(),
                 "0",
                 {
@@ -1063,68 +1147,6 @@ const StatusDisplay = {
         }
     }
 };
-
-// Hexagon creation helper function
-function createHexagon(scene, x, y, size, fillColor = 0x000000, fillAlpha = 1.0) {
-    const graphics = scene.add.graphics();
-
-    // Calculate hexagon points - make it narrower
-    const width = size * 0.85; // Reduced width
-    const height = size * 0.866; // Proper hexagon aspect ratio
-
-    // Hexagon vertices (pointy-top orientation)
-    const points = [
-        { x: 0, y: -height / 2 },           // Top
-        { x: width / 2, y: -height / 4 },     // Top-right
-        { x: width / 2, y: height / 4 },      // Bottom-right
-        { x: 0, y: height / 2 },            // Bottom
-        { x: -width / 2, y: height / 4 },     // Bottom-left
-        { x: -width / 2, y: -height / 4 }     // Top-left
-    ];
-
-    // Position the graphics at the center
-    graphics.x = x;
-    graphics.y = y;
-
-    // Draw filled hexagon
-    graphics.fillStyle(fillColor, fillAlpha);
-    graphics.beginPath();
-    graphics.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-        graphics.lineTo(points[i].x, points[i].y);
-    }
-    graphics.closePath();
-    graphics.fillPath();
-
-    // Draw the 4 L borders (left + bottom-left + right + top-right)
-    graphics.lineStyle(3, 0xFFD700);
-
-    // Left side (bottom-left point to top-left point)
-    graphics.beginPath();
-    graphics.moveTo(points[4].x, points[4].y);
-    graphics.lineTo(points[5].x, points[5].y);
-    graphics.strokePath();
-
-    // Bottom-left side (bottom point to bottom-left point)
-    graphics.beginPath();
-    graphics.moveTo(points[3].x, points[3].y);
-    graphics.lineTo(points[4].x, points[4].y);
-    graphics.strokePath();
-
-    // Right side (top-right point to bottom-right point)
-    graphics.beginPath();
-    graphics.moveTo(points[1].x, points[1].y);
-    graphics.lineTo(points[2].x, points[2].y);
-    graphics.strokePath();
-
-    // Top-right side (top point to top-right point)
-    graphics.beginPath();
-    graphics.moveTo(points[0].x, points[0].y);
-    graphics.lineTo(points[1].x, points[1].y);
-    graphics.strokePath();
-
-    return graphics;
-}
 
 // Updated StatDisplay with hexagons
 const StatDisplay = {

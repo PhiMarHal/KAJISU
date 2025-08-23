@@ -126,165 +126,59 @@ const StartMenuSystem = {
         }
     },
 
-    // Create background canvas for concentric circles
-    createBackgroundCanvas: function () {
-        const sizes = this.getResponsiveSizes();
-
-        // Create canvas element
-        this.elements.backgroundCanvas = document.createElement('canvas');
-        this.elements.backgroundCanvas.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            pointer-events: none;
-        `;
-
-        // Set canvas size
-        this.elements.backgroundCanvas.width = window.innerWidth;
-        this.elements.backgroundCanvas.height = window.innerHeight;
-
-        // Add to menu container
-        this.elements.menuContainer.appendChild(this.elements.backgroundCanvas);
-
-        // Calculate title center position
-        const getTitleCenter = () => {
-            if (this.titleElement) {
-                const rect = this.titleElement.getBoundingClientRect();
-                // Check if we got valid coordinates (element is properly laid out)
-                if (rect.width > 0 && rect.height > 0) {
-                    return {
-                        x: rect.left + rect.width / 2,
-                        y: rect.top + rect.height / 2
-                    };
-                }
-            }
-            // Fallback to screen center if title isn't positioned yet
-            return {
-                x: window.innerWidth / 2,
-                y: window.innerHeight * 0.4 // Slightly higher than center to match button position
-            };
-        };
-
-        const titleCenter = getTitleCenter();
-
-        // Smart responsive circle sizing based on screen dimensions
-        const screenSize = Math.min(window.innerWidth, window.innerHeight);
-        const aspectRatio = window.innerHeight / window.innerWidth;
-
-        // Scale circles bigger for smaller screens and tall aspect ratios
-        const baseRadiusMultiplier = Math.max(0.08, Math.min(0.18, 0.08 + (aspectRatio - 1) * 0.05));
-        const incrementMultiplier = Math.max(0.02, Math.min(0.05, 0.02 + (aspectRatio - 1) * 0.015));
-
-        // Create concentric circles animation - 8 circles, 4 segments each
-        this.elements.circlesAnimation = VisualEffects.createConcentricCirclesCanvas(
-            this.elements.backgroundCanvas,
-            {
-                x: titleCenter.x,
-                y: titleCenter.y,
-                circleCount: 8,
-                baseRadius: screenSize * baseRadiusMultiplier,
-                radiusIncrement: screenSize * incrementMultiplier,
-                gapRatio: 0.4,
-                rotationSpeed: 0.0004,
-                color: '#FFD700',
-                strokeWidth: 4,
-                segmentCount: 4 // Fixed 4 segments for all circles
-            }
-        );
-
-        // Start the animation
-        this.elements.circlesAnimation.start();
-
-        // Handle window resize
-        const resizeHandler = () => {
-            this.elements.backgroundCanvas.width = window.innerWidth;
-            this.elements.backgroundCanvas.height = window.innerHeight;
-            if (this.elements.circlesAnimation) {
-                const newCenter = getTitleCenter();
-                this.elements.circlesAnimation.setPosition(newCenter.x, newCenter.y);
-            }
-        };
-
-        window.addEventListener('resize', resizeHandler);
-
-        // Store resize handler for cleanup
-        this.resizeHandler = resizeHandler;
-    },
-
     // Create HTML-based start menu
     createHTMLMenu: function () {
         const sizes = this.getResponsiveSizes();
         const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
-        const aspectRatio = screenHeight / screenWidth;
 
-        // Create main menu container with aspect-ratio-based positioning
+        // Create main menu container
         this.elements.menuContainer = document.createElement('div');
         this.elements.menuContainer.id = 'start-menu';
-
-        // For tall screens (aspect ratio > 1.5), start from top with padding
-        // For square/wide screens, use center alignment
-        const justifyContent = 'center'
-        const paddingTop = `${sizes.padding}px`;
-
         this.elements.menuContainer.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #1a1a1a;
-            display: flex;
-            flex-direction: column;
-            justify-content: ${justifyContent};
-            align-items: center;
-            z-index: 1000;
-            font-family: Arial, sans-serif;
-            color: white;
-            padding: ${sizes.padding}px;
-            padding-top: ${paddingTop};
-            box-sizing: border-box;
-        `;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #1a1a1a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 1000;
+        font-family: Arial, sans-serif;
+        color: white;
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+    `;
 
-        // Create title first (so we can get its position for the circles)
+        // === 1. Title: Positioned at 25vh ===
         const title = document.createElement('div');
         title.textContent = 'ENTER THE LOOP';
 
-        // Responsive positioning - adjust margin based on aspect ratio
-        const topMargin = aspectRatio > 1.5 ? sizes.padding * 6 : sizes.padding * 2;
-
         title.style.cssText = `
-            font-size: ${sizes.titleSize}px;
-            font-weight: bold;
-            color: #FFD700;
-            margin-bottom: ${sizes.padding * 3}px;
-            margin-top: -${topMargin}px;
-            border: 4px solid #FFD700;
-            padding: ${sizes.padding}px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: center;
-            line-height: 1.1;
-            max-width: 90%;
-            box-shadow: 0 0 0 0 #FFD700;
-            background-color: rgba(26, 26, 26, 0.8);
-            backdrop-filter: blur(5px);
-            z-index: 1001;
-            position: relative;
-        `;
-
-        this.elements.menuContainer.appendChild(title);
-
-        // Store reference to title for positioning circles
-        this.titleElement = title;
-
-        // Create background canvas after DOM layout (small delay to ensure layout is complete)
-        setTimeout(() => {
-            this.createBackgroundCanvas();
-        }, 50);
+        font-size: ${sizes.titleSize}px;
+        font-weight: bold;
+        color: #FFD700;
+        border: 4px solid #FFD700;
+        padding: ${sizes.padding}px ${sizes.padding * 2}px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        line-height: 1.1;
+        max-width: 90%;
+        width: fit-content;
+        box-shadow: 0 0 0 0 #FFD700;
+        background-color: rgba(26, 26, 26, 0.8);
+        backdrop-filter: blur(5px);
+        z-index: 1001;
+        position: absolute;
+        top: 25vh;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+    `;
 
         title.addEventListener('mouseenter', () => {
             title.style.color = '#FFFFFF';
@@ -303,31 +197,38 @@ const StartMenuSystem = {
         });
 
         this.elements.menuContainer.appendChild(title);
+        this.titleElement = title;
 
-        // Create toggles container
+        // === 2. Background Canvas (will be inserted below, but drawn behind) ===
+        // We'll create it after DOM settles so we can measure the title
+        setTimeout(() => {
+            this.createBackgroundCanvas();
+        }, 50);
+
+        // === 3. Toggles Container: Positioned at 55vh ===
+        const containerWidth = Math.min(600, screenWidth * 0.9);
         const togglesContainer = document.createElement('div');
-        const containerWidth = Math.min(600, screenWidth * 0.9); // More responsive container width
         togglesContainer.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: ${sizes.lineSpacing}px;
-            margin-top: ${sizes.padding * 4}px;
-            width: ${containerWidth}px;
-            max-width: 95%;
-            z-index: 1001;
-            position: relative;
-        `;
+        position: absolute;
+        top: 55vh;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: ${sizes.lineSpacing * 1.5}px;
+        width: ${containerWidth}px;
+        max-width: 95%;
+        z-index: 1001;
+    `;
 
-        // Only show portrait screen and learning challenge toggles if not in FARCADE mode
+        // Add toggles
         if (!this.isFarcadeMode()) {
-            // Create portrait screen toggle
             const portraitToggle = this.createToggle('Portrait Screen', this.state.kajisuliMode, (enabled) => {
                 this.selectMode(enabled);
                 this.showInfoMessage(this.infoMessages.portraitScreen[enabled ? 'on' : 'off']);
             }, sizes);
             togglesContainer.appendChild(portraitToggle);
 
-            // Create learning challenge toggle
             const learningToggle = this.createToggle('Learning Challenge', this.state.learningChallengeEnabled, (enabled) => {
                 this.toggleLearningChallenge(enabled);
                 this.showInfoMessage(this.infoMessages.learningChallenge[enabled ? 'on' : 'off']);
@@ -336,21 +237,18 @@ const StartMenuSystem = {
             togglesContainer.appendChild(learningToggle);
         }
 
-        // Create hard mode toggle (always show)
         const hardModeToggle = this.createToggle('Hard Mode', this.state.hardModeEnabled, (enabled) => {
             this.toggleHardMode(enabled);
             this.showInfoMessage(this.infoMessages.hardMode[enabled ? 'on' : 'off']);
         }, sizes);
         togglesContainer.appendChild(hardModeToggle);
 
-        // Create Boss Rush toggle (always show)
         const bossRushToggle = this.createToggle('Boss Rush', this.state.bossRushMode, (enabled) => {
             this.toggleBossRush(enabled);
             this.showInfoMessage(this.infoMessages.bossRush[enabled ? 'on' : 'off']);
         }, sizes);
         togglesContainer.appendChild(bossRushToggle);
 
-        // Create Strangerer Music toggle (always show)
         const strangeMusicToggle = this.createToggle('Strange Music', this.state.strangeMusicEnabled, (enabled) => {
             this.toggleStrangeMusic(enabled);
             this.showInfoMessage(this.infoMessages.strangeMusic[enabled ? 'on' : 'off']);
@@ -359,46 +257,142 @@ const StartMenuSystem = {
 
         this.elements.menuContainer.appendChild(togglesContainer);
 
-        // Create info message element
-        const infoContainerWidth = Math.min(600, screenWidth * 0.9); // Match toggles container width
+        // === 4. Info Message: Bottom center ===
+        const infoContainerWidth = Math.min(600, screenWidth * 0.9);
         this.elements.infoMessage = document.createElement('div');
         this.elements.infoMessage.style.cssText = `
-            position: fixed;
-            bottom: ${sizes.padding * 2}px;
-            left: 50%;
-            width: ${infoContainerWidth}px;
-            max-width: 95%;
-            transform: translateX(-50%) translateY(10px);
-            font-size: ${sizes.infoSize}px;
-            color: #FFD700;
-            text-align: center;
-            opacity: 0;
-            transition: all 0.3s ease;
-            pointer-events: none;
-            line-height: 1.4;
-            padding: ${sizes.padding / 2}px ${sizes.padding}px;
-            background-color: rgba(0, 0, 0, 0.8);
-            border: 1px solid #FFD700;
-            border-radius: 4px;
-            box-sizing: border-box;
-            backdrop-filter: blur(5px);
-            z-index: 1001;
-        `;
+        position: absolute;
+        bottom: ${sizes.padding * 2}px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: ${infoContainerWidth}px;
+        max-width: 95%;
+        font-size: ${sizes.infoSize}px;
+        color: #FFD700;
+        text-align: center;
+        opacity: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        line-height: 1.4;
+        padding: ${sizes.padding / 2}px ${sizes.padding}px;
+        background-color: rgba(0, 0, 0, 0.8);
+        border: 1px solid #FFD700;
+        border-radius: 4px;
+        box-sizing: border-box;
+        backdrop-filter: blur(5px);
+        z-index: 1001;
+    `;
         this.elements.infoMessage.textContent = 'Welcome, Looper';
-
         this.elements.menuContainer.appendChild(this.elements.infoMessage);
 
-        // Add to page
+        // Add to DOM
         document.body.appendChild(this.elements.menuContainer);
 
-        // Setup keyboard handler and start animations
+        // Setup keyboard and animations
         this.setupKeyboardHandler();
         this.startAnimations();
 
-        // Show initial info message after a short delay
         setTimeout(() => {
             this.showInfoMessage('Welcome, Looper');
         }, 1000);
+    },
+
+    // Create background canvas with center locked to title element
+    createBackgroundCanvas: function () {
+        if (this.elements.backgroundCanvas) {
+            this.elements.backgroundCanvas.remove();
+        }
+
+        const sizes = this.getResponsiveSizes();
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        // Create canvas
+        this.elements.backgroundCanvas = document.createElement('canvas');
+        this.elements.backgroundCanvas.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        pointer-events: none;
+    `;
+        this.elements.backgroundCanvas.width = screenWidth;
+        this.elements.backgroundCanvas.height = screenHeight;
+
+        // Insert *before* other children so it's behind
+        if (this.elements.menuContainer.firstChild) {
+            this.elements.menuContainer.insertBefore(this.elements.backgroundCanvas, this.elements.menuContainer.firstChild);
+        } else {
+            this.elements.menuContainer.appendChild(this.elements.backgroundCanvas);
+        }
+
+        // === Get actual title position from DOM layout ===
+        const getTitleCenter = () => {
+            if (this.titleElement) {
+                const rect = this.titleElement.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    return {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2
+                    };
+                }
+            }
+            // Fallback: use 25vh center
+            return {
+                x: screenWidth / 2,
+                y: screenHeight * 0.25
+            };
+        };
+
+        const center = getTitleCenter();
+
+        const screenSize = Math.min(screenWidth, screenHeight);
+        const aspectRatio = screenHeight / screenWidth;
+
+        const baseRadiusMultiplier = Math.max(0.08, Math.min(0.18, 0.08 + (aspectRatio - 1) * 0.05));
+        const incrementMultiplier = Math.max(0.02, Math.min(0.05, 0.02 + (aspectRatio - 1) * 0.015));
+
+        // Create animation
+        this.elements.circlesAnimation = VisualEffects.createConcentricCirclesCanvas(
+            this.elements.backgroundCanvas,
+            {
+                x: center.x,
+                y: center.y,
+                circleCount: 8,
+                baseRadius: screenSize * baseRadiusMultiplier,
+                radiusIncrement: screenSize * incrementMultiplier,
+                gapRatio: 0.4,
+                rotationSpeed: 0.0004,
+                color: '#FFD700',
+                strokeWidth: 4,
+                segmentCount: 4
+            }
+        );
+
+        this.elements.circlesAnimation.start();
+
+        // Handle resize: re-measure title position
+        const resizeHandler = () => {
+            const newWidth = window.innerWidth;
+            const newHeight = window.innerHeight;
+            this.elements.backgroundCanvas.width = newWidth;
+            this.elements.backgroundCanvas.height = newHeight;
+
+            // Re-query title position after resize
+            const newCenter = getTitleCenter();
+            if (this.elements.circlesAnimation) {
+                this.elements.circlesAnimation.setPosition(newCenter.x, newCenter.y);
+            }
+        };
+
+        // Clean up old listener
+        if (this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+        }
+        this.resizeHandler = resizeHandler;
+        window.addEventListener('resize', resizeHandler);
     },
 
     // Create a unified toggle component

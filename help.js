@@ -4,7 +4,7 @@ const HELP_PAGES = [
     {
         title: "THE YEAR IS 2077",
         content: [
-            "HUMANITY TOOK TO THE STARS",
+            "Humanity took to the stars",
             "",
             "YOU ARE   " + HERO_CHARACTER,
             "",

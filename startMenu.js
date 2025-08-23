@@ -35,7 +35,9 @@ const StartMenuSystem = {
     elements: {
         menuContainer: null,
         learningToggle: null,
-        infoMessage: null
+        infoMessage: null,
+        backgroundCanvas: null,
+        circlesAnimation: null
     },
 
     // Info messages for each toggle state
@@ -124,14 +126,110 @@ const StartMenuSystem = {
         }
     },
 
+    // Create background canvas for concentric circles
+    createBackgroundCanvas: function () {
+        const sizes = this.getResponsiveSizes();
+
+        // Create canvas element
+        this.elements.backgroundCanvas = document.createElement('canvas');
+        this.elements.backgroundCanvas.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        `;
+
+        // Set canvas size
+        this.elements.backgroundCanvas.width = window.innerWidth;
+        this.elements.backgroundCanvas.height = window.innerHeight;
+
+        // Add to menu container
+        this.elements.menuContainer.appendChild(this.elements.backgroundCanvas);
+
+        // Calculate title center position
+        const getTitleCenter = () => {
+            if (this.titleElement) {
+                const rect = this.titleElement.getBoundingClientRect();
+                // Check if we got valid coordinates (element is properly laid out)
+                if (rect.width > 0 && rect.height > 0) {
+                    return {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2
+                    };
+                }
+            }
+            // Fallback to screen center if title isn't positioned yet
+            return {
+                x: window.innerWidth / 2,
+                y: window.innerHeight * 0.4 // Slightly higher than center to match button position
+            };
+        };
+
+        const titleCenter = getTitleCenter();
+
+        // Smart responsive circle sizing based on screen dimensions
+        const screenSize = Math.min(window.innerWidth, window.innerHeight);
+        const aspectRatio = window.innerHeight / window.innerWidth;
+
+        // Scale circles bigger for smaller screens and tall aspect ratios
+        const baseRadiusMultiplier = Math.max(0.08, Math.min(0.18, 0.08 + (aspectRatio - 1) * 0.05));
+        const incrementMultiplier = Math.max(0.02, Math.min(0.05, 0.02 + (aspectRatio - 1) * 0.015));
+
+        // Create concentric circles animation - 8 circles, 4 segments each
+        this.elements.circlesAnimation = VisualEffects.createConcentricCirclesCanvas(
+            this.elements.backgroundCanvas,
+            {
+                x: titleCenter.x,
+                y: titleCenter.y,
+                circleCount: 8,
+                baseRadius: screenSize * baseRadiusMultiplier,
+                radiusIncrement: screenSize * incrementMultiplier,
+                gapRatio: 0.4,
+                rotationSpeed: 0.0004,
+                color: '#FFD700',
+                strokeWidth: 4,
+                segmentCount: 4 // Fixed 4 segments for all circles
+            }
+        );
+
+        // Start the animation
+        this.elements.circlesAnimation.start();
+
+        // Handle window resize
+        const resizeHandler = () => {
+            this.elements.backgroundCanvas.width = window.innerWidth;
+            this.elements.backgroundCanvas.height = window.innerHeight;
+            if (this.elements.circlesAnimation) {
+                const newCenter = getTitleCenter();
+                this.elements.circlesAnimation.setPosition(newCenter.x, newCenter.y);
+            }
+        };
+
+        window.addEventListener('resize', resizeHandler);
+
+        // Store resize handler for cleanup
+        this.resizeHandler = resizeHandler;
+    },
+
     // Create HTML-based start menu
     createHTMLMenu: function () {
         const sizes = this.getResponsiveSizes();
         const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const aspectRatio = screenHeight / screenWidth;
 
-        // Create main menu container
+        // Create main menu container with aspect-ratio-based positioning
         this.elements.menuContainer = document.createElement('div');
         this.elements.menuContainer.id = 'start-menu';
+
+        // For tall screens (aspect ratio > 1.5), start from top with padding
+        // For square/wide screens, use center alignment
+        const justifyContent = 'center'
+        const paddingTop = `${sizes.padding}px`;
+
         this.elements.menuContainer.style.cssText = `
             position: fixed;
             top: 0;
@@ -141,41 +239,63 @@ const StartMenuSystem = {
             background-color: #1a1a1a;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: ${justifyContent};
             align-items: center;
             z-index: 1000;
             font-family: Arial, sans-serif;
             color: white;
             padding: ${sizes.padding}px;
+            padding-top: ${paddingTop};
             box-sizing: border-box;
         `;
 
-        // Create title
+        // Create title first (so we can get its position for the circles)
         const title = document.createElement('div');
         title.textContent = 'ENTER THE LOOP';
+
+        // Responsive positioning - adjust margin based on aspect ratio
+        const topMargin = aspectRatio > 1.5 ? sizes.padding * 6 : sizes.padding * 2;
+
         title.style.cssText = `
             font-size: ${sizes.titleSize}px;
             font-weight: bold;
             color: #FFD700;
-            margin-bottom: ${sizes.padding * 2}px;
+            margin-bottom: ${sizes.padding * 3}px;
+            margin-top: -${topMargin}px;
             border: 4px solid #FFD700;
-            padding: ${sizes.padding}px ${sizes.padding * 2}px;
+            padding: ${sizes.padding}px;
             cursor: pointer;
             transition: all 0.2s ease;
             text-align: center;
             line-height: 1.1;
             max-width: 90%;
             box-shadow: 0 0 0 0 #FFD700;
+            background-color: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1001;
+            position: relative;
         `;
+
+        this.elements.menuContainer.appendChild(title);
+
+        // Store reference to title for positioning circles
+        this.titleElement = title;
+
+        // Create background canvas after DOM layout (small delay to ensure layout is complete)
+        setTimeout(() => {
+            this.createBackgroundCanvas();
+        }, 50);
 
         title.addEventListener('mouseenter', () => {
             title.style.color = '#FFFFFF';
             title.style.boxShadow = '0 0 0 2px #FFD700';
+            title.style.backgroundColor = 'rgba(26, 26, 26, 0.9)';
         });
 
         title.addEventListener('mouseleave', () => {
             title.style.color = '#FFD700';
             title.style.boxShadow = '0 0 0 0 #FFD700';
+            title.style.backgroundColor = 'rgba(26, 26, 26, 0.8)';
         });
 
         title.addEventListener('click', () => {
@@ -191,9 +311,11 @@ const StartMenuSystem = {
             display: flex;
             flex-direction: column;
             gap: ${sizes.lineSpacing}px;
-            margin-top: ${sizes.padding}px;
+            margin-top: ${sizes.padding * 4}px;
             width: ${containerWidth}px;
             max-width: 95%;
+            z-index: 1001;
+            position: relative;
         `;
 
         // Only show portrait screen and learning challenge toggles if not in FARCADE mode
@@ -259,6 +381,8 @@ const StartMenuSystem = {
             border: 1px solid #FFD700;
             border-radius: 4px;
             box-sizing: border-box;
+            backdrop-filter: blur(5px);
+            z-index: 1001;
         `;
         this.elements.infoMessage.textContent = 'Welcome, Looper';
 
@@ -473,11 +597,28 @@ const StartMenuSystem = {
             this.keyHandler = null;
         }
 
+        // Remove the resize handler
+        if (this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+            this.resizeHandler = null;
+        }
+
+        // Stop and destroy concentric circles animation
+        if (this.elements.circlesAnimation) {
+            this.elements.circlesAnimation.destroy();
+            this.elements.circlesAnimation = null;
+        }
+
         // Remove the HTML menu container
         if (this.elements.menuContainer) {
             document.body.removeChild(this.elements.menuContainer);
             this.elements.menuContainer = null;
         }
+
+        // Reset all element references
+        Object.keys(this.elements).forEach(key => {
+            this.elements[key] = null;
+        });
     }
 };
 

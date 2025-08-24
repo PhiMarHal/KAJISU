@@ -354,13 +354,32 @@ function showMobileLevelUpScreen(scene) {
     const levelUpContainer = scene.add.container(0, 0);
     levelUpContainer.setDepth(1000);
 
+    // Create concentric circles animation
+    const centerX = game.config.width / 2;
+    const centerY = game.config.height / 2;
+    const screenSize = Math.min(game.config.width, game.config.height);
+    const baseRadiusMultiplier = 0.08;
+    const incrementMultiplier = 0.04;
+
+    const concentricCircles = VisualEffects.createConcentricCircles(scene, {
+        x: centerX,
+        y: centerY,
+        circleCount: 8,
+        baseRadius: screenSize * baseRadiusMultiplier,
+        radiusIncrement: screenSize * incrementMultiplier,
+        gapRatio: 0.4,
+        rotationSpeed: 24,
+        color: 0xFFD700,
+        strokeWidth: 4,
+        segmentCount: 4,
+        depth: 999 // Behind other UI elements
+    });
+
     // Safety tracking - player must browse through all perks before selecting
     let viewedPerks = new Set();
     let hasViewedAllPerks = false;
 
     // Create semi-transparent background
-    const centerX = game.config.width / 2;
-    const centerY = game.config.height / 2;
     const levelUpBackground = scene.add.rectangle(
         centerX,
         centerY,
@@ -689,6 +708,11 @@ function showMobileLevelUpScreen(scene) {
         acquirePerk(scene, perkId);
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
+
+        // Clean up concentric circles animation
+        if (concentricCircles) {
+            concentricCircles.destroy();
+        }
 
         // Clean up current level-up UI
         levelUpContainer.destroy();

@@ -21,7 +21,8 @@ const RomajiChallengeSystem = {
         submitButton: null,
         inputPrompt: null,
         levelUpContainer: null, // Main container for level up UI
-        perkCardContainer: null // Container for perk cards
+        perkCardContainer: null, // Container for perk cards
+        concentricCircles: null // Concentric circles animation
     },
 
     // Event handlers
@@ -59,7 +60,8 @@ const RomajiChallengeSystem = {
             submitButton: null,
             inputPrompt: null,
             levelUpContainer: null,
-            perkCardContainer: null
+            perkCardContainer: null,
+            concentricCircles: null
         };
 
         // Clean up event handlers
@@ -99,9 +101,28 @@ const RomajiChallengeSystem = {
         this.elements.levelUpContainer = scene.add.container(0, 0);
         this.elements.levelUpContainer.setDepth(1000);
 
-        // Create semi-transparent background
+        // Create concentric circles animation
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
+        const screenSize = Math.min(game.config.width, game.config.height);
+        const baseRadiusMultiplier = 0.08;
+        const incrementMultiplier = 0.04;
+
+        this.elements.concentricCircles = VisualEffects.createConcentricCircles(scene, {
+            x: centerX,
+            y: centerY,
+            circleCount: 8,
+            baseRadius: screenSize * baseRadiusMultiplier,
+            radiusIncrement: screenSize * incrementMultiplier,
+            gapRatio: 0.4,
+            rotationSpeed: 24,
+            color: 0xFFD700,
+            strokeWidth: 4,
+            segmentCount: 4,
+            depth: 999 // Behind other UI elements
+        });
+
+        // Create semi-transparent background
         const levelUpBackground = scene.add.rectangle(centerX, centerY, game.config.width, game.config.height, 0x000000, 0.7);
 
         // Create level up title with improved styling
@@ -614,6 +635,12 @@ const RomajiChallengeSystem = {
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
 
+        // Clean up concentric circles animation
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.destroy();
+            this.elements.concentricCircles = null;
+        }
+
         // Clean up UI elements
         if (this.elements.levelUpContainer) {
             this.elements.levelUpContainer.destroy();
@@ -658,6 +685,12 @@ const RomajiChallengeSystem = {
 
         // Restore debug keys
         this.restoreDebugKeys();
+
+        // Clean up concentric circles animation
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.destroy();
+            this.elements.concentricCircles = null;
+        }
 
         // Extra safety: check if we're in a valid scene
         if (!scene.add) {

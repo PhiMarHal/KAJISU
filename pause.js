@@ -11,8 +11,7 @@ const PauseSystem = {
         pausePerksContainer: null,
         statsContainer: null,
         statCircles: [],
-        concentricCircles: null,
-        concentricCirclesCanvas: null
+        concentricCircles: null
     },
 
     // State tracking
@@ -56,48 +55,29 @@ const PauseSystem = {
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
 
-        // Create HTML canvas for concentric circles animation (behind all other pause elements)
-        this.elements.concentricCirclesCanvas = document.createElement('canvas');
-        this.elements.concentricCirclesCanvas.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 999;
-            pointer-events: none;
-            display: none;
-        `;
+        // Create concentric circles animation using Phaser version
+        const screenSize = Math.min(game.config.width, game.config.height);
 
-        // Set canvas size to match game container
-        const gameContainer = document.getElementById('game-container');
-        if (gameContainer) {
-            const rect = gameContainer.getBoundingClientRect();
-            this.elements.concentricCirclesCanvas.width = rect.width;
-            this.elements.concentricCirclesCanvas.height = rect.height;
-        } else {
-            this.elements.concentricCirclesCanvas.width = window.innerWidth;
-            this.elements.concentricCirclesCanvas.height = window.innerHeight;
-        }
+        // Phaser animation can use simple variables, as we know we're using 1 of 2 fixed resolutions
+        const baseRadiusMultiplier = 0.08;
+        const incrementMultiplier = 0.04;
 
-        // Add to page
-        document.body.appendChild(this.elements.concentricCirclesCanvas);
+        this.elements.concentricCircles = VisualEffects.createConcentricCircles(scene, {
+            x: centerX,
+            y: centerY,
+            circleCount: 8,
+            baseRadius: screenSize * baseRadiusMultiplier,
+            radiusIncrement: screenSize * incrementMultiplier,
+            gapRatio: 0.4,
+            rotationSpeed: 24, // Convert 0.0004 rad/ms to degrees/second: 0.0004 * 180/π * 1000 ≈ 24
+            color: 0xFFD700,
+            strokeWidth: 4,
+            segmentCount: 4,
+            depth: 999 // Behind all other pause elements
+        });
 
-        // Create concentric circles animation
-        this.elements.concentricCircles = VisualEffects.createConcentricCirclesCanvas(
-            this.elements.concentricCirclesCanvas,
-            {
-                x: this.elements.concentricCirclesCanvas.width / 2,
-                y: this.elements.concentricCirclesCanvas.height / 2,
-                circleCount: 8,
-                baseRadius: Math.min(this.elements.concentricCirclesCanvas.width, this.elements.concentricCirclesCanvas.height) * 0.06,
-                radiusIncrement: Math.min(this.elements.concentricCirclesCanvas.width, this.elements.concentricCirclesCanvas.height) * 0.04,
-                gapRatio: 0.5,
-                rotationSpeed: 0.0002,
-                color: '#FFD700',
-                strokeWidth: 2
-            }
-        );
+        // Initially hide the circles
+        this.elements.concentricCircles.setVisible(false);
 
         // Create semi-transparent background
         this.elements.pauseScreen = scene.add.rectangle(
@@ -248,9 +228,9 @@ const PauseSystem = {
             }
         });
 
-        // Stop concentric circles animation
+        // Pause concentric circles animation
         if (this.elements.concentricCircles) {
-            this.elements.concentricCircles.stop();
+            this.elements.concentricCircles.pause();
         }
 
         // Pause music
@@ -295,12 +275,10 @@ const PauseSystem = {
             }
         });
 
-        // Stop and hide concentric circles animation
+        // Hide and pause concentric circles animation
         if (this.elements.concentricCircles) {
-            this.elements.concentricCircles.stop();
-        }
-        if (this.elements.concentricCirclesCanvas) {
-            this.elements.concentricCirclesCanvas.style.display = 'none';
+            this.elements.concentricCircles.setVisible(false);
+            this.elements.concentricCircles.pause();
         }
 
         // Resume music
@@ -356,19 +334,9 @@ const PauseSystem = {
         this.pauseGame();
 
         // Show and start concentric circles animation
-        if (this.elements.concentricCirclesCanvas && this.elements.concentricCircles) {
-            this.elements.concentricCirclesCanvas.style.display = 'block';
-
-            // Update position to current screen center in case of resize
-            const gameContainer = document.getElementById('game-container');
-            if (gameContainer) {
-                const rect = gameContainer.getBoundingClientRect();
-                this.elements.concentricCirclesCanvas.width = rect.width;
-                this.elements.concentricCirclesCanvas.height = rect.height;
-                this.elements.concentricCircles.setPosition(rect.width / 2, rect.height / 2);
-            }
-
-            this.elements.concentricCircles.start();
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.setVisible(true);
+            this.elements.concentricCircles.resume();
         }
 
         // Show pause screen elements including the border
@@ -621,7 +589,7 @@ const PauseSystem = {
                 centerX,
                 game.config.height * 0.4375, // 350/800 = 0.4375
                 'No perks acquired yet',
-                { fontFamily: 'Arial', fontSize: '20px', color: '#aaaaaa' }
+                { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff' }
             ).setOrigin(0.5);
             this.elements.perkIcons.push(noPerkText);
             this.elements.pausePerksContainer.add(noPerkText);
@@ -884,12 +852,6 @@ const PauseSystem = {
             this.elements.concentricCircles = null;
         }
 
-        // Remove HTML canvas element
-        if (this.elements.concentricCirclesCanvas) {
-            document.body.removeChild(this.elements.concentricCirclesCanvas);
-            this.elements.concentricCirclesCanvas = null;
-        }
-
         // Clean up all UI elements
         Object.values(this.elements).forEach(element => {
             if (element && element.destroy) {
@@ -914,8 +876,7 @@ const PauseSystem = {
             pausePerksContainer: null,
             statsContainer: null,
             statCircles: [],
-            concentricCircles: null,
-            concentricCirclesCanvas: null
+            concentricCircles: null
         };
 
         // Reset state

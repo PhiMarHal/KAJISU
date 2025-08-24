@@ -55,7 +55,11 @@ const InputSystem = {
         tapHoldThreshold: 100, // ms - how long before we remove tap location
         tapGracePeriod: 10, // ms - extra grace period for near-misses
         hasMoved: false,
-        isWaitingForIntent: false // waiting to see if it's a tap or drag
+        isWaitingForIntent: false, // waiting to see if it's a tap or drag
+
+        // Cancellation protection
+        moveStartTime: 0, // When tap-to-move actually started moving
+        cancelGracePeriod: 200 // ms - how long to protect from cancellation after movement starts
     },
 
     initializeTapToMove: function (scene) {
@@ -167,18 +171,40 @@ const InputSystem = {
                 this.tapToMove.isMoving = false;
                 this.tapToMove.targetX = null;
                 this.tapToMove.targetY = null;
+                this.tapToMove.moveStartTime = 0; // Reset start time
             }
 
             player.body.setVelocity(
                 this.keyboard.velocity.x * playerSpeed * 50,
                 this.keyboard.velocity.y * playerSpeed * 50
             );
-        } else if (hasDirectionalInput && !this.tapToMove.isMoving) {
-            // Use directional touch only if not in tap-to-move mode
-            player.body.setVelocity(
-                this.touch.directionX * playerSpeed * 50,
-                this.touch.directionY * playerSpeed * 50
-            );
+        } else if (hasDirectionalInput) {
+            // Check if tap-to-move is in its protection grace period
+            const currentTime = this.scene?.time?.now ?? Date.now();
+            const timeSinceMoveStart = currentTime - this.tapToMove.moveStartTime;
+            const isInGracePeriod = this.tapToMove.isMoving &&
+                timeSinceMoveStart < this.tapToMove.cancelGracePeriod;
+
+            if (isInGracePeriod) {
+                // During grace period, directional input is ignored, tap-to-move continues
+                this.updateTapToMoveMovement(player, delta);
+                console.log(`Grace period active (${timeSinceMoveStart}ms/${this.tapToMove.cancelGracePeriod}ms) - ignoring directional input`);
+            } else {
+                // Grace period over, directional touch can cancel tap-to-move
+                if (this.tapToMove.isMoving) {
+                    this.tapToMove.isMoving = false;
+                    this.tapToMove.targetX = null;
+                    this.tapToMove.targetY = null;
+                    this.tapToMove.moveStartTime = 0; // Reset start time
+                    console.log("Tap-to-move cancelled by directional touch input (after grace period)");
+                }
+
+                // Use directional touch movement
+                player.body.setVelocity(
+                    this.touch.directionX * playerSpeed * 50,
+                    this.touch.directionY * playerSpeed * 50
+                );
+            }
         } else if (this.tapToMove.isMoving) {
             // Use tap-to-move
             this.updateTapToMoveMovement(player, delta);
@@ -204,10 +230,11 @@ const InputSystem = {
         this.touch.directionY = 0;
         this.touch.positionHistory = [];
 
-        // Set movement target
+        // Set movement target and record when movement starts
         this.tapToMove.targetX = x;
         this.tapToMove.targetY = y;
         this.tapToMove.isMoving = true;
+        this.tapToMove.moveStartTime = this.scene?.time?.now ?? Date.now();
 
         // Visual feedback - create a brief target indicator
         if (this.scene) {
@@ -434,6 +461,7 @@ const InputSystem = {
             this.tapToMove.isMoving = false;
             this.tapToMove.targetX = null;
             this.tapToMove.targetY = null;
+            this.tapToMove.moveStartTime = 0; // Reset start time
             player.body.setVelocity(0, 0);
             return;
         }
@@ -544,6 +572,7 @@ const InputSystem = {
             this.touch.directionY = 0;
             this.touch.positionHistory = [];
             this.tapToMove.isMoving = false;
+            this.tapToMove.moveStartTime = 0;
         } else {
             this.isTabActive = true;
             this.resetCursorState();
@@ -563,6 +592,7 @@ const InputSystem = {
         this.touch.directionY = 0;
         this.touch.positionHistory = [];
         this.tapToMove.isMoving = false;
+        this.tapToMove.moveStartTime = 0;
     },
 
     resetCursorTimer: function () {
@@ -636,6 +666,7 @@ const InputSystem = {
         this.tapToMove.isMoving = false;
         this.tapToMove.targetX = null;
         this.tapToMove.targetY = null;
+        this.tapToMove.moveStartTime = 0;
 
         this.isInitialized = false;
         this.scene = null;

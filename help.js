@@ -576,23 +576,28 @@ const UnifiedButtonManager = {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(2001);
 
-        // Make interactive
-        text.setInteractive({ useHandCursor: true });
+        // Make interactive - use the hexagon instead of text for larger hit area
+        const hitAreaRadius = hexSize * 0.6; // Circular hit area that fits within hexagon
+        hexagon.setInteractive(
+            new Phaser.Geom.Circle(0, 0, hitAreaRadius),
+            Phaser.Geom.Circle.Contains,
+            { useHandCursor: true }
+        );
 
-        // Add hover effects
-        text.on('pointerover', function () {
-            this.setColor('#ffff00');
-            this.setScale(1.1);
+        // Add hover effects to hexagon (affects text visually)
+        hexagon.on('pointerover', function () {
+            text.setColor('#ffff00'); // Yellow text on hover
+            text.setScale(1.1); // Scale text on hover
         });
 
-        text.on('pointerout', function () {
-            this.setColor('#ffffff');
-            this.setScale(1);
+        hexagon.on('pointerout', function () {
+            text.setColor('#ffffff'); // White text normally
+            text.setScale(1); // Reset text scale
         });
 
-        // Add click handler
+        // Add click handler to hexagon
         if (onClickCallback) {
-            text.on('pointerdown', onClickCallback);
+            hexagon.on('pointerdown', onClickCallback);
         }
 
         // Store references on scene for compatibility

@@ -326,20 +326,25 @@ const ButtonDisplay = {
             }
         ).setOrigin(0.5).setDepth(2001);
 
-        // Create pause button hit area - use the button text as the interactive element
-        scene.pauseButtonText.setInteractive({ useHandCursor: true });
+        // Create pause button hit area - use the hexagon as the interactive element
+        const pauseHitAreaRadius = hexSize * 0.8; // Circular hit area that fits within hexagon
+        scene.pauseHexagon.setInteractive(
+            new Phaser.Geom.Circle(0, 0, pauseHitAreaRadius),
+            Phaser.Geom.Circle.Contains,
+            { useHandCursor: true }
+        );
 
-        scene.pauseButtonText.on('pointerover', function () {
-            this.setColor('#ffff00'); // Yellow on hover
-            this.setScale(1.1);
+        scene.pauseHexagon.on('pointerover', function () {
+            scene.pauseButtonText.setColor('#ffff00'); // Yellow on hover
+            scene.pauseButtonText.setScale(1.1);
         });
 
-        scene.pauseButtonText.on('pointerout', function () {
-            this.setColor('#ffffff'); // White normally
-            this.setScale(1);
+        scene.pauseHexagon.on('pointerout', function () {
+            scene.pauseButtonText.setColor('#ffffff'); // White normally
+            scene.pauseButtonText.setScale(1);
         });
 
-        scene.pauseButtonText.on('pointerdown', function () {
+        scene.pauseHexagon.on('pointerdown', function () {
             if (!gameOver) {
                 if (gamePaused) {
                     PauseSystem.resumeGame();
@@ -376,20 +381,25 @@ const ButtonDisplay = {
             }
         ).setOrigin(0.5).setDepth(2001);
 
-        // Create music button hit area - use the button text as the interactive element
-        scene.musicButtonText.setInteractive({ useHandCursor: true });
+        // Create music button hit area - use the hexagon as the interactive element
+        const musicHitAreaRadius = hexSize * 0.8; // Circular hit area that fits within hexagon
+        scene.musicHexagon.setInteractive(
+            new Phaser.Geom.Circle(0, 0, musicHitAreaRadius),
+            Phaser.Geom.Circle.Contains,
+            { useHandCursor: true }
+        );
 
-        scene.musicButtonText.on('pointerover', function () {
-            this.setColor('#ffff00'); // Yellow on hover
-            this.setScale(1.1);
+        scene.musicHexagon.on('pointerover', function () {
+            scene.musicButtonText.setColor('#ffff00'); // Yellow on hover
+            scene.musicButtonText.setScale(1.1);
         });
 
-        scene.musicButtonText.on('pointerout', function () {
-            this.setColor('#ffffff'); // White normally
-            this.setScale(1);
+        scene.musicHexagon.on('pointerout', function () {
+            scene.musicButtonText.setColor('#ffffff'); // White normally
+            scene.musicButtonText.setScale(1);
         });
 
-        scene.musicButtonText.on('pointerdown', function () {
+        scene.musicHexagon.on('pointerdown', function () {
             if (window.MusicSystem) {
                 // Toggle music state
                 const newState = !window.MusicSystem.musicEnabled;
@@ -397,7 +407,7 @@ const ButtonDisplay = {
 
                 // Update button symbol to show new state immediately
                 const symbol = newState ? musicConfig.symbol : musicConfig.mutedSymbol;
-                this.setText(symbol);
+                scene.musicButtonText.setText(symbol);
 
                 console.log(`Music ${newState ? 'enabled' : 'disabled'}`);
             }
@@ -436,20 +446,25 @@ const ButtonDisplay = {
                 }
             ).setOrigin(0.5).setDepth(2001);
 
-            // Create levelup button hit area - use the button text as the interactive element
-            scene.levelupButtonText.setInteractive({ useHandCursor: true });
+            // Create levelup button hit area - use the hexagon as the interactive element
+            const levelupHitAreaRadius = hexSize * 0.8; // Circular hit area that fits within hexagon
+            scene.levelupHexagon.setInteractive(
+                new Phaser.Geom.Circle(0, 0, levelupHitAreaRadius),
+                Phaser.Geom.Circle.Contains,
+                { useHandCursor: true }
+            );
 
-            scene.levelupButtonText.on('pointerover', function () {
-                this.setColor('#ffff00'); // Yellow on hover
-                this.setScale(1.1);
+            scene.levelupHexagon.on('pointerover', function () {
+                scene.levelupButtonText.setColor('#ffff00'); // Yellow on hover
+                scene.levelupButtonText.setScale(1.1);
             });
 
-            scene.levelupButtonText.on('pointerout', function () {
-                this.setColor('#ffffff'); // White normally
-                this.setScale(1);
+            scene.levelupHexagon.on('pointerout', function () {
+                scene.levelupButtonText.setColor('#ffffff'); // White normally
+                scene.levelupButtonText.setScale(1);
             });
 
-            scene.levelupButtonText.on('pointerdown', function () {
+            scene.levelupHexagon.on('pointerdown', function () {
                 if (!gamePaused && !gameOver && window.BOSS_RUSH_MODE) {
                     // Apply penalty if the function exists
                     if (window.applyFreeLeveUpPenalty) {
@@ -520,23 +535,28 @@ const ButtonDisplay = {
         ).setOrigin(0.5).setDepth(config.depth);
         buttonText.setVisible(config.visible);
 
-        // Make interactive
-        buttonText.setInteractive({ useHandCursor: true });
+        // Make interactive - use hexagon for larger hit area
+        const hitAreaRadius = config.size * 0.8; // Circular hit area that fits within hexagon
+        hexagon.setInteractive(
+            new Phaser.Geom.Circle(0, 0, hitAreaRadius),
+            Phaser.Geom.Circle.Contains,
+            { useHandCursor: true }
+        );
 
-        // Add hover effects
-        buttonText.on('pointerover', function () {
-            this.setColor('#ffff00'); // Yellow on hover
-            this.setScale(1.1);
+        // Add hover effects to hexagon (affects text visually)
+        hexagon.on('pointerover', function () {
+            buttonText.setColor('#ffff00'); // Yellow on hover
+            buttonText.setScale(1.1);
         });
 
-        buttonText.on('pointerout', function () {
-            this.setColor('#ffffff'); // White normally
-            this.setScale(1);
+        hexagon.on('pointerout', function () {
+            buttonText.setColor('#ffffff'); // White normally
+            buttonText.setScale(1);
         });
 
-        // Add click handler
+        // Add click handler to hexagon
         if (onClickCallback) {
-            buttonText.on('pointerdown', onClickCallback);
+            hexagon.on('pointerdown', onClickCallback);
         }
 
         // Return both elements so they can be managed together

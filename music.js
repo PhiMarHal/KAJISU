@@ -22,7 +22,7 @@ function detectMusicUrl() {
 // Dynamic configuration
 const MUSIC_CONFIG = {
     baseUrl: detectMusicUrl(),
-    trackCount: 23
+    trackCount: 25
 };
 
 const MusicSystem = {

@@ -72,34 +72,34 @@
             height: 100vh;
             position: relative;
             margin: 0 auto;
-            max-width: 1200px;
-            max-height: 800px;
+            /* KEY INSIGHT: Add smart constraints from working game */
+            max-width: min(1200px, 100vw);
+            max-height: min(800px, 100vh);
         }
 
-        /* KAJISULI mode overrides */
+        /* KAJISULI mode overrides - keep existing logic */
         body.kajisuli-mode {
             align-items: flex-start;
-            /* Top-align instead of center */
             height: 100vh;
             height: 100dvh;
-            /* Dynamic viewport height */
         }
 
         body.kajisuli-mode #game-container {
             width: 100%;
             height: 100vh;
             height: 100dvh;
-            max-width: none;
-            max-height: none;
+            /* KEY INSIGHT: Smart constraints for mobile too */
+            max-width: min(720px, 100vw);
+            max-height: min(1280px, 100vh);
             padding-top: env(safe-area-inset-top, 0);
         }
 
-        /* Hide decorations in KAJISULI mode */
+        /* Hide decorations in KAJISULI mode - keep existing */
         body.kajisuli-mode .border-decoration {
             display: none !important;
         }
 
-        /* Mobile breakpoint styling */
+        /* Mobile breakpoint styling - keep existing */
         @media (max-width: 768px) {
             body {
                 padding: 0;
@@ -128,7 +128,7 @@
             font-size: 14px;
         }
 
-        /* Game border decorations */
+        /* Game border decorations - keep exactly as original */
         .border-decoration {
             position: absolute;
             background-color: transparent;
@@ -196,7 +196,7 @@
             navigator.serviceworker.register('serviceworker.js');
         }
 
-        // Game configuration
+        // Game configuration - keep exactly as original
         const config = {
             type: Phaser.AUTO,
             parent: 'game-container',

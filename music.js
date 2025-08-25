@@ -1,6 +1,7 @@
 // Music System for KAJISU
 // Handles background music with smooth transitions and shuffled playlists
 // Uses dynamic position checking and proxy objects for reliable fading
+// IMPROVED: Added retry logic and better error handling for CDN propagation issues
 
 function detectMusicUrl() {
     const hostname = window.location.hostname;
@@ -37,6 +38,12 @@ const MusicSystem = {
     isLoading: false,       // Flag to track if we're currently loading a track
     isFadingOut: false,     // Flag to prevent multiple fade-outs
     updateTimer: null,      // Timer for checking track position
+
+    // NEW: Track loading state management
+    loadingTracks: new Set(), // Tracks currently being loaded
+    failedTracks: new Map(),  // Track retry attempts
+    maxRetries: 3,           // Maximum retry attempts per track
+    retryDelay: 1000,        // Base delay between retries (ms)
 
     // Configuration
     silenceDuration: 4000,  // 1 second of silence between tracks
@@ -76,6 +83,10 @@ const MusicSystem = {
         this.nextTrackToPlay = null;
         this.isLoading = false;
         this.isFadingOut = false;
+
+        // NEW: Reset loading state
+        this.loadingTracks.clear();
+        this.failedTracks.clear();
 
         // Store scene reference for later use
         this.scene = scene;
@@ -153,7 +164,7 @@ const MusicSystem = {
             if (this.connectCustomVolumeNode(track, audioContext)) {
                 // Override the track's setVolume method
                 this.overrideTrackVolumeControl(track);
-                console.log('✓ Custom volume control system active');
+                console.log('✅ Custom volume control system active');
                 return true;
             } else {
                 // Clean up on failure
@@ -276,7 +287,7 @@ const MusicSystem = {
             configurable: true
         });
 
-        console.log('✓ Robust volume control override installed');
+        console.log('✅ Robust volume control override installed');
     },
 
     // NEW: Clean up custom volume control
@@ -497,52 +508,152 @@ const MusicSystem = {
         });
     },
 
-    // Load a track just-in-time with callback
-    loadTrack: function (trackId, onComplete) {
-        // Skip if already loaded
-        if (this.scene.sound.get(trackId)) {
+    // IMPROVED: Load a track with retry logic and better error handling
+    loadTrack: function (trackId, onComplete, retryCount = 0) {
+        // Skip if already loaded and working
+        const existingTrack = this.scene.sound.get(trackId);
+        if (existingTrack && !this.failedTracks.has(trackId)) {
             console.log(`Track ${trackId} already loaded`);
             if (onComplete) onComplete();
             return;
         }
 
+        // Skip if already being loaded
+        if (this.loadingTracks.has(trackId)) {
+            console.log(`Track ${trackId} already being loaded, waiting...`);
+            // Wait and retry callback
+            this.createMusicTimer(500, () => {
+                this.loadTrack(trackId, onComplete, retryCount);
+            });
+            return;
+        }
+
+        // Check retry limit
+        if (retryCount >= this.maxRetries) {
+            console.error(`Track ${trackId} failed after ${this.maxRetries} retries, skipping`);
+            this.failedTracks.set(trackId, Date.now());
+            this.loadingTracks.delete(trackId);
+            this.playNextTrack();
+            return;
+        }
+
         // Mark as loading
+        this.loadingTracks.add(trackId);
         this.isLoading = true;
-        console.log(`Loading track: ${trackId}`);
+
+        if (retryCount > 0) {
+            console.log(`Retrying track ${trackId} (attempt ${retryCount + 1}/${this.maxRetries})`);
+        } else {
+            console.log(`Loading track: ${trackId}`);
+        }
 
         const trackPath = `${MUSIC_CONFIG.baseUrl}${trackId}.mp3`;
 
+        // Clean up any existing failed track from sound manager
+        if (existingTrack) {
+            try {
+                existingTrack.destroy();
+                this.scene.sound.remove(trackId);
+            } catch (e) {
+                console.warn('Could not remove existing failed track:', e);
+            }
+        }
+
         // Create a loader for just this track
         const loader = new Phaser.Loader.LoaderPlugin(this.scene);
+
+        // Add timeout handling
+        const timeoutId = setTimeout(() => {
+            console.warn(`Track ${trackId} load timeout`);
+            this.handleLoadFailure(trackId, 'timeout', onComplete, retryCount);
+        }, 10000); // 10 second timeout
 
         // Load the track
         loader.audio(trackId, trackPath);
 
         // Handle completion
         loader.once('complete', () => {
+            clearTimeout(timeoutId);
             console.log(`Finished loading track: ${trackId}`);
 
-            // Add to sound manager
-            this.scene.sound.add(trackId, {
-                loop: false,
-                volume: 0
-            });
+            try {
+                // Add to sound manager
+                this.scene.sound.add(trackId, {
+                    loop: false,
+                    volume: 0
+                });
 
-            this.isLoading = false;
-            if (onComplete) onComplete();
+                // Mark as successfully loaded
+                this.loadingTracks.delete(trackId);
+                this.failedTracks.delete(trackId);
+                this.isLoading = false;
+
+                if (onComplete) onComplete();
+
+            } catch (error) {
+                console.error(`Error adding track ${trackId} to sound manager:`, error);
+                this.handleLoadFailure(trackId, error, onComplete, retryCount);
+            }
         });
 
-        // Handle errors
+        // Handle loader errors
         loader.once('loaderror', (fileObj) => {
-            console.error(`Error loading track: ${trackId}`, fileObj);
-            this.isLoading = false;
+            clearTimeout(timeoutId);
+            console.error(`Loader error for track ${trackId}:`, fileObj);
+            this.handleLoadFailure(trackId, 'loaderror', onComplete, retryCount);
+        });
 
-            // Skip to next track on error
-            this.playNextTrack();
+        // Handle file processing errors
+        loader.once('fileerror', (file) => {
+            clearTimeout(timeoutId);
+            console.error(`File error for track ${trackId}:`, file);
+            this.handleLoadFailure(trackId, 'fileerror', onComplete, retryCount);
         });
 
         // Start loading
-        loader.start();
+        try {
+            loader.start();
+        } catch (error) {
+            clearTimeout(timeoutId);
+            console.error(`Error starting loader for track ${trackId}:`, error);
+            this.handleLoadFailure(trackId, error, onComplete, retryCount);
+        }
+    },
+
+    // NEW: Handle load failures with retry logic
+    handleLoadFailure: function (trackId, error, onComplete, retryCount) {
+        console.error(`Track ${trackId} failed to load:`, error);
+
+        this.loadingTracks.delete(trackId);
+        this.isLoading = false;
+
+        // Clean up any partial state
+        try {
+            const existingTrack = this.scene.sound.get(trackId);
+            if (existingTrack) {
+                existingTrack.destroy();
+                this.scene.sound.remove(trackId);
+            }
+        } catch (e) {
+            // Ignore cleanup errors
+        }
+
+        const nextRetryCount = retryCount + 1;
+
+        if (nextRetryCount < this.maxRetries) {
+            // Calculate exponential backoff delay
+            const delay = this.retryDelay * Math.pow(2, retryCount);
+            console.log(`Retrying track ${trackId} in ${delay}ms...`);
+
+            this.createMusicTimer(delay, () => {
+                this.loadTrack(trackId, onComplete, nextRetryCount);
+            });
+        } else {
+            // Give up and skip to next track
+            console.error(`Giving up on track ${trackId} after ${this.maxRetries} attempts`);
+            this.failedTracks.set(trackId, Date.now());
+            this.playNextTrack();
+        }
     },
 
     // UPDATED: Start playing a track with fade-in and custom volume control
@@ -601,7 +712,14 @@ const MusicSystem = {
 
         // Start playing at 0 volume
         this.setTrackVolume(track, 0);
-        track.play();
+
+        try {
+            track.play();
+        } catch (error) {
+            console.error(`Error playing track ${trackId}:`, error);
+            this.playNextTrack();
+            return;
+        }
 
         // WAIT for track to actually start, then setup custom volume control
         // This is important because the source node isn't available until playback starts
@@ -855,6 +973,10 @@ const MusicSystem = {
     stop: function () {
         this.stopCurrentTrack();
         this.clearMusicTimers();
+
+        // Clear loading state
+        this.loadingTracks.clear();
+        this.isLoading = false;
     },
 
     // Update method (call from scene's update)
@@ -868,6 +990,10 @@ const MusicSystem = {
         this.stop();
         this.clearMusicTimers();
         this.cleanupCustomVolumeControl();
+
+        // Clear retry tracking
+        this.failedTracks.clear();
+        this.loadingTracks.clear();
     },
 
     // CONSERVATIVE: Remove the complex tween resume logic since we're using timers now

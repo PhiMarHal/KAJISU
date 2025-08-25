@@ -661,26 +661,48 @@ const UnifiedButtonManager = {
         this.setButtonVisible('help', false);
         this.setButtonVisible('levelup', false);
 
-        if (this.isFarcadeMode()) {
-            // FARCADE mode: Help button replaces music button permanently
-            this.setButtonVisible('pause', true);  // Pause in bottom left
-            this.setButtonVisible('help', true);   // Help in bottom right (music position)
+        if (this.currentState === 'paused') {
+            // PAUSED STATE
+            if (this.isFarcadeMode()) {
+                // FARCADE + PAUSED: Pause stays in left, Help goes to right
+                this.setButtonVisible('pause', true); // Keep pause in bottom left
+                this.setButtonVisible('help', true);  // Help in bottom right
 
-            // Position help button at music position
-            this.positionHelpButton(scene, 'music');
-        } else if (this.currentState === 'paused') {
-            // Paused state: Help button replaces pause button
-            this.setButtonVisible('help', true);   // Help in bottom left (pause position)
-            this.setButtonVisible('music', !this.isBossRushMode()); // Music in bottom right (unless Boss Rush)
-            this.setButtonVisible('levelup', this.isBossRushMode()); // Levelup in bottom right (Boss Rush only)
+                if (this.isBossRushMode()) {
+                    // Boss Rush: Help replaces Levelup in bottom right
+                    this.positionHelpButton(scene, 'levelup');
+                } else {
+                    // Normal: Help replaces Music in bottom right
+                    this.positionHelpButton(scene, 'music');
+                }
+            } else {
+                // NORMAL + PAUSED: Help replaces Pause in left
+                this.setButtonVisible('help', true); // Help in bottom left (pause position)
+                this.positionHelpButton(scene, 'pause');
 
-            // Position help button at pause position
-            this.positionHelpButton(scene, 'pause');
+                if (this.isBossRushMode()) {
+                    // Boss Rush + Normal: Music in bottom right when paused
+                    this.setButtonVisible('music', true);
+                } else {
+                    // Regular: Music in bottom right when paused
+                    this.setButtonVisible('music', true);
+                }
+            }
         } else {
-            // Normal state: Standard button layout
-            this.setButtonVisible('pause', true);  // Pause in bottom left
-            this.setButtonVisible('music', !this.isBossRushMode()); // Music in bottom right (unless Boss Rush)
-            this.setButtonVisible('levelup', this.isBossRushMode()); // Levelup in bottom right (Boss Rush only)
+            // UNPAUSED STATE
+            this.setButtonVisible('pause', true); // Pause always in bottom left when unpaused
+
+            if (this.isBossRushMode()) {
+                // Boss Rush: Levelup in bottom right
+                this.setButtonVisible('levelup', true);
+            } else if (this.isFarcadeMode()) {
+                // FARCADE mode (not Boss Rush): Help permanently replaces Music
+                this.setButtonVisible('help', true);
+                this.positionHelpButton(scene, 'music');
+            } else {
+                // Normal mode (not FARCADE, not Boss Rush): Music in bottom right
+                this.setButtonVisible('music', true);
+            }
         }
     },
 
@@ -715,23 +737,21 @@ const UnifiedButtonManager = {
 
     // State change handlers
     onGameStart: function (scene) {
-        this.currentState = this.isFarcadeMode() ? 'farcade' : 'normal';
+        this.currentState = 'normal';
         this.updateButtonVisibility(scene);
-        console.log(`Button state: ${this.currentState}`);
+        console.log(`Button state: ${this.currentState} (FARCADE: ${this.isFarcadeMode()}, Boss Rush: ${this.isBossRushMode()})`);
     },
 
     onGamePause: function (scene) {
-        if (!this.isFarcadeMode()) {
-            this.currentState = 'paused';
-            this.updateButtonVisibility(scene);
-        }
-        console.log(`Button state: ${this.currentState}`);
+        this.currentState = 'paused';
+        this.updateButtonVisibility(scene);
+        console.log(`Button state: ${this.currentState} (FARCADE: ${this.isFarcadeMode()}, Boss Rush: ${this.isBossRushMode()})`);
     },
 
     onGameResume: function (scene) {
-        this.currentState = this.isFarcadeMode() ? 'farcade' : 'normal';
+        this.currentState = 'normal';
         this.updateButtonVisibility(scene);
-        console.log(`Button state: ${this.currentState}`);
+        console.log(`Button state: ${this.currentState} (FARCADE: ${this.isFarcadeMode()}, Boss Rush: ${this.isBossRushMode()})`);
     }
 };
 

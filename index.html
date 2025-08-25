@@ -451,8 +451,26 @@
                     // Get the active scene
                     const activeScene = this;
                     if (activeScene) {
-                        // Refresh the UI with the new dimensions
+                        // First, refresh the UI with the new dimensions
                         GameUI.resize(activeScene);
+
+                        // Then, restore the correct button state using the unified manager
+                        if (window.UnifiedButtonManager) {
+                            // Recreate all buttons with new positions
+                            window.UnifiedButtonManager.createAllButtons(activeScene);
+
+                            // Restore the current button state
+                            if (gamePaused) {
+                                window.UnifiedButtonManager.onGamePause(activeScene);
+                            } else {
+                                window.UnifiedButtonManager.onGameStart(activeScene);
+                            }
+
+                            console.log('Buttons recreated and repositioned after resize');
+                        } else {
+                            // Fallback for legacy system
+                            console.warn('UnifiedButtonManager not available during resize');
+                        }
                     }
                 }, 100);
             });

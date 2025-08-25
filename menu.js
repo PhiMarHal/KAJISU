@@ -122,7 +122,7 @@ const UI = {
         }
     },
 
-    // Pause/Music/Levelup buttons
+    // Pause/Music/Levelup/Help buttons
     buttons: {
         // Common button styling configuration
         common: {
@@ -161,6 +161,23 @@ const UI = {
             x: function () {
                 // Bottom right positioning using longest dimension for margin
                 return UI.game.getWidth() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
+            },
+            y: function () {
+                // Bottom positioning using longest dimension for margin
+                return UI.game.getHeight() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
+            },
+            fontSize: function () {
+                return UI.buttons.common.fontSize();
+            }
+        },
+
+        // Help button configuration
+        help: {
+            symbol: "?", // Question mark for help
+            x: function () {
+                // Dynamic positioning - will be set by UnifiedButtonManager based on mode
+                // Default to pause button position
+                return UI.buttons.common.margin() + (UI.buttons.common.size() / 2);
             },
             y: function () {
                 // Bottom positioning using longest dimension for margin
@@ -248,11 +265,24 @@ const UI = {
     }
 };
 
+// Updated ButtonDisplay section from menu.js - Integration with UnifiedButtonManager
 const ButtonDisplay = {
     create: function (scene) {
         // Initialize relative dimensions
         UI.game.init(scene);
 
+        // Use the unified button manager for all button creation and management
+        if (window.UnifiedButtonManager) {
+            window.UnifiedButtonManager.createAllButtons(scene);
+        } else {
+            // Fallback to old system if UnifiedButtonManager is not available
+            console.warn('UnifiedButtonManager not available, falling back to legacy button creation');
+            this.createLegacyButtons(scene);
+        }
+    },
+
+    // Legacy button creation (fallback)
+    createLegacyButtons: function (scene) {
         // Clean up existing buttons and hit areas
         if (scene.pauseHexagon) scene.pauseHexagon.destroy();
         if (scene.pauseButtonText) scene.pauseButtonText.destroy();
@@ -431,7 +461,9 @@ const ButtonDisplay = {
                     heroExp += xpNeeded;
 
                     // Update the experience bar
-                    GameUI.updateExpBar(scene);
+                    if (typeof GameUI !== 'undefined' && GameUI.updateExpBar) {
+                        GameUI.updateExpBar(scene);
+                    }
 
                     console.log('Boss Rush: Free level up used (penalty applied)');
                 }
@@ -523,7 +555,13 @@ const ButtonDisplay = {
     },
 
     update: function (scene) {
-        // Update button positions and visibility (similar to original)
+        // If using UnifiedButtonManager, delegate to it
+        if (window.UnifiedButtonManager && window.UnifiedButtonManager.buttons) {
+            window.UnifiedButtonManager.updateButtonPositions(scene);
+            return;
+        }
+
+        // Legacy update code (fallback)
         const pauseConfig = UI.buttons.pause;
         const musicConfig = UI.buttons.music;
         const levelupConfig = UI.buttons.levelup;

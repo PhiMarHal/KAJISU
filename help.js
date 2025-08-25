@@ -1,4 +1,4 @@
-// help.js - Help System for KAJISU
+// Updated help.js - Simplified and Fixed Help Button System
 
 const HELP_PAGES = [
     {
@@ -413,346 +413,363 @@ const HelpSystem = {
 // Export the help system
 window.HelpSystem = HelpSystem;
 
-// Helper function to create hexagon (import from menu.js logic)
-function createHexagonButton(scene, x, y, size, fillColor = 0x000000, fillAlpha = 0.5) {
-    const graphics = scene.add.graphics();
+// Unified Button Management System - Replaces the complex multi-manager system
+const UnifiedButtonManager = {
+    // Button references for easy management
+    buttons: {
+        pause: { hexagon: null, text: null },
+        music: { hexagon: null, text: null },
+        help: { hexagon: null, text: null },
+        levelup: { hexagon: null, text: null }
+    },
 
-    // Calculate hexagon points - make it narrower (same as menu.js)
-    const width = size * 0.85; // Reduced width
-    const height = size * 0.866; // Proper hexagon aspect ratio
+    // Current button state
+    currentState: 'normal', // 'normal', 'paused', 'farcade'
 
-    // Hexagon vertices (pointy-top orientation)
-    const points = [
-        { x: 0, y: -height / 2 },           // Top
-        { x: width / 2, y: -height / 4 },     // Top-right
-        { x: width / 2, y: height / 4 },      // Bottom-right
-        { x: 0, y: height / 2 },            // Bottom
-        { x: -width / 2, y: height / 4 },     // Bottom-left
-        { x: -width / 2, y: -height / 4 }     // Top-left
-    ];
-
-    // Position the graphics at the center
-    graphics.x = x;
-    graphics.y = y;
-
-    // Draw filled hexagon
-    graphics.fillStyle(fillColor, fillAlpha);
-    graphics.beginPath();
-    graphics.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-        graphics.lineTo(points[i].x, points[i].y);
-    }
-    graphics.closePath();
-    graphics.fillPath();
-
-    // Draw the 4 L borders (left + bottom-left + right + top-right)
-    graphics.lineStyle(3, 0xFFD700);
-
-    // Left side (bottom-left point to top-left point)
-    graphics.beginPath();
-    graphics.moveTo(points[4].x, points[4].y);
-    graphics.lineTo(points[5].x, points[5].y);
-    graphics.strokePath();
-
-    // Bottom-left side (bottom point to bottom-left point)
-    graphics.beginPath();
-    graphics.moveTo(points[3].x, points[3].y);
-    graphics.lineTo(points[4].x, points[4].y);
-    graphics.strokePath();
-
-    // Right side (top-right point to bottom-right point)
-    graphics.beginPath();
-    graphics.moveTo(points[1].x, points[1].y);
-    graphics.lineTo(points[2].x, points[2].y);
-    graphics.strokePath();
-
-    // Top-right side (top point to top-right point)
-    graphics.beginPath();
-    graphics.moveTo(points[0].x, points[0].y);
-    graphics.lineTo(points[1].x, points[1].y);
-    graphics.strokePath();
-
-    return graphics;
-}
-
-// Add help button management to ButtonDisplay
-const HelpButtonManager = {
-    // Check if we're in Farcade mode (would be detected by mergeMinify.js)
+    // Check if we're in FARCADE mode
     isFarcadeMode: function () {
         return typeof FARCADE_MODE !== 'undefined' && FARCADE_MODE;
     },
 
-    // Get the appropriate button position based on mode
-    getButtonPosition: function () {
-        if (this.isFarcadeMode()) {
-            // Use music button position for Farcade mode
-            return {
-                x: UI.buttons.music.x(),
-                y: UI.buttons.music.y()
-            };
-        } else {
-            // Use exact same positioning calculation as pause button
-            return {
-                x: UI.buttons.pause.x(),
-                y: UI.buttons.pause.y()
-            };
-        }
+    // Check if we're in Boss Rush mode
+    isBossRushMode: function () {
+        return typeof BOSS_RUSH_MODE !== 'undefined' && BOSS_RUSH_MODE;
     },
 
-    // Create help button elements using hexagon
-    createHelpButton: function (scene) {
-        const position = this.getButtonPosition();
-
-        // Use the same size calculation as other buttons in menu.js
-        const buttonSize = UI.buttons.common.size() * 1.32; // Same scaling as other hexagons
-        const fontSize = UI.buttons.common.fontSize(); // Same font size calculation
-
-        // Create hexagonal help button
-        scene.helpButtonHexagon = createHexagonButton(
-            scene,
-            position.x,
-            position.y,
-            buttonSize,
-            0x000000,
-            0.5  // 50% opacity so game elements show through
-        );
-        scene.helpButtonHexagon.setDepth(2001); // High depth to stay above pause overlays
-
-        // Create help button text with ? symbol
-        scene.helpButtonText = scene.add.text(
-            position.x,
-            position.y,
-            '?',
-            {
-                fontFamily: 'Arial',
-                fontSize: `${fontSize}px`,
-                color: '#ffffff',
-                fontStyle: 'bold'
+    // Create all button types (called from ButtonDisplay.create)
+    createAllButtons: function (scene) {
+        // Ensure UI is initialized
+        try {
+            if (typeof UI !== 'undefined' && UI.game && typeof UI.game.init === 'function') {
+                UI.game.init(scene);
+            } else {
+                console.warn('UI system not properly initialized, some positioning may be incorrect');
             }
-        ).setOrigin(0.5).setDepth(2001);
+        } catch (error) {
+            console.error('Error initializing UI system:', error);
+        }
 
-        // Make help button interactive using the hexagon (same pattern as menu.js)
-        const hitAreaRadius = buttonSize * 0.6; // Circular hit area that fits within hexagon
-        scene.helpButtonHexagon.setInteractive(
-            new Phaser.Geom.Circle(0, 0, hitAreaRadius),
-            Phaser.Geom.Circle.Contains,
-            { useHandCursor: true }
-        );
+        // Clean up existing buttons
+        this.destroyAllButtons(scene);
 
-        scene.helpButtonHexagon.on('pointerover', function () {
-            scene.helpButtonText.setColor('#ffff00'); // Yellow on hover
-            scene.helpButtonText.setScale(1.1);
+        // Create pause button
+        this.buttons.pause = this.createButton(scene, 'pause', () => {
+            if (!gameOver) {
+                if (gamePaused) {
+                    PauseSystem.resumeGame();
+                } else {
+                    PauseSystem.pauseGameWithOverlay();
+                }
+            }
         });
 
-        scene.helpButtonHexagon.on('pointerout', function () {
-            scene.helpButtonText.setColor('#ffffff'); // White normally
-            scene.helpButtonText.setScale(1);
+        // Create music button
+        this.buttons.music = this.createButton(scene, 'music', () => {
+            if (window.MusicSystem) {
+                const newState = !window.MusicSystem.musicEnabled;
+                window.MusicSystem.setMusicEnabled(newState);
+                this.updateMusicButtonSymbol(scene);
+                console.log(`Music ${newState ? 'enabled' : 'disabled'}`);
+            }
         });
 
-        scene.helpButtonHexagon.on('pointerdown', function () {
-            // Toggle the help screen
+        // Create help button
+        this.buttons.help = this.createButton(scene, 'help', () => {
             if (HelpSystem.elements.container && HelpSystem.elements.container.visible) {
                 HelpSystem.hide();
             } else {
                 HelpSystem.show(scene);
             }
         });
+
+        // Create levelup button (Boss Rush mode only)
+        if (this.isBossRushMode()) {
+            this.buttons.levelup = this.createButton(scene, 'levelup', () => {
+                if (!gamePaused && !gameOver && window.BOSS_RUSH_MODE) {
+                    if (window.applyFreeLeveUpPenalty) {
+                        window.applyFreeLeveUpPenalty();
+                    }
+                    const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
+                    heroExp += xpNeeded;
+                    if (typeof GameUI !== 'undefined' && GameUI.updateExpBar) {
+                        GameUI.updateExpBar(scene);
+                    }
+                    console.log('Boss Rush: Free level up used (penalty applied)');
+                }
+            });
+        }
+
+        // Set initial visibility state
+        this.updateButtonVisibility(scene);
     },
 
-    // Show help button (hide pause if needed)
-    showHelpButton: function (scene) {
-        if (!this.isFarcadeMode()) {
-            // In normal mode, hide pause button elements
-            if (scene.pauseHexagon) scene.pauseHexagon.setVisible(false);
-            if (scene.pauseButtonText) scene.pauseButtonText.setVisible(false);
+    // Create a single button using the unified createHexagon function
+    createButton: function (scene, buttonType, onClickCallback) {
+        // Defensive checks
+        if (!scene || !scene.add) {
+            console.error(`Invalid scene provided for button creation: ${buttonType}`);
+            return { hexagon: null, text: null };
         }
 
-        // Show help button elements
-        if (scene.helpButtonHexagon) {
-            scene.helpButtonHexagon.setVisible(true);
-            scene.helpButtonHexagon.setDepth(2001);
-            scene.helpButtonHexagon.setAlpha(1);
+        if (!UI || !UI.buttons || !UI.buttons[buttonType]) {
+            console.error(`Button configuration not found for type: ${buttonType}. Available types:`, Object.keys(UI?.buttons || {}));
+            return { hexagon: null, text: null };
         }
-        if (scene.helpButtonText) {
-            scene.helpButtonText.setVisible(true);
-            scene.helpButtonText.setDepth(2001);
-            scene.helpButtonText.setAlpha(1);
+
+        const config = UI.buttons[buttonType];
+        const commonConfig = UI.buttons.common;
+
+        if (!commonConfig || typeof commonConfig.size !== 'function') {
+            console.error(`Button common configuration invalid for type: ${buttonType}`);
+            return { hexagon: null, text: null };
         }
-    },
 
-    // Show pause button (hide help if needed)
-    showPauseButton: function (scene) {
-        if (!this.isFarcadeMode()) {
-            // In normal mode, hide help button elements
-            if (scene.helpButtonHexagon) scene.helpButtonHexagon.setVisible(false);
-            if (scene.helpButtonText) scene.helpButtonText.setVisible(false);
+        const hexSize = commonConfig.size() * 1.32;
 
-            // Show pause button elements
-            if (scene.pauseHexagon) {
-                scene.pauseHexagon.setVisible(true);
-                scene.pauseHexagon.setAlpha(1);
+        // Use the unified createHexagon function from menu.js
+        let hexagon;
+        let x, y;
+
+        // Get position with error handling
+        try {
+            x = typeof config.x === 'function' ? config.x() : (config.x || 0);
+            y = typeof config.y === 'function' ? config.y() : (config.y || 0);
+        } catch (error) {
+            console.error(`Error getting position for button ${buttonType}:`, error);
+            x = 100; // fallback position
+            y = 100;
+        }
+
+        if (typeof createHexagon === 'function') {
+            hexagon = createHexagon(scene, x, y, hexSize, 0x000000, 0.5);
+        } else {
+            // Fallback if createHexagon is not available
+            console.warn('createHexagon function not available, using circle fallback');
+            hexagon = scene.add.circle(x, y, hexSize / 2, 0x000000, 0.5);
+        }
+
+        hexagon.setDepth(2001);
+
+        // Get button symbol
+        let symbol = config.symbol || '?';
+        if (buttonType === 'music' && window.MusicSystem) {
+            symbol = window.MusicSystem.musicEnabled ? config.symbol : (config.mutedSymbol || config.symbol);
+        }
+
+        // Get font size with error handling
+        let fontSize;
+        try {
+            fontSize = typeof config.fontSize === 'function' ? config.fontSize() : (config.fontSize || '24px');
+            if (typeof fontSize === 'number') {
+                fontSize = fontSize + 'px';
             }
-            if (scene.pauseButtonText) {
-                scene.pauseButtonText.setVisible(true);
-                scene.pauseButtonText.setAlpha(1);
-            }
+        } catch (error) {
+            console.error(`Error getting font size for button ${buttonType}:`, error);
+            fontSize = '24px';
         }
-        // In Farcade mode, help button stays visible and pause button doesn't exist
+
+        // Create button text
+        const text = scene.add.text(x, y, symbol, {
+            fontFamily: 'Arial',
+            fontSize: fontSize,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(2001);
+
+        // Make interactive
+        text.setInteractive({ useHandCursor: true });
+
+        // Add hover effects
+        text.on('pointerover', function () {
+            this.setColor('#ffff00');
+            this.setScale(1.1);
+        });
+
+        text.on('pointerout', function () {
+            this.setColor('#ffffff');
+            this.setScale(1);
+        });
+
+        // Add click handler
+        if (onClickCallback) {
+            text.on('pointerdown', onClickCallback);
+        }
+
+        // Store references on scene for compatibility
+        scene[`${buttonType}Hexagon`] = hexagon;
+        scene[`${buttonType}ButtonText`] = text;
+
+        return { hexagon, text };
     },
 
-    // Update button positions if needed (for responsive design)
-    updatePosition: function (scene) {
-        const position = this.getButtonPosition();
-
-        if (scene.helpButtonText && scene.helpButtonHexagon) {
-            scene.helpButtonText.setPosition(position.x, position.y);
-            scene.helpButtonHexagon.x = position.x;
-            scene.helpButtonHexagon.y = position.y;
+    // Update music button symbol
+    updateMusicButtonSymbol: function (scene) {
+        if (this.buttons.music && this.buttons.music.text && window.MusicSystem) {
+            const config = UI.buttons.music;
+            const symbol = window.MusicSystem.musicEnabled ? config.symbol : config.mutedSymbol;
+            this.buttons.music.text.setText(symbol);
         }
-    }
-};
+    },
 
-// Export help button manager
-window.HelpButtonManager = HelpButtonManager;
+    // Destroy all buttons
+    destroyAllButtons: function (scene) {
+        Object.keys(this.buttons).forEach(buttonType => {
+            const button = this.buttons[buttonType];
+            if (button && button.hexagon) button.hexagon.destroy();
+            if (button && button.text) button.text.destroy();
 
-// Game state management for button switching
-const ButtonStateManager = {
-    // Called when game starts (after "ENTER THE LOOP")
+            // Also clean up scene references
+            if (scene && scene[`${buttonType}Hexagon`]) {
+                scene[`${buttonType}Hexagon`] = null;
+            }
+            if (scene && scene[`${buttonType}ButtonText`]) {
+                scene[`${buttonType}ButtonText`] = null;
+            }
+        });
+
+        // Reset button references
+        this.buttons = {
+            pause: { hexagon: null, text: null },
+            music: { hexagon: null, text: null },
+            help: { hexagon: null, text: null },
+            levelup: { hexagon: null, text: null }
+        };
+    },
+
+    // Update button positions (for resize handling)
+    updateButtonPositions: function (scene) {
+        Object.keys(this.buttons).forEach(buttonType => {
+            const button = this.buttons[buttonType];
+            const config = UI.buttons[buttonType];
+
+            if (button && button.hexagon && button.text && config) {
+                const x = config.x();
+                const y = config.y();
+
+                button.hexagon.x = x;
+                button.hexagon.y = y;
+                button.text.setPosition(x, y);
+            }
+        });
+    },
+
+    // Update button visibility based on current state
+    updateButtonVisibility: function (scene) {
+        // Hide all buttons first
+        this.setButtonVisible('pause', false);
+        this.setButtonVisible('music', false);
+        this.setButtonVisible('help', false);
+        this.setButtonVisible('levelup', false);
+
+        if (this.isFarcadeMode()) {
+            // FARCADE mode: Help button replaces music button permanently
+            this.setButtonVisible('pause', true);  // Pause in bottom left
+            this.setButtonVisible('help', true);   // Help in bottom right (music position)
+
+            // Position help button at music position
+            this.positionHelpButton(scene, 'music');
+        } else if (this.currentState === 'paused') {
+            // Paused state: Help button replaces pause button
+            this.setButtonVisible('help', true);   // Help in bottom left (pause position)
+            this.setButtonVisible('music', !this.isBossRushMode()); // Music in bottom right (unless Boss Rush)
+            this.setButtonVisible('levelup', this.isBossRushMode()); // Levelup in bottom right (Boss Rush only)
+
+            // Position help button at pause position
+            this.positionHelpButton(scene, 'pause');
+        } else {
+            // Normal state: Standard button layout
+            this.setButtonVisible('pause', true);  // Pause in bottom left
+            this.setButtonVisible('music', !this.isBossRushMode()); // Music in bottom right (unless Boss Rush)
+            this.setButtonVisible('levelup', this.isBossRushMode()); // Levelup in bottom right (Boss Rush only)
+        }
+    },
+
+    // Helper to position help button at another button's position
+    positionHelpButton: function (scene, targetButtonType) {
+        if (!this.buttons.help || !this.buttons.help.hexagon || !this.buttons.help.text) {
+            return;
+        }
+
+        const targetConfig = UI.buttons[targetButtonType];
+        if (!targetConfig) {
+            console.warn(`Cannot position help button: target button type '${targetButtonType}' not found`);
+            return;
+        }
+
+        const x = targetConfig.x();
+        const y = targetConfig.y();
+
+        this.buttons.help.hexagon.x = x;
+        this.buttons.help.hexagon.y = y;
+        this.buttons.help.text.setPosition(x, y);
+    },
+
+    // Helper to set button visibility
+    setButtonVisible: function (buttonType, visible) {
+        const button = this.buttons[buttonType];
+        if (button && button.hexagon && button.text) {
+            button.hexagon.setVisible(visible);
+            button.text.setVisible(visible);
+        }
+    },
+
+    // State change handlers
     onGameStart: function (scene) {
-        // Check Boss Rush mode first - it takes priority over other modes
-        if (window.BOSS_RUSH_MODE) {
-            // In Boss Rush mode, we need both help and pause buttons (for switching)
-            if (!HelpButtonManager.isFarcadeMode()) {
-                // Clean up any existing help button from start screen
-                if (scene.helpButtonHexagon) scene.helpButtonHexagon.destroy();
-                if (scene.helpButtonText) scene.helpButtonText.destroy();
-
-                // Create help button (will be hidden initially)
-                HelpButtonManager.createHelpButton(scene);
-                // Show pause button in bottom left initially
-                HelpButtonManager.showPauseButton(scene);
-            }
-            // Show levelup button in bottom right
-            if (window.LevelupButtonManager) {
-                window.LevelupButtonManager.showLevelupButton(scene);
-            }
-        } else if (HelpButtonManager.isFarcadeMode()) {
-            // In FARCADE mode (no Boss Rush), help button stays in bottom right
-            HelpButtonManager.createHelpButton(scene);
-            console.log('FARCADE mode: Help button created on game start');
-        } else {
-            // Normal mode (no Boss Rush, no FARCADE)
-            // Clean up any existing help button from start screen
-            if (scene.helpButtonHexagon) scene.helpButtonHexagon.destroy();
-            if (scene.helpButtonText) scene.helpButtonText.destroy();
-
-            // Create new help button in the game scene
-            HelpButtonManager.createHelpButton(scene);
-            // Show pause button in bottom left, music button in bottom right
-            HelpButtonManager.showPauseButton(scene);
-        }
+        this.currentState = this.isFarcadeMode() ? 'farcade' : 'normal';
+        this.updateButtonVisibility(scene);
+        console.log(`Button state: ${this.currentState}`);
     },
 
-    // Called when game is paused (manual pause or level up)
     onGamePause: function (scene) {
-        if (window.BOSS_RUSH_MODE) {
-            // Hide levelup button, show music/help button in bottom right
-            if (window.LevelupButtonManager) {
-                window.LevelupButtonManager.hideLevelupButton(scene);
-            }
-            // Show help button in bottom left (unless FARCADE mode)
-            if (!HelpButtonManager.isFarcadeMode()) {
-                HelpButtonManager.showHelpButton(scene);
-            }
-        } else if (HelpButtonManager.isFarcadeMode()) {
-            // In FARCADE mode, help button stays visible (do nothing)
-            console.log('FARCADE mode: Help button remains visible during pause');
-        } else {
-            // Normal mode - show help button in bottom left
-            HelpButtonManager.showHelpButton(scene);
+        if (!this.isFarcadeMode()) {
+            this.currentState = 'paused';
+            this.updateButtonVisibility(scene);
         }
+        console.log(`Button state: ${this.currentState}`);
     },
 
-    // Called when game resumes from pause
     onGameResume: function (scene) {
-        if (window.BOSS_RUSH_MODE) {
-            // Show levelup button in bottom right
-            if (window.LevelupButtonManager) {
-                window.LevelupButtonManager.showLevelupButton(scene);
-            }
-            // Show pause button in bottom left (unless FARCADE mode)
-            if (!HelpButtonManager.isFarcadeMode()) {
-                HelpButtonManager.showPauseButton(scene);
-            }
-        } else if (HelpButtonManager.isFarcadeMode()) {
-            // In FARCADE mode, help button stays visible (do nothing)
-            console.log('FARCADE mode: Help button remains visible after resume');
-        } else {
-            // Normal mode - show pause button in bottom left, music in bottom right
-            HelpButtonManager.showPauseButton(scene);
-        }
+        this.currentState = this.isFarcadeMode() ? 'farcade' : 'normal';
+        this.updateButtonVisibility(scene);
+        console.log(`Button state: ${this.currentState}`);
     }
 };
 
-// Export button state manager
-window.ButtonStateManager = ButtonStateManager;
+// Export the unified system
+window.UnifiedButtonManager = UnifiedButtonManager;
 
-// Levelup button manager for Boss Rush mode
-const LevelupButtonManager = {
-    // Check if Boss Rush mode is enabled
-    isBossRushMode: function () {
-        return window.BOSS_RUSH_MODE === true;
+// Backward compatibility - redirect old managers to new unified system
+window.HelpButtonManager = {
+    isFarcadeMode: () => UnifiedButtonManager.isFarcadeMode(),
+    createHelpButton: (scene) => {
+        // This is now handled by createAllButtons
+        console.log('HelpButtonManager.createHelpButton called - handled by UnifiedButtonManager');
     },
-
-    // Show levelup button (hide music/help buttons in bottom right)
-    showLevelupButton: function (scene) {
-        if (!this.isBossRushMode()) return;
-
-        // Hide music button elements (hexagon version)
-        if (scene.musicHexagon) scene.musicHexagon.setVisible(false);
-        if (scene.musicButtonText) scene.musicButtonText.setVisible(false);
-
-        // Hide help button elements if they're in the music position (FARCADE mode)
-        if (HelpButtonManager.isFarcadeMode()) {
-            if (scene.helpButtonHexagon) scene.helpButtonHexagon.setVisible(false);
-            if (scene.helpButtonText) scene.helpButtonText.setVisible(false);
-        }
-
-        // Show levelup button elements (hexagon version)
-        if (scene.levelupHexagon) {
-            scene.levelupHexagon.setVisible(true);
-            scene.levelupHexagon.setAlpha(1);
-        }
-        if (scene.levelupButtonText) {
-            scene.levelupButtonText.setVisible(true);
-            scene.levelupButtonText.setAlpha(1);
-        }
+    showHelpButton: (scene) => {
+        UnifiedButtonManager.currentState = 'paused';
+        UnifiedButtonManager.updateButtonVisibility(scene);
     },
-
-    // Hide levelup button (show music/help buttons in bottom right)
-    hideLevelupButton: function (scene) {
-        // Hide levelup button elements (hexagon version)
-        if (scene.levelupHexagon) scene.levelupHexagon.setVisible(false);
-        if (scene.levelupButtonText) scene.levelupButtonText.setVisible(false);
-
-        // Show appropriate button for bottom right corner
-        if (HelpButtonManager.isFarcadeMode()) {
-            // In FARCADE mode, show help button
-            if (scene.helpButtonHexagon) {
-                scene.helpButtonHexagon.setVisible(true);
-                scene.helpButtonHexagon.setAlpha(1);
-            }
-            if (scene.helpButtonText) {
-                scene.helpButtonText.setVisible(true);
-                scene.helpButtonText.setAlpha(1);
-            }
-        } else {
-            // In normal mode, show music button
-            if (scene.musicHexagon) scene.musicHexagon.setVisible(true);
-            if (scene.musicButtonText) scene.musicButtonText.setVisible(true);
-        }
-    }
+    showPauseButton: (scene) => {
+        UnifiedButtonManager.currentState = UnifiedButtonManager.isFarcadeMode() ? 'farcade' : 'normal';
+        UnifiedButtonManager.updateButtonVisibility(scene);
+    },
+    updatePosition: (scene) => UnifiedButtonManager.updateButtonPositions(scene)
 };
 
-// Export levelup button manager
-window.LevelupButtonManager = LevelupButtonManager;
+window.ButtonStateManager = {
+    onGameStart: (scene) => UnifiedButtonManager.onGameStart(scene),
+    onGamePause: (scene) => UnifiedButtonManager.onGamePause(scene),
+    onGameResume: (scene) => UnifiedButtonManager.onGameResume(scene)
+};
+
+window.LevelupButtonManager = {
+    isBossRushMode: () => UnifiedButtonManager.isBossRushMode(),
+    showLevelupButton: (scene) => {
+        // Handled by updateButtonVisibility
+        UnifiedButtonManager.updateButtonVisibility(scene);
+    },
+    hideLevelupButton: (scene) => {
+        // Handled by updateButtonVisibility  
+        UnifiedButtonManager.updateButtonVisibility(scene);
+    }
+};

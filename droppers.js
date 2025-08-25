@@ -1,4 +1,4 @@
-// Dropper Component System for Word Survivors
+// Dropper Component System for KAJISU
 // Manages entities that are dropped by the player and remain in the world
 
 // Global list to store all active drops

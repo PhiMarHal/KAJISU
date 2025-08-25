@@ -1,4 +1,4 @@
-// Projectile Component System for Word Survivors
+// Projectile Component System for KAJISU
 // This system manages special behaviors for projectiles through a component architecture
 
 // Component system for projectiles

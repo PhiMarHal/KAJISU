@@ -1,4 +1,4 @@
-// Beacon System for Word Survivors
+// Beacon System for KAJISU
 // Manages collectible entities that spawn periodically and trigger effects
 
 const BeaconSystem = {

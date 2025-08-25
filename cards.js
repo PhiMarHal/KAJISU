@@ -1,4 +1,4 @@
-// cards.js - Enhanced Card Management System for Word Survivors
+// cards.js - Enhanced Card Management System for KAJISU
 
 // Colors for various UI elements
 const CARD_COLORS = {
@@ -354,13 +354,32 @@ function showMobileLevelUpScreen(scene) {
     const levelUpContainer = scene.add.container(0, 0);
     levelUpContainer.setDepth(1000);
 
+    // Create concentric circles animation
+    const centerX = game.config.width / 2;
+    const centerY = game.config.height / 2;
+    const screenSize = Math.min(game.config.width, game.config.height);
+    const baseRadiusMultiplier = 0.08;
+    const incrementMultiplier = 0.04;
+
+    const concentricCircles = VisualEffects.createConcentricCircles(scene, {
+        x: centerX,
+        y: centerY,
+        circleCount: 8,
+        baseRadius: screenSize * baseRadiusMultiplier,
+        radiusIncrement: screenSize * incrementMultiplier,
+        gapRatio: 0.4,
+        rotationSpeed: 24,
+        color: 0xFFD700,
+        strokeWidth: 4,
+        segmentCount: 4,
+        depth: 999 // Behind other UI elements
+    });
+
     // Safety tracking - player must browse through all perks before selecting
     let viewedPerks = new Set();
     let hasViewedAllPerks = false;
 
     // Create semi-transparent background
-    const centerX = game.config.width / 2;
-    const centerY = game.config.height / 2;
     const levelUpBackground = scene.add.rectangle(
         centerX,
         centerY,
@@ -456,13 +475,11 @@ function showMobileLevelUpScreen(scene) {
 
     // Function to create or update the displayed card
     function updateDisplayedCard() {
-        // Remove previous card elements if they exist
-        currentCardElements.forEach(element => {
-            if (element && element.destroy) {
-                element.destroy();
-            }
-        });
-        currentCardElements = [];
+        // Clean up old card using unified system
+        if (currentCardElements.length > 0) {
+            UnifiedCardSystem.utils.destroyCard({ elements: currentCardElements });
+            currentCardElements = [];
+        }
 
         // Remove previous selection border if it exists
         if (selectionBorder) {
@@ -470,48 +487,31 @@ function showMobileLevelUpScreen(scene) {
             selectionBorder = null;
         }
 
-        // Create new card with the current perk
+        // Create new card with the current perk using unified system
         const currentPerk = availablePerks[currentPerkIndex];
         if (currentPerk) {
-            const cardWidth = KAJISULI_MODE ?
-                Math.min(300, game.config.width * 0.9) : // 150% wider (200->300)
-                Math.min(200, game.config.width * 0.6);
-            const cardHeight = KAJISULI_MODE ? 450 : 300; // 150% taller (300->450)
-
-            currentCardElements = CardSystem.createPerkCardElements(
-                currentPerk,
-                centerX,
-                centerY,
-                {
-                    showKana: true,
-                    showRomaji: true,
-                    showEnglish: true,
-                    showDescription: true,
-                    width: cardWidth,
-                    height: cardHeight,
-                    fontSize: KAJISULI_MODE ? 1.5 : 1 // 150% font scaling
+            const card = UnifiedCardSystem.createCard(scene, currentPerk, {
+                x: centerX,
+                y: centerY
+            }, 'levelup', {
+                cardType: UnifiedCardSystem.CARD_TYPES.CUSTOM, // Treat as already-formatted data
+                container: levelUpContainer,
+                makeInteractive: true,
+                perkCallback: (perkId) => {
+                    selectPerk(perkId);
                 }
-            );
-
-            // Add all card elements to the container
-            currentCardElements.forEach(element => {
-                levelUpContainer.add(element);
             });
+
+            currentCardElements = card.elements;
 
             // Create selection border if all perks have been viewed
             if (hasViewedAllPerks) {
-                createSelectionBorder(cardWidth, cardHeight);
+                createSelectionBorder(card.config.width, card.config.height);
             }
 
-            // Make the background clickable to select this perk
-            const cardBackground = currentCardElements[0];
-            cardBackground.setInteractive({ useHandCursor: true });
-            cardBackground.on('pointerdown', () => {
-                selectPerk(currentPerk.id);
-            });
-
             // Visual feedback for selection availability
-            if (hasViewedAllPerks) {
+            if (hasViewedAllPerks && currentCardElements.length > 0) {
+                const cardBackground = currentCardElements[0];
                 scene.tweens.add({
                     targets: cardBackground,
                     strokeStyle: { value: 0xffff00 },
@@ -708,6 +708,11 @@ function showMobileLevelUpScreen(scene) {
         acquirePerk(scene, perkId);
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
+
+        // Clean up concentric circles animation
+        if (concentricCircles) {
+            concentricCircles.destroy();
+        }
 
         // Clean up current level-up UI
         levelUpContainer.destroy();

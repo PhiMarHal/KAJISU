@@ -1,4 +1,4 @@
-// One-Time Effect System for Word Survivors
+// One-Time Effect System for KAJISU
 // Handles effects that occur once when a perk is acquired
 
 // Utility functions for stat manipulation
@@ -266,8 +266,8 @@ const OneTimeEffects = {
         GameUI.updateHealthBar(scene);
         LifeSystem.setupHealthRegeneration(scene);
 
-        // Calculate total stat points (2 per perk, rounded up)
-        const totalStatPoints = Math.ceil(perkCount * 2);
+        // Calculate total stat points (1.4 per perk, rounded up)
+        const totalStatPoints = Math.ceil(perkCount * 1.4);
 
         // Distribute points randomly among all stats
         for (let i = 0; i < totalStatPoints; i++) {

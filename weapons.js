@@ -177,6 +177,7 @@ const WeaponSystem = {
     },
 
     // Fire the current weapon
+    // Comment this out for quick testing of side perks!
     fireWeapon: function (scene) {
         // Find the closest enemy
         distance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * 400;

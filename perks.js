@@ -497,12 +497,12 @@ const PERKS = {
         kana: "どくあと",
         romaji: "dokuato",
         english: "Toxic Trail",
-        description: "A path of shared sickness. -2 END",
+        description: "A path of shared sickness. -1 END",
         color: "#33cc33", // Green color for poison
         hoverColor: 0x22aa22, // Darker green for hover effect
         onAcquire: function () {
             window.activateToxicTrail();
-            window.modifyStat('health', -2);
+            window.modifyStat('health', -1);
         }
     },
     "FINGER_OF_DECAY": {
@@ -1168,7 +1168,7 @@ const PERKS = {
         kana: "ぼうきゃくのはな",
         romaji: "boukyakunohana",
         english: "Oblivion Blossom",
-        description: "Sacrifice all your perks, +2 STAT from each memory lost",
+        description: "Sacrifice all your perks, +1.4 STAT from each memory lost",
         color: "#BBBBFF", // Light purple/blue color
         hoverColor: 0x9999DD,
         onAcquire: function () {
@@ -1185,6 +1185,42 @@ const PERKS = {
         hoverColor: 0xCCA700,
         onAcquire: function () {
             window.activateThreeStars();
+        }
+    },
+    "BLIZZARD": {
+        kanji: "吹雪",
+        kana: "ふぶき",
+        romaji: "fubuki",
+        english: "Blizzard",
+        description: "Unleashes a spiral storm of slowing projectiles",
+        color: "#87CEEB", // Sky blue color
+        hoverColor: 0x6FAACD,
+        onAcquire: function () {
+            window.activateBlizzard();
+        }
+    },
+    "COLD_WIND": {
+        kanji: "寒風",
+        kana: "かんぷう",
+        romaji: "kanpuu",
+        english: "Cold Wind",
+        description: "Spiraling cold projectiles that slow enemies",
+        color: "#87CEEB", // Light blue color
+        hoverColor: 0x6FAACD,
+        onAcquire: function () {
+            window.activateColdWind();
+        }
+    },
+    "INFINITE_GLIMPSE": {
+        kanji: "無限一目",
+        kana: "むげんいちもく",
+        romaji: "mugenichimoku",
+        english: "Infinite Glimpse",
+        description: "Near eternity, only LUCK matters",
+        color: "#FFD700", // Gold color
+        hoverColor: 0xCCA700,
+        onAcquire: function () {
+            window.activateInfiniteGlimpse();
         }
     },
     "COPY_FAIRY": {

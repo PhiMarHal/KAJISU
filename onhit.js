@@ -1,4 +1,4 @@
-// On-Hit Effect System for Word Survivors
+// On-Hit Effect System for KAJISU
 // Manages effects that trigger when the player is hit by enemies
 
 // Component system for on-hit effects

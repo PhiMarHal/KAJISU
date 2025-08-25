@@ -1,4 +1,4 @@
-// menu.js - UI Elements for Word Survivors
+// menu.js - UI Elements for KAJISU
 
 // UI Element constants with relative positioning
 const UI = {
@@ -185,6 +185,23 @@ const UI = {
             fontSize: function () {
                 return UI.buttons.common.fontSize() * 0.7; // Slightly smaller for "UP" text
             }
+        },
+
+        // Resume button configuration (for pause screen)
+        resume: {
+            symbol: "続", // Kanji for "continue"
+            x: function () {
+                return UI.game.getWidth() / 2; // Center horizontally
+            },
+            y: function () {
+                return UI.game.getHeight() * 0.875; // Same position as old resume button
+            },
+            fontSize: function () {
+                return UI.buttons.common.fontSize() * 1.2; // Slightly larger for resume
+            },
+            size: function () {
+                return UI.buttons.common.size() * 1.5; // Larger hexagon for resume
+            }
         }
     },
 
@@ -231,22 +248,21 @@ const UI = {
     }
 };
 
-// Button display functions
 const ButtonDisplay = {
     create: function (scene) {
         // Initialize relative dimensions
         UI.game.init(scene);
 
-        // Clean up existing buttons and backgrounds
-        if (scene.pauseButton) scene.pauseButton.destroy();
-        if (scene.pauseButtonBg) scene.pauseButtonBg.destroy();
-        if (scene.pauseButtonBorder) scene.pauseButtonBorder.destroy();
-        if (scene.musicButton) scene.musicButton.destroy();
-        if (scene.musicButtonBg) scene.musicButtonBg.destroy();
-        if (scene.musicButtonBorder) scene.musicButtonBorder.destroy();
-        if (scene.levelupButton) scene.levelupButton.destroy();
-        if (scene.levelupButtonBg) scene.levelupButtonBg.destroy();
-        if (scene.levelupButtonBorder) scene.levelupButtonBorder.destroy();
+        // Clean up existing buttons and hit areas
+        if (scene.pauseHexagon) scene.pauseHexagon.destroy();
+        if (scene.pauseButtonText) scene.pauseButtonText.destroy();
+        if (scene.pauseHitArea) scene.pauseHitArea.destroy();
+        if (scene.musicHexagon) scene.musicHexagon.destroy();
+        if (scene.musicButtonText) scene.musicButtonText.destroy();
+        if (scene.musicHitArea) scene.musicHitArea.destroy();
+        if (scene.levelupHexagon) scene.levelupHexagon.destroy();
+        if (scene.levelupButtonText) scene.levelupButtonText.destroy();
+        if (scene.levelupHitArea) scene.levelupHitArea.destroy();
 
         // Get button configurations
         const pauseConfig = UI.buttons.pause;
@@ -254,27 +270,23 @@ const ButtonDisplay = {
         const levelupConfig = UI.buttons.levelup;
         const commonConfig = UI.buttons.common;
 
-        // Create pause button background and border
-        scene.pauseButtonBorder = scene.add.rectangle(
-            pauseConfig.x(),
-            pauseConfig.y(),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(2001);
+        const hexSize = commonConfig.size() * 1.32; // Even bigger hexagons (110% of previous)
 
-        scene.pauseButtonBg = scene.add.rectangle(
+        // Create pause button hexagon
+        scene.pauseHexagon = createHexagon(
+            scene,
             pauseConfig.x(),
             pauseConfig.y(),
-            commonConfig.size(),
-            commonConfig.size(),
-            UI.colors.black
-        ).setDepth(2001);
+            hexSize,
+            0x000000,
+            0.5  // 50% opacity so game elements show through
+        );
+        scene.pauseHexagon.setDepth(2001);
 
-        // Create pause button
-        scene.pauseButton = scene.add.text(
+        // Create pause button text
+        scene.pauseButtonText = scene.add.text(
             pauseConfig.x(),
-            pauseConfig.y(),
+            pauseConfig.y(), // Adjusted for better centering
             pauseConfig.symbol,
             {
                 fontFamily: 'Arial',
@@ -284,20 +296,20 @@ const ButtonDisplay = {
             }
         ).setOrigin(0.5).setDepth(2001);
 
-        // Make pause button interactive
-        scene.pauseButtonBorder.setInteractive({ useHandCursor: true });
+        // Create pause button hit area - use the button text as the interactive element
+        scene.pauseButtonText.setInteractive({ useHandCursor: true });
 
-        scene.pauseButtonBorder.on('pointerover', function () {
-            scene.pauseButton.setColor('#ffff00'); // Yellow on hover
-            scene.pauseButton.setScale(1.1);
+        scene.pauseButtonText.on('pointerover', function () {
+            this.setColor('#ffff00'); // Yellow on hover
+            this.setScale(1.1);
         });
 
-        scene.pauseButtonBorder.on('pointerout', function () {
-            scene.pauseButton.setColor('#ffffff'); // White normally
-            scene.pauseButton.setScale(1);
+        scene.pauseButtonText.on('pointerout', function () {
+            this.setColor('#ffffff'); // White normally
+            this.setScale(1);
         });
 
-        scene.pauseButtonBorder.on('pointerdown', function () {
+        scene.pauseButtonText.on('pointerdown', function () {
             if (!gameOver) {
                 if (gamePaused) {
                     PauseSystem.resumeGame();
@@ -307,30 +319,24 @@ const ButtonDisplay = {
             }
         });
 
-        // Create music button background and border
-        scene.musicButtonBorder = scene.add.rectangle(
+        // Create music button hexagon
+        scene.musicHexagon = createHexagon(
+            scene,
             musicConfig.x(),
             musicConfig.y(),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            commonConfig.size() + (commonConfig.borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(2001);
+            hexSize,
+            0x000000,
+            0.5  // 50% opacity so game elements show through
+        );
+        scene.musicHexagon.setDepth(2001);
 
-        scene.musicButtonBg = scene.add.rectangle(
-            musicConfig.x(),
-            musicConfig.y(),
-            commonConfig.size(),
-            commonConfig.size(),
-            UI.colors.black
-        ).setDepth(2001);
-
-        // Create music button
+        // Create music button text
         const initialSymbol = (window.MusicSystem && window.MusicSystem.musicEnabled) ?
             musicConfig.symbol : musicConfig.mutedSymbol;
 
-        scene.musicButton = scene.add.text(
+        scene.musicButtonText = scene.add.text(
             musicConfig.x(),
-            musicConfig.y(),
+            musicConfig.y(), // Adjusted for better centering
             initialSymbol,
             {
                 fontFamily: 'Arial',
@@ -340,20 +346,20 @@ const ButtonDisplay = {
             }
         ).setOrigin(0.5).setDepth(2001);
 
-        // Make music button interactive
-        scene.musicButtonBorder.setInteractive({ useHandCursor: true });
+        // Create music button hit area - use the button text as the interactive element
+        scene.musicButtonText.setInteractive({ useHandCursor: true });
 
-        scene.musicButtonBorder.on('pointerover', function () {
-            scene.musicButton.setColor('#ffff00'); // Yellow on hover
-            scene.musicButton.setScale(1.1);
+        scene.musicButtonText.on('pointerover', function () {
+            this.setColor('#ffff00'); // Yellow on hover
+            this.setScale(1.1);
         });
 
-        scene.musicButtonBorder.on('pointerout', function () {
-            scene.musicButton.setColor('#ffffff'); // White normally
-            scene.musicButton.setScale(1);
+        scene.musicButtonText.on('pointerout', function () {
+            this.setColor('#ffffff'); // White normally
+            this.setScale(1);
         });
 
-        scene.musicButtonBorder.on('pointerdown', function () {
+        scene.musicButtonText.on('pointerdown', function () {
             if (window.MusicSystem) {
                 // Toggle music state
                 const newState = !window.MusicSystem.musicEnabled;
@@ -361,43 +367,36 @@ const ButtonDisplay = {
 
                 // Update button symbol to show new state immediately
                 const symbol = newState ? musicConfig.symbol : musicConfig.mutedSymbol;
-                scene.musicButton.setText(symbol);
+                this.setText(symbol);
 
                 console.log(`Music ${newState ? 'enabled' : 'disabled'}`);
             }
         });
 
-        // ADDED: Handle Farcade mode - hide music button after it's created
+        // Handle Farcade mode - hide music button after it's created
         if (window.FARCADE_MODE) {
-            scene.musicButton.setVisible(false);
-            scene.musicButtonBg.setVisible(false);
-            scene.musicButtonBorder.setVisible(false);
+            scene.musicHexagon.setVisible(false);
+            scene.musicButtonText.setVisible(false);
             console.log("Music button hidden for Farcade deployment");
         }
 
         // Only create levelup button if Boss Rush mode is enabled
         if (window.BOSS_RUSH_MODE) {
-            // Create levelup button background and border
-            scene.levelupButtonBorder = scene.add.rectangle(
+            // Create levelup button hexagon
+            scene.levelupHexagon = createHexagon(
+                scene,
                 levelupConfig.x(),
                 levelupConfig.y(),
-                commonConfig.size() + (commonConfig.borderWidth * 2),
-                commonConfig.size() + (commonConfig.borderWidth * 2),
-                UI.colors.gold
-            ).setDepth(UI.depth.ui);
+                hexSize,
+                0x000000,
+                0.5  // 50% opacity so game elements show through
+            );
+            scene.levelupHexagon.setDepth(2001);
 
-            scene.levelupButtonBg = scene.add.rectangle(
+            // Create levelup button text
+            scene.levelupButtonText = scene.add.text(
                 levelupConfig.x(),
-                levelupConfig.y(),
-                commonConfig.size(),
-                commonConfig.size(),
-                UI.colors.black
-            ).setDepth(UI.depth.ui);
-
-            // Create levelup button
-            scene.levelupButton = scene.add.text(
-                levelupConfig.x(),
-                levelupConfig.y(),
+                levelupConfig.y(), // Adjusted for better centering
                 levelupConfig.symbol,
                 {
                     fontFamily: 'Arial',
@@ -407,20 +406,20 @@ const ButtonDisplay = {
                 }
             ).setOrigin(0.5).setDepth(2001);
 
-            // Make levelup button interactive
-            scene.levelupButtonBorder.setInteractive({ useHandCursor: true });
+            // Create levelup button hit area - use the button text as the interactive element
+            scene.levelupButtonText.setInteractive({ useHandCursor: true });
 
-            scene.levelupButtonBorder.on('pointerover', function () {
-                scene.levelupButton.setColor('#ffff00'); // Yellow on hover
-                scene.levelupButton.setScale(1.1);
+            scene.levelupButtonText.on('pointerover', function () {
+                this.setColor('#ffff00'); // Yellow on hover
+                this.setScale(1.1);
             });
 
-            scene.levelupButtonBorder.on('pointerout', function () {
-                scene.levelupButton.setColor('#ffffff'); // White normally
-                scene.levelupButton.setScale(1);
+            scene.levelupButtonText.on('pointerout', function () {
+                this.setColor('#ffffff'); // White normally
+                this.setScale(1);
             });
 
-            scene.levelupButtonBorder.on('pointerdown', function () {
+            scene.levelupButtonText.on('pointerdown', function () {
                 if (!gamePaused && !gameOver && window.BOSS_RUSH_MODE) {
                     // Apply penalty if the function exists
                     if (window.applyFreeLeveUpPenalty) {
@@ -443,56 +442,133 @@ const ButtonDisplay = {
         this.update(scene);
     },
 
+    // Create a single button (for use by other systems like pause screen)
+    createButton: function (scene, buttonType, onClickCallback, options = {}) {
+        // Initialize relative dimensions if not already done
+        UI.game.init(scene);
+
+        // Get button configuration
+        const buttonConfig = UI.buttons[buttonType];
+        if (!buttonConfig) {
+            console.error(`Unknown button type: ${buttonType}`);
+            return null;
+        }
+
+        // Set up default options
+        const defaults = {
+            depth: 1002,
+            visible: true,
+            size: buttonConfig.size ? buttonConfig.size() : UI.buttons.common.size() * 1.32
+        };
+        const config = { ...defaults, ...options };
+
+        // Create hexagon
+        const hexagon = createHexagon(
+            scene,
+            buttonConfig.x(),
+            buttonConfig.y(),
+            config.size,
+            0x000000,
+            0.5
+        );
+        hexagon.setDepth(config.depth - 1);
+        hexagon.setVisible(config.visible);
+
+        // Create button text
+        const buttonText = scene.add.text(
+            buttonConfig.x(),
+            buttonConfig.y(),
+            buttonConfig.symbol,
+            {
+                fontFamily: 'Arial',
+                fontSize: `${buttonConfig.fontSize()}px`,
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(config.depth);
+        buttonText.setVisible(config.visible);
+
+        // Make interactive
+        buttonText.setInteractive({ useHandCursor: true });
+
+        // Add hover effects
+        buttonText.on('pointerover', function () {
+            this.setColor('#ffff00'); // Yellow on hover
+            this.setScale(1.1);
+        });
+
+        buttonText.on('pointerout', function () {
+            this.setColor('#ffffff'); // White normally
+            this.setScale(1);
+        });
+
+        // Add click handler
+        if (onClickCallback) {
+            buttonText.on('pointerdown', onClickCallback);
+        }
+
+        // Return both elements so they can be managed together
+        return {
+            hexagon: hexagon,
+            text: buttonText,
+            setVisible: function (visible) {
+                hexagon.setVisible(visible);
+                buttonText.setVisible(visible);
+            },
+            destroy: function () {
+                if (hexagon) hexagon.destroy();
+                if (buttonText) buttonText.destroy();
+            }
+        };
+    },
+
     update: function (scene) {
-        // Update button positions (useful for dynamic resizing)
+        // Update button positions and visibility (similar to original)
         const pauseConfig = UI.buttons.pause;
         const musicConfig = UI.buttons.music;
         const levelupConfig = UI.buttons.levelup;
 
         // Update pause button position
-        if (scene.pauseButton && scene.pauseButtonBg && scene.pauseButtonBorder) {
-            scene.pauseButton.setPosition(pauseConfig.x(), pauseConfig.y());
-            scene.pauseButtonBg.setPosition(pauseConfig.x(), pauseConfig.y());
-            scene.pauseButtonBorder.setPosition(pauseConfig.x(), pauseConfig.y());
+        if (scene.pauseHexagon && scene.pauseButtonText) {
+            scene.pauseHexagon.x = pauseConfig.x();
+            scene.pauseHexagon.y = pauseConfig.y();
+            scene.pauseButtonText.setPosition(pauseConfig.x(), pauseConfig.y());
         }
 
         // Update music button position and visibility
-        if (scene.musicButton && scene.musicButtonBg && scene.musicButtonBorder) {
+        if (scene.musicHexagon && scene.musicButtonText) {
             // Handle special visibility rules for Boss Rush mode
             if (window.BOSS_RUSH_MODE && !gamePaused) {
                 // Hide music button during active Boss Rush gameplay
-                scene.musicButton.setVisible(false);
-                scene.musicButtonBg.setVisible(false);
-                scene.musicButtonBorder.setVisible(false);
+                scene.musicHexagon.setVisible(false);
+                scene.musicButtonText.setVisible(false);
             } else if (window.FARCADE_MODE) {
-                // ADDED: Always hide music button in Farcade mode
-                scene.musicButton.setVisible(false);
-                scene.musicButtonBg.setVisible(false);
-                scene.musicButtonBorder.setVisible(false);
+                // Always hide music button in Farcade mode
+                scene.musicHexagon.setVisible(false);
+                scene.musicButtonText.setVisible(false);
             } else {
                 // Show music button and update its position and state
-                scene.musicButton.setVisible(true);
-                scene.musicButtonBg.setVisible(true);
-                scene.musicButtonBorder.setVisible(true);
+                scene.musicHexagon.setVisible(true);
+                scene.musicButtonText.setVisible(true);
 
-                scene.musicButton.setPosition(musicConfig.x(), musicConfig.y());
-                scene.musicButtonBg.setPosition(musicConfig.x(), musicConfig.y());
-                scene.musicButtonBorder.setPosition(musicConfig.x(), musicConfig.y());
+                scene.musicHexagon.x = musicConfig.x();
+                scene.musicHexagon.y = musicConfig.y();
+                scene.musicButtonText.setPosition(musicConfig.x(), musicConfig.y());
 
                 // Update music button symbol if MusicSystem is available
                 if (window.MusicSystem) {
                     const symbol = window.MusicSystem.musicEnabled ?
                         musicConfig.symbol : musicConfig.mutedSymbol;
-                    scene.musicButton.setText(symbol);
+                    scene.musicButtonText.setText(symbol);
                 }
             }
         }
 
         // Update levelup button position
-        if (scene.levelupButton && scene.levelupButtonBg && scene.levelupButtonBorder) {
-            scene.levelupButton.setPosition(levelupConfig.x(), levelupConfig.y());
-            scene.levelupButtonBg.setPosition(levelupConfig.x(), levelupConfig.y());
-            scene.levelupButtonBorder.setPosition(levelupConfig.x(), levelupConfig.y());
+        if (scene.levelupHexagon && scene.levelupButtonText) {
+            scene.levelupHexagon.x = levelupConfig.x();
+            scene.levelupHexagon.y = levelupConfig.y();
+            scene.levelupButtonText.setPosition(levelupConfig.x(), levelupConfig.y());
         }
     }
 };
@@ -536,7 +612,138 @@ function formatLargeNumber(number) {
     return number.toString();
 }
 
-// Experience bar functions
+// Health bar functions with transparency
+const HealthBar = {
+    create: function (scene) {
+        // Initialize relative dimensions
+        UI.game.init(scene);
+
+        // Remove old health bar elements if they exist
+        if (scene.healthBarBg) scene.healthBarBg.destroy();
+        if (scene.healthSegments) {
+            scene.healthSegments.clear(true, true);
+            scene.healthSegments.destroy();
+        }
+        if (scene.healthSeparators) {
+            scene.healthSeparators.clear(true, true);
+            scene.healthSeparators.destroy();
+        }
+
+        // Get kajisuli scale factors
+        const kajisuliScaleWidth = UI.kajisuli.enabled() ? 1.5 : 1;
+        const kajisuliScaleHeight = 1;
+
+        scene.healthBarScales = {
+            width: kajisuliScaleWidth,
+            height: kajisuliScaleHeight
+        };
+
+        // Get calculated dimensions
+        const width = UI.healthBar.width() * kajisuliScaleWidth;
+        const height = UI.healthBar.height() * kajisuliScaleHeight;
+        const borderWidth = UI.healthBar.borderWidth;
+
+        // KAJISULI-specific adjustments
+        const innerMargin = UI.kajisuli.enabled() ? 4 : UI.healthBar.innerMargin;
+
+        const centerX = UI.healthBar.centerX();
+        const y = UI.healthBar.y();
+
+        // Create ONLY the background with transparency (separate from segments)
+        scene.healthBarBg = scene.add.graphics();
+        scene.healthBarBg.x = centerX;
+        scene.healthBarBg.y = y;
+
+        // Draw transparent black fill FIRST
+        scene.healthBarBg.fillStyle(UI.colors.black, 0.5);
+        scene.healthBarBg.fillRect(
+            -(width / 2),
+            -(height / 2),
+            width,
+            height
+        );
+
+        // Draw ONLY border lines on top
+        scene.healthBarBg.lineStyle(borderWidth, UI.colors.gold);
+        scene.healthBarBg.strokeRect(
+            -(width / 2),
+            -(height / 2),
+            width,
+            height
+        );
+        scene.healthBarBg.setDepth(UI.depth.ui);
+
+        // Create containers for segments and separators
+        scene.healthSegments = scene.add.group();
+        scene.healthSeparators = scene.add.group();
+
+        // Store the inner margin for use in update
+        scene.healthBarInnerMargin = innerMargin;
+
+        // Initial health segments
+        this.update(scene);
+    },
+
+    update: function (scene) {
+        if (!scene.healthSegments || !scene.healthSegments.scene) return;
+
+        // COMPLETELY clear existing segments and separators
+        scene.healthSegments.clear(true, true);
+        scene.healthSeparators.clear(true, true);
+
+        const kajisuliScaleWidth = scene.healthBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
+
+        const width = UI.healthBar.width() * kajisuliScaleWidth;
+        const height = UI.healthBar.height();
+        const innerMargin = scene.healthBarInnerMargin || UI.healthBar.innerMargin;
+        const centerX = UI.healthBar.centerX();
+        const y = UI.healthBar.y();
+
+        const contentWidth = width - (innerMargin * 2);
+        const contentHeight = height - (innerMargin * 2);
+
+        // KAJISULI-specific segment gap
+        const segmentGapWidth = UI.kajisuli.enabled() ?
+            UI.rel.width(0.5) :
+            UI.healthBar.segmentGap() * kajisuliScaleWidth;
+
+        const totalGapWidth = (maxPlayerHealth - 1) * segmentGapWidth;
+        const segmentWidth = (contentWidth - totalGapWidth) / maxPlayerHealth;
+
+        const startX = centerX - (width / 2) + innerMargin;
+
+        // Create each segment using SEPARATE graphics (not overlapping with background)
+        for (let i = 0; i < maxPlayerHealth; i++) {
+            const isFilled = i < playerHealth;
+            const segmentX = startX + (i * (segmentWidth + segmentGapWidth));
+
+            // Create segment with transparency using SEPARATE graphics object
+            const segment = scene.add.graphics();
+            segment.x = segmentX;
+            segment.y = y;
+
+            const segmentColor = isFilled ? UI.colors.green : UI.colors.grey;
+            segment.fillStyle(segmentColor, 1.0); // FULL opacity for colored segments!
+            segment.fillRect(0, -contentHeight / 2, segmentWidth, contentHeight);
+            segment.setDepth(UI.depth.ui + 1); // Above background
+
+            scene.healthSegments.add(segment);
+
+            // Add golden separator ONLY between segments (not after last one)
+            if (i < maxPlayerHealth - 1) {
+                const separatorX = segmentX + segmentWidth + (segmentGapWidth / 2);
+                const separator = scene.add.graphics();
+                separator.fillStyle(UI.colors.gold);
+                separator.fillRect(0, 0, 2, contentHeight);
+                separator.setPosition(separatorX - 1, y - contentHeight / 2);
+                separator.setDepth(UI.depth.ui + 1);
+                scene.healthSeparators.add(separator);
+            }
+        }
+    }
+};
+
+// Experience bar, no transparency
 const ExpBar = {
     create: function (scene) {
         // Initialize relative dimensions
@@ -614,8 +821,6 @@ const ExpBar = {
             }
         ).setOrigin(0.5).setDepth(UI.depth.ui);
 
-        // REMOVED PROBLEMATIC LINE: scene.musicButton.setVisible(false);
-
         // Create XP needed text to the right of the bar
         scene.xpNeededText = scene.add.text(
             centerX + (width / 2) + textSpacing,
@@ -640,7 +845,6 @@ const ExpBar = {
 
         // Get scale factors
         const kajisuliScaleWidth = scene.expBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
-        const kajisuliScaleHeight = scene.expBarScales?.height ?? 1;
 
         // Get width with scaling
         const width = UI.expBar.width() * kajisuliScaleWidth;
@@ -662,147 +866,128 @@ const ExpBar = {
     }
 };
 
+// Unified hexagon creation function supporting both regular and elongated hexagons
+function createHexagon(scene, x, y, size, fillColor = 0x000000, fillAlpha = 1.0, width = null, height = null) {
+    const graphics = scene.add.graphics();
+    let points;
 
-// Health bar functions
-const HealthBar = {
-    create: function (scene) {
-        // Initialize relative dimensions
-        UI.game.init(scene);
+    // Position the graphics at the center
+    graphics.x = x;
+    graphics.y = y;
 
-        // Remove old health bar elements if they exist
-        if (scene.healthBar) scene.healthBar.destroy();
-        if (scene.healthBarBg) scene.healthBarBg.destroy();
-        if (scene.healthText) scene.healthText.destroy();
+    if (width !== null && height !== null) {
+        // Create elongated hexagon (hexagonal rectangle) with explicit dimensions
+        // Use proper 30° hexagon angles: horizontal chamfer = vertical chamfer * √3
+        const chamferY = height * 0.25; // Vertical chamfer (keep Y positions reasonable)
+        const chamferX = chamferY * Math.sqrt(3); // Horizontal chamfer for 30° angle
 
-        // Get kajisuli scale factors - wider not thicker
-        const kajisuliScaleWidth = UI.kajisuli.enabled() ? 1.5 : 1;
-        const kajisuliScaleHeight = 1; // Keep the same height
+        points = [
+            { x: -width / 2 + chamferX, y: -height / 2 },        // Top-left chamfered
+            { x: width / 2 - chamferX, y: -height / 2 },         // Top-right chamfered
+            { x: width / 2, y: -height / 2 + chamferY },         // Top-right corner
+            { x: width / 2, y: height / 2 - chamferY },          // Bottom-right corner
+            { x: width / 2 - chamferX, y: height / 2 },          // Bottom-right chamfered
+            { x: -width / 2 + chamferX, y: height / 2 },         // Bottom-left chamfered
+            { x: -width / 2, y: height / 2 - chamferY },         // Bottom-left corner
+            { x: -width / 2, y: -height / 2 + chamferY }         // Top-left corner
+        ];
+    } else {
+        // Create regular hexagon with size parameter
+        const hexWidth = size * 0.85; // Reduced width (existing behavior)
+        const hexHeight = size * 0.866; // Proper hexagon aspect ratio
 
-        // Store the scale factors for later use
-        scene.healthBarScales = {
-            width: kajisuliScaleWidth,
-            height: kajisuliScaleHeight
-        };
-
-        // Get calculated dimensions
-        const width = UI.healthBar.width() * kajisuliScaleWidth;
-        const height = UI.healthBar.height() * kajisuliScaleHeight;
-        const borderWidth = UI.healthBar.borderWidth;
-        const innerMargin = UI.healthBar.innerMargin;
-        const centerX = UI.healthBar.centerX();
-        const y = UI.healthBar.y();
-
-        // Create new container with golden border
-        scene.healthBarBg = scene.add.rectangle(
-            centerX,
-            y,
-            width + (borderWidth * 2),
-            height + (borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(UI.depth.ui);
-
-        // Create inner black background
-        scene.healthBarInnerBg = scene.add.rectangle(
-            centerX,
-            y,
-            width,
-            height,
-            UI.colors.black
-        ).setDepth(UI.depth.ui);
-
-        // Create a container for segments
-        scene.healthSegments = scene.add.group();
-
-        // Container for separators
-        scene.healthSeparators = scene.add.group();
-
-        // Initial health segments
-        this.update(scene);
-    },
-
-    update: function (scene) {
-        // If segments don't exist yet or scene is not available, exit
-        if (!scene.healthSegments || !scene.healthSegments.scene) return;
-
-        // Clear existing segments and separators
-        scene.healthSegments.clear(true, true);
-        if (scene.healthSeparators) scene.healthSeparators.clear(true, true);
-
-        // Get the scale factors from the scene
-        const kajisuliScaleWidth = scene.healthBarScales?.width ?? (UI.kajisuli.enabled() ? 1.5 : 1);
-        const kajisuliScaleHeight = scene.healthBarScales?.height ?? 1;
-
-        // Get calculated dimensions
-        const width = UI.healthBar.width() * kajisuliScaleWidth;
-        const height = UI.healthBar.height() * kajisuliScaleHeight;
-        const innerMargin = UI.healthBar.innerMargin;
-        const centerX = UI.healthBar.centerX();
-        const y = UI.healthBar.y();
-
-        // Calculate content dimensions (accounting for margin)
-        const contentWidth = width - (innerMargin * 2);
-        const contentHeight = height - (innerMargin * 2);
-
-        // Calculate segment dimensions
-        const segmentGapWidth = UI.healthBar.segmentGap() * kajisuliScaleWidth;
-        const totalGapWidth = (maxPlayerHealth - 1) * segmentGapWidth;
-        const segmentWidth = (contentWidth - totalGapWidth) / maxPlayerHealth;
-
-        // Calculate the starting position for the first segment (like the boss health bar)
-        const startX = centerX - (width / 2) + innerMargin;
-
-        // Create each segment
-        for (let i = 0; i < maxPlayerHealth; i++) {
-            // Only create filled segments for current health
-            const isFilled = i < playerHealth;
-
-            // Calculate segment position - important: this is where the proper spacing happens
-            const segmentX = startX + (i * (segmentWidth + segmentGapWidth));
-
-            // Create segment with high depth
-            const segment = scene.add.rectangle(
-                segmentX + (segmentWidth / 2), // Center the segment at its position
-                y,
-                segmentWidth,
-                contentHeight,
-                isFilled ? UI.colors.green : UI.colors.grey
-            ).setDepth(UI.depth.ui);
-
-            // Add to group for easy management
-            scene.healthSegments.add(segment);
-
-            // Add golden separator after each segment (except the last one)
-            if (i < maxPlayerHealth - 1) {
-                const separatorX = segmentX + segmentWidth + (segmentGapWidth / 2);
-                const separator = scene.add.rectangle(
-                    separatorX,
-                    y,
-                    2, // Fixed width for separator
-                    contentHeight,
-                    UI.colors.gold
-                ).setDepth(UI.depth.ui);
-                scene.healthSeparators.add(separator);
-            }
-        }
+        points = [
+            { x: 0, y: -hexHeight / 2 },                    // Top
+            { x: hexWidth / 2, y: -hexHeight / 4 },         // Top-right
+            { x: hexWidth / 2, y: hexHeight / 4 },          // Bottom-right
+            { x: 0, y: hexHeight / 2 },                     // Bottom
+            { x: -hexWidth / 2, y: hexHeight / 4 },         // Bottom-left
+            { x: -hexWidth / 2, y: -hexHeight / 4 }         // Top-left
+        ];
     }
-};
 
-// Status display for timer and kills
+    // Draw filled hexagon (same for both types)
+    graphics.fillStyle(fillColor, fillAlpha);
+    graphics.beginPath();
+    graphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        graphics.lineTo(points[i].x, points[i].y);
+    }
+    graphics.closePath();
+    graphics.fillPath();
+
+    // Draw the 4 L borders (same pattern for both types)
+    graphics.lineStyle(3, 0xFFD700);
+
+    if (width !== null && height !== null) {
+        // Elongated hexagon border indices
+        // Left side (bottom-left corner to top-left corner)
+        graphics.beginPath();
+        graphics.moveTo(points[6].x, points[6].y);
+        graphics.lineTo(points[7].x, points[7].y);
+        graphics.strokePath();
+
+        // Bottom-left side (bottom-left chamfered to bottom-left corner)
+        graphics.beginPath();
+        graphics.moveTo(points[5].x, points[5].y);
+        graphics.lineTo(points[6].x, points[6].y);
+        graphics.strokePath();
+
+        // Right side (top-right corner to bottom-right corner)
+        graphics.beginPath();
+        graphics.moveTo(points[2].x, points[2].y);
+        graphics.lineTo(points[3].x, points[3].y);
+        graphics.strokePath();
+
+        // Top-right side (top-right chamfered to top-right corner)
+        graphics.beginPath();
+        graphics.moveTo(points[1].x, points[1].y);
+        graphics.lineTo(points[2].x, points[2].y);
+        graphics.strokePath();
+    } else {
+        // Regular hexagon border indices
+        // Left side (bottom-left point to top-left point)
+        graphics.beginPath();
+        graphics.moveTo(points[4].x, points[4].y);
+        graphics.lineTo(points[5].x, points[5].y);
+        graphics.strokePath();
+
+        // Bottom-left side (bottom point to bottom-left point)
+        graphics.beginPath();
+        graphics.moveTo(points[3].x, points[3].y);
+        graphics.lineTo(points[4].x, points[4].y);
+        graphics.strokePath();
+
+        // Right side (top-right point to bottom-right point)
+        graphics.beginPath();
+        graphics.moveTo(points[1].x, points[1].y);
+        graphics.lineTo(points[2].x, points[2].y);
+        graphics.strokePath();
+
+        // Top-right side (top point to top-right point)
+        graphics.beginPath();
+        graphics.moveTo(points[0].x, points[0].y);
+        graphics.lineTo(points[1].x, points[1].y);
+        graphics.strokePath();
+    }
+
+    return graphics;
+}
+
+// Updated StatusDisplay using the unified hexagon function
 const StatusDisplay = {
     create: function (scene) {
         // Initialize relative dimensions
         UI.game.init(scene);
 
         // Clean up existing elements if they exist
-        if (scene.timerBox) scene.timerBox.destroy();
-        if (scene.timerBoxInner) scene.timerBoxInner.destroy();
+        if (scene.timerHexagon) scene.timerHexagon.destroy();
         if (scene.timerText) scene.timerText.destroy();
         if (scene.timerSymbol) scene.timerSymbol.destroy();
 
-        if (scene.scoreBox) scene.scoreBox.destroy(); // Renamed from killsBox
-        if (scene.scoreBoxInner) scene.scoreBoxInner.destroy(); // Renamed from killsBoxInner
-        if (scene.scoreText) scene.scoreText.destroy(); // Renamed from killsText
-        if (scene.scoreSymbol) scene.scoreSymbol.destroy(); // Renamed from killsSymbol
+        if (scene.scoreHexagon) scene.scoreHexagon.destroy();
+        if (scene.scoreText) scene.scoreText.destroy();
+        if (scene.scoreSymbol) scene.scoreSymbol.destroy();
 
         // Size and position adjustments for kajisuli mode
         const kajisuliScale = UI.kajisuli.enabled() ? 1.4 : 1; // 40% wider in kajisuli mode
@@ -813,27 +998,23 @@ const StatusDisplay = {
             UI.rel.x(6) : // 6% from edges in kajisuli mode
             UI.statusDisplay.x(); // Default in normal mode
 
-        // Create timer display with gold border
+        // Create timer display with elongated hexagon
         const timerX = UI.kajisuli.enabled() ?
             edgeMargin + (UI.statusDisplay.timerWidth() * kajisuliScale / 2) : // Left side in kajisuli mode
             UI.statusDisplay.x() + (UI.statusDisplay.timerWidth() * kajisuliScale / 2); // Standard position
 
-        scene.timerBox = scene.add.rectangle(
+        // Timer elongated hexagon using unified function
+        scene.timerHexagon = createHexagon(
+            scene,
             timerX,
             UI.statusDisplay.timerY(),
-            UI.statusDisplay.timerWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(UI.depth.ui).setOrigin(0.5);
-
-        // Create inner black background for timer
-        scene.timerBoxInner = scene.add.rectangle(
-            timerX,
-            UI.statusDisplay.timerY(),
-            UI.statusDisplay.timerWidth() * kajisuliScale,
-            UI.statusDisplay.height(),
-            UI.colors.black
-        ).setDepth(UI.depth.ui).setOrigin(0.5);
+            null, // size parameter not used when width/height provided
+            UI.colors.black,
+            0.5,  // 50% opacity so game elements show through
+            UI.statusDisplay.timerWidth() * kajisuliScale, // width
+            UI.buttons.common.size() * (UI.kajisuli.enabled() ? 0.8 : 1) // height - full size in normal, 80% in kajisuli
+        );
+        scene.timerHexagon.setDepth(UI.depth.ui);
 
         // Create the timer text - centered in kajisuli mode
         if (UI.kajisuli.enabled()) {
@@ -851,7 +1032,7 @@ const StatusDisplay = {
         } else {
             // Create the timer kanji symbol in normal mode
             scene.timerSymbol = scene.add.text(
-                UI.statusDisplay.x() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.x() + UI.statusDisplay.textPadding() + UI.rel.width(0.75), // Add left margin
                 UI.statusDisplay.timerY(),
                 UI.statusDisplay.clockSymbol,
                 {
@@ -863,7 +1044,7 @@ const StatusDisplay = {
 
             // Create the timer text
             scene.timerText = scene.add.text(
-                UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.x() + UI.statusDisplay.timerWidth() - UI.statusDisplay.textPadding() - UI.rel.width(0.75), // Add right margin
                 UI.statusDisplay.timerY(),
                 "00:00", // Shorter time format
                 {
@@ -881,23 +1062,18 @@ const StatusDisplay = {
             // Normal position
             UI.statusDisplay.scoreX() + (UI.statusDisplay.scoreWidth() * kajisuliScale / 2);
 
-        // Create score display with gold border
-        scene.scoreBox = scene.add.rectangle(
+        // Score elongated hexagon using unified function
+        scene.scoreHexagon = createHexagon(
+            scene,
             scoreX,
             UI.statusDisplay.scoreY(),
-            UI.statusDisplay.scoreWidth() * kajisuliScale + (UI.statusDisplay.borderWidth * 2),
-            UI.statusDisplay.height() + (UI.statusDisplay.borderWidth * 2),
-            UI.colors.gold
-        ).setDepth(UI.depth.ui).setOrigin(0.5);
-
-        // Create inner black background for score
-        scene.scoreBoxInner = scene.add.rectangle(
-            scoreX,
-            UI.statusDisplay.scoreY(),
-            UI.statusDisplay.scoreWidth() * kajisuliScale,
-            UI.statusDisplay.height(),
-            UI.colors.black
-        ).setDepth(UI.depth.ui).setOrigin(0.5);
+            null, // size parameter not used when width/height provided
+            UI.colors.black,
+            0.5,  // 50% opacity so game elements show through
+            UI.statusDisplay.scoreWidth() * kajisuliScale, // width
+            UI.buttons.common.size() * (UI.kajisuli.enabled() ? 0.8 : 1) // height - full size in normal, 80% in kajisuli
+        );
+        scene.scoreHexagon.setDepth(UI.depth.ui);
 
         if (UI.kajisuli.enabled()) {
             // Create centered score text in kajisuli mode
@@ -914,7 +1090,7 @@ const StatusDisplay = {
         } else {
             // Create the score kanji symbol
             scene.scoreSymbol = scene.add.text(
-                UI.statusDisplay.scoreX() + UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreX() + UI.statusDisplay.textPadding() + UI.rel.width(0.75), // Add left margin
                 UI.statusDisplay.scoreY(),
                 UI.statusDisplay.scoreSymbol,
                 {
@@ -926,7 +1102,7 @@ const StatusDisplay = {
 
             // Create the score text
             scene.scoreText = scene.add.text(
-                UI.statusDisplay.scoreX() + UI.statusDisplay.scoreWidth() - UI.statusDisplay.textPadding(),
+                UI.statusDisplay.scoreX() + UI.statusDisplay.scoreWidth() - UI.statusDisplay.textPadding() - UI.rel.width(0.75), // Add right margin
                 UI.statusDisplay.scoreY(),
                 "0",
                 {
@@ -972,17 +1148,16 @@ const StatusDisplay = {
     }
 };
 
-// Stat display rectangles for POW, AGI, LUK, END
+// Updated StatDisplay with hexagons
 const StatDisplay = {
     create: function (scene) {
         // Initialize relative dimensions
         UI.game.init(scene);
 
         // Clean up existing elements
-        if (scene.statRects) {
-            scene.statRects.forEach(stat => {
-                if (stat.rectBg) stat.rectBg.destroy();
-                if (stat.rectInner) stat.rectInner.destroy();
+        if (scene.statHexagons) {
+            scene.statHexagons.forEach(stat => {
+                if (stat.hexagon) stat.hexagon.destroy();
                 if (stat.symbolText) stat.symbolText.destroy();
                 if (stat.valueText) stat.valueText.destroy();
             });
@@ -990,85 +1165,96 @@ const StatDisplay = {
 
         // If in kajisuli mode, don't show stats on main screen
         if (UI.kajisuli.enabled()) {
-            scene.statRects = [];
+            scene.statHexagons = [];
             return;
         }
 
-        // Initialize the stat rectangles array
-        scene.statRects = [];
+        // Initialize the stat hexagons array
+        scene.statHexagons = [];
 
         // Define stat order
         const stats = ['POW', 'AGI', 'LUK', 'END'];
 
-        // Create each stat rectangle
+        // Create each stat hexagon
         stats.forEach((stat, index) => {
-            const x = UI.statDisplay.x() + (index * UI.statDisplay.spacing());
+            const x = UI.statDisplay.x() + (index * UI.statDisplay.spacing()) + UI.statDisplay.width() / 2;
+            const y = UI.statDisplay.y();
+            const size = UI.statDisplay.width() * 0.8; // Slightly smaller than the old rectangle
 
-            // Create gold border rectangle
-            const rectBg = scene.add.rectangle(
-                x + UI.statDisplay.width() / 2,
-                UI.statDisplay.y(),
-                UI.statDisplay.width() + (UI.statDisplay.borderWidth * 2),
-                UI.statDisplay.height() + (UI.statDisplay.borderWidth * 2),
-                UI.colors.gold
-            ).setDepth(UI.depth.ui).setOrigin(0.5);
+            // Create hexagon with 4 L borders
+            const hexagon = createHexagon(scene, x, y, size, 0x000000, 0.5);
+            hexagon.setDepth(UI.depth.ui);
 
-            // Create inner black rectangle
-            const rectInner = scene.add.rectangle(
-                x + UI.statDisplay.width() / 2,
-                UI.statDisplay.y(),
-                UI.statDisplay.width(),
-                UI.statDisplay.height(),
-                UI.colors.black
-            ).setDepth(UI.depth.ui).setOrigin(0.5);
-
-            // Create the symbol text
+            // Create the symbol text (background, semi-transparent)
             const symbolText = scene.add.text(
-                x + UI.statDisplay.textPadding(),
-                UI.statDisplay.y(),
+                x,
+                y, // Slightly up for better centering
                 UI.statDisplay.symbols[stat],
                 {
                     fontFamily: 'Arial',
-                    fontSize: UI.statDisplay.fontSize(),
+                    fontSize: UI.statDisplay.fontSize() * 1.25,
                     color: UI.statDisplay.symbolColors[stat]
                 }
-            ).setDepth(UI.depth.ui).setOrigin(0, 0.5);
+            ).setOrigin(0.5).setDepth(UI.depth.ui);
+            symbolText.setAlpha(0.5); // Higher opacity for kanji
 
-            // Create the value text
+            // Create the value text (foreground, full opacity, same position)
             const valueText = scene.add.text(
-                x + UI.statDisplay.width() - UI.statDisplay.textPadding(),
-                UI.statDisplay.y(),
+                x,
+                y, // Same position as symbol
                 "0",
                 {
                     fontFamily: 'Arial',
                     fontSize: UI.fonts.stats.size(),
-                    color: UI.fonts.stats.color
+                    color: UI.fonts.stats.color,
+                    stroke: '#000000',        // Black stroke
+                    strokeThickness: 4,
                 }
-            ).setDepth(UI.depth.ui).setOrigin(1, 0.5);
+            ).setOrigin(0.5).setDepth(UI.depth.ui + 1);
 
-            // Store references
-            scene.statRects[index] = {
-                stat: stat,
-                rectBg: rectBg,
-                rectInner: rectInner,
-                symbolText: symbolText,
-                valueText: valueText
-            };
+            // Make hexagon interactive for hover effects
+            const hitArea = new Phaser.Geom.Rectangle(-size / 2, -size * 0.433, size, size * 0.866);
+            hexagon.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+            hexagon.on('pointerover', function () {
+                symbolText.setAlpha(1.0); // Full opacity on hover
+                valueText.setScale(1.1);  // Scale number on hover
+            });
+
+            hexagon.on('pointerout', function () {
+                symbolText.setAlpha(0.8); // Reset kanji transparency
+                valueText.setScale(1);    // Reset number scale
+            });
 
             // Add hover interaction for tooltips if StatTooltipSystem is available
             if (window.StatTooltipSystem) {
-                // Make the background rectangle interactive for hover
-                StatTooltipSystem.addStatHoverInteraction(scene, rectBg, stat, {
+                // Create a getBounds method for the graphics object so StatTooltipSystem can use it
+                hexagon.getBounds = function () {
+                    return new Phaser.Geom.Rectangle(
+                        this.x - size * 0.425, // Half of narrowed width
+                        this.y - size * 0.433, // Half of height
+                        size * 0.85,           // Narrowed width
+                        size * 0.866           // Height
+                    );
+                };
+
+                StatTooltipSystem.addStatHoverInteraction(scene, hexagon, stat, {
                     onHover: (element) => {
-                        // Highlight border on hover
-                        element.setStrokeStyle(UI.statDisplay.borderWidth * 2, UI.colors.gold);
+                        // Additional hover effects handled above
                     },
                     onHoverOut: (element) => {
-                        // Reset border
-                        element.setStrokeStyle(UI.statDisplay.borderWidth, UI.colors.gold);
+                        // Additional hover out effects handled above
                     }
                 });
             }
+
+            // Store references
+            scene.statHexagons[index] = {
+                stat: stat,
+                hexagon: hexagon,
+                symbolText: symbolText,
+                valueText: valueText
+            };
         });
 
         // Initial update
@@ -1077,10 +1263,10 @@ const StatDisplay = {
 
     update: function (scene) {
         // Exit if elements don't exist
-        if (!scene.statRects) return;
+        if (!scene.statHexagons) return;
 
         // Update each stat value
-        scene.statRects.forEach(item => {
+        scene.statHexagons.forEach(item => {
             if (!item || !item.valueText) return;
 
             let value = 0;
@@ -1106,6 +1292,7 @@ const StatDisplay = {
         });
     }
 };
+
 
 // Function to create all UI elements
 function createUI(scene) {
@@ -1136,7 +1323,10 @@ window.GameUI = {
     resize: resizeUI
 };
 
-// Game End Menu System for Word Survivors
+// Export ButtonDisplay for use by other systems
+window.ButtonDisplay = ButtonDisplay;
+
+// Game End Menu System for KAJISU
 // Manages both victory and defeat end screens
 
 UI.gameEndScreen = {

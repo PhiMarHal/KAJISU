@@ -2,7 +2,7 @@
 
 ## Files Overview
 
-This document outlines the purpose and organization of each major file in the Word Survivors project.
+This document outlines the purpose and organization of each major file in the KAJISU project.
 
 ### Core Game Files
 

@@ -1,4 +1,4 @@
-// Orbital Component Registry for Word Survivors
+// Orbital Component Registry for KAJISU
 // Maps perks to orbital effects and configurations
 
 // Registry system for orbital perks
@@ -110,25 +110,25 @@ const OrbitalPerkRegistry = {
 OrbitalPerkRegistry.registerPerkOrbital('WILD_FAIRY', {
     getConfig: function () {
         return {
-            symbol: '妖', // Kanji for "fairy/spirit"
-            color: '#FF66CC', // Bright pink color
-            fontSize: 20, // Smaller size as requested
-            radius: 240, // Medium orbit radius
-            speed: 0.006, //
+            symbol: '妖',
+            color: '#FF66CC',
+            fontSize: 20,
+            radius: 240,
+            speed: 0.006,
             direction: 'counterclockwise',
-            pattern: 'oscillating', // Erratic wobbling pattern
-            collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.5, // Half player damage as requested
+            pattern: 'oscillating',
+            collisionType: 'persistent',
+            damageMultiplier: 0.5, // 50% of current player damage
             damageInterval: 500,
-            lifespan: null, // Permanent
+            lifespan: null,
             options: {
-                wobbleFrequency: 6,  // Higher frequency for more erratic movement
-                wobbleAmplitude: 180  // Larger amplitude for more dramatic wobbles
+                wobbleFrequency: 6,
+                wobbleAmplitude: 180
             }
         };
     },
     count: 1,
-    activationMethod: 'immediate' // Create instantly when perk is acquired
+    activationMethod: 'immediate'
 });
 
 // Function to activate the Wild Fairy perk
@@ -323,7 +323,7 @@ function launchTentacles(scene) {
 // Track the current angle of immortal body parts
 let immortalBodyAngle = Math.random() * Math.PI * 2; // Initial random angle
 
-// Register the Immortal Arm perk (updated)
+// IMMORTAL_ARM
 OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
     getConfig: function () {
         return {
@@ -335,7 +335,8 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
             speed: 0.01,
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage,
+            damage: playerDamage, // Keep for backward compatibility
+            damageMultiplier: 1.0, // Add for dynamic scaling
             damageInterval: 500,
             lifespan: null, // Permanent
             options: {}
@@ -345,7 +346,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
     activationMethod: 'immediate' // Create instantly when perk is acquired
 });
 
-// Register the Immortal Head perk (updated)
+// IMMORTAL_HEAD
 OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_HEAD', {
     getConfig: function () {
         return {
@@ -357,7 +358,8 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_HEAD', {
             speed: 0.01,
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage,
+            damage: playerDamage, // Keep for backward compatibility
+            damageMultiplier: 1.0, // Add for dynamic scaling
             damageInterval: 500,
             lifespan: null, // Permanent
             options: {}
@@ -367,7 +369,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_HEAD', {
     activationMethod: 'immediate' // Create instantly when perk is acquired
 });
 
-// Register the Immortal Leg perk (updated)
+// IMMORTAL_LEG
 OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_LEG', {
     getConfig: function () {
         return {
@@ -379,7 +381,8 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_LEG', {
             speed: 0.01,
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage,
+            damage: playerDamage, // Keep for backward compatibility
+            damageMultiplier: 1.0, // Add for dynamic scaling
             damageInterval: 500, // Half second cooldown between damage applications
             lifespan: null, // Permanent
             options: {}
@@ -429,7 +432,7 @@ window.activateImmortalLeg = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'IMMORTAL_LEG');
 };
 
-// Register the Sniper Fairy perk
+// SNIPER_FAIRY
 OrbitalPerkRegistry.registerPerkOrbital('SNIPER_FAIRY', {
     getConfig: function () {
         return {
@@ -440,7 +443,8 @@ OrbitalPerkRegistry.registerPerkOrbital('SNIPER_FAIRY', {
             speed: 0.01, // Moderate speed
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Very low contact damage
+            damage: playerDamage * 0.1, // Keep for backward compatibility
+            damageMultiplier: 0.1, // Add for dynamic scaling
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -478,7 +482,7 @@ window.activateSniperFairy = function () {
     }
 };
 
-// Register the Copy Fairy perk
+// COPY_FAIRY
 OrbitalPerkRegistry.registerPerkOrbital('COPY_FAIRY', {
     getConfig: function () {
         return {
@@ -489,7 +493,8 @@ OrbitalPerkRegistry.registerPerkOrbital('COPY_FAIRY', {
             speed: 0.01, // Standard speed
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Very low contact damage
+            damage: playerDamage * 0.1, // Keep for backward compatibility
+            damageMultiplier: 0.1, // Add for dynamic scaling
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -502,7 +507,8 @@ OrbitalPerkRegistry.registerPerkOrbital('COPY_FAIRY', {
     activationMethod: 'immediate' // Create instantly when perk is acquired
 });
 
-// Register the Berserk Fairy perk
+
+// BERSERK_FAIRY
 OrbitalPerkRegistry.registerPerkOrbital('BERSERK_FAIRY', {
     getConfig: function () {
         return {
@@ -513,7 +519,8 @@ OrbitalPerkRegistry.registerPerkOrbital('BERSERK_FAIRY', {
             speed: 0.02, // Faster speed
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Very low contact damage
+            damage: playerDamage * 0.1, // Keep for backward compatibility
+            damageMultiplier: 0.1, // Add for dynamic scaling
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -568,7 +575,7 @@ window.activateBerserkFairy = function () {
     }
 };
 
-// Register the Cold Fairy perk
+// COLD_FAIRY
 OrbitalPerkRegistry.registerPerkOrbital('COLD_FAIRY', {
     getConfig: function () {
         return {
@@ -580,7 +587,8 @@ OrbitalPerkRegistry.registerPerkOrbital('COLD_FAIRY', {
             direction: 'counterclockwise', // Counter-clockwise as requested
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Very low contact damage
+            damage: playerDamage * 0.1, // Keep for backward compatibility
+            damageMultiplier: 0.1, // Add for dynamic scaling
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -614,7 +622,7 @@ window.activateColdFairy = function () {
     }
 };
 
-// Register the Fun Fairy perk
+// FUN_FAIRY
 OrbitalPerkRegistry.registerPerkOrbital('FUN_FAIRY', {
     getConfig: function () {
         return {
@@ -626,7 +634,8 @@ OrbitalPerkRegistry.registerPerkOrbital('FUN_FAIRY', {
             direction: 'clockwise',
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Very low contact damage
+            damage: playerDamage * 0.1, // Keep for backward compatibility
+            damageMultiplier: 0.1, // Add for dynamic scaling
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -757,21 +766,22 @@ window.activateFingerOfDecay = function () {
     }
 };
 
-
+// BRIGHT_LANCE
 OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
     getConfig: function () {
         return {
             symbol: '光槍', // Kanji for "Bright Lance"
             color: '#ffff00',
             fontSize: 32, // Standard size
-            radius: 96, //
+            radius: 96,
             angle: Math.random() * Math.PI * 2, // Random starting angle
             speed: 0.1, // Use this value as rotation speed factor for direction following
             direction: 'clockwise', // Not really used due to custom movement
             pattern: 'directionFollowing', // Use our custom pattern
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 1, //
-            damageInterval: 500, //
+            damage: playerDamage, // Keep for backward compatibility
+            damageMultiplier: 1.0, // Add for dynamic scaling
+            damageInterval: 500,
             lifespan: null, // Permanent
             options: {
                 oscillationSpeed: 0.004, // Speed of the breathing effect
@@ -791,7 +801,7 @@ window.activateBrightLance = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'BRIGHT_LANCE');
 };
 
-// Updated HEALING_FAIRY registration in nexus.js
+// HEALING_FAIRY
 OrbitalPerkRegistry.registerPerkOrbital('HEALING_FAIRY', {
     getConfig: function () {
         return {
@@ -801,10 +811,11 @@ OrbitalPerkRegistry.registerPerkOrbital('HEALING_FAIRY', {
             radius: 100, // Medium orbit radius
             speed: 0.01, // Moderate speed
             pattern: 'oscillating', // More dynamic movement pattern
-            collisionType: 'persistent', //
-            damage: playerDamage * 0.1, // Very low contact damage
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage * 0.1, // Keep for backward compatibility
+            damageMultiplier: 0.1, // Add for dynamic scaling
             damageInterval: 500, // Half second between damage ticks
-            lifespan: null, //
+            lifespan: null, // Permanent
             options: {
                 isFamiliar: true,
                 familiarType: 'healer',
@@ -1009,15 +1020,15 @@ OrbitalPerkRegistry.registerPerkOrbital('THREE_STARS', {
         return {
             symbol: '★',
             color: '#ffff00',
-            fontSize: 32,
-            radius: 96,
+            fontSize: 48,
+            radius: 128,
             speed: 0.04,
             direction: 'clockwise',
             pattern: 'standard',
             collisionType: 'persistent',
-            damage: playerDamage,
-            damageInterval: 200,
-            lifespan: 6000,
+            damage: playerDamage * 2,
+            damageInterval: 240,
+            lifespan: 8000,
             options: {}
         };
     },
@@ -1041,6 +1052,152 @@ window.activateThreeStars = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'THREE_STARS');
 };
 
+// Register the BLIZZARD perk using the new staggered system
+OrbitalPerkRegistry.registerPerkOrbital('BLIZZARD', {
+    getConfig: function () {
+        return {
+            symbol: '★',
+            color: '#87CEEB', // Sky blue color
+            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
+            radius: 16, // Starting radius
+            speed: 0.02,
+            direction: 'clockwise', // Will be overridden by alternating pattern
+            pattern: 'spiralOut',
+            collisionType: 'projectile',
+            damage: playerDamage,
+            damageInterval: 0,
+            lifespan: 8000,
+            options: {
+                startRadius: 16,
+                expansionRate: 64,
+                components: [
+                    {
+                        name: 'slowEffect'
+                    }
+                ]
+            }
+        };
+    },
+    count: 1, // Ignored when using customCallback
+    cooldown: 60000, // 60 second base cooldown
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
+    activationMethod: 'timer',
+    customCallback: function (scene) {
+        launchBlizzard(scene);
+    }
+});
+
+// Simplified blizzard launch function using the generic system
+function launchBlizzard(scene) {
+    const baseConfig = OrbitalPerkRegistry.perkOrbitalConfigs['BLIZZARD'].getConfig();
+
+    // Use the new staggered system
+    OrbitalSystem.createStaggered(scene, {
+        duration: 4000,               // 4 seconds of firing
+        interval: 100,                // Every 100ms
+        baseConfig: baseConfig,       // Use BLIZZARD's orbital config
+        directionPattern: 'alternating', // Alternate clockwise/counterclockwise
+        anglePattern: 'random',       // Random starting angles for variety
+        visualEffect: false,
+        onComplete: function () {
+        }
+    });
+}
+
+// Activation function remains the same
+window.activateBlizzard = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    launchBlizzard(scene);
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'BLIZZARD');
+};
+
+// Register the INFINITE_GLIMPSE perk
+OrbitalPerkRegistry.registerPerkOrbital('INFINITE_GLIMPSE', {
+    getConfig: function () {
+        return {
+            symbol: '★', // Standard star symbol
+            color: '#FFD700', // Gold color
+            fontSize: getEffectiveSize(projectileSizeFactor, playerLuck), // Scale with luck
+            radius: 120, // Medium orbit radius
+            speed: 0.015, // Moderate speed for figure-8
+            direction: 'clockwise',
+            pattern: 'figureEight', // Use figure-8 movement pattern
+            collisionType: 'persistent', // Stays after hitting enemies (key difference from TEAL_OCTOPUS)
+            damage: playerLuck, // This perk has stable stats, and only luck scales its damage
+            damageInterval: 1000,
+            lifespan: 16000,
+            options: {}
+        };
+    },
+    count: 1,
+    cooldown: 4000, // Fixed 4 second cooldown
+    cooldownStat: null, // No stat scaling
+    cooldownFormula: 'fixed', // Fixed cooldown - not affected by luck
+    activationMethod: 'timer' // Create periodically on a timer
+});
+
+// Function to activate the INFINITE_GLIMPSE perk
+window.activateInfiniteGlimpse = function () {
+    // Get the current active scene
+    const scene = game.scene.scenes[0];
+    if (scene) {
+        // Create initial orbital immediately
+        const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['INFINITE_GLIMPSE'].getConfig();
+        OrbitalSystem.create(scene, orbitalConfig);
+
+        // Set up timer for subsequent orbitals
+        OrbitalPerkRegistry.applyPerkOrbital(scene, 'INFINITE_GLIMPSE');
+    }
+};
+
+// Register the COLD_WIND perk
+OrbitalPerkRegistry.registerPerkOrbital('COLD_WIND', {
+    getConfig: function () {
+        return {
+            symbol: '☆', // Standard projectile symbol
+            color: '#87CEEB', // Light blue color (sky blue)
+            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
+            radius: 8, // Starting radius (will be overridden by spiralOut pattern)
+            speed: 0.02, // Rotation speed
+            direction: 'clockwise',
+            pattern: 'spiralOut', // Use spiral out pattern like COMET
+            collisionType: 'projectile', // Destroyed on hit
+            damage: playerDamage,
+            damageInterval: 0, // Not used for projectiles
+            lifespan: playerLuck * 1000, // 1 second per luck point (vs COMET's 2 seconds)
+            options: {
+                startRadius: 16, // Start close to the player
+                expansionRate: 32, // Pixels per second expansion rate
+                components: [
+                    {
+                        name: 'slowEffect'
+                    }
+                ]
+            }
+        };
+    },
+    count: 1,
+    cooldown: 4000, // 4 second base cooldown (vs COMET's 2 seconds)
+    cooldownStat: 'fireRate',
+    cooldownFormula: 'sqrt',
+    activationMethod: 'timer'
+});
+
+// Function to activate the COLD_WIND perk
+window.activateColdWind = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create initial cold wind immediately
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['COLD_WIND'].getConfig();
+    OrbitalSystem.create(scene, orbitalConfig);
+
+    // Set up timer for subsequent cold winds
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'COLD_WIND');
+};
 
 // Export the registry for use in other files
 window.OrbitalPerkRegistry = OrbitalPerkRegistry;

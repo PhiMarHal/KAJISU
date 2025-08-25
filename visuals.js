@@ -1,4 +1,4 @@
-// visuals.js - Simple visual effects for Word Survivors
+// visuals.js - Simple visual effects for KAJISU
 // Provides reusable visual effects to reduce code duplication
 
 // Define a namespace for all visual effects
@@ -528,6 +528,206 @@ const VisualEffects = {
 
         // Return the kanjis array for any additional manipulation
         return kanjis;
+    },
+
+    // Create animated concentric circles for Phaser scenes (pause screen)
+    createConcentricCircles: function (scene, options = {}) {
+        const config = {
+            x: options.x ?? scene.cameras.main.width / 2,
+            y: options.y ?? scene.cameras.main.height / 2,
+            circleCount: options.circleCount ?? 8,
+            baseRadius: options.baseRadius ?? 40,
+            radiusIncrement: options.radiusIncrement ?? 30,
+            gapRatio: options.gapRatio ?? 0.5, // 0.5 means half segment, half gap
+            rotationSpeed: options.rotationSpeed ?? 30, // degrees per second
+            color: options.color ?? 0xFFD700,
+            strokeWidth: options.strokeWidth ?? 2,
+            depth: options.depth ?? 0,
+            segmentCount: options.segmentCount ?? null // If set, all circles use this count instead of incrementing
+        };
+
+        const circles = [];
+        const tweens = [];
+
+        for (let i = 0; i < config.circleCount; i++) {
+            const segmentCount = config.segmentCount ?? (i + 1); // Fixed count or 2, 4, 6, 8, etc.
+            const radius = config.baseRadius + (i * config.radiusIncrement);
+            const segmentAngle = (360 / segmentCount);
+            const gapAngle = segmentAngle * config.gapRatio;
+            const arcAngle = segmentAngle - gapAngle;
+
+            const graphics = scene.add.graphics();
+            graphics.lineStyle(config.strokeWidth, config.color);
+            graphics.setPosition(config.x, config.y);
+            graphics.setDepth(config.depth);
+
+            // Draw the segments
+            for (let j = 0; j < segmentCount; j++) {
+                const startAngle = j * segmentAngle;
+                const endAngle = startAngle + arcAngle;
+
+                graphics.beginPath();
+                graphics.arc(0, 0, radius, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle));
+                graphics.strokePath();
+            }
+
+            circles.push(graphics);
+
+            // Create rotation tween - alternate direction, vary speed
+            const direction = i % 2 === 0 ? 1 : -1;
+            const speedMultiplier = 1 - (i * 0.1); // Slower as we go outward
+            const actualSpeed = config.rotationSpeed * speedMultiplier;
+
+            const tween = scene.tweens.add({
+                targets: graphics,
+                rotation: direction * Math.PI * 2,
+                duration: (360 / actualSpeed) * 1000, // Convert to milliseconds
+                repeat: -1,
+                ease: 'Linear'
+            });
+
+            tweens.push(tween);
+        }
+
+        return {
+            circles,
+            tweens,
+            destroy: function () {
+                circles.forEach(circle => {
+                    if (circle && circle.destroy) {
+                        circle.destroy();
+                    }
+                });
+                tweens.forEach(tween => {
+                    if (tween && !tween.isDestroyed) {
+                        tween.stop();
+                    }
+                });
+            },
+            setVisible: function (visible) {
+                circles.forEach(circle => {
+                    if (circle && circle.setVisible) {
+                        circle.setVisible(visible);
+                    }
+                });
+            },
+            pause: function () {
+                tweens.forEach(tween => {
+                    if (tween && !tween.isDestroyed) {
+                        tween.pause();
+                    }
+                });
+            },
+            resume: function () {
+                tweens.forEach(tween => {
+                    if (tween && !tween.isDestroyed) {
+                        tween.resume();
+                    }
+                });
+            },
+            setPosition: function (x, y) {
+                circles.forEach(circle => {
+                    if (circle && circle.setPosition) {
+                        circle.setPosition(x, y);
+                    }
+                });
+            }
+        };
+    },
+
+    // Create animated concentric circles for HTML Canvas (start menu)
+    createConcentricCirclesCanvas: function (canvas, options = {}) {
+        const ctx = canvas.getContext('2d');
+        const config = {
+            x: options.x ?? canvas.width / 2,
+            y: options.y ?? canvas.height / 2,
+            circleCount: options.circleCount ?? 8,
+            baseRadius: options.baseRadius ?? 40,
+            radiusIncrement: options.radiusIncrement ?? 30,
+            gapRatio: options.gapRatio ?? 0.5, // 0.5 means half segment, half gap
+            rotationSpeed: options.rotationSpeed ?? 0.00005, // radians per millisecond
+            color: options.color ?? '#FFD700',
+            strokeWidth: options.strokeWidth ?? 2,
+            segmentCount: options.segmentCount ?? null // If set, all circles use this count instead of incrementing
+        };
+
+        let lastTime = 0;
+        let animationId = null;
+        let isRunning = false;
+
+        // Circle state
+        const circles = [];
+        for (let i = 0; i < config.circleCount; i++) {
+            circles.push({
+                segmentCount: config.segmentCount ?? (i + 1), // Fixed count or 2, 4, 6, 8, etc.
+                radius: config.baseRadius + (i * config.radiusIncrement),
+                offset: 0,
+                direction: i % 2 === 0 ? 1 : -1,
+                speedMultiplier: 1 - (i * 0.1) // Slower as we go outward
+            });
+        }
+
+        function drawCircle(circle) {
+            const segmentAngle = (Math.PI * 2) / circle.segmentCount;
+            const gapAngle = segmentAngle * config.gapRatio;
+            const arcAngle = segmentAngle - gapAngle;
+
+            ctx.strokeStyle = config.color;
+            ctx.lineWidth = config.strokeWidth;
+
+            for (let i = 0; i < circle.segmentCount; i++) {
+                const startAngle = (i * segmentAngle) + circle.offset;
+                const endAngle = startAngle + arcAngle;
+
+                ctx.beginPath();
+                ctx.arc(config.x, config.y, circle.radius, startAngle, endAngle);
+                ctx.stroke();
+            }
+        }
+
+        function animate(currentTime) {
+            if (!isRunning) return;
+
+            const deltaTime = lastTime ? (currentTime - lastTime) : 0;
+            lastTime = currentTime;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw circles
+            circles.forEach(circle => {
+                const actualSpeed = config.rotationSpeed * circle.speedMultiplier;
+                circle.offset += actualSpeed * deltaTime * circle.direction;
+                drawCircle(circle);
+            });
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        return {
+            start: function () {
+                if (!isRunning) {
+                    isRunning = true;
+                    lastTime = 0;
+                    animationId = requestAnimationFrame(animate);
+                }
+            },
+            stop: function () {
+                isRunning = false;
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+            },
+            destroy: function () {
+                this.stop();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            },
+            setPosition: function (x, y) {
+                config.x = x;
+                config.y = y;
+            }
+        };
     }
 
     // Additional visual effects can be added here

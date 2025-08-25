@@ -1,4 +1,4 @@
-// startMenu.js - Pre-Game Start Menu System for Word Survivors
+// startMenu.js - Pre-Game Start Menu System for KAJISU
 
 // IMMEDIATELY set the global variable before any other scripts can access it
 window.KAJISULI_MODE = (() => {
@@ -35,7 +35,9 @@ const StartMenuSystem = {
     elements: {
         menuContainer: null,
         learningToggle: null,
-        infoMessage: null
+        infoMessage: null,
+        backgroundCanvas: null,
+        circlesAnimation: null
     },
 
     // Info messages for each toggle state
@@ -133,148 +135,375 @@ const StartMenuSystem = {
         this.elements.menuContainer = document.createElement('div');
         this.elements.menuContainer.id = 'start-menu';
         this.elements.menuContainer.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #1a1a1a;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            font-family: Arial, sans-serif;
-            color: white;
-            padding: ${sizes.padding}px;
-            box-sizing: border-box;
-        `;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #1a1a1a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 1000;
+        font-family: Arial, sans-serif;
+        color: white;
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+    `;
 
-        // Create title
-        const title = document.createElement('div');
-        title.textContent = 'ENTER THE LOOP';
-        title.style.cssText = `
-            font-size: ${sizes.titleSize}px;
-            font-weight: bold;
-            color: #FFD700;
-            margin-bottom: ${sizes.padding * 2}px;
-            border: 4px solid #FFD700;
-            padding: ${sizes.padding}px ${sizes.padding * 2}px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: center;
-            line-height: 1.1;
-            max-width: 90%;
-            box-shadow: 0 0 0 0 #FFD700;
-        `;
+        // === 1. Title: Positioned at 25vh ===
+        this.titleElement = document.createElement('div');
+        this.titleElement.textContent = 'ENTER THE LOOP';
 
-        title.addEventListener('mouseenter', () => {
-            title.style.color = '#FFFFFF';
-            title.style.boxShadow = '0 0 0 2px #FFD700';
+        this.titleElement.style.cssText = `
+        font-size: ${sizes.titleSize}px;
+        font-weight: bold;
+        color: #FFD700;
+        border: 4px solid #FFD700;
+        padding: ${sizes.padding}px ${sizes.padding * 2}px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        line-height: 1.1;
+        max-width: 90%;
+        width: fit-content;
+        box-shadow: 0 0 0 0 #FFD700;
+        background-color: rgba(26, 26, 26, 0.8);
+        backdrop-filter: blur(5px);
+        z-index: 1001;
+        position: absolute;
+        top: 25vh;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+    `;
+
+        this.titleElement.addEventListener('mouseenter', () => {
+            this.titleElement.style.color = '#FFFFFF';
+            this.titleElement.style.boxShadow = '0 0 0 2px #FFD700';
+            this.titleElement.style.backgroundColor = 'rgba(26, 26, 26, 0.9)';
         });
 
-        title.addEventListener('mouseleave', () => {
-            title.style.color = '#FFD700';
-            title.style.boxShadow = '0 0 0 0 #FFD700';
+        this.titleElement.addEventListener('mouseleave', () => {
+            this.titleElement.style.color = '#FFD700';
+            this.titleElement.style.boxShadow = '0 0 0 0 #FFD700';
+            this.titleElement.style.backgroundColor = 'rgba(26, 26, 26, 0.8)';
         });
 
-        title.addEventListener('click', () => {
+        this.titleElement.addEventListener('click', () => {
             this.startGame();
         });
 
-        this.elements.menuContainer.appendChild(title);
+        this.elements.menuContainer.appendChild(this.titleElement);
 
-        // Create toggles container
+        // === 3. Toggles Container: Positioned at 55vh ===
+        const containerWidth = Math.min(600, screenWidth * 0.9);
         const togglesContainer = document.createElement('div');
-        const containerWidth = Math.min(600, screenWidth * 0.9); // More responsive container width
         togglesContainer.style.cssText = `
+        position: absolute;
+        top: 55vh;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: ${sizes.lineSpacing * 1.5}px;
+        width: ${containerWidth}px;
+        max-width: 95%;
+        z-index: 1001;
+    `;
+
+        // Helper to create toggle with data attribute for resize updates
+        const createToggleWithLabel = (label, isEnabled, onToggle) => {
+            const container = document.createElement('div');
+            container.style.cssText = `
             display: flex;
-            flex-direction: column;
-            gap: ${sizes.lineSpacing}px;
-            margin-top: ${sizes.padding}px;
-            width: ${containerWidth}px;
-            max-width: 95%;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
         `;
 
-        // Only show portrait screen and learning challenge toggles if not in FARCADE mode
+            const toggleLabel = document.createElement('div');
+            toggleLabel.textContent = label;
+            toggleLabel.dataset.toggleLabel = ''; // Mark for resize updates
+            toggleLabel.style.cssText = `
+            font-size: ${sizes.toggleSize}px;
+            color: ${isEnabled ? '#FFD700' : '#FFFFFF'};
+            transition: all 0.3s ease;
+        `;
+
+            const toggleContainer = document.createElement('div');
+            toggleContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+        `;
+
+            const toggleBg = document.createElement('div');
+            toggleBg.style.cssText = `
+            width: ${sizes.toggleSize * 2.5}px;
+            height: ${sizes.toggleSize * 1.2}px;
+            background-color: ${isEnabled ? '#FFD700' : '#666666'};
+            border-radius: ${sizes.toggleSize}px;
+            position: relative;
+            transition: all 0.3s ease;
+        `;
+
+            const toggleCircle = document.createElement('div');
+            toggleCircle.style.cssText = `
+            width: ${sizes.toggleSize * 0.8}px;
+            height: ${sizes.toggleSize * 0.8}px;
+            background-color: #FFFFFF;
+            border-radius: 50%;
+            position: absolute;
+            top: ${sizes.toggleSize * 0.2}px;
+            left: ${isEnabled ? sizes.toggleSize * 1.5 : sizes.toggleSize * 0.2}px;
+            transition: all 0.3s ease;
+        `;
+
+            toggleBg.appendChild(toggleCircle);
+            toggleContainer.appendChild(toggleBg);
+            container.appendChild(toggleLabel);
+            container.appendChild(toggleContainer);
+
+            // Store references
+            container.toggleBg = toggleBg;
+            container.toggleCircle = toggleCircle;
+            container.toggleLabel = toggleLabel;
+            container.isEnabled = isEnabled;
+
+            container.addEventListener('click', () => {
+                const newState = !container.isEnabled;
+                this.updateToggleState(container, newState, sizes);
+                onToggle(newState);
+            });
+
+            return container;
+        };
+
+        // Add toggles
         if (!this.isFarcadeMode()) {
-            // Create portrait screen toggle
-            const portraitToggle = this.createToggle('Portrait Screen', this.state.kajisuliMode, (enabled) => {
+            const portraitToggle = createToggleWithLabel('Portrait Screen', this.state.kajisuliMode, (enabled) => {
                 this.selectMode(enabled);
                 this.showInfoMessage(this.infoMessages.portraitScreen[enabled ? 'on' : 'off']);
-            }, sizes);
+            });
             togglesContainer.appendChild(portraitToggle);
 
-            // Create learning challenge toggle
-            const learningToggle = this.createToggle('Learning Challenge', this.state.learningChallengeEnabled, (enabled) => {
+            const learningToggle = createToggleWithLabel('Learning Challenge', this.state.learningChallengeEnabled, (enabled) => {
                 this.toggleLearningChallenge(enabled);
                 this.showInfoMessage(this.infoMessages.learningChallenge[enabled ? 'on' : 'off']);
-            }, sizes);
+            });
             this.elements.learningToggle = learningToggle;
             togglesContainer.appendChild(learningToggle);
         }
 
-        // Create hard mode toggle (always show)
-        const hardModeToggle = this.createToggle('Hard Mode', this.state.hardModeEnabled, (enabled) => {
+        const hardModeToggle = createToggleWithLabel('Hard Mode', this.state.hardModeEnabled, (enabled) => {
             this.toggleHardMode(enabled);
             this.showInfoMessage(this.infoMessages.hardMode[enabled ? 'on' : 'off']);
-        }, sizes);
+        });
         togglesContainer.appendChild(hardModeToggle);
 
-        // Create Boss Rush toggle (always show)
-        const bossRushToggle = this.createToggle('Boss Rush', this.state.bossRushMode, (enabled) => {
+        const bossRushToggle = createToggleWithLabel('Boss Rush', this.state.bossRushMode, (enabled) => {
             this.toggleBossRush(enabled);
             this.showInfoMessage(this.infoMessages.bossRush[enabled ? 'on' : 'off']);
-        }, sizes);
+        });
         togglesContainer.appendChild(bossRushToggle);
 
-        // Create Strangerer Music toggle (always show)
-        const strangeMusicToggle = this.createToggle('Strange Music', this.state.strangeMusicEnabled, (enabled) => {
+        const strangeMusicToggle = createToggleWithLabel('Strange Music', this.state.strangeMusicEnabled, (enabled) => {
             this.toggleStrangeMusic(enabled);
             this.showInfoMessage(this.infoMessages.strangeMusic[enabled ? 'on' : 'off']);
-        }, sizes);
+        });
         togglesContainer.appendChild(strangeMusicToggle);
 
         this.elements.menuContainer.appendChild(togglesContainer);
 
-        // Create info message element
-        const infoContainerWidth = Math.min(600, screenWidth * 0.9); // Match toggles container width
+        // === 4. Info Message ===
+        const infoContainerWidth = Math.min(600, screenWidth * 0.9);
         this.elements.infoMessage = document.createElement('div');
         this.elements.infoMessage.style.cssText = `
-            position: fixed;
-            bottom: ${sizes.padding * 2}px;
-            left: 50%;
-            width: ${infoContainerWidth}px;
-            max-width: 95%;
-            transform: translateX(-50%) translateY(10px);
-            font-size: ${sizes.infoSize}px;
-            color: #FFD700;
-            text-align: center;
-            opacity: 0;
-            transition: all 0.3s ease;
-            pointer-events: none;
-            line-height: 1.4;
-            padding: ${sizes.padding / 2}px ${sizes.padding}px;
-            background-color: rgba(0, 0, 0, 0.8);
-            border: 1px solid #FFD700;
-            border-radius: 4px;
-            box-sizing: border-box;
-        `;
+        position: absolute;
+        bottom: ${sizes.padding * 2}px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: ${infoContainerWidth}px;
+        max-width: 95%;
+        font-size: ${sizes.infoSize}px;
+        color: #FFD700;
+        text-align: center;
+        opacity: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        line-height: 1.4;
+        padding: ${sizes.padding / 2}px ${sizes.padding}px;
+        background-color: rgba(0, 0, 0, 0.8);
+        border: 1px solid #FFD700;
+        border-radius: 4px;
+        box-sizing: border-box;
+        backdrop-filter: blur(5px);
+        z-index: 1001;
+    `;
         this.elements.infoMessage.textContent = 'Welcome, Looper';
-
         this.elements.menuContainer.appendChild(this.elements.infoMessage);
 
-        // Add to page
+        // === Add to DOM ===
         document.body.appendChild(this.elements.menuContainer);
 
-        // Setup keyboard handler and start animations
+        // === Create background canvas immediately (after DOM insertion) ===
+        this.createBackgroundCanvas();
+
+        // Setup keyboard and animations
         this.setupKeyboardHandler();
         this.startAnimations();
 
-        // Show initial info message after a short delay
+        // Initial message
         setTimeout(() => {
             this.showInfoMessage('Welcome, Looper');
         }, 1000);
+    },
+
+    // Handle window resize: update sizes and re-center circles
+    handleResize: function () {
+        // Step 1: Recalculate responsive sizes
+        const sizes = this.getResponsiveSizes();
+
+        // Step 2: Update title styles
+        if (this.titleElement) {
+            this.titleElement.style.fontSize = `${sizes.titleSize}px`;
+            this.titleElement.style.padding = `${sizes.padding}px ${sizes.padding * 2}px`;
+        }
+
+        // Step 3: Update toggle labels
+        const toggleLabels = this.elements.menuContainer?.querySelectorAll('[data-toggle-label]');
+        if (toggleLabels) {
+            toggleLabels.forEach(label => {
+                label.style.fontSize = `${sizes.toggleSize}px`;
+            });
+        }
+
+        // Step 4: Update info message
+        if (this.elements.infoMessage) {
+            this.elements.infoMessage.style.fontSize = `${sizes.infoSize}px`;
+        }
+
+        // Step 5: Force layout flush — critical!
+        this.titleElement?.offsetHeight;
+
+        // Step 6: Use setTimeout + rAF to wait for full layout
+        // This ensures even complex reflows (like mobile/desktop switch) settle
+        setTimeout(() => {
+            requestAnimationFrame(() => {
+                if (!this.titleElement || !this.elements.circlesAnimation) return;
+
+                // Re-measure after layout is *truly* done
+                const rect = this.titleElement.getBoundingClientRect();
+                if (rect.width === 0 || rect.height === 0) return; // Skip if not visible
+
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                // Also resize canvas to match current viewport
+                this.elements.backgroundCanvas.width = window.innerWidth;
+                this.elements.backgroundCanvas.height = window.innerHeight;
+
+                // Reposition animation
+                this.elements.circlesAnimation.setPosition(centerX, centerY);
+            });
+        }, 10); // Tiny delay to allow mobile layout engines to catch up
+    },
+
+    // Create background canvas with dynamic centering
+    createBackgroundCanvas: function () {
+        // Remove old canvas if exists
+        if (this.elements.backgroundCanvas) {
+            this.elements.backgroundCanvas.remove();
+        }
+
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        // Create new canvas
+        this.elements.backgroundCanvas = document.createElement('canvas');
+        this.elements.backgroundCanvas.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        pointer-events: none;
+    `;
+        this.elements.backgroundCanvas.width = screenWidth;
+        this.elements.backgroundCanvas.height = screenHeight;
+
+        // Insert behind all UI
+        if (this.elements.menuContainer.firstChild) {
+            this.elements.menuContainer.insertBefore(this.elements.backgroundCanvas, this.elements.menuContainer.firstChild);
+        } else {
+            this.elements.menuContainer.appendChild(this.elements.backgroundCanvas);
+        }
+
+        // Get initial center after layout
+        const getCenter = () => {
+            if (this.titleElement) {
+                const rect = this.titleElement.getBoundingClientRect();
+                if (rect.width > 0) {
+                    return {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2
+                    };
+                }
+            }
+            return { x: screenWidth / 2, y: screenHeight * 0.25 };
+        };
+
+        // Use current sizes
+        const sizes = this.getResponsiveSizes();
+        const screenSize = Math.min(screenWidth, screenHeight);
+        const aspectRatio = screenHeight / screenWidth;
+
+        const baseRadiusMultiplier = Math.max(0.08, Math.min(0.18, 0.08 + (aspectRatio - 1) * 0.05));
+        const incrementMultiplier = Math.max(0.02, Math.min(0.05, 0.02 + (aspectRatio - 1) * 0.015));
+
+        const center = getCenter();
+
+        // Create animation
+        this.elements.circlesAnimation = VisualEffects.createConcentricCirclesCanvas(
+            this.elements.backgroundCanvas,
+            {
+                x: center.x,
+                y: center.y,
+                circleCount: 8,
+                baseRadius: screenSize * baseRadiusMultiplier,
+                radiusIncrement: screenSize * incrementMultiplier,
+                gapRatio: 0.4,
+                rotationSpeed: 0.0004,
+                color: '#FFD700',
+                strokeWidth: 4,
+                segmentCount: 4
+            }
+        );
+
+        this.elements.circlesAnimation.start();
+
+        // Clean up old resize handler
+        if (this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+        }
+
+        // Debounced resize using setTimeout + rAF
+        this.resizeHandler = () => {
+            // Immediately update sizes and styles
+            this.handleResize();
+        };
+
+        window.addEventListener('resize', this.resizeHandler);
+
+        // One-time post-init check in case layout wasn't ready
+        setTimeout(() => {
+            this.handleResize();
+        }, 100);
     },
 
     // Create a unified toggle component
@@ -473,11 +702,28 @@ const StartMenuSystem = {
             this.keyHandler = null;
         }
 
+        // Remove the resize handler
+        if (this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+            this.resizeHandler = null;
+        }
+
+        // Stop and destroy concentric circles animation
+        if (this.elements.circlesAnimation) {
+            this.elements.circlesAnimation.destroy();
+            this.elements.circlesAnimation = null;
+        }
+
         // Remove the HTML menu container
         if (this.elements.menuContainer) {
             document.body.removeChild(this.elements.menuContainer);
             this.elements.menuContainer = null;
         }
+
+        // Reset all element references
+        Object.keys(this.elements).forEach(key => {
+            this.elements[key] = null;
+        });
     }
 };
 

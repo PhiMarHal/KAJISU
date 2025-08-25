@@ -10,7 +10,8 @@ const PauseSystem = {
         activePerkCard: null,
         pausePerksContainer: null,
         statsContainer: null,
-        statCircles: []
+        statCircles: [],
+        concentricCircles: null
     },
 
     // State tracking
@@ -53,6 +54,30 @@ const PauseSystem = {
 
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
+
+        // Create concentric circles animation using Phaser version
+        const screenSize = Math.min(game.config.width, game.config.height);
+
+        // Phaser animation can use simple variables, as we know we're using 1 of 2 fixed resolutions
+        const baseRadiusMultiplier = 0.08;
+        const incrementMultiplier = 0.04;
+
+        this.elements.concentricCircles = VisualEffects.createConcentricCircles(scene, {
+            x: centerX,
+            y: centerY,
+            circleCount: 8,
+            baseRadius: screenSize * baseRadiusMultiplier,
+            radiusIncrement: screenSize * incrementMultiplier,
+            gapRatio: 0.4,
+            rotationSpeed: 24, // Convert 0.0004 rad/ms to degrees/second: 0.0004 * 180/π * 1000 ≈ 24
+            color: 0xFFD700,
+            strokeWidth: 4,
+            segmentCount: 4,
+            depth: 999 // Behind all other pause elements
+        });
+
+        // Initially hide the circles
+        this.elements.concentricCircles.setVisible(false);
 
         // Create semi-transparent background
         this.elements.pauseScreen = scene.add.rectangle(
@@ -203,6 +228,11 @@ const PauseSystem = {
             }
         });
 
+        // Pause concentric circles animation
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.pause();
+        }
+
         // Pause music
         if (window.MusicSystem) {
             window.MusicSystem.onGamePause();
@@ -244,6 +274,12 @@ const PauseSystem = {
                 timer.paused = false;
             }
         });
+
+        // Hide and pause concentric circles animation
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.setVisible(false);
+            this.elements.concentricCircles.pause();
+        }
 
         // Resume music
         if (window.MusicSystem) {
@@ -297,6 +333,12 @@ const PauseSystem = {
         // Pause game systems
         this.pauseGame();
 
+        // Show and start concentric circles animation
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.setVisible(true);
+            this.elements.concentricCircles.resume();
+        }
+
         // Show pause screen elements including the border
         this.elements.pauseScreen.setVisible(true);
         this.elements.pauseMessage.setVisible(true);
@@ -325,37 +367,63 @@ const PauseSystem = {
 
     // Create and show stats display (for kajisuli mode)
     showStatsDisplay: function (scene, options = {}) {
-        // Default options that preserve original pause screen behavior
         const config = {
             container: options.container ?? this.elements.statsContainer,
             positionY: options.positionY ?? game.config.height * 0.2,
             storeInElements: options.storeInElements ?? true,
             clearContainer: options.clearContainer ?? true,
             setVisible: options.setVisible ?? true,
-            // Match the 150% scaling from cards.js for KAJISULI mode
             fontSize: options.fontSize ?? (KAJISULI_MODE ? '36px' : '24px')
         };
 
-        // Clear any existing stats display if requested (original behavior)
+        // Clear existing if requested
         if (config.clearContainer && config.container) {
             config.container.removeAll(true);
         }
 
-        // Define stat info with kanji and values (same as original)
+        // Define stat info with kanji and values
         const stats = [
-            { symbol: UI.statDisplay.symbols.POW, value: getEffectiveDamage(), color: UI.statDisplay.symbolColors.POW },
-            { symbol: UI.statDisplay.symbols.AGI, value: getEffectiveFireRate(), color: UI.statDisplay.symbolColors.AGI },
-            { symbol: UI.statDisplay.symbols.LUK, value: playerLuck, color: UI.statDisplay.symbolColors.LUK },
-            { symbol: UI.statDisplay.symbols.END, value: maxPlayerHealth, color: UI.statDisplay.symbolColors.END }
+            {
+                key: 'POW',
+                symbol: UI.statDisplay.symbols.POW,
+                value: this.getStatValue('POW'),
+                color: UI.statDisplay.symbolColors.POW
+            },
+            {
+                key: 'AGI',
+                symbol: UI.statDisplay.symbols.AGI,
+                value: this.getStatValue('AGI'),
+                color: UI.statDisplay.symbolColors.AGI
+            },
+            {
+                key: 'LUK',
+                symbol: UI.statDisplay.symbols.LUK,
+                value: this.getStatValue('LUK'),
+                color: UI.statDisplay.symbolColors.LUK
+            },
+            {
+                key: 'END',
+                symbol: UI.statDisplay.symbols.END,
+                value: this.getStatValue('END'),
+                color: UI.statDisplay.symbolColors.END
+            }
         ];
+
+        // Determine if this is level-up context and adjust Y position accordingly
+        const isLevelUpContext = config.positionY > game.config.height * 0.8;
+        let statsY = config.positionY;
+
+        if (isLevelUpContext) {
+            // Align with button positioning for level-up screen
+            const buttonMargin = Math.max(UI.game.getWidth(), UI.game.getHeight()) * 0.02; // 2% margin
+            const buttonSize = UI.rel.height(5); // Button size
+            statsY = UI.game.getHeight() - buttonMargin - (buttonSize / 2);
+        }
 
         // Get center X position
         const centerX = game.config.width / 2;
 
-        // Use provided Y position
-        const statsY = config.positionY;
-
-        // Set container position and visibility if using the original container
+        // Set container position and visibility
         if (config.container === this.elements.statsContainer) {
             config.container.setPosition(0, 0);
             if (config.setVisible) {
@@ -363,77 +431,113 @@ const PauseSystem = {
             }
         }
 
-        // Calculate spacing and box dimensions (same as original)
-        const boxWidth = game.config.width * 0.15;    // 15% of screen width per box
-        const boxHeight = game.config.height * 0.05;  // 5% of screen height
-        const spacing = game.config.width * 0.06;     // 6% of screen width between boxes
-        const totalWidth = (boxWidth * stats.length) + (spacing * (stats.length - 1));
-        const startX = centerX - (totalWidth / 2) + (boxWidth / 2);
+        // Calculate spacing and hexagon dimensions for KAJISULI mode
+        const hexSize = game.config.width * 0.12;        // 12% of screen width per hexagon
+        const spacing = game.config.width * 0.05;        // 5% spacing between hexagons
+        const totalWidth = (hexSize * stats.length) + (spacing * (stats.length - 1));
+        const startX = centerX - (totalWidth / 2) + (hexSize / 2);
 
-        // Store created elements for return (new functionality)
+        // Store created elements for return
         const createdElements = [];
 
-        // Add each stat in its own gold-bordered box (same as original)
+        // Add each stat in its own hexagon
         stats.forEach((stat, index) => {
             // Calculate x position with even spacing
-            const x = startX + (spacing + boxWidth) * index;
+            const x = startX + (spacing + hexSize) * index;
 
-            // Create gold border for this stat
-            const border = scene.add.rectangle(
-                x, statsY,
-                boxWidth, boxHeight,
-                UI.colors.gold
-            );
+            // Create hexagon background using the existing createHexagon function
+            const hexagon = createHexagon(scene, x, statsY, hexSize, 0x000000, 0.5);
 
-            // Create inner black background
-            const background = scene.add.rectangle(
-                x, statsY,
-                boxWidth - 4, boxHeight - 4,
-                0x000000
-            );
-
-            // Create the stat text: kanji and value on the same line
-            const statText = scene.add.text(
-                x, statsY,
-                `${stat.symbol} ${Math.floor(stat.value)}`,
+            // Create the kanji symbol text (adjusted positioning)
+            const symbolText = scene.add.text(
+                x,
+                statsY,
+                stat.symbol,
                 {
                     fontFamily: 'Arial',
-                    fontSize: config.fontSize, // Use the configurable fontSize (36px in KAJISULI mode)
+                    fontSize: parseInt(config.fontSize) * 1.2 + 'px', // Larger kanji
                     color: stat.color,
                     fontStyle: 'bold'
                 }
             ).setOrigin(0.5);
+            symbolText.setAlpha(0.8);
+
+            // Create the value text below the kanji (adjusted positioning)
+            const valueText = scene.add.text(
+                x,
+                statsY,
+                Math.floor(stat.value).toString(),
+                {
+                    fontFamily: 'Arial',
+                    fontSize: parseInt(config.fontSize) * 1.2 + 'px',
+                    color: '#ffffff',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                }
+            ).setOrigin(0.5);
 
             // Store elements for return
-            const statGroup = { border, background, statText };
+            const statGroup = { hexagon, symbolText, valueText };
             createdElements.push(statGroup);
 
-            // Add all elements to the container (original behavior)
+            // Add all elements to the container
             if (config.container) {
-                config.container.add([border, background, statText]);
+                config.container.add([hexagon, symbolText, valueText]);
             }
 
-            // Add hover interaction for tooltips if StatTooltipSystem is available
+            // Add hover interactions - define proper hit area for graphics object
+            const hitArea = new Phaser.Geom.Rectangle(-hexSize / 2, -hexSize * 0.433, hexSize, hexSize * 0.866);
+            hexagon.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+            hexagon.on('pointerover', function () {
+                symbolText.setAlpha(1.0); // Full opacity on hover
+                valueText.setScale(1.1);  // Scale number on hover
+            });
+
+            hexagon.on('pointerout', function () {
+                symbolText.setAlpha(0.8); // Reset transparency
+                valueText.setScale(1);    // Reset scale
+            });
+
+            // Add tooltip interaction if StatTooltipSystem is available
             if (window.StatTooltipSystem && scene) {
-                StatTooltipSystem.addStatHoverInteraction(scene, border, stats[index].stat ?? ['POW', 'AGI', 'LUK', 'END'][index], {
+                // Create a getBounds method for the graphics object so StatTooltipSystem can use it
+                hexagon.getBounds = function () {
+                    return new Phaser.Geom.Rectangle(
+                        this.x - hexSize * 0.425, // Half of narrowed width
+                        this.y - hexSize * 0.433, // Half of height
+                        hexSize * 0.85,           // Narrowed width
+                        hexSize * 0.866           // Height
+                    );
+                };
+
+                StatTooltipSystem.addStatHoverInteraction(scene, hexagon, stat.key, {
                     container: config.container,
-                    isKajisuli: true,  // Add this flag
+                    isKajisuli: true,
+                    isLevelUp: isLevelUpContext,
                     onHover: (element) => {
-                        // Highlight border on hover
-                        element.setStrokeStyle(4, UI.colors.gold);
-                        statText.setScale(1.1);
+                        // Additional hover effects handled above
                     },
                     onHoverOut: (element) => {
-                        // Reset border and text
-                        element.setStrokeStyle(2, UI.colors.gold);
-                        statText.setScale(1);
+                        // Additional hover out effects handled above
                     }
                 });
             }
         });
 
-        // Return created elements for external use (new functionality)
+        // Return created elements for external use
         return createdElements;
+    },
+
+    getStatValue: function (statKey) {
+        switch (statKey) {
+            case 'POW': return getEffectiveDamage() ?? 0;
+            case 'AGI': return getEffectiveFireRate() ?? 0;
+            case 'LUK': return playerLuck ?? 0;
+            case 'END': return maxPlayerHealth ?? 0;
+            default: return 0;
+        }
     },
 
     // Update perks display in pause screen
@@ -485,7 +589,7 @@ const PauseSystem = {
                 centerX,
                 game.config.height * 0.4375, // 350/800 = 0.4375
                 'No perks acquired yet',
-                { fontFamily: 'Arial', fontSize: '20px', color: '#aaaaaa' }
+                { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff' }
             ).setOrigin(0.5);
             this.elements.perkIcons.push(noPerkText);
             this.elements.pausePerksContainer.add(noPerkText);
@@ -742,6 +846,12 @@ const PauseSystem = {
 
     // Cleanup all UI elements
     cleanup: function () {
+        // Stop and destroy concentric circles animation
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.destroy();
+            this.elements.concentricCircles = null;
+        }
+
         // Clean up all UI elements
         Object.values(this.elements).forEach(element => {
             if (element && element.destroy) {
@@ -764,7 +874,9 @@ const PauseSystem = {
             paginationControls: [],
             activePerkCard: null,
             pausePerksContainer: null,
-            statsContainer: null
+            statsContainer: null,
+            statCircles: [],
+            concentricCircles: null
         };
 
         // Reset state

@@ -1,4 +1,4 @@
-// life.js - Health and life management system for Word Survivors
+// life.js - Health and life management system for KAJISU
 // Manages player health regeneration and healing
 
 // LifeSystem namespace

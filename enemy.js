@@ -1,4 +1,4 @@
-// enemy.js - Enemy management system for Word Survivors
+// enemy.js - Enemy management system for KAJISU
 
 // Enemy-related global variables
 let enemySpeedFactor = 1.0;           // Global modifier for enemy speed

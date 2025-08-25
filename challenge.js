@@ -1,4 +1,4 @@
-// challenge.js - Romaji Challenge System for Word Survivors
+// challenge.js - Romaji Challenge System for KAJISU
 // Manages the romaji typing challenge during level-up
 
 // Romaji Challenge System namespace
@@ -21,7 +21,8 @@ const RomajiChallengeSystem = {
         submitButton: null,
         inputPrompt: null,
         levelUpContainer: null, // Main container for level up UI
-        perkCardContainer: null // Container for perk cards
+        perkCardContainer: null, // Container for perk cards
+        concentricCircles: null // Concentric circles animation
     },
 
     // Event handlers
@@ -59,7 +60,8 @@ const RomajiChallengeSystem = {
             submitButton: null,
             inputPrompt: null,
             levelUpContainer: null,
-            perkCardContainer: null
+            perkCardContainer: null,
+            concentricCircles: null
         };
 
         // Clean up event handlers
@@ -99,9 +101,28 @@ const RomajiChallengeSystem = {
         this.elements.levelUpContainer = scene.add.container(0, 0);
         this.elements.levelUpContainer.setDepth(1000);
 
-        // Create semi-transparent background
+        // Create concentric circles animation
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
+        const screenSize = Math.min(game.config.width, game.config.height);
+        const baseRadiusMultiplier = 0.08;
+        const incrementMultiplier = 0.04;
+
+        this.elements.concentricCircles = VisualEffects.createConcentricCircles(scene, {
+            x: centerX,
+            y: centerY,
+            circleCount: 8,
+            baseRadius: screenSize * baseRadiusMultiplier,
+            radiusIncrement: screenSize * incrementMultiplier,
+            gapRatio: 0.4,
+            rotationSpeed: 24,
+            color: 0xFFD700,
+            strokeWidth: 4,
+            segmentCount: 4,
+            depth: 999 // Behind other UI elements
+        });
+
+        // Create semi-transparent background
         const levelUpBackground = scene.add.rectangle(centerX, centerY, game.config.width, game.config.height, 0x000000, 0.7);
 
         // Create level up title with improved styling
@@ -266,23 +287,20 @@ const RomajiChallengeSystem = {
 
     // Update the perk card display
     updatePerkCardDisplay: function (scene) {
-        //console.log("Updating perk card display, cards: " + this.state.currentCards);
-
-        // First, completely clear the container
-        this.elements.perkCardContainer.removeAll(true); // true means destroy children
+        // Clear existing cards
+        this.elements.perkCardContainer.removeAll(true);
         this.state.cardElements = [];
 
-        // Calculate positions for cards
         const cardCount = this.state.currentCards;
-        const cardWidth = 220; // Fixed card width
+
+        // Calculate positions (from original code)
+        const cardWidth = 220;
         const cardSpacing = game.config.width * 0.0167; // 20/1200 = 0.0167
         const totalWidth = cardCount * cardWidth + (cardCount - 1) * cardSpacing;
         const centerX = game.config.width / 2;
         const startX = centerX - (totalWidth / 2) + (cardWidth / 2);
 
-        //console.log("Creating " + cardCount + " cards");
-
-        // Create each card
+        // Create cards using unified system
         for (let i = 0; i < cardCount; i++) {
             const cardX = startX + i * (cardWidth + cardSpacing);
             const perk = this.state.selectedPerks[i];
@@ -291,8 +309,6 @@ const RomajiChallengeSystem = {
                 console.log("Warning: No perk found for index " + i);
                 continue;
             }
-
-            //console.log("Creating card for perk: " + perk.id + " at position " + i);
 
             // Determine what to show based on state
             const isCurrentChallenge = (i === this.state.currentCards - 1 &&
@@ -305,30 +321,29 @@ const RomajiChallengeSystem = {
             const showEnglish = !isCurrentChallenge || this.state.attempts >= 2;
             const showDescription = !isCurrentChallenge || this.state.attempts >= 2;
 
-            // Create card elements with appropriate options
-            const cardElements = window.CardSystem.createPerkCardElements(perk, cardX, game.config.height * 0.4125, { // 330/800 = 0.4125
+            const card = UnifiedCardSystem.createCard(scene, perk, {
+                x: cardX,
+                y: game.config.height * 0.4125 // 330/800 = 0.4125
+            }, 'levelup', {
+                cardType: UnifiedCardSystem.CARD_TYPES.CUSTOM, // Perk is already formatted
                 container: this.elements.perkCardContainer,
                 showKana: showKana,
                 showRomaji: showRomaji,
                 showEnglish: showEnglish,
                 showDescription: showDescription,
                 makeInteractive: true,
-                perkCallback: (perkId) => {
-                    this.selectCard(scene, perkId);
-                }
+                perkCallback: (perkId) => this.selectCard(scene, perkId)
             });
 
-            // Store card elements including background
+            // Store card elements in the original format that the rest of the code expects
             this.state.cardElements.push({
-                background: cardElements[0], // First element is the background
-                elements: cardElements.slice(1) // Rest are text elements
+                background: card.elements[0], // First element is the background
+                elements: card.elements.slice(1) // Rest are text elements
             });
         }
 
         // Update input visibility based on challenge state
         this.updateInputVisibility();
-
-        //console.log("Card display updated, now showing " + this.state.cardElements.length + " cards");
     },
 
     // Function to validate romaji input
@@ -620,6 +635,12 @@ const RomajiChallengeSystem = {
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
 
+        // Clean up concentric circles animation
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.destroy();
+            this.elements.concentricCircles = null;
+        }
+
         // Clean up UI elements
         if (this.elements.levelUpContainer) {
             this.elements.levelUpContainer.destroy();
@@ -664,6 +685,12 @@ const RomajiChallengeSystem = {
 
         // Restore debug keys
         this.restoreDebugKeys();
+
+        // Clean up concentric circles animation
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.destroy();
+            this.elements.concentricCircles = null;
+        }
 
         // Extra safety: check if we're in a valid scene
         if (!scene.add) {

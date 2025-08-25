@@ -47,6 +47,7 @@ const config = {
         }
     },
     jsFiles: [
+        'unifiedCards.js',
         'shrines.js',
         'startMenu.js',
         'artillery.js',

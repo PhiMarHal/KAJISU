@@ -2,10 +2,11 @@
 
 // Colors for various UI elements
 const CARD_COLORS = {
-    DEFAULT_BG: 0x444444,
+    DEFAULT_BG: 0x1a1a1a,  // Soft black instead of harsh gray
     HOVER_BG: 0x666666,
-    STROKE: 0xeeeeee,
-    STROKE_HOVER: 0xffffff
+    STROKE: 0xffd700,      // Gold border
+    STROKE_HOVER: 0xffed4e,
+    INSET: 0xb8860b        // Darker gold for inset
 };
 
 /**
@@ -47,7 +48,160 @@ function getPerks() {
 }
 
 /**
- * Creates a perk card with consistent styling and positioning
+ * Creates four diamond shapes on the card borders
+ * @param {Phaser.Scene} scene - The active scene
+ * @param {number} x - Card center X
+ * @param {number} y - Card center Y  
+ * @param {number} width - Card width
+ * @param {number} height - Card height
+ * @param {number} borderWidth - Width of the card border
+ * @param {Object} container - Container to add diamonds to
+ * @returns {Array} Array of diamond elements
+ */
+function createCardDiamonds(scene, x, y, width, height, borderWidth = 5, container = null) {
+    const diamonds = [];
+    const diamondSize = 12;
+
+    // Try positioning diamonds exactly at the card boundary - no offset
+    // This should put them in the center of the stroke since Phaser strokes are centered on boundaries
+
+    // Create four diamond positions - exactly at card edges
+    const positions = [
+        { x: x, y: y - height / 2, name: 'top' },           // Top edge
+        { x: x, y: y + height / 2, name: 'bottom' },        // Bottom edge
+        { x: x - width / 2, y: y, name: 'left' },           // Left edge  
+        { x: x + width / 2, y: y, name: 'right' }           // Right edge
+    ];
+
+    positions.forEach(pos => {
+        const diamond = scene.add.rectangle(pos.x, pos.y, diamondSize, diamondSize, CARD_COLORS.STROKE);
+        diamond.setRotation(Math.PI / 4); // 45 degree rotation
+        diamond.setDepth(1000); // High depth so diamonds appear above everything
+
+        if (container && container.add) {
+            container.add(diamond);
+        }
+
+        diamonds.push(diamond);
+    });
+
+    return diamonds;
+}
+
+/**
+ * Creates a pulse effect using HTML DOM element with CSS gradient (like our mockups!)
+ * @param {Phaser.Scene} scene - The active scene
+ * @param {number} x - Card center X
+ * @param {number} y - Card center Y
+ * @param {number} width - Card width
+ * @param {number} height - Card height
+ * @param {string} color - Pulse color theme ('gold', 'fire', 'ice', etc.)
+ * @param {number} speed - Pulse speed in seconds (default 4)
+ * @param {Object} container - Container to add pulse to
+ * @returns {Object} The pulse DOM element with cleanup function
+ */
+function createCardPulse(scene, x, y, width, height, color = 'gold', speed = 4, container = null) {
+    // Color gradients for different themes (exact same as HTML mockups!)
+    const pulseGradients = {
+        gold: 'linear-gradient(90deg, transparent 0%, rgba(255, 215, 0, 0.08) 25%, rgba(255, 237, 78, 0.18) 50%, rgba(255, 215, 0, 0.08) 75%, transparent 100%)',
+        fire: 'linear-gradient(90deg, transparent 0%, rgba(255, 107, 107, 0.08) 25%, rgba(238, 90, 36, 0.18) 50%, rgba(255, 107, 107, 0.08) 75%, transparent 100%)',
+        ice: 'linear-gradient(90deg, transparent 0%, rgba(116, 185, 255, 0.08) 25%, rgba(9, 132, 227, 0.18) 50%, rgba(116, 185, 255, 0.08) 75%, transparent 100%)',
+        nature: 'linear-gradient(90deg, transparent 0%, rgba(0, 184, 148, 0.08) 25%, rgba(0, 206, 201, 0.18) 50%, rgba(0, 184, 148, 0.08) 75%, transparent 100%)',
+        magic: 'linear-gradient(90deg, transparent 0%, rgba(162, 155, 254, 0.08) 25%, rgba(108, 92, 231, 0.18) 50%, rgba(162, 155, 254, 0.08) 75%, transparent 100%)',
+        lightning: 'linear-gradient(90deg, transparent 0%, rgba(255, 234, 167, 0.08) 25%, rgba(250, 211, 144, 0.18) 50%, rgba(255, 234, 167, 0.08) 75%, transparent 100%)',
+        shadow: 'linear-gradient(90deg, transparent 0%, rgba(99, 110, 114, 0.08) 25%, rgba(45, 52, 54, 0.18) 50%, rgba(99, 110, 114, 0.08) 75%, transparent 100%)'
+    };
+
+    const gradient = pulseGradients[color] || pulseGradients.gold;
+
+    // Get canvas position and scale, accounting for different orientations
+    const canvas = scene.game.canvas;
+    const canvasBounds = canvas.getBoundingClientRect();
+    const gameConfig = scene.game.config;
+
+    // Calculate scale factor between game coordinates and actual canvas size
+    const scaleX = canvasBounds.width / gameConfig.width;
+    const scaleY = canvasBounds.height / gameConfig.height;
+
+    const pulseWidth = (width - 10) * scaleX;
+    const pulseHeight = (height - 10) * scaleY;
+
+    // Calculate position accounting for scaling and orientation
+    const screenX = (x * scaleX) + canvasBounds.left;
+    const screenY = (y * scaleY) + canvasBounds.top;
+
+    // Create HTML div element with CSS gradient
+    const pulseDiv = document.createElement('div');
+    pulseDiv.style.position = 'fixed'; // Use fixed positioning for better cross-device compatibility
+    pulseDiv.style.left = (screenX - pulseWidth / 2) + 'px';
+    pulseDiv.style.top = (screenY - pulseHeight / 2) + 'px';
+    pulseDiv.style.width = pulseWidth + 'px';
+    pulseDiv.style.height = pulseHeight + 'px';
+    pulseDiv.style.background = gradient;
+    pulseDiv.style.pointerEvents = 'none'; // Don't interfere with game clicks
+    pulseDiv.style.zIndex = '1'; // Above canvas background, below UI
+    pulseDiv.className = 'card-pulse-overlay'; // For easier debugging/identification
+
+    // Add CSS animation for the pulse effect
+    const animationName = `cardPulse${speed}s`;
+    pulseDiv.style.animation = `${animationName} ${speed}s ease-in-out infinite`;
+
+    // Create the CSS animation if it doesn't exist
+    const styleId = `pulse-animation-${speed}s`;
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            @keyframes ${animationName} {
+                0%, 100% { 
+                    opacity: 0.3; 
+                    transform: scaleX(0.9) scaleY(0.95); 
+                }
+                50% { 
+                    opacity: 1; 
+                    transform: scaleX(1.1) scaleY(1.05); 
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Add to document
+    document.body.appendChild(pulseDiv);
+
+    console.log(`HTML DOM pulse created with ${color} gradient at ${screenX}, ${screenY}`);
+
+    // Store in global cleanup array for failsafe cleanup
+    if (!window.activeCardPulses) {
+        window.activeCardPulses = [];
+    }
+    window.activeCardPulses.push(pulseDiv);
+
+    // Create wrapper object with cleanup functionality
+    const pulseWrapper = {
+        element: pulseDiv,
+        destroy: function () {
+            if (this.element && this.element.parentNode) {
+                this.element.parentNode.removeChild(this.element);
+
+                // Remove from global array
+                if (window.activeCardPulses) {
+                    const index = window.activeCardPulses.indexOf(this.element);
+                    if (index !== -1) {
+                        window.activeCardPulses.splice(index, 1);
+                    }
+                }
+
+                console.log('HTML pulse element cleaned up');
+            }
+        }
+    };
+
+    return pulseWrapper;
+}
+
+/**
+ * Creates a perk card with enhanced visual design
  * 
  * @param {Object} perk - Perk data object containing kanji, kana, romaji, etc.
  * @param {number} x - X position for card center
@@ -78,30 +232,54 @@ function createPerkCardElements(perk, x, y, options = {}) {
         showRomaji: true,
         showEnglish: true,
         showDescription: true,
-        backgroundColor: CARD_COLORS.DEFAULT_BG,
+        backgroundColor: CARD_COLORS.DEFAULT_BG,    // Enhanced soft black
         width: 200,
         height: 300,
-        strokeWidth: 2,
-        strokeColor: CARD_COLORS.STROKE,
+        strokeWidth: 5,          // Enhanced thick gold border
+        strokeColor: CARD_COLORS.STROKE,  // Enhanced gold
         makeInteractive: false,
         perkCallback: null,
-        fontSize: 1 // New fontSize scaling parameter
+        fontSize: 1,
+        showDiamonds: true,      // Enable diamonds by default
+        enablePulse: true,       // Enable pulse by default
+        pulseColor: 'gold',      // Default pulse color
+        pulseSpeed: 4,           // Default pulse speed
+        useEnhancedStyling: true // New flag to enable enhanced styling
     };
 
     // Merge options with defaults
-    const settings = { ...defaults, ...options };
+    let settings = { ...defaults, ...options };
+
+    // Apply enhanced styling unless explicitly disabled
+    if (settings.useEnhancedStyling && !options.legacyMode) {
+        settings.backgroundColor = CARD_COLORS.DEFAULT_BG;   // Force soft black
+        settings.strokeColor = CARD_COLORS.STROKE;           // Force gold
+        settings.strokeWidth = 5;                            // Force thick border
+        settings.showDiamonds = settings.showDiamonds !== false; // Default true
+        settings.enablePulse = settings.enablePulse !== false;   // Default true
+    }
 
     // Elements array to return
     const elements = [];
 
-    // Create card background if requested
+    // Create card background with gold border and inset effect
     if (settings.showBackground) {
         const cardBg = scene.add.rectangle(x, y, settings.width, settings.height, settings.backgroundColor, 1)
             .setStrokeStyle(settings.strokeWidth, settings.strokeColor);
 
+        cardBg.setDepth(0); // Lowest depth - background layer
+
+        // Create inset effect using a second rectangle with more gap
+        const insetGap = 12; // Larger gap between borders
+        const insetBorder = scene.add.rectangle(x, y, settings.width - insetGap, settings.height - insetGap, settings.backgroundColor, 0)
+            .setStrokeStyle(2, CARD_COLORS.INSET);
+
+        insetBorder.setDepth(1); // Above background, below pulse
+
         // Add to container if provided
         if (settings.container && settings.container.add) {
             settings.container.add(cardBg);
+            settings.container.add(insetBorder);
         }
 
         // Make interactive if requested
@@ -112,7 +290,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
             // Add hover effects
             cardBg.on('pointerover', function () {
                 this.fillColor = perk.hoverColor ?? CARD_COLORS.HOVER_BG;
-                this.setStrokeStyle(4, CARD_COLORS.STROKE_HOVER);
+                this.setStrokeStyle(settings.strokeWidth + 1, CARD_COLORS.STROKE_HOVER);
             });
 
             cardBg.on('pointerout', function () {
@@ -128,7 +306,13 @@ function createPerkCardElements(perk, x, y, options = {}) {
             }
         }
 
-        elements.push(cardBg);
+        elements.push(cardBg, insetBorder);
+    }
+
+    // Create diamonds if enabled
+    if (settings.showDiamonds) {
+        const diamonds = createCardDiamonds(scene, x, y, settings.width, settings.height, settings.strokeWidth, settings.container);
+        elements.push(...diamonds);
     }
 
     // Check if we're in KAJISULI mode for position adjustments
@@ -136,27 +320,37 @@ function createPerkCardElements(perk, x, y, options = {}) {
 
     // Fixed positions relative to card center - adjusted for KAJISULI mode
     const positions = {
-        kanji: isKajisuli ? y - 90 : y - 60,        // Higher in KAJISULI mode
-        kana: isKajisuli ? y - 44 : y - 15,         // Higher, 2px less gap from kanji (80-38=42 vs 60-15=45)
-        romaji: isKajisuli ? y - 16 : y + 10,       // Higher but less so, more space from kana (38-15=23 vs 15+10=25)
-        english: y + 40,                            // Same spot in both modes
-        description: isKajisuli ? y + 120 : y + 85  // Lower in KAJISULI mode
+        kanji: isKajisuli ? y - 90 : y - 60,
+        kana: isKajisuli ? y - 44 : y - 15,
+        romaji: isKajisuli ? y - 16 : y + 10,
+        english: y + 40,
+        description: isKajisuli ? y + 120 : y + 85
     };
 
-    // Always show kanji
+    // Always show kanji with enhanced styling
     if (perk) {
         const kanjiText = scene.add.text(
             x, positions.kanji,
             perk.kanji,
             {
                 fontFamily: 'Arial',
-                fontSize: `${36 * settings.fontSize}px`, // Apply scaling
-                color: perk.color || '#ffffff',
+                fontSize: `${36 * settings.fontSize}px`,
+                color: '#ffffff',  // White kanji
                 fontStyle: 'bold',
                 stroke: '#000000',
-                strokeThickness: 4
+                strokeThickness: 4,
+                shadow: perk.color ? {
+                    offsetX: 0,
+                    offsetY: 0,
+                    color: perk.color,
+                    blur: 8,
+                    stroke: false,
+                    fill: true
+                } : undefined
             }
         ).setOrigin(0.5);
+
+        kanjiText.setDepth(10); // High depth to appear above pulse
 
         if (settings.container && settings.container.add) {
             settings.container.add(kanjiText);
@@ -169,8 +363,10 @@ function createPerkCardElements(perk, x, y, options = {}) {
             const kanaText = scene.add.text(
                 x, positions.kana,
                 perk.kana || '',
-                { fontFamily: 'Arial', fontSize: `${18 * settings.fontSize}px`, color: '#ffffff' }
+                { fontFamily: 'Arial', fontSize: `${18 * settings.fontSize}px`, color: '#cccccc' }
             ).setOrigin(0.5);
+
+            kanaText.setDepth(10); // High depth to appear above pulse
 
             if (settings.container && settings.container.add) {
                 settings.container.add(kanaText);
@@ -184,8 +380,10 @@ function createPerkCardElements(perk, x, y, options = {}) {
             const romajiText = scene.add.text(
                 x, positions.romaji,
                 perk.romaji || '',
-                { fontFamily: 'Arial', fontSize: `${16 * settings.fontSize}px`, color: '#dddddd', fontStyle: 'italic' }
+                { fontFamily: 'Arial', fontSize: `${16 * settings.fontSize}px`, color: '#aaaaaa', fontStyle: 'italic' }
             ).setOrigin(0.5);
+
+            romajiText.setDepth(10); // High depth to appear above pulse
 
             if (settings.container && settings.container.add) {
                 settings.container.add(romajiText);
@@ -194,7 +392,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
             elements.push(romajiText);
         }
 
-        // Show english if requested
+        // Show english with perk color if requested
         if (settings.showEnglish) {
             const englishText = scene.add.text(
                 x, positions.english,
@@ -202,10 +400,12 @@ function createPerkCardElements(perk, x, y, options = {}) {
                 {
                     fontFamily: 'Arial',
                     fontSize: `${20 * settings.fontSize}px`,
-                    color: perk.color || '#ffffff',
+                    color: perk.color || '#ffd700',  // Use perk color or default gold
                     fontStyle: 'bold'
                 }
             ).setOrigin(0.5);
+
+            englishText.setDepth(10); // High depth to appear above pulse
 
             if (settings.container && settings.container.add) {
                 settings.container.add(englishText);
@@ -214,7 +414,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
             elements.push(englishText);
         }
 
-        // Show description if requested - always in the same position
+        // Show description if requested
         if (settings.showDescription) {
             const descText = scene.add.text(
                 x, positions.description,
@@ -222,11 +422,13 @@ function createPerkCardElements(perk, x, y, options = {}) {
                 {
                     fontFamily: 'Arial',
                     fontSize: `${16 * settings.fontSize}px`,
-                    color: '#ffffff',
+                    color: '#e0e0e0',  // Improved readability
                     align: 'center',
                     wordWrap: { width: settings.width - 20 }
                 }
             ).setOrigin(0.5);
+
+            descText.setDepth(10); // High depth to appear above pulse
 
             if (settings.container && settings.container.add) {
                 settings.container.add(descText);
@@ -236,11 +438,40 @@ function createPerkCardElements(perk, x, y, options = {}) {
         }
     }
 
+    // Add pulse effect if enabled
+    if (settings.enablePulse) {
+        // Determine pulse color based on perk
+        let pulseColorTheme = settings.pulseColor;
+        if (perk.color) {
+            // Map perk colors to pulse themes
+            const colorMap = {
+                '#ff6b6b': 'fire',
+                '#74b9ff': 'ice',
+                '#00b894': 'nature',
+                '#a29bfe': 'magic',
+                '#fdcb6e': 'lightning',
+                '#636e72': 'shadow'
+            };
+            pulseColorTheme = colorMap[perk.color] || 'gold';
+        }
+
+        // Create beautiful gradient pulse overlay
+        const pulseWrapper = createCardPulse(
+            scene, x, y, settings.width, settings.height,
+            pulseColorTheme, settings.pulseSpeed, settings.container
+        );
+
+        if (pulseWrapper) {
+            // Add the wrapper to elements so it gets cleaned up when card is destroyed
+            elements.push(pulseWrapper);
+        }
+    }
+
     return elements;
 }
 
 /**
- * Helper function to create a perk card using the generic card element creator
+ * Helper function to create a perk card using the enhanced card element creator
  * 
  * @param {string} perkId - ID of the perk to create a card for
  * @param {number} x - X position of the card center
@@ -326,7 +557,7 @@ function generateRandomPerkCards(count, excludeIds = []) {
 }
 
 /**
- * Shows a mobile-friendly level up screen with card navigation
+ * Shows a mobile-friendly level up screen with enhanced card visuals
  * @param {Phaser.Scene} scene - The active game scene
  */
 function showMobileLevelUpScreen(scene) {
@@ -425,19 +656,17 @@ function showMobileLevelUpScreen(scene) {
     levelUpContainer.add(levelUpTitle);
     levelUpContainer.add(subtitle);
 
-    // Show KAJISULI stats if in KAJISULI mode
+    // Show KAJISULI stats if in KAJISULI mode (existing code unchanged)
     if (KAJISULI_MODE) {
-        // Use the enhanced showStatsDisplay from pause.js with custom options
         const statsElements = PauseSystem.showStatsDisplay(scene, {
             container: levelUpContainer,
             positionY: game.config.height * 0.95,
             storeInElements: false,
             clearContainer: false,
             setVisible: false,
-            fontSize: '36px' // 150% larger font for kanji and numbers
+            fontSize: '36px'
         });
 
-        // Add hover interactions to the stats if StatTooltipSystem is available
         if (window.StatTooltipSystem && statsElements) {
             const statKeys = ['POW', 'AGI', 'LUK', 'END'];
             statsElements.forEach((statGroup, index) => {
@@ -447,14 +676,12 @@ function showMobileLevelUpScreen(scene) {
                         isKajisuli: true,
                         isLevelUp: true,
                         onHover: (element) => {
-                            // Highlight border on hover
                             element.setStrokeStyle(4, UI.colors.gold);
                             if (statGroup.statText) {
                                 statGroup.statText.setScale(1.1);
                             }
                         },
                         onHoverOut: (element) => {
-                            // Reset border and text
                             element.setStrokeStyle(2, UI.colors.gold);
                             if (statGroup.statText) {
                                 statGroup.statText.setScale(1);
@@ -469,15 +696,19 @@ function showMobileLevelUpScreen(scene) {
     // Current perk index being displayed
     let currentPerkIndex = 0;
 
-    // Create perk card at the center
+    // Create perk card at the center with enhanced visuals
     let currentCardElements = [];
-    let selectionBorder = null; // Golden border for when selection is available
+    let selectionBorder = null;
 
     // Function to create or update the displayed card
     function updateDisplayedCard() {
-        // Clean up old card using unified system
+        // Clean up old card
         if (currentCardElements.length > 0) {
-            UnifiedCardSystem.utils.destroyCard({ elements: currentCardElements });
+            currentCardElements.forEach(element => {
+                if (element && element.destroy) {
+                    element.destroy();
+                }
+            });
             currentCardElements = [];
         }
 
@@ -487,44 +718,28 @@ function showMobileLevelUpScreen(scene) {
             selectionBorder = null;
         }
 
-        // Create new card with the current perk using unified system
+        // Create new enhanced card with the current perk
         const currentPerk = availablePerks[currentPerkIndex];
         if (currentPerk) {
-            const card = UnifiedCardSystem.createCard(scene, currentPerk, {
-                x: centerX,
-                y: centerY
-            }, 'levelup', {
-                cardType: UnifiedCardSystem.CARD_TYPES.CUSTOM, // Treat as already-formatted data
+            currentCardElements = createPerkCardElements(currentPerk, centerX, centerY, {
                 container: levelUpContainer,
                 makeInteractive: true,
+                showDiamonds: true,
+                enablePulse: true,
+                pulseSpeed: 4,
                 perkCallback: (perkId) => {
                     selectPerk(perkId);
                 }
             });
 
-            currentCardElements = card.elements;
-
             // Create selection border if all perks have been viewed
             if (hasViewedAllPerks) {
-                createSelectionBorder(card.config.width, card.config.height);
-            }
-
-            // Visual feedback for selection availability
-            if (hasViewedAllPerks && currentCardElements.length > 0) {
-                const cardBackground = currentCardElements[0];
-                scene.tweens.add({
-                    targets: cardBackground,
-                    strokeStyle: { value: 0xffff00 },
-                    easeParams: [1, 0.5],
-                    yoyo: true,
-                    duration: 700,
-                    repeat: -1
-                });
+                createSelectionBorder(200, 300); // Standard card size
             }
         }
     }
 
-    // Create navigation arrows
+    // Navigation arrows (existing code unchanged)
     const arrowConfig = {
         fontSize: '100px',
         color: '#ffffff',
@@ -532,10 +747,9 @@ function showMobileLevelUpScreen(scene) {
         strokeThickness: 4
     };
 
-    // Position arrows closer to cards in normal mode, further in KAJISULI mode
     const arrowDistance = KAJISULI_MODE ?
-        game.config.width * 0.32 :  // Original distance for KAJISULI mode
-        game.config.width * 0.16;   // Closer to cards for normal mode
+        game.config.width * 0.32 :
+        game.config.width * 0.16;
 
     // Left arrow
     const leftArrow = scene.add.text(
@@ -573,10 +787,9 @@ function showMobileLevelUpScreen(scene) {
     levelUpContainer.add(leftArrow);
     levelUpContainer.add(rightArrow);
 
-    // Store pulsing tweens for cleanup
+    // Rest of the existing functions (unchanged)
     let arrowPulseTweens = [];
 
-    // Start arrow pulsing
     function startArrowPulsing() {
         arrowPulseTweens.push(
             scene.tweens.add({
@@ -590,7 +803,6 @@ function showMobileLevelUpScreen(scene) {
         );
     }
 
-    // Stop arrow pulsing
     function stopArrowPulsing() {
         arrowPulseTweens.forEach(tween => tween.remove());
         arrowPulseTweens = [];
@@ -598,13 +810,11 @@ function showMobileLevelUpScreen(scene) {
         rightArrow.setScale(1);
     }
 
-    // Start initial pulsing
     startArrowPulsing();
 
-    // Add card counter text - positioned lower in normal mode
     const counterY = KAJISULI_MODE ?
-        centerY + (game.config.height * 0.21) :  // Original position for KAJISULI mode
-        centerY + (game.config.height * 0.25);   // Lower for normal mode
+        centerY + (game.config.height * 0.21) :
+        centerY + (game.config.height * 0.25);
 
     const counterText = scene.add.text(
         centerX,
@@ -618,7 +828,6 @@ function showMobileLevelUpScreen(scene) {
     ).setOrigin(0.5);
     levelUpContainer.add(counterText);
 
-    // Function to update arrow visibility and counter text
     function updateArrowVisibility() {
         counterText.setText(`${currentPerkIndex + 1}/${numPerkOptions}`);
         if (numPerkOptions <= 1) {
@@ -627,7 +836,6 @@ function showMobileLevelUpScreen(scene) {
         }
     }
 
-    // Function to create the golden selection border
     function createSelectionBorder(cardWidth, cardHeight) {
         const borderGap = 4;
         const borderThickness = 4;
@@ -661,13 +869,11 @@ function showMobileLevelUpScreen(scene) {
         }
     }
 
-    // Function to update subtitle text after viewing all perks
     function updateSubtitleText() {
         subtitle.setText('CHOOSE A PERK');
         subtitle.setColor('#FFD700');
     }
 
-    // Function to trigger subtitle shake effect
     function triggerSubtitleShake() {
         scene.tweens.killTweensOf(subtitle);
         const originalY = subtitle.y;
@@ -684,20 +890,16 @@ function showMobileLevelUpScreen(scene) {
         });
     }
 
-    // Function to trigger arrow gold blink effect
     function triggerArrowBlink() {
-        // Turn arrows gold
         leftArrow.setColor('#FFD700');
         rightArrow.setColor('#FFD700');
 
-        // Return to white after 1 second
         setTimeout(() => {
             leftArrow.setColor('#ffffff');
             rightArrow.setColor('#ffffff');
         }, 500);
     }
 
-    // Function to handle perk selection
     function selectPerk(perkId) {
         if (!hasViewedAllPerks) {
             triggerSubtitleShake();
@@ -709,30 +911,22 @@ function showMobileLevelUpScreen(scene) {
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
 
-        // Clean up concentric circles animation
         if (concentricCircles) {
             concentricCircles.destroy();
         }
 
-        // Clean up current level-up UI
         levelUpContainer.destroy();
         levelUpCards = [];
 
-        // Reset level-up flag
         window.levelUpInProgress = false;
 
-        // Give temp invincibility
         PlayerHitSystem.makePlayerInvincible(scene);
 
-        // Check if we need another level-up after a brief delay
-        // Keep the game paused during this check
         setTimeout(() => {
             if (heroExp >= xpForNextLevel(playerLevel) && !window.levelUpInProgress) {
-                // Trigger next level-up while still paused
                 window.levelUpInProgress = true;
                 levelUp.call(scene);
             } else {
-                // Only resume if no more level-ups are pending
                 PauseSystem.resumeGame();
 
                 if (window.ButtonStateManager) {
@@ -741,7 +935,6 @@ function showMobileLevelUpScreen(scene) {
             }
         }, 100);
     }
-
 
     // Initial display setup
     viewedPerks.add(currentPerkIndex);
@@ -776,15 +969,44 @@ function showLevelUpScreen(scene) {
     }
 }
 
-// Update CardSystem exports to include new function
+// Update CardSystem exports to include enhanced cleanup functionality
 const CardSystem = {
     createPerkCardElements,
     createPerkCard,
+    createCardDiamonds,
+    createCardPulse,
     getActiveScene,
     showLevelUpScreen,
-    showMobileLevelUpScreen, // Add the new function to the exported object
+    showMobileLevelUpScreen,
     generateRandomPerkCards,
-    CARD_COLORS
+    CARD_COLORS,
+
+    // Enhanced cleanup function that handles both Phaser and HTML elements
+    cleanup: function (elements) {
+        if (elements && elements.length > 0) {
+            elements.forEach(element => {
+                if (element && element.destroy) {
+                    // Handle both Phaser elements and our custom pulse wrappers
+                    element.destroy();
+                } else if (element && element.parentNode) {
+                    // Handle direct HTML elements (fallback)
+                    element.parentNode.removeChild(element);
+                }
+            });
+        }
+    },
+
+    // Clean up entire scene
+    cleanupScene: function (scene) {
+        if (scene.htmlPulses && scene.htmlPulses.length > 0) {
+            scene.htmlPulses.forEach(pulseDiv => {
+                if (pulseDiv.parentNode) {
+                    pulseDiv.parentNode.removeChild(pulseDiv);
+                }
+            });
+            scene.htmlPulses = [];
+        }
+    }
 };
 
 // Export CardSystem for use in other files

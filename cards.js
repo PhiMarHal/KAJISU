@@ -154,11 +154,11 @@ function createCardPulse(scene, x, y, width, height, color = 'gold', speed = 4, 
         style.textContent = `
             @keyframes ${animationName} {
                 0%, 100% { 
-                    opacity: 0.3; 
+                    opacity: 0.1; 
                     transform: scaleX(0.9) scaleY(0.95); 
                 }
                 50% { 
-                    opacity: 1; 
+                    opacity: 0.7; 
                     transform: scaleX(1.1) scaleY(1.05); 
                 }
             }
@@ -911,10 +911,28 @@ function showMobileLevelUpScreen(scene) {
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
 
+        // Clean up concentric circles effect
         if (concentricCircles) {
             concentricCircles.destroy();
         }
 
+        // FIXED: Clean up current card elements (including pulse wrappers) before destroying container
+        if (currentCardElements && currentCardElements.length > 0) {
+            currentCardElements.forEach(element => {
+                if (element && element.destroy) {
+                    element.destroy();
+                }
+            });
+            currentCardElements = [];
+        }
+
+        // Clean up selection border if it exists
+        if (selectionBorder) {
+            selectionBorder.destroy();
+            selectionBorder = null;
+        }
+
+        // Now destroy the container (which handles remaining Phaser elements)
         levelUpContainer.destroy();
         levelUpCards = [];
 

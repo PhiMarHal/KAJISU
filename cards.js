@@ -158,7 +158,7 @@ function createCardPulse(scene, x, y, width, height, color = 'gold', speed = 4, 
                     transform: scaleX(0.9) scaleY(0.95); 
                 }
                 50% { 
-                    opacity: 0.7; 
+                    opacity: 0.5; 
                     transform: scaleX(1.1) scaleY(1.05); 
                 }
             }
@@ -700,7 +700,7 @@ function showMobileLevelUpScreen(scene) {
     let currentCardElements = [];
     let selectionBorder = null;
 
-    // Function to create or update the displayed card
+    // Function to create or update the displayed card with proper sizing for mobile
     function updateDisplayedCard() {
         // Clean up old card
         if (currentCardElements.length > 0) {
@@ -721,12 +721,30 @@ function showMobileLevelUpScreen(scene) {
         // Create new enhanced card with the current perk
         const currentPerk = availablePerks[currentPerkIndex];
         if (currentPerk) {
+            // Apply proper sizing for mobile/portrait mode
+            const isKajisuli = (typeof KAJISULI_MODE !== 'undefined') ? KAJISULI_MODE : false;
+
+            // Base card dimensions
+            let cardWidth = 200;
+            let cardHeight = 300;
+            let cardFontSize = 1;
+
+            // Scale up for mobile/portrait mode to match landscape size
+            if (isKajisuli) {
+                cardWidth = 300;   // 50% larger
+                cardHeight = 450;  // 50% larger  
+                cardFontSize = 1.5; // 50% larger fonts
+            }
+
             currentCardElements = createPerkCardElements(currentPerk, centerX, centerY, {
                 container: levelUpContainer,
                 makeInteractive: true,
                 showDiamonds: true,
                 enablePulse: true,
                 pulseSpeed: 4,
+                width: cardWidth,
+                height: cardHeight,
+                fontSize: cardFontSize,
                 perkCallback: (perkId) => {
                     selectPerk(perkId);
                 }
@@ -734,7 +752,7 @@ function showMobileLevelUpScreen(scene) {
 
             // Create selection border if all perks have been viewed
             if (hasViewedAllPerks) {
-                createSelectionBorder(200, 300); // Standard card size
+                createSelectionBorder(cardWidth, cardHeight);
             }
         }
     }

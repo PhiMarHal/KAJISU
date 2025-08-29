@@ -424,7 +424,7 @@ function createPerkCardElements(perk, x, y, options = {}) {
                     fontSize: `${16 * settings.fontSize}px`,
                     color: '#e0e0e0',  // Improved readability
                     align: 'center',
-                    wordWrap: { width: settings.width - 20 }
+                    wordWrap: { width: settings.width - 24 }
                 }
             ).setOrigin(0.5);
 

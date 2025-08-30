@@ -15,19 +15,19 @@ const baseRankConfigs = {
     1: {
         startTime: 0,           // Start immediately
         baseDelay: 4000,        // Base spawn delay in ms
-        minDelay: 400,          // Minimum spawn delay in ms
+        minDelay: 4000,          // Minimum spawn delay in ms
         scaleMinutes: 16         // Scale over 16 minutes
     },
     2: {
         startTime: 8 * 60,      // Start after 8 minutes
         baseDelay: 8000,        // Base spawn delay in ms
-        minDelay: 800,          // Minimum spawn delay in ms
+        minDelay: 8000,          // Minimum spawn delay in ms
         scaleMinutes: 16         // Scale over 16 minutes
     },
     3: {
         startTime: 14 * 60,     // Start after 14 minutes
         baseDelay: 16000,       // Base spawn delay in ms
-        minDelay: 1600,         // Minimum spawn delay in ms
+        minDelay: 16000,         // Minimum spawn delay in ms
         scaleMinutes: 16         // Scale over 16 minutes
     },
     4: {
@@ -562,7 +562,7 @@ const EnemySystem = {
         boss.body.setCollideWorldBounds(false);
         boss.body.setImmovable(false);
         boss.body.pushable = true;
-        boss.body.setMass(4);  // Make boss harder to push
+        boss.body.setMass(20);  // Make boss harder to push
         boss.body.setDrag(1);
         boss.body.setBounce(0.5);
 

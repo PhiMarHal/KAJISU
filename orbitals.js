@@ -7,9 +7,10 @@ const orbitals = [];
 // Movement pattern implementations
 const MovementPatterns = {
     // Standard circular orbit
-    standard: function (orbital, time) {
-        // Update the orbit angle based on speed
-        orbital.angle += orbital.speed * (orbital.direction === 'clockwise' ? 1 : -1);
+    standard: function (orbital, time, deltaTime) {
+        // Update the orbit angle based on speed and delta time
+        const angleIncrement = orbital.speed * (deltaTime / 1000) * (orbital.direction === 'clockwise' ? 1 : -1);
+        orbital.angle += angleIncrement;
 
         // Calculate new position based on player position and orbit angle
         const x = player.x + Math.cos(orbital.angle) * orbital.radius;
@@ -20,9 +21,10 @@ const MovementPatterns = {
     },
 
     // Elliptical orbit (stretched circle)
-    elliptical: function (orbital, time) {
-        // Update the orbit angle based on speed
-        orbital.angle += orbital.speed * (orbital.direction === 'clockwise' ? 1 : -1);
+    elliptical: function (orbital, time, deltaTime) {
+        // Update the orbit angle based on speed and delta time
+        const angleIncrement = orbital.speed * (deltaTime / 1000) * (orbital.direction === 'clockwise' ? 1 : -1);
+        orbital.angle += angleIncrement;
 
         // Calculate position with horizontal stretch
         const stretchX = orbital.options.stretchX ?? 1.5;
@@ -36,9 +38,10 @@ const MovementPatterns = {
     },
 
     // Figure-8 movement pattern
-    figureEight: function (orbital, time) {
-        // Update the orbit angle based on speed
-        orbital.angle += orbital.speed * (orbital.direction === 'clockwise' ? 1 : -1);
+    figureEight: function (orbital, time, deltaTime) {
+        // Update the orbit angle based on speed and delta time
+        const angleIncrement = orbital.speed * (deltaTime / 1000) * (orbital.direction === 'clockwise' ? 1 : -1);
+        orbital.angle += angleIncrement;
 
         // Calculate figure-8 pattern using lemniscate of Bernoulli
         const scale = orbital.radius;
@@ -53,9 +56,10 @@ const MovementPatterns = {
     },
 
     // Spiral in and out
-    spiral: function (orbital, time) {
-        // Update the orbit angle based on speed
-        orbital.angle += orbital.speed * (orbital.direction === 'clockwise' ? 1 : -1);
+    spiral: function (orbital, time, deltaTime) {
+        // Update the orbit angle based on speed and delta time
+        const angleIncrement = orbital.speed * (deltaTime / 1000) * (orbital.direction === 'clockwise' ? 1 : -1);
+        orbital.angle += angleIncrement;
 
         // Calculate pulsing radius
         const pulseSpeed = orbital.options.pulseSpeed ?? 0.02;
@@ -73,7 +77,7 @@ const MovementPatterns = {
         orbital.entity.setPosition(x, y);
     },
 
-    spiralOut: function (orbital, time) {
+    spiralOut: function (orbital, time, deltaTime) {
         // Skip if game is paused
         if (gamePaused || gameOver) {
             // Update lastUpdateTime to current time to prevent large delta when resuming
@@ -81,8 +85,9 @@ const MovementPatterns = {
             return;
         }
 
-        // Update the orbit angle based on speed
-        orbital.angle += orbital.speed * (orbital.direction === 'clockwise' ? 1 : -1);
+        // Update the orbit angle based on speed and delta time
+        const angleIncrement = orbital.speed * (deltaTime / 1000) * (orbital.direction === 'clockwise' ? 1 : -1);
+        orbital.angle += angleIncrement;
 
         // Initialize currentRadius if not set
         if (orbital.currentRadius === undefined) {
@@ -96,11 +101,11 @@ const MovementPatterns = {
         }
 
         // Calculate actual delta time since last update
-        const deltaTime = time - orbital.lastUpdateTime;
+        const actualDelta = time - orbital.lastUpdateTime;
         orbital.lastUpdateTime = time;
 
         // Cap delta time to prevent huge jumps (e.g., after tab switching or long pauses)
-        const cappedDelta = Math.min(deltaTime, 50); // Maximum 50ms delta
+        const cappedDelta = Math.min(actualDelta, 50); // Maximum 50ms delta
 
         // Expand radius based on actual elapsed time
         const expansionRate = orbital.options.expansionRate ?? 60; // pixels per second
@@ -117,9 +122,10 @@ const MovementPatterns = {
     },
 
     // Oscillating orbit (wobbles in and out while orbiting)
-    oscillating: function (orbital, time) {
-        // Update the orbit angle based on speed
-        orbital.angle += orbital.speed * (orbital.direction === 'clockwise' ? 1 : -1);
+    oscillating: function (orbital, time, deltaTime) {
+        // Update the orbit angle based on speed and delta time
+        const angleIncrement = orbital.speed * (deltaTime / 1000) * (orbital.direction === 'clockwise' ? 1 : -1);
+        orbital.angle += angleIncrement;
 
         // Calculate wobbling radius
         const wobbleFrequency = orbital.options.wobbleFrequency ?? 5;
@@ -136,7 +142,7 @@ const MovementPatterns = {
         orbital.entity.setPosition(x, y);
     },
 
-    directionFollowing: function (orbital, time) {
+    directionFollowing: function (orbital, time, deltaTime) {
         // Skip if player is destroyed or has no velocity
         if (!player || !player.body || !player.active) return;
 
@@ -177,8 +183,9 @@ const MovementPatterns = {
             let angleDiff = (clockwiseDiff <= counterClockwiseDiff) ?
                 clockwiseDiff : -counterClockwiseDiff;
 
-            // Apply smooth rotation using orbital.speed as the rotation speed factor
-            orbital.lastAngle += angleDiff * orbital.speed;
+            // Apply smooth rotation using orbital.speed as the rotation speed factor with delta time
+            const rotationAmount = angleDiff * orbital.speed * (deltaTime / 1000);
+            orbital.lastAngle += rotationAmount;
 
             // Keep lastAngle in reasonable range to prevent floating point issues over time
             orbital.lastAngle = orbital.lastAngle % (Math.PI * 2);
@@ -354,7 +361,6 @@ const OrbitalSystem = {
     },
 
     // Create a new orbital entity
-    // Create a new orbital entity
     create: function (scene, config) {
         // Default configuration with fallbacks
         const defaults = {
@@ -363,7 +369,7 @@ const OrbitalSystem = {
             fontSize: 32,                // Size of the font
             radius: 80,                  // Distance from player
             angle: Math.random() * Math.PI * 2, // Starting angle (random by default)
-            speed: 0.02,                 // Rotation speed
+            speed: 0.02,                 // Rotation speed (radians per second)
             direction: 'clockwise',      // Direction of rotation ('clockwise' or 'counterclockwise')
             pattern: 'standard',         // Movement pattern
             collisionType: 'persistent', // Collision behavior type ('persistent', 'projectile', 'explosive')
@@ -487,9 +493,12 @@ const OrbitalSystem = {
     },
 
     // Update all orbitals
-    update: function (scene, time) {
+    update: function (scene, time, deltaTime) {
         // Skip if no orbitals or game state prevents updates
         if (gameOver || gamePaused || orbitals.length === 0) return;
+
+        // Provide a reasonable default deltaTime if not provided
+        const effectiveDelta = deltaTime ?? 16.67; // ~60 FPS fallback
 
         // Update each orbital
         orbitals.forEach(orbital => {
@@ -499,8 +508,8 @@ const OrbitalSystem = {
             // Get the movement function based on pattern
             const movementFn = MovementPatterns[orbital.pattern] ?? MovementPatterns.standard;
 
-            // Update orbital position
-            movementFn(orbital, time);
+            // Update orbital position with delta time
+            movementFn(orbital, time, effectiveDelta);
 
             // Update the last update time
             orbital.lastUpdate = time;

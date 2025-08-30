@@ -114,7 +114,7 @@ OrbitalPerkRegistry.registerPerkOrbital('WILD_FAIRY', {
             color: '#FF66CC',
             fontSize: 20,
             radius: 240,
-            speed: 0.006,
+            speed: 1,
             direction: 'counterclockwise',
             pattern: 'oscillating',
             collisionType: 'persistent',
@@ -147,7 +147,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
             symbol: '★',
             fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
             radius: 64 * (Math.sqrt(playerLuck / BASE_STATS.LUK)),
-            speed: 0.02,
+            speed: 2,
             pattern: 'standard',
             collisionType: 'projectile', // Destroyed on hit
             damage: playerDamage,
@@ -185,7 +185,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
             symbol: '★',
             fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
             radius: 64 * (Math.sqrt(playerLuck / BASE_STATS.LUK)),
-            speed: 0.02,
+            speed: 2,
             direction: 'counterclockwise', // Key difference: counter-clockwise rotation
             pattern: 'standard',
             collisionType: 'projectile', // Destroyed on hit
@@ -226,7 +226,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TENTACLE_GRASP', {
             fontSize: 24,
             radius: 80, // Medium orbit radius
             angle: Math.random() * Math.PI * 2, // Random starting angle
-            speed: 0.01, // Moderate speed
+            speed: 1, // Moderate speed
             pattern: 'oscillating', // Use oscillating pattern for organic movement
             collisionType: 'projectile', // Destroyed on hit with enemies
             damage: playerDamage,
@@ -292,7 +292,7 @@ function launchTentacles(scene) {
                 fontSize: 24,
                 radius: radius, // Use the current radius
                 angle: segmentAngle, // Use the varied angle
-                speed: 0.01, // Slower speed for better tentacle effect
+                speed: 1, // Slower speed for better tentacle effect
                 direction: 'clockwise',
                 pattern: 'oscillating', // Use oscillating pattern for organic movement
                 collisionType: 'projectile', // Destroyed on hit with enemies
@@ -332,7 +332,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
             fontSize: 32, // Fixed size
             radius: 100, // Standard orbit radius
             angle: immortalBodyAngle, // Use the tracked angle
-            speed: 0.01,
+            speed: 1,
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage, // Keep for backward compatibility
@@ -355,7 +355,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_HEAD', {
             fontSize: 32, // Fixed size
             radius: 50, // Close orbit radius
             angle: immortalBodyAngle, // Use the tracked angle
-            speed: 0.01,
+            speed: 1,
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage, // Keep for backward compatibility
@@ -378,7 +378,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_LEG', {
             fontSize: 32, // Fixed size
             radius: 150, // Far orbit radius
             angle: immortalBodyAngle, // Use the tracked angle
-            speed: 0.01,
+            speed: 1,
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage, // Keep for backward compatibility
@@ -440,7 +440,7 @@ OrbitalPerkRegistry.registerPerkOrbital('SNIPER_FAIRY', {
             color: '#FF55AA', // Pinkish color
             fontSize: 20, // Medium size
             radius: 80, // Medium orbit radius
-            speed: 0.01, // Moderate speed
+            speed: 1, // Moderate speed
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage * 0.1, // Keep for backward compatibility
@@ -490,7 +490,7 @@ OrbitalPerkRegistry.registerPerkOrbital('COPY_FAIRY', {
             color: '#55FFAA', // Greenish color
             fontSize: 20, // Small size
             radius: 40, // Close orbit radius
-            speed: 0.01, // Standard speed
+            speed: 1, // Standard speed
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage * 0.1, // Keep for backward compatibility
@@ -516,7 +516,7 @@ OrbitalPerkRegistry.registerPerkOrbital('BERSERK_FAIRY', {
             color: '#FF5500', // Orange-red color
             fontSize: 20, // Small size
             radius: 200, // Far orbit radius
-            speed: 0.02, // Faster speed
+            speed: 2, // Faster speed
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage * 0.1, // Keep for backward compatibility
@@ -583,7 +583,7 @@ OrbitalPerkRegistry.registerPerkOrbital('COLD_FAIRY', {
             color: '#00FFFF', // Cyan color
             fontSize: 20, // Small size like other fairies
             radius: 60, // Medium-close orbit radius
-            speed: 0.01, // Standard speed
+            speed: 1, // Standard speed
             direction: 'counterclockwise', // Counter-clockwise as requested
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
@@ -630,7 +630,7 @@ OrbitalPerkRegistry.registerPerkOrbital('FUN_FAIRY', {
             color: '#FF55FF', // Pink color initially
             fontSize: 22, // Slightly larger than other fairies
             radius: 100, // Medium-far orbit radius as requested
-            speed: 0.015, // Faster rotation as requested
+            speed: 2.2, // Faster rotation as requested
             direction: 'clockwise',
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
@@ -680,7 +680,7 @@ OrbitalPerkRegistry.registerPerkOrbital('DEATH_FINGER', {
             fontSize: 16, // Small size
             radius: 32, // Close to player
             angle: 0, // Starting angle (will be updated by directionFollowing)
-            speed: 0.2, // Speed for rotation
+            speed: 20, // Speed for rotation
             direction: 'clockwise',
             pattern: 'directionFollowing', // Follows player movement direction
             collisionType: 'persistent', // Never dies from collisions
@@ -727,7 +727,7 @@ OrbitalPerkRegistry.registerPerkOrbital('FINGER_OF_DECAY', {
             fontSize: 16, // Small size
             radius: 48, // Slightly larger than Death Finger
             angle: 0, // Starting angle (will be updated by directionFollowing)
-            speed: 0.2, // Speed for rotation
+            speed: 20, // Speed for rotation
             direction: 'clockwise',
             pattern: 'directionFollowing', // Follows player movement direction
             collisionType: 'persistent', // Never dies from collisions
@@ -775,7 +775,7 @@ OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
             fontSize: 32, // Standard size
             radius: 96,
             angle: Math.random() * Math.PI * 2, // Random starting angle
-            speed: 0.1, // Use this value as rotation speed factor for direction following
+            speed: 10, // Use this value as rotation speed factor for direction following
             direction: 'clockwise', // Not really used due to custom movement
             pattern: 'directionFollowing', // Use our custom pattern
             collisionType: 'persistent', // Stays after hitting enemies
@@ -809,7 +809,7 @@ OrbitalPerkRegistry.registerPerkOrbital('HEALING_FAIRY', {
             color: '#00ff00', // Bright green color
             fontSize: 22, // Medium size
             radius: 100, // Medium orbit radius
-            speed: 0.01, // Moderate speed
+            speed: 1, // Moderate speed
             pattern: 'oscillating', // More dynamic movement pattern
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage * 0.1, // Keep for backward compatibility
@@ -857,7 +857,7 @@ OrbitalPerkRegistry.registerPerkOrbital('LAVA_FAIRIES', {
             color: '#FF6600', // Orange-red color for lava
             fontSize: 24, // Medium size
             radius: 64 * (Math.sqrt(playerLuck / BASE_STATS.LUK)),
-            speed: 0.012, // Moderate speed
+            speed: 1.6, // Moderate speed
             pattern: 'standard', // Standard circular pattern as requested
             collisionType: 'projectile', // Dies when hit enemies
             damage: playerDamage * 0.5, // Half player damage
@@ -900,7 +900,7 @@ OrbitalPerkRegistry.registerPerkOrbital('WRECKING_BALL', {
             color: '#777777', // Iron/steel gray color
             fontSize: 32, // Standard size for visibility
             radius: 192, //
-            speed: 0.015, //
+            speed: 2, //
             direction: 'clockwise',
             pattern: 'figureEight', //
             collisionType: 'explosive', // Use the explosive collision behavior
@@ -940,7 +940,7 @@ OrbitalPerkRegistry.registerPerkOrbital('COMET', {
             color: '#ffff00', // Standard yellow color
             fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
             radius: 8, // Starting radius (will be overridden by spiralOut pattern)
-            speed: 0.02, // Rotation speed
+            speed: 2, // Rotation speed
             direction: 'clockwise',
             pattern: 'spiralOut', // Use our new spiral out pattern
             collisionType: 'projectile', // Destroyed on hit
@@ -981,7 +981,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_COMET', {
             color: '#ffff00', // Standard yellow color
             fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
             radius: 8, // Starting radius (will be overridden by spiralOut pattern)
-            speed: 0.02, // Rotation speed
+            speed: 2, // Rotation speed
             direction: 'counterclockwise', // Key difference: counter-clockwise rotation
             pattern: 'spiralOut', // Use our new spiral out pattern
             collisionType: 'projectile', // Destroyed on hit
@@ -1022,7 +1022,7 @@ OrbitalPerkRegistry.registerPerkOrbital('THREE_STARS', {
             color: '#ffff00',
             fontSize: 48,
             radius: 128,
-            speed: 0.04,
+            speed: 2,
             direction: 'clockwise',
             pattern: 'standard',
             collisionType: 'persistent',
@@ -1060,7 +1060,7 @@ OrbitalPerkRegistry.registerPerkOrbital('BLIZZARD', {
             color: '#87CEEB', // Sky blue color
             fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
             radius: 16, // Starting radius
-            speed: 0.02,
+            speed: 2,
             direction: 'clockwise', // Will be overridden by alternating pattern
             pattern: 'spiralOut',
             collisionType: 'projectile',
@@ -1122,7 +1122,7 @@ OrbitalPerkRegistry.registerPerkOrbital('INFINITE_GLIMPSE', {
             color: '#FFD700', // Gold color
             fontSize: getEffectiveSize(projectileSizeFactor, playerLuck), // Scale with luck
             radius: 120, // Medium orbit radius
-            speed: 0.015, // Moderate speed for figure-8
+            speed: 2, // Moderate speed for figure-8
             direction: 'clockwise',
             pattern: 'figureEight', // Use figure-8 movement pattern
             collisionType: 'persistent', // Stays after hitting enemies (key difference from TEAL_OCTOPUS)
@@ -1161,7 +1161,7 @@ OrbitalPerkRegistry.registerPerkOrbital('COLD_WIND', {
             color: '#87CEEB', // Light blue color (sky blue)
             fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
             radius: 8, // Starting radius (will be overridden by spiralOut pattern)
-            speed: 0.02, // Rotation speed
+            speed: 2, // Rotation speed
             direction: 'clockwise',
             pattern: 'spiralOut', // Use spiral out pattern like COMET
             collisionType: 'projectile', // Destroyed on hit

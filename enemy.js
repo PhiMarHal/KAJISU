@@ -10,67 +10,72 @@ let bossMode = false;
 let activeBoss = null;
 let bossSpawned = false;
 
-// Base rank configurations (before hard mode modifications)
+// Add difficulty configuration arrays at the top of enemy.js
+const DIFFICULTY_CONFIG = {
+    baseDelays: [8000, 6000, 4000, 2000], // Index corresponds to difficulty level (1-4)
+    minDelays: [2000, 1000, 400, 400]
+};
+
+// Get current difficulty level (1-4)
+function getCurrentDifficulty() {
+    return window.DIFFICULTY_LEVEL ?? 3; // Default to difficulty 3
+}
+
+// Updated base rank configurations with difficulty scaling
 const baseRankConfigs = {
     1: {
-        startTime: 0,           // Start immediately
-        baseDelay: 4000,        // Base spawn delay in ms
-        minDelay: 400,          // Minimum spawn delay in ms
-        scaleMinutes: 16         // Scale over 16 minutes
+        startTime: 0,
+        baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1],
+        minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1],
+        scaleMinutes: 16
     },
     2: {
-        startTime: 8 * 60,      // Start after 8 minutes
-        baseDelay: 8000,        // Base spawn delay in ms
-        minDelay: 800,          // Minimum spawn delay in ms
-        scaleMinutes: 16         // Scale over 16 minutes
+        startTime: 8 * 60,
+        baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 2,
+        minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 2,
+        scaleMinutes: 16
     },
     3: {
-        startTime: 14 * 60,     // Start after 14 minutes
-        baseDelay: 16000,       // Base spawn delay in ms
-        minDelay: 1600,         // Minimum spawn delay in ms
-        scaleMinutes: 16         // Scale over 16 minutes
+        startTime: 14 * 60,
+        baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 4,
+        minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 4,
+        scaleMinutes: 16
     },
     4: {
-        startTime: 20 * 60,     // Start after 20 minutes
-        baseDelay: 16000,       // Base spawn delay in ms
-        minDelay: 2000,         // Minimum spawn delay in ms
-        scaleMinutes: 8         // Scale over 8 minutes
+        startTime: 20 * 60,
+        baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 4,
+        minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 5,
+        scaleMinutes: 8
     },
     5: {
-        startTime: 30 * 60,     // Start after 30 minutes
-        baseDelay: 20000,       // Base spawn delay in ms
-        minDelay: 3000,         // Minimum spawn delay in ms
-        scaleMinutes: 8         // Scale over 8 minutes
+        startTime: 30 * 60,
+        baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 5,
+        minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 7.5,
+        scaleMinutes: 8
     },
     6: {
-        startTime: 36 * 60,     // Start after 36 minutes
-        baseDelay: 24000,       // Base spawn delay in ms
-        minDelay: 4000,         // Minimum spawn delay in ms
-        scaleMinutes: 8         // Scale over 8 minutes
+        startTime: 36 * 60,
+        baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 6,
+        minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 10,
+        scaleMinutes: 8
     }
 };
 
-// Get current rank configurations with hard mode applied if enabled
+// Updated getRankConfigs function to use difficulty instead of hard mode
 function getRankConfigs() {
-    const isHardMode = window.HARD_MODE_ENABLED ?? false;
-
-    if (!isHardMode) {
-        return baseRankConfigs;
-    }
-
-    // Apply hard mode modifications: halve baseDelay and scaleMinutes
-    const hardModeConfigs = {};
+    const difficulty = getCurrentDifficulty();
+    const configs = {};
 
     Object.keys(baseRankConfigs).forEach(rank => {
         const baseConfig = baseRankConfigs[rank];
-        hardModeConfigs[rank] = {
+        configs[rank] = {
             ...baseConfig,
-            baseDelay: Math.max(100, Math.floor(baseConfig.baseDelay / 2)), // Halve baseDelay, minimum 100ms
-            //scaleMinutes: Math.max(1, Math.floor(baseConfig.scaleMinutes / 2)) // Halve scaleMinutes, minimum 1 minute
+            baseDelay: baseConfig.baseDelay(difficulty),
+            minDelay: baseConfig.minDelay(difficulty)
         };
     });
 
-    return hardModeConfigs;
+    return configs;
 }
 
 // Current rank configurations - updated when needed

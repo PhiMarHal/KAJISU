@@ -1,4 +1,4 @@
-// Updated score.js - Universal dynamic scoring system
+// Updated score.js - Replace versionBonus with totalBonus everywhere
 
 // Add to score.js global variables
 let freeLevelUpsUsed = 0;
@@ -6,6 +6,16 @@ let scoreUpdateTimer = null;
 let freeUsePenalty = 20;
 let versionBonus = 4;
 let victoryBonus = 3;
+
+// Get current difficulty level (1-4)
+function getCurrentDifficulty() {
+    return window.DIFFICULTY_LEVEL ?? 3; // Default to difficulty 3
+}
+
+// Get total bonus (versionBonus × difficulty)
+function getTotalBonus() {
+    return versionBonus * getCurrentDifficulty();
+}
 
 // Enhanced Score System
 const ScoreSystem = {
@@ -17,21 +27,23 @@ const ScoreSystem = {
         const bossSpawnTime = rankConfigs[BOSS_CONFIG.max_rank]?.startTime || 1200;
         const maximumScoreTime = bossSpawnTime * 2;
 
+        const totalBonus = getTotalBonus(); // versionBonus × difficulty
+
         let baseScore;
 
         if (isVictory) {
             // Victory: use the original high-base calculation
             baseScore = this.calculateVictoryBonus(currentTime, bossSpawnTime, maximumScoreTime);
         } else {
-            // Defeat: use time-based calculation
+            // Defeat: use time-based calculation with totalBonus
             const cappedTime = Math.min(currentTime, maximumScoreTime);
-            baseScore = Math.floor(versionBonus * cappedTime);
+            baseScore = Math.floor(totalBonus * cappedTime);
         }
 
         // Subtract penalties for free levelups (Boss Rush only)
         if (window.BOSS_RUSH_MODE) {
-            const levelUpPenalty = freeLevelUpsUsed * freeUsePenalty * versionBonus;
-            baseScore -= levelUpPenalty + Math.floor(versionBonus * (bossSpawnTime - 120));
+            const levelUpPenalty = freeLevelUpsUsed * freeUsePenalty * totalBonus;
+            baseScore -= levelUpPenalty + Math.floor(totalBonus * (bossSpawnTime - 120));
         }
 
         return baseScore;
@@ -39,9 +51,11 @@ const ScoreSystem = {
 
     // Calculate victory bonus that decreases over time
     calculateVictoryBonus: function (currentTime, bossSpawnTime, maximumScoreTime) {
-        // Use the original victory calculation logic
+        const totalBonus = getTotalBonus(); // versionBonus × difficulty
+
+        // Use the original victory calculation logic with totalBonus
         const timeDeduction = Math.min(currentTime - bossSpawnTime, maximumScoreTime);
-        return Math.floor(versionBonus * victoryBonus * (maximumScoreTime - timeDeduction));
+        return Math.floor(totalBonus * victoryBonus * (maximumScoreTime - timeDeduction));
     },
 
     // Initialize dynamic scoring (universal)
@@ -51,7 +65,10 @@ const ScoreSystem = {
 
         console.log("Initializing dynamic scoring, scene:", scene ? "found" : "missing");
 
-        // Start score update timer
+        const totalBonus = getTotalBonus();
+        console.log(`Total bonus: ${totalBonus} (versionBonus: ${versionBonus} × difficulty: ${getCurrentDifficulty()})`);
+
+        // Start score update timer (keep original 1000ms - the totalBonus handles the scaling)
         scoreUpdateTimer = scene.time.addEvent({
             delay: 1000, // Update every second
             callback: this.updateCurrentScore,
@@ -78,7 +95,13 @@ const ScoreSystem = {
         if (!scene || !scene.statusText) return;
 
         const timeText = formatTime(elapsedTime);
-        scene.statusText.setText(`Survived: ${timeText}  Score: ${scoreValue}`);
+        const difficultyLevel = getCurrentDifficulty();
+
+        // Format score without truncation - use toLocaleString for comma separation
+        const formattedScore = scoreValue.toLocaleString();
+
+        // Include difficulty level in the display
+        scene.statusText.setText(`Survived: ${timeText}  Score: ${formattedScore} (D${difficultyLevel})`);
     },
 
     // Apply penalty for free levelup (Boss Rush only)
@@ -86,7 +109,8 @@ const ScoreSystem = {
         if (!window.BOSS_RUSH_MODE) return;
 
         freeLevelUpsUsed++;
-        console.log(`Free levelup used. Total penalties: ${freeLevelUpsUsed * freeUsePenalty * versionBonus}`);
+        const totalBonus = getTotalBonus();
+        console.log(`Free levelup used. Total penalties: ${freeLevelUpsUsed * freeUsePenalty * totalBonus}`);
 
         // Don't update UI here - let the main game loop handle it
     },
@@ -94,7 +118,7 @@ const ScoreSystem = {
     // Get final score (for game end)
     getFinalScore: function (isVictory) {
         const finalScore = this.calculateCurrentScore(isVictory);
-        // Don't normalize negative scores here - let the animation handle it
+        console.log(`Final score: ${finalScore} (totalBonus: ${getTotalBonus()})`);
         return finalScore;
     },
 
@@ -252,8 +276,9 @@ const ScoreSystem = {
     showFinalScore: function (scene, textObject, finalScore) {
         if (!scene || !textObject || textObject.active === false) return;
 
-        // Set the final score immediately
-        textObject.setText(finalScore.toString());
+        // Format the final score properly without truncation
+        const formattedScore = finalScore.toLocaleString();
+        textObject.setText(formattedScore);
 
         // Update color based on score
         textObject.setColor(finalScore <= 0 ? '#FF4444' : '#FFD700');
@@ -319,7 +344,10 @@ const ScoreSystem = {
                 // Only update if the text object is still valid
                 if (textObject && textObject.active !== false) {
                     const currentValue = Math.floor(counter.value);
-                    textObject.setText(currentValue.toString());
+
+                    // Format the current value properly without truncation
+                    const formattedValue = currentValue.toLocaleString();
+                    textObject.setText(formattedValue);
 
                     // Update color during animation
                     const color = currentValue <= 0 ? '#FF4444' : '#FFD700';

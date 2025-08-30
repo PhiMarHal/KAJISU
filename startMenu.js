@@ -14,8 +14,8 @@ window.KAJISULI_MODE = (() => {
 // Set learning challenge preference - default to false
 window.LEARNING_CHALLENGE_ENABLED = false;
 
-// Set hard mode preference - default to false
-window.HARD_MODE_ENABLED = false;
+// Set difficulty mode - default to 3
+window.DIFFICULTY_LEVEL = 3;
 
 // Set stranger music preference - default to false
 window.STRANGE_MUSIC_ENABLED = false;
@@ -25,7 +25,7 @@ const StartMenuSystem = {
     state: {
         kajisuliMode: false,
         learningChallengeEnabled: false,
-        hardModeEnabled: false,
+        difficultyLevel: 3,
         bossRushMode: false,
         strangedMusicEnabled: false,
         initialized: false
@@ -50,9 +50,11 @@ const StartMenuSystem = {
             on: "Type to unlock perks. Gain XP for success",
             off: "Select perks freely on lvlup. No extra EXP"
         },
-        hardMode: {
-            on: "Enemies spawn faster",
-            off: "Normal spawn rate for enemies"
+        difficulty: {
+            1: "A relaxing, casual run. Enemies are few and slow.",
+            2: "Recommended experience for firsttimers.",
+            3: "The original KAJISULI experience.",
+            4: "Veteran Loopers only. Hordes of fast enemies."
         },
         bossRush: {
             on: "Warp to the boss fight. Trade score penalties for lvlups",
@@ -92,7 +94,7 @@ const StartMenuSystem = {
     init: function () {
         this.state.kajisuliMode = window.KAJISULI_MODE;
         this.state.learningChallengeEnabled = window.LEARNING_CHALLENGE_ENABLED;
-        this.state.hardModeEnabled = window.HARD_MODE_ENABLED;
+        this.state.difficultyLevel = window.DIFFICULTY_LEVEL;
         this.state.bossRushMode = window.BOSS_RUSH_MODE;
         this.state.strangeMusicEnabled = window.STRANGE_MUSIC_ENABLED;
         this.applyCSSMode();
@@ -299,12 +301,6 @@ const StartMenuSystem = {
             togglesContainer.appendChild(learningToggle);
         }
 
-        const hardModeToggle = createToggleWithLabel('Hard Mode', this.state.hardModeEnabled, (enabled) => {
-            this.toggleHardMode(enabled);
-            this.showInfoMessage(this.infoMessages.hardMode[enabled ? 'on' : 'off']);
-        });
-        togglesContainer.appendChild(hardModeToggle);
-
         const bossRushToggle = createToggleWithLabel('Boss Rush', this.state.bossRushMode, (enabled) => {
             this.toggleBossRush(enabled);
             this.showInfoMessage(this.infoMessages.bossRush[enabled ? 'on' : 'off']);
@@ -316,6 +312,10 @@ const StartMenuSystem = {
             this.showInfoMessage(this.infoMessages.strangeMusic[enabled ? 'on' : 'off']);
         });
         togglesContainer.appendChild(strangeMusicToggle);
+
+        // Add difficulty selector at the bottom
+        const difficultySelector = this.createDifficultySelector(sizes);
+        togglesContainer.appendChild(difficultySelector);
 
         this.elements.menuContainer.appendChild(togglesContainer);
 
@@ -363,6 +363,116 @@ const StartMenuSystem = {
         }, 1000);
     },
 
+    // Create a 4-level difficulty selector with dots
+    createDifficultySelector: function (sizes) {
+        const container = document.createElement('div');
+        container.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            width: 100%;
+        `;
+
+        const difficultyLabel = document.createElement('div');
+        difficultyLabel.textContent = 'Difficulty';
+        difficultyLabel.dataset.toggleLabel = '';
+        difficultyLabel.style.cssText = `
+            font-size: ${sizes.toggleSize}px;
+            color: #FFD700;
+            transition: all 0.3s ease;
+        `;
+
+        const selectorContainer = document.createElement('div');
+        selectorContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+        `;
+
+        // Create the elongated selector background
+        const selectorBg = document.createElement('div');
+        selectorBg.style.cssText = `
+            width: ${sizes.toggleSize * 8}px;
+            height: ${sizes.toggleSize * 1.2}px;
+            background-color: #666666;
+            border-radius: ${sizes.toggleSize * 0.6}px;
+            position: relative;
+            transition: all 0.3s ease;
+        `;
+
+        // Create 4 difficulty segments with dots instead of numbers
+        const segmentWidth = sizes.toggleSize * 2;
+        for (let i = 1; i <= 4; i++) {
+            const segment = document.createElement('div');
+            segment.dataset.difficulty = i;
+            segment.style.cssText = `
+                position: absolute;
+                left: ${(i - 1) * segmentWidth}px;
+                top: 0;
+                width: ${segmentWidth}px;
+                height: ${sizes.toggleSize * 1.2}px;
+                border-radius: ${sizes.toggleSize * 0.6}px;
+                transition: all 0.3s ease;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: ${this.state.difficultyLevel === i ? '#FFD700' : 'transparent'};
+            `;
+
+            // Create the dot (circle) inside the segment - same size as toggle dots
+            const dot = document.createElement('div');
+            dot.style.cssText = `
+                width: ${sizes.toggleSize * 0.8}px;
+                height: ${sizes.toggleSize * 0.8}px;
+                background-color: #FFFFFF;
+                border-radius: 50%;
+                transition: all 0.3s ease;
+                pointer-events: none;
+            `;
+
+            segment.appendChild(dot);
+
+            segment.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.setDifficulty(i);
+                this.updateDifficultyDisplay(selectorBg, i, sizes);
+                this.showInfoMessage(this.infoMessages.difficulty[i]);
+            });
+
+            selectorBg.appendChild(segment);
+        }
+
+        selectorContainer.appendChild(selectorBg);
+        container.appendChild(difficultyLabel);
+        container.appendChild(selectorContainer);
+
+        // Store references
+        container.selectorBg = selectorBg;
+        container.difficultyLabel = difficultyLabel;
+
+        return container;
+    },
+
+    // Update difficulty display with dots - keep dots white always
+    updateDifficultyDisplay: function (selectorBg, selectedDifficulty, sizes) {
+        const segments = selectorBg.querySelectorAll('[data-difficulty]');
+        segments.forEach((segment, index) => {
+            const difficulty = index + 1;
+            const isSelected = difficulty === selectedDifficulty;
+
+            // Only change the background, keep dots white
+            segment.style.backgroundColor = isSelected ? '#FFD700' : 'transparent';
+        });
+    },
+
+    // Set difficulty level
+    setDifficulty: function (level) {
+        this.state.difficultyLevel = level;
+        window.DIFFICULTY_LEVEL = level;
+        console.log(`Difficulty set to level ${level}`);
+    },
+
     // Handle window resize: update sizes and re-center circles
     handleResize: function () {
         // Step 1: Recalculate responsive sizes
@@ -387,7 +497,7 @@ const StartMenuSystem = {
             this.elements.infoMessage.style.fontSize = `${sizes.infoSize}px`;
         }
 
-        // Step 5: Force layout flush — critical!
+        // Step 5: Force layout flush – critical!
         this.titleElement?.offsetHeight;
 
         // Step 6: Use setTimeout + rAF to wait for full layout
@@ -506,80 +616,6 @@ const StartMenuSystem = {
         }, 100);
     },
 
-    // Create a unified toggle component
-    createToggle: function (label, isEnabled, onToggle, sizes) {
-        const container = document.createElement('div');
-        container.style.cssText = `
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            width: 100%;
-        `;
-
-        // Toggle label (left aligned)
-        const toggleLabel = document.createElement('div');
-        toggleLabel.textContent = label;
-        toggleLabel.style.cssText = `
-            font-size: ${sizes.toggleSize}px;
-            color: ${isEnabled ? '#FFD700' : '#FFFFFF'};
-            transition: all 0.3s ease;
-        `;
-
-        // Toggle switch container (right aligned)
-        const toggleContainer = document.createElement('div');
-        toggleContainer.style.cssText = `
-            display: flex;
-            align-items: center;
-        `;
-
-        // Toggle switch background
-        const toggleBg = document.createElement('div');
-        toggleBg.style.cssText = `
-            width: ${sizes.toggleSize * 2.5}px;
-            height: ${sizes.toggleSize * 1.2}px;
-            background-color: ${isEnabled ? '#FFD700' : '#666666'};
-            border-radius: ${sizes.toggleSize}px;
-            position: relative;
-            transition: all 0.3s ease;
-        `;
-
-        // Toggle switch circle
-        const toggleCircle = document.createElement('div');
-        toggleCircle.style.cssText = `
-            width: ${sizes.toggleSize * 0.8}px;
-            height: ${sizes.toggleSize * 0.8}px;
-            background-color: #FFFFFF;
-            border-radius: 50%;
-            position: absolute;
-            top: ${sizes.toggleSize * 0.2}px;
-            left: ${isEnabled ? sizes.toggleSize * 1.5 : sizes.toggleSize * 0.2}px;
-            transition: all 0.3s ease;
-        `;
-
-        toggleBg.appendChild(toggleCircle);
-        toggleContainer.appendChild(toggleBg);
-
-        container.appendChild(toggleLabel);
-        container.appendChild(toggleContainer);
-
-        // Store references for updates
-        container.toggleBg = toggleBg;
-        container.toggleCircle = toggleCircle;
-        container.toggleLabel = toggleLabel;
-        container.isEnabled = isEnabled;
-
-        // Click handler
-        container.addEventListener('click', () => {
-            const newState = !container.isEnabled;
-            this.updateToggleState(container, newState, sizes);
-            onToggle(newState);
-        });
-
-        return container;
-    },
-
     // Update toggle visual state
     updateToggleState: function (toggle, isEnabled, sizes) {
         toggle.isEnabled = isEnabled;
@@ -594,13 +630,6 @@ const StartMenuSystem = {
         this.state.learningChallengeEnabled = enabled;
         window.LEARNING_CHALLENGE_ENABLED = enabled;
         console.log(`Learning Challenge: ${enabled ? 'ENABLED' : 'DISABLED'}`);
-    },
-
-    // Toggle hard mode setting
-    toggleHardMode: function (enabled) {
-        this.state.hardModeEnabled = enabled;
-        window.HARD_MODE_ENABLED = enabled;
-        console.log(`Hard Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
     },
 
     // Toggle boss rush setting
@@ -633,7 +662,7 @@ const StartMenuSystem = {
         this.cleanup();
         window.KAJISULI_MODE = this.state.kajisuliMode;
         window.LEARNING_CHALLENGE_ENABLED = this.state.learningChallengeEnabled;
-        window.HARD_MODE_ENABLED = this.state.hardModeEnabled;
+        window.DIFFICULTY_LEVEL = this.state.difficultyLevel;
         window.BOSS_RUSH_MODE = this.state.bossRushMode;
         window.STRANGE_MUSIC_ENABLED = this.state.strangeMusicEnabled;
 
@@ -680,7 +709,6 @@ const StartMenuSystem = {
         };
         document.addEventListener('keydown', this.keyHandler);
     },
-
 
     // Start CSS animations
     startAnimations: function () {

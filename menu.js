@@ -633,8 +633,8 @@ const ButtonDisplay = {
 
 // Helper function to format large numbers with 4 significant digits + kanji
 function formatLargeNumber(number) {
-    // Return original number if it's less than 5 digits
-    if (number < 10000) {
+    // Return original number if it's less than 6 digits (changed from 5)
+    if (number < 100000) {
         return number.toString();
     }
 
@@ -657,12 +657,32 @@ function formatLargeNumber(number) {
     // Find the appropriate unit
     for (const unit of kanjiUnits) {
         if (number >= unit.value) {
-            // Calculate the significant part (keeping 4 digits)
-            const scaleFactor = unit.value / 1000; // We want 4 significant digits (1000-9999)
-            const significantPart = Math.floor(number / scaleFactor);
+            // FIXED: Calculate the significant part correctly
+            const significantPart = Math.floor(number / unit.value);
 
-            // Format with the unit
-            return `${significantPart}${unit.kanji}`;
+            // Handle cases where we want to show fractional parts for readability
+            if (significantPart >= 1000) {
+                // If the significant part is too large, we should use the next higher unit
+                // But since our units are properly ordered, this shouldn't happen
+                return `${significantPart}${unit.kanji}`;
+            } else if (significantPart >= 100) {
+                // For 100-999, show as is
+                return `${significantPart}${unit.kanji}`;
+            } else if (significantPart >= 10) {
+                // For 10-99, show as is  
+                return `${significantPart}${unit.kanji}`;
+            } else {
+                // For 1-9, check if we should show decimal
+                const remainder = number % unit.value;
+                const nextUnit = kanjiUnits[kanjiUnits.indexOf(unit) + 1];
+
+                if (nextUnit && remainder >= nextUnit.value) {
+                    const nextSignificant = Math.floor(remainder / nextUnit.value);
+                    return `${significantPart}${unit.kanji}${nextSignificant}${nextUnit.kanji}`;
+                } else {
+                    return `${significantPart}${unit.kanji}`;
+                }
+            }
         }
     }
 

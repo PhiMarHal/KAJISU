@@ -1,66 +1,87 @@
-// Default values for different ranks of enemies
+// Get current difficulty level (1-4)
+function getCurrentDifficulty() {
+    return window.DIFFICULTY_LEVEL ?? 3; // Default to difficulty 3
+}
+
+// Calculate speed ranges based on difficulty
+function getDifficultySpeedRange(difficulty) {
+    const speedMin = 10 + (difficulty * 10);
+    const speedMax = speedMin + (difficulty * 10) + 10;
+    return { speedMin, speedMax };
+}
+
+// Get difficulty-based boss configuration
+function getDifficultyBossConfig(difficulty) {
+    return {
+        max_rank: 4,
+        health_multiplier: Math.pow(2, difficulty - 1), // 1, 2, 4, 8
+        speed: 20 + (difficulty * 20) // 40, 60, 80, 100
+    };
+}
+
+// Updated default values for different ranks of enemies with difficulty scaling
 const ENEMY_RANK_DEFAULTS = {
-    // Rank 1 (basic enemies)
     1: {
         healthMultiplier: 1.0,
-        speedMin: 25,
-        speedMax: 100,
+        get speedMin() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMin; },
+        get speedMax() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMax; },
         damage: 1,
         color: '#ff5555',
         size: 32,
         expValue: 1
     },
-    // Rank 2 (stronger enemies)
     2: {
         healthMultiplier: 4.0,
-        speedMin: 25,
-        speedMax: 100,
+        get speedMin() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMin; },
+        get speedMax() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMax; },
         damage: 1,
         color: '#ff5555',
         size: 48,
         expValue: 4
     },
-    // Rank 3 (even stronger enemies)
     3: {
         healthMultiplier: 16.0,
-        speedMin: 25,
-        speedMax: 100,
+        get speedMin() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMin; },
+        get speedMax() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMax; },
         damage: 1,
         color: '#ff5555',
         size: 64,
         expValue: 16
     },
-    // Rank 4 (powerful enemies)
     4: {
         healthMultiplier: 64.0,
-        speedMin: 25,
-        speedMax: 100,
+        get speedMin() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMin; },
+        get speedMax() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMax; },
         damage: 1,
         color: '#ff5555',
         size: 80,
         expValue: 64
     },
-    // Rank 5 (very powerful enemies)
     5: {
         healthMultiplier: 256.0,
-        speedMin: 25,
-        speedMax: 100,
+        get speedMin() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMin; },
+        get speedMax() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMax; },
         damage: 1,
         color: '#ff5555',
         size: 96,
         expValue: 256
     },
-    // Rank 6 (elite enemies)
     6: {
         healthMultiplier: 1024.0,
-        speedMin: 25,
-        speedMax: 100,
+        get speedMin() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMin; },
+        get speedMax() { return getDifficultySpeedRange(getCurrentDifficulty()).speedMax; },
         damage: 1,
         color: '#ff5555',
         size: 128,
         expValue: 1024
     }
-    // Future ranks can be added here following the pattern
+};
+
+// Updated boss configuration with difficulty scaling
+const BOSS_CONFIG = {
+    get max_rank() { return getDifficultyBossConfig(getCurrentDifficulty()).max_rank; },
+    get health_multiplier() { return getDifficultyBossConfig(getCurrentDifficulty()).health_multiplier; },
+    get speed() { return getDifficultyBossConfig(getCurrentDifficulty()).speed; }
 };
 
 // Rank names using kanji characters
@@ -71,13 +92,6 @@ const ENEMY_RANK_NAMES = {
     4: "肆", // Formal number 4 (shi)
     5: "伍", // Formal number 5 (go)
     6: "陸"  // Formal number 6 (roku)
-};
-
-// Boss configuration
-const BOSS_CONFIG = {
-    max_rank: 4,                // Maximum rank at which the boss appears
-    health_multiplier: 4.0,    // Boss health multiplier compared to normal enemies
-    speed: 100                  // Fixed boss speed
 };
 
 // The enemy definitions - using kanji characters with readings and translations

@@ -52,8 +52,7 @@ const InputSystem = {
         tapStartTime: 0,
         tapStartX: 0,
         tapStartY: 0,
-        tapHoldThreshold: 100, // ms - how long before we remove tap location
-        tapGracePeriod: 10, // ms - extra grace period for near-misses
+        tapHoldThreshold: 200, // originally 100+10, trying 200
         hasMoved: false,
         isWaitingForIntent: false, // waiting to see if it's a tap or drag
 
@@ -119,12 +118,11 @@ const InputSystem = {
             if (gamePaused || gameOver) return;
 
             const touchDuration = scene.time.now - this.tapToMove.tapStartTime;
-            const effectiveThreshold = this.tapToMove.tapHoldThreshold + this.tapToMove.tapGracePeriod;
 
-            console.log(`Touch up after ${touchDuration}ms (threshold: ${effectiveThreshold}ms)`);
+            console.log(`Touch up after ${touchDuration}ms (threshold: ${this.tapToMove.tapHoldThreshold}ms)`);
 
             // Decision: was this a tap?
-            if (touchDuration < effectiveThreshold) {
+            if (touchDuration < this.tapToMove.tapHoldThreshold) {
                 console.log("Quick tap detected - setting tap target");
                 this.handleSingleTap(this.tapToMove.tapStartX, this.tapToMove.tapStartY);
             } else {

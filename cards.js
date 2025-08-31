@@ -169,8 +169,6 @@ function createCardPulse(scene, x, y, width, height, color = 'gold', speed = 4, 
     // Add to document
     document.body.appendChild(pulseDiv);
 
-    console.log(`HTML DOM pulse created with ${color} gradient at ${screenX}, ${screenY}`);
-
     // Store in global cleanup array for failsafe cleanup
     if (!window.activeCardPulses) {
         window.activeCardPulses = [];
@@ -191,8 +189,6 @@ function createCardPulse(scene, x, y, width, height, color = 'gold', speed = 4, 
                         window.activeCardPulses.splice(index, 1);
                     }
                 }
-
-                console.log('HTML pulse element cleaned up');
             }
         }
     };

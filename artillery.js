@@ -130,8 +130,6 @@ ProjectileComponentSystem.registerComponent('slowEffect', {
 
         // Apply cyan tint to enemy to show slow effect
         SpriteEffectHelpers.applyEffectColorTexture(enemy, '#00ffff', scene);
-
-        //console.log(`Enemy slowed: ${enemy.text || enemy.kanjiCharacter}`);
     }
 });
 
@@ -269,25 +267,12 @@ ProjectileComponentSystem.registerComponent('poisonEffect', {
     initialize: function (projectile) {
         // Visual indicator
         ProjectileComponentSystem.setProjectileColor(projectile, '#2aad27', projectile.scene);
-
-        // Debug log
-        console.log('Poison component initialized on:', projectile);
-        console.log('Projectile damage property:', projectile.damage);
-        console.log('Current playerDamage:', playerDamage);
     },
 
     onHit: function (projectile, enemy, scene) {
         if (enemy.health > 0) {
-            // Debug logging
-            console.log('Poison onHit triggered');
-            console.log('Projectile object:', projectile);
-            console.log('Projectile.damage value:', projectile.damage);
-            console.log('Current playerDamage:', playerDamage);
-
             // Check if projectile.damage is undefined and falling back somehow
             const damageToUse = projectile.damage !== undefined ? projectile.damage : playerDamage;
-            console.log('Damage being passed to poison:', damageToUse);
-
             // Use the extracted function
             applyPoisonEffect(scene, enemy, damageToUse);
         }

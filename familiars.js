@@ -460,7 +460,6 @@ function setupFairyColorChanger(scene, orbital) {
     // Store reference to timer on orbital for cleanup
     orbital.colorTimer = colorTimer;
 
-    console.log('Fun Fairy color changer set up successfully');
     return colorTimer;
 }
 

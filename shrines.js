@@ -326,13 +326,13 @@ const ShrineConfigs = {
         effectInterval: 0, // No periodic effect, just enter/exit
         onEnterAura: function (shrine) {
             berserkMultiplier += 1.0;
-            console.log("Entered berserk shrine - damage boost active!");
+            //console.log("Entered berserk shrine - damage boost active!");
             GameUI.updateStatCircles(shrine.scene);
         },
         onExitAura: function (shrine) {
             berserkMultiplier -= 1.0;
             if (berserkMultiplier < 1.0) berserkMultiplier = 1.0;
-            console.log("Left berserk shrine - damage boost ended");
+            //console.log("Left berserk shrine - damage boost ended");
             GameUI.updateStatCircles(shrine.scene);
         }
     },
@@ -347,14 +347,14 @@ const ShrineConfigs = {
         effectInterval: 0, // No periodic effect, just enter/exit
         onEnterAura: function (shrine) {
             archerMultiplier += 1.0;
-            console.log("Entered archer shrine - fire rate boost active!");
+            //console.log("Entered archer shrine - fire rate boost active!");
             GameUI.updateStatCircles(shrine.scene);
             WeaponSystem.updateFiringRate(shrine.scene);
         },
         onExitAura: function (shrine) {
             archerMultiplier -= 1.0;
             if (archerMultiplier < 1.0) archerMultiplier = 1.0;
-            console.log("Left archer shrine - fire rate boost ended");
+            //console.log("Left archer shrine - fire rate boost ended");
             GameUI.updateStatCircles(shrine.scene);
             WeaponSystem.updateFiringRate(shrine.scene);
         }
@@ -369,10 +369,10 @@ const ShrineConfigs = {
         auraColor: 0x00FF00,
         effectInterval: 1000, // Heal every second
         onEnterAura: function (shrine) {
-            console.log("Entered healing shrine - regeneration active!");
+            //console.log("Entered healing shrine - regeneration active!");
         },
         onExitAura: function (shrine) {
-            console.log("Left healing shrine - regeneration ended");
+            //console.log("Left healing shrine - regeneration ended");
         },
         onEffectTrigger: function (shrine) {
             if (playerHealth < maxPlayerHealth) {
@@ -390,10 +390,10 @@ const ShrineConfigs = {
         auraColor: 0x9966FF,
         effectInterval: 200, // Lightning every 200ms
         onEnterAura: function (shrine) {
-            console.log("Entered storm shrine - lightning storm active!");
+            //console.log("Entered storm shrine - lightning storm active!");
         },
         onExitAura: function (shrine) {
-            console.log("Left storm shrine - lightning storm ended");
+            //console.log("Left storm shrine - lightning storm ended");
         },
         onEffectTrigger: function (shrine) {
             // Create lightning at random position on screen
@@ -419,10 +419,10 @@ const ShrineConfigs = {
         auraColor: 0xFFD700,
         effectInterval: 2000, // God hammer every 2 seconds
         onEnterAura: function (shrine) {
-            console.log("Entered god hammer shrine - divine hammers active!");
+            //console.log("Entered god hammer shrine - divine hammers active!");
         },
         onExitAura: function (shrine) {
-            console.log("Left god hammer shrine - divine hammers ended");
+            //console.log("Left god hammer shrine - divine hammers ended");
         },
         onEffectTrigger: function (shrine) {
             dropGodHammer.call(shrine.scene);

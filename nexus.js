@@ -913,7 +913,7 @@ OrbitalPerkRegistry.registerPerkOrbital('WRECKING_BALL', {
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 16000, // Base 16 second cooldown
+    cooldown: 8000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     activationMethod: 'timer' // Create periodically on a timer

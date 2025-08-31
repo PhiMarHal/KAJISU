@@ -1385,7 +1385,7 @@ const PERKS = {
         kana: "じゅうどうか",
         romaji: "juudouka",
         english: "Judoka",
-        description: "+10% damage per current HP",
+        description: "+5% damage per current HP",
         color: "#4169E1",
         hoverColor: 0x2E59C1,
         onAcquire: function () {
@@ -1397,7 +1397,7 @@ const PERKS = {
         kana: "からてか",
         romaji: "karateka",
         english: "Karateka",
-        description: "+10% fire speed per current HP",
+        description: "+5% fire speed per current HP",
         color: "#DC143C",
         hoverColor: 0xBC042C,
         onAcquire: function () {

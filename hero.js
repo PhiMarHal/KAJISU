@@ -1175,7 +1175,7 @@ function createHealthMultiplierComponent(multiplierName, getMultiplierRef, setMu
 
         initialize: function (player) {
             // Calculate initial contribution based on current health
-            this.currentContribution = playerHealth * 0.1;
+            this.currentContribution = playerHealth * 0.05;
 
             // Add our contribution to the specified multiplier
             setMultiplierRef(getMultiplierRef() + this.currentContribution);
@@ -1191,7 +1191,7 @@ function createHealthMultiplierComponent(multiplierName, getMultiplierRef, setMu
 
         update: function (player) {
             // Calculate what our contribution should be based on current health
-            const newContribution = playerHealth * 0.1;
+            const newContribution = playerHealth * 0.05;
 
             // Only update if there's a meaningful change
             if (Math.abs(this.currentContribution - newContribution) > 0.01) {

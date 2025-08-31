@@ -51,10 +51,10 @@ const StartMenuSystem = {
             off: "Select perks freely on lvlup. No extra EXP"
         },
         difficulty: {
-            1: "A relaxing, casual run. Enemies are few and slow.",
-            2: "Recommended experience for firsttimers.",
-            3: "The original KAJISULI experience.",
-            4: "Veteran Loopers only. Hordes of fast enemies."
+            1: "A relaxing, casual run. Your foes are few and slow",
+            2: "Start here. Discover the loop",
+            3: "The original KAJISULI experience. More aggressive enemies",
+            4: "Only for veteran loopers. Kanjis are out for blood."
         },
         bossRush: {
             on: "Warp to the boss fight. Trade score penalties for lvlups",
@@ -62,7 +62,7 @@ const StartMenuSystem = {
         },
         strangeMusic: {
             on: "Early suno.ai experiments. Only for the strongest ears",
-            off: "Back to the regular tunes"
+            off: "Back to our regular soundtrack"
         }
     },
 
@@ -363,95 +363,199 @@ const StartMenuSystem = {
         }, 1000);
     },
 
-    // Create a 4-level difficulty selector with dots
+    // Create a 4-level difficulty selector with sliding dot and background
     createDifficultySelector: function (sizes) {
         const container = document.createElement('div');
         container.style.cssText = `
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s ease;
-            width: 100%;
-        `;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+        width: 100%;
+    `;
 
         const difficultyLabel = document.createElement('div');
         difficultyLabel.textContent = 'Difficulty';
         difficultyLabel.dataset.toggleLabel = '';
         difficultyLabel.style.cssText = `
-            font-size: ${sizes.toggleSize}px;
-            color: #FFD700;
-            transition: all 0.3s ease;
-        `;
+        font-size: ${sizes.toggleSize}px;
+        color: #FFD700;
+        transition: all 0.3s ease;
+    `;
 
         const selectorContainer = document.createElement('div');
         selectorContainer.style.cssText = `
-            display: flex;
-            align-items: center;
-        `;
+        display: flex;
+        align-items: center;
+    `;
 
-        // Create the elongated selector background
+        // Create the main selector background (gray)
         const selectorBg = document.createElement('div');
         selectorBg.style.cssText = `
-            width: ${sizes.toggleSize * 8}px;
-            height: ${sizes.toggleSize * 1.2}px;
-            background-color: #666666;
-            border-radius: ${sizes.toggleSize * 0.6}px;
-            position: relative;
+        width: ${sizes.toggleSize * 8}px;
+        height: ${sizes.toggleSize * 1.2}px;
+        background-color: #666666;
+        border-radius: ${sizes.toggleSize * 0.6}px;
+        position: relative;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    `;
+
+        // Calculate positions for the 4 difficulty levels
+        const positions = [
+            sizes.toggleSize * 1,    // Position 1
+            sizes.toggleSize * 3,    // Position 2
+            sizes.toggleSize * 5,    // Position 3
+            sizes.toggleSize * 7     // Position 4
+        ];
+
+        // Add roman numerals at fixed positions
+        const romanNumerals = ['I', 'II', 'III', 'IV'];
+        romanNumerals.forEach((numeral, index) => {
+            const numeralElement = document.createElement('div');
+            numeralElement.style.cssText = `
+            position: absolute;
+            left: ${positions[index]}px;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: #FFFFFF;
+            font-size: ${sizes.toggleSize * 0.7}px; // Slightly bigger numerals
+            font-weight: bold;
+            pointer-events: none;
             transition: all 0.3s ease;
         `;
+            numeralElement.textContent = numeral;
+            selectorBg.appendChild(numeralElement);
+        });
 
-        // Create 4 difficulty segments with dots instead of numbers
-        const segmentWidth = sizes.toggleSize * 2;
-        for (let i = 1; i <= 4; i++) {
-            const segment = document.createElement('div');
-            segment.dataset.difficulty = i;
-            segment.style.cssText = `
-                position: absolute;
-                left: ${(i - 1) * segmentWidth}px;
-                top: 0;
-                width: ${segmentWidth}px;
-                height: ${sizes.toggleSize * 1.2}px;
-                border-radius: ${sizes.toggleSize * 0.6}px;
-                transition: all 0.3s ease;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background-color: ${this.state.difficultyLevel === i ? '#FFD700' : 'transparent'};
-            `;
+        // Create sliding gold background that follows the dot
+        const slidingBackground = document.createElement('div');
+        const backgroundWidth = sizes.toggleSize * 2.2; // Wider to fill gray space at extremes
+        slidingBackground.style.cssText = `
+        position: absolute;
+        width: ${backgroundWidth}px;
+        height: ${sizes.toggleSize * 1.2}px;
+        background-color: #FFD700;
+        border-radius: ${sizes.toggleSize * 0.6}px;
+        left: ${positions[this.state.difficultyLevel - 1] - backgroundWidth / 2}px;
+        top: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+    `;
+        selectorBg.appendChild(slidingBackground);
 
-            // Create the dot (circle) inside the segment - same size as toggle dots
-            const dot = document.createElement('div');
-            dot.style.cssText = `
-                width: ${sizes.toggleSize * 0.8}px;
-                height: ${sizes.toggleSize * 0.8}px;
-                background-color: #FFFFFF;
-                border-radius: 50%;
-                transition: all 0.3s ease;
-                pointer-events: none;
-            `;
+        // Create the sliding white dot
+        const slidingDot = document.createElement('div');
+        slidingDot.style.cssText = `
+        position: absolute;
+        width: ${sizes.toggleSize * 0.8}px;
+        height: ${sizes.toggleSize * 0.8}px;
+        background-color: #FFFFFF;
+        border-radius: 50%;
+        left: ${positions[this.state.difficultyLevel - 1] - (sizes.toggleSize * 0.4)}px;
+        top: ${sizes.toggleSize * 0.2}px;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 1;
+    `;
+        selectorBg.appendChild(slidingDot);
 
-            segment.appendChild(dot);
+        // Add click handler to the main background
+        selectorBg.addEventListener('click', (e) => {
+            const rect = selectorBg.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
 
-            segment.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.setDifficulty(i);
-                this.updateDifficultyDisplay(selectorBg, i, sizes);
-                this.showInfoMessage(this.infoMessages.difficulty[i]);
-            });
+            // Determine which section was clicked
+            let newDifficulty = 1;
+            const sectionWidth = (sizes.toggleSize * 8) / 4;
 
-            selectorBg.appendChild(segment);
-        }
+            for (let i = 0; i < 4; i++) {
+                if (clickX >= i * sectionWidth && clickX < (i + 1) * sectionWidth) {
+                    newDifficulty = i + 1;
+                    break;
+                }
+            }
+
+            // Update difficulty and animate
+            this.setDifficulty(newDifficulty);
+            this.updateDifficultySlider(slidingDot, slidingBackground, newDifficulty, positions, sizes);
+            this.showInfoMessage(this.infoMessages.difficulty[newDifficulty]);
+        });
 
         selectorContainer.appendChild(selectorBg);
         container.appendChild(difficultyLabel);
         container.appendChild(selectorContainer);
 
-        // Store references
+        // Store references for resize updates
         container.selectorBg = selectorBg;
         container.difficultyLabel = difficultyLabel;
+        container.slidingDot = slidingDot;
+        container.slidingBackground = slidingBackground;
+        container.positions = positions;
 
         return container;
+    },
+
+    // Add this new helper function to update the slider position
+    updateDifficultySlider: function (slidingDot, slidingBackground, difficulty, positions, sizes) {
+        const position = positions[difficulty - 1];
+        const backgroundWidth = sizes.toggleSize * 2.2; // Match the wider background
+
+        // Move the dot
+        slidingDot.style.left = `${position - (sizes.toggleSize * 0.4)}px`;
+
+        // Move the gold background
+        slidingBackground.style.left = `${position - backgroundWidth / 2}px`;
+    },
+
+    // Update difficulty selector sizes during resize
+    updateDifficultySelectorSizes: function (container, sizes) {
+        if (!container.selectorBg || !container.slidingDot || !container.slidingBackground) return;
+
+        const selectorBg = container.selectorBg;
+        const slidingDot = container.slidingDot;
+        const slidingBackground = container.slidingBackground;
+
+        // Recalculate positions
+        const newPositions = [
+            sizes.toggleSize * 1,
+            sizes.toggleSize * 3,
+            sizes.toggleSize * 5,
+            sizes.toggleSize * 7
+        ];
+
+        // Update main background size
+        selectorBg.style.width = `${sizes.toggleSize * 8}px`;
+        selectorBg.style.height = `${sizes.toggleSize * 1.2}px`;
+        selectorBg.style.borderRadius = `${sizes.toggleSize * 0.6}px`;
+
+        // Update roman numerals positions and sizes
+        const numeralElements = selectorBg.querySelectorAll('div');
+        let numeralIndex = 0;
+        numeralElements.forEach(element => {
+            if (element !== slidingBackground && element !== slidingDot && numeralIndex < 4) {
+                element.style.left = `${newPositions[numeralIndex]}px`;
+                element.style.fontSize = `${sizes.toggleSize * 0.7}px`; // Match the bigger font size
+                numeralIndex++;
+            }
+        });
+
+        // Update sliding background size and position
+        const backgroundWidth = sizes.toggleSize * 2.2; // Match the wider background
+        slidingBackground.style.width = `${backgroundWidth}px`;
+        slidingBackground.style.height = `${sizes.toggleSize * 1.2}px`;
+        slidingBackground.style.borderRadius = `${sizes.toggleSize * 0.6}px`;
+
+        // Update sliding dot size
+        slidingDot.style.width = `${sizes.toggleSize * 0.8}px`;
+        slidingDot.style.height = `${sizes.toggleSize * 0.8}px`;
+        slidingDot.style.top = `${sizes.toggleSize * 0.2}px`;
+
+        // Update positions for current difficulty
+        this.updateDifficultySlider(slidingDot, slidingBackground, this.state.difficultyLevel, newPositions, sizes);
+
+        // Store updated positions
+        container.positions = newPositions;
     },
 
     // Update difficulty display with dots - keep dots white always

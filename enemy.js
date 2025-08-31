@@ -13,12 +13,12 @@ let bossSpawned = false;
 // Add difficulty configuration arrays at the top of enemy.js
 const DIFFICULTY_CONFIG = {
     baseDelays: [8000, 6000, 4000, 2000], // Index corresponds to difficulty level (1-4)
-    minDelays: [2000, 1000, 400, 400]
+    minDelays: [800, 600, 400, 400]
 };
 
 // Get current difficulty level (1-4)
 function getCurrentDifficulty() {
-    return window.DIFFICULTY_LEVEL ?? 3; // Default to difficulty 3
+    return window.DIFFICULTY_LEVEL ?? 2; // Default to difficulty 2
 }
 
 // Updated base rank configurations with difficulty scaling
@@ -27,19 +27,19 @@ const baseRankConfigs = {
         startTime: 0,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1],
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1],
-        scaleMinutes: 16
+        scaleMinutes: 24
     },
     2: {
         startTime: 8 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 2,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 2,
-        scaleMinutes: 16
+        scaleMinutes: 24
     },
     3: {
         startTime: 14 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 4,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 4,
-        scaleMinutes: 16
+        scaleMinutes: 24
     },
     4: {
         startTime: 20 * 60,

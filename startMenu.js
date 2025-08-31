@@ -14,8 +14,8 @@ window.KAJISULI_MODE = (() => {
 // Set learning challenge preference - default to false
 window.LEARNING_CHALLENGE_ENABLED = false;
 
-// Set difficulty mode - default to 3
-window.DIFFICULTY_LEVEL = 3;
+// Set difficulty mode - default to 2
+window.DIFFICULTY_LEVEL = 2;
 
 // Set stranger music preference - default to false
 window.STRANGE_MUSIC_ENABLED = false;
@@ -25,7 +25,7 @@ const StartMenuSystem = {
     state: {
         kajisuliMode: false,
         learningChallengeEnabled: false,
-        difficultyLevel: 3,
+        difficultyLevel: 2,
         bossRushMode: false,
         strangedMusicEnabled: false,
         initialized: false

@@ -1216,7 +1216,7 @@ const PERKS = {
         kana: "むげんいちもく",
         romaji: "mugenichimoku",
         english: "Infinite Glimpse",
-        description: "Near eternity, only LUCK matters",
+        description: "Your luck damages your foes",
         color: "#FFD700", // Gold color
         hoverColor: 0xCCA700,
         onAcquire: function () {

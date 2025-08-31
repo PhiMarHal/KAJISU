@@ -171,25 +171,31 @@ const DropperSystem = {
 
             // Add physics collider with player (for pushing with random deflection)
             scene.physics.add.collider(entity, player, function (ballEntity, player) {
-                // Calculate base push direction (away from player)
-                const dx = ballEntity.x - player.x;
-                const dy = ballEntity.y - player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance > 0) {
-                    // Calculate base angle
-                    const baseAngle = Math.atan2(dy, dx);
+                // Cooldown to avoid several pushes in succession
+                const currentTime = scene.time.now;
+                if (!ballEntity.lastPushTime || (currentTime - ballEntity.lastPushTime > 250)) {
+                    ballEntity.lastPushTime = currentTime;
+                    // Calculate base push direction (away from player)
+                    const dx = ballEntity.x - player.x;
+                    const dy = ballEntity.y - player.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    // Add random deflection (±10 degrees in radians)
-                    const randomDeflection = (Math.random() - 0.5) * (Math.PI / 9); // ±20 degrees total range
-                    const finalAngle = baseAngle + randomDeflection;
+                    if (distance > 0) {
+                        // Calculate base angle
+                        const baseAngle = Math.atan2(dy, dx);
 
-                    // Apply push force with the randomized angle
-                    const pushForce = 800;
-                    const pushX = Math.cos(finalAngle) * pushForce;
-                    const pushY = Math.sin(finalAngle) * pushForce;
+                        // Add random deflection
+                        const randomDeflection = (Math.random() - 0.5) * (Math.PI * 8 / 180); // ±8 degrees total range
+                        const finalAngle = baseAngle + randomDeflection;
 
-                    ballEntity.body.setVelocity(pushX, pushY);
+                        // Apply push force with the randomized angle
+                        const pushForce = 800;
+                        const pushX = Math.cos(finalAngle) * pushForce;
+                        const pushY = Math.sin(finalAngle) * pushForce;
+
+                        ballEntity.body.setVelocity(pushX, pushY);
+                    }
                 }
             }, null, scene);
         }

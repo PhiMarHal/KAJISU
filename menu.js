@@ -122,13 +122,12 @@ const UI = {
         }
     },
 
-    // Pause/Music/Levelup/Help buttons
+    // Pause / Help / Music
     buttons: {
         // Common button styling configuration
         common: {
-            size: function () { return UI.rel.height(5); }, //
+            size: function () { return UI.rel.height(5); },
             borderWidth: 2,
-            // Calculate margin based on longest dimension for even spacing
             margin: function () {
                 const longestDimension = Math.max(UI.game.getWidth(), UI.game.getHeight());
                 return longestDimension * 0.02; // 2% of longest dimension
@@ -142,11 +141,9 @@ const UI = {
         pause: {
             symbol: "休", // Kanji for "rest/break" - perfect for pause
             x: function () {
-                // Bottom left positioning using longest dimension for margin
                 return UI.buttons.common.margin() + (UI.buttons.common.size() / 2);
             },
             y: function () {
-                // Bottom positioning using longest dimension for margin
                 return UI.game.getHeight() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
             },
             fontSize: function () {
@@ -159,11 +156,9 @@ const UI = {
             symbol: "音", // Kanji for "sound/music"
             mutedSymbol: "静", // Kanji for "quiet/silence"
             x: function () {
-                // Bottom right positioning using longest dimension for margin
                 return UI.game.getWidth() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
             },
             y: function () {
-                // Bottom positioning using longest dimension for margin
                 return UI.game.getHeight() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
             },
             fontSize: function () {
@@ -175,32 +170,13 @@ const UI = {
         help: {
             symbol: "?", // Question mark for help
             x: function () {
-                // Dynamic positioning - will be set by UnifiedButtonManager based on mode
-                // Default to pause button position
                 return UI.buttons.common.margin() + (UI.buttons.common.size() / 2);
             },
             y: function () {
-                // Bottom positioning using longest dimension for margin
                 return UI.game.getHeight() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
             },
             fontSize: function () {
                 return UI.buttons.common.fontSize();
-            }
-        },
-
-        // Levelup button configuration (Boss Rush mode)
-        levelup: {
-            symbol: "UP", // Letters for level up
-            x: function () {
-                // Same position as music button (bottom right)
-                return UI.game.getWidth() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
-            },
-            y: function () {
-                // Same position as music button (bottom positioning)
-                return UI.game.getHeight() - UI.buttons.common.margin() - (UI.buttons.common.size() / 2);
-            },
-            fontSize: function () {
-                return UI.buttons.common.fontSize() * 0.7; // Slightly smaller for "UP" text
             }
         },
 
@@ -290,17 +266,13 @@ const ButtonDisplay = {
         if (scene.musicHexagon) scene.musicHexagon.destroy();
         if (scene.musicButtonText) scene.musicButtonText.destroy();
         if (scene.musicHitArea) scene.musicHitArea.destroy();
-        if (scene.levelupHexagon) scene.levelupHexagon.destroy();
-        if (scene.levelupButtonText) scene.levelupButtonText.destroy();
-        if (scene.levelupHitArea) scene.levelupHitArea.destroy();
 
         // Get button configurations
         const pauseConfig = UI.buttons.pause;
         const musicConfig = UI.buttons.music;
-        const levelupConfig = UI.buttons.levelup;
         const commonConfig = UI.buttons.common;
 
-        const hexSize = commonConfig.size() * 1.32; // Even bigger hexagons (110% of previous)
+        const hexSize = commonConfig.size() * 1.32;
 
         // Create pause button hexagon
         scene.pauseHexagon = createHexagon(
@@ -309,14 +281,14 @@ const ButtonDisplay = {
             pauseConfig.y(),
             hexSize,
             0x000000,
-            0.5  // 50% opacity so game elements show through
+            0.5
         );
         scene.pauseHexagon.setDepth(2001);
 
         // Create pause button text
         scene.pauseButtonText = scene.add.text(
             pauseConfig.x(),
-            pauseConfig.y(), // Adjusted for better centering
+            pauseConfig.y(),
             pauseConfig.symbol,
             {
                 fontFamily: 'Arial',
@@ -326,8 +298,8 @@ const ButtonDisplay = {
             }
         ).setOrigin(0.5).setDepth(2001);
 
-        // Create pause button hit area - use the hexagon as the interactive element
-        const pauseHitAreaRadius = hexSize * 0.8; // Circular hit area that fits within hexagon
+        // Create pause button hit area
+        const pauseHitAreaRadius = hexSize * 0.8;
         scene.pauseHexagon.setInteractive(
             new Phaser.Geom.Circle(0, 0, pauseHitAreaRadius),
             Phaser.Geom.Circle.Contains,
@@ -335,12 +307,12 @@ const ButtonDisplay = {
         );
 
         scene.pauseHexagon.on('pointerover', function () {
-            scene.pauseButtonText.setColor('#ffff00'); // Yellow on hover
+            scene.pauseButtonText.setColor('#ffff00');
             scene.pauseButtonText.setScale(1.1);
         });
 
         scene.pauseHexagon.on('pointerout', function () {
-            scene.pauseButtonText.setColor('#ffffff'); // White normally
+            scene.pauseButtonText.setColor('#ffffff');
             scene.pauseButtonText.setScale(1);
         });
 
@@ -361,7 +333,7 @@ const ButtonDisplay = {
             musicConfig.y(),
             hexSize,
             0x000000,
-            0.5  // 50% opacity so game elements show through
+            0.5
         );
         scene.musicHexagon.setDepth(2001);
 
@@ -371,7 +343,7 @@ const ButtonDisplay = {
 
         scene.musicButtonText = scene.add.text(
             musicConfig.x(),
-            musicConfig.y(), // Adjusted for better centering
+            musicConfig.y(),
             initialSymbol,
             {
                 fontFamily: 'Arial',
@@ -381,8 +353,8 @@ const ButtonDisplay = {
             }
         ).setOrigin(0.5).setDepth(2001);
 
-        // Create music button hit area - use the hexagon as the interactive element
-        const musicHitAreaRadius = hexSize * 0.8; // Circular hit area that fits within hexagon
+        // Create music button hit area
+        const musicHitAreaRadius = hexSize * 0.8;
         scene.musicHexagon.setInteractive(
             new Phaser.Geom.Circle(0, 0, musicHitAreaRadius),
             Phaser.Geom.Circle.Contains,
@@ -390,25 +362,21 @@ const ButtonDisplay = {
         );
 
         scene.musicHexagon.on('pointerover', function () {
-            scene.musicButtonText.setColor('#ffff00'); // Yellow on hover
+            scene.musicButtonText.setColor('#ffff00');
             scene.musicButtonText.setScale(1.1);
         });
 
         scene.musicHexagon.on('pointerout', function () {
-            scene.musicButtonText.setColor('#ffffff'); // White normally
+            scene.musicButtonText.setColor('#ffffff');
             scene.musicButtonText.setScale(1);
         });
 
         scene.musicHexagon.on('pointerdown', function () {
             if (window.MusicSystem) {
-                // Toggle music state
                 const newState = !window.MusicSystem.musicEnabled;
                 window.MusicSystem.setMusicEnabled(newState);
-
-                // Update button symbol to show new state immediately
                 const symbol = newState ? musicConfig.symbol : musicConfig.mutedSymbol;
                 scene.musicButtonText.setText(symbol);
-
                 console.log(`Music ${newState ? 'enabled' : 'disabled'}`);
             }
         });
@@ -420,72 +388,7 @@ const ButtonDisplay = {
             console.log("Music button hidden for Farcade deployment");
         }
 
-        // Only create levelup button if Boss Rush mode is enabled
-        if (window.BOSS_RUSH_MODE) {
-            // Create levelup button hexagon
-            scene.levelupHexagon = createHexagon(
-                scene,
-                levelupConfig.x(),
-                levelupConfig.y(),
-                hexSize,
-                0x000000,
-                0.5  // 50% opacity so game elements show through
-            );
-            scene.levelupHexagon.setDepth(2001);
-
-            // Create levelup button text
-            scene.levelupButtonText = scene.add.text(
-                levelupConfig.x(),
-                levelupConfig.y(), // Adjusted for better centering
-                levelupConfig.symbol,
-                {
-                    fontFamily: 'Arial',
-                    fontSize: `${levelupConfig.fontSize()}px`,
-                    color: '#ffffff',
-                    fontStyle: 'bold'
-                }
-            ).setOrigin(0.5).setDepth(2001);
-
-            // Create levelup button hit area - use the hexagon as the interactive element
-            const levelupHitAreaRadius = hexSize * 0.8; // Circular hit area that fits within hexagon
-            scene.levelupHexagon.setInteractive(
-                new Phaser.Geom.Circle(0, 0, levelupHitAreaRadius),
-                Phaser.Geom.Circle.Contains,
-                { useHandCursor: true }
-            );
-
-            scene.levelupHexagon.on('pointerover', function () {
-                scene.levelupButtonText.setColor('#ffff00'); // Yellow on hover
-                scene.levelupButtonText.setScale(1.1);
-            });
-
-            scene.levelupHexagon.on('pointerout', function () {
-                scene.levelupButtonText.setColor('#ffffff'); // White normally
-                scene.levelupButtonText.setScale(1);
-            });
-
-            scene.levelupHexagon.on('pointerdown', function () {
-                if (!gamePaused && !gameOver && window.BOSS_RUSH_MODE) {
-                    // Apply penalty if the function exists
-                    if (window.applyFreeLeveUpPenalty) {
-                        window.applyFreeLeveUpPenalty();
-                    }
-
-                    // Add remaining XP needed for this level
-                    const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
-                    heroExp += xpNeeded;
-
-                    // Update the experience bar
-                    if (typeof GameUI !== 'undefined' && GameUI.updateExpBar) {
-                        GameUI.updateExpBar(scene);
-                    }
-
-                    console.log('Boss Rush: Free level up used (penalty applied)');
-                }
-            });
-        }
-
-        // Initial update to set positions
+        // Initial update
         this.update(scene);
     },
 
@@ -584,7 +487,6 @@ const ButtonDisplay = {
         // Legacy update code (fallback)
         const pauseConfig = UI.buttons.pause;
         const musicConfig = UI.buttons.music;
-        const levelupConfig = UI.buttons.levelup;
 
         // Update pause button position
         if (scene.pauseHexagon && scene.pauseButtonText) {
@@ -620,13 +522,6 @@ const ButtonDisplay = {
                     scene.musicButtonText.setText(symbol);
                 }
             }
-        }
-
-        // Update levelup button position
-        if (scene.levelupHexagon && scene.levelupButtonText) {
-            scene.levelupHexagon.x = levelupConfig.x();
-            scene.levelupHexagon.y = levelupConfig.y();
-            scene.levelupButtonText.setPosition(levelupConfig.x(), levelupConfig.y());
         }
     }
 };

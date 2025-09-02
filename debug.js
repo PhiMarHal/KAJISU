@@ -148,32 +148,19 @@ const DebugSystem = {
             }
         }, scene);
 
-        // Add instant level up key (R key)
+        // Add instant level up key (R key) - ONLY for pure DEBUG_MODE now
         scene.input.keyboard.on('keydown-R', function () {
             // Skip if debug keys are disabled
             if (this.debugKeysDisabled) return;
 
             if (!gamePaused && !gameOver) {
-                // Check if debug mode is enabled (only allow if DEBUG_MODE is true or Boss Rush mode)
-                const isBossRush = window.BOSS_RUSH_MODE;
-                const isDebugMode = typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE;
-
-                if (isBossRush || isDebugMode) {
-                    // Apply penalty for any debug levelup usage
-                    if (window.applyFreeLeveUpPenalty) {
-                        window.applyFreeLeveUpPenalty();
-                    }
-
+                if (isDebugMode) {
                     // Add enough XP to level up
                     const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
                     heroExp += xpNeeded;
                     GameUI.updateExpBar(this);
 
-                    if (isBossRush) {
-                        console.log("Boss Rush: Free level up used (penalty applied)");
-                    } else {
-                        console.log("Debug: Free level up used (penalty applied)");
-                    }
+                    console.log("Debug: Free level up used");
                 }
             }
         }, scene);

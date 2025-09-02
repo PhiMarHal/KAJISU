@@ -847,6 +847,17 @@
                 elapsedTime = bossSpawnTime - 120;
                 console.log(`Boss Rush mode: Time set to ${elapsedTime} seconds`);
             }
+
+            // Boss Rush mode: Give enough XP to reach level 25
+            if (window.BOSS_RUSH_MODE) {
+                // Calculate cumulative XP needed to reach level 25
+                let totalXPForLevel25 = 0;
+                for (let level = 1; level < 25; level++) {
+                    totalXPForLevel25 += xpForNextLevel(level);
+                }
+                heroExp = totalXPForLevel25;
+                console.log(`Boss Rush: Starting with ${totalXPForLevel25} XP (enough for level 25)`);
+            }
         }
     </script>
 </body>

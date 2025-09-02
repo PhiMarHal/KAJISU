@@ -1022,7 +1022,7 @@ OrbitalPerkRegistry.registerPerkOrbital('THREE_STARS', {
             color: '#ffff00',
             fontSize: 48,
             radius: 128,
-            speed: 2,
+            speed: 4,
             direction: 'clockwise',
             pattern: 'standard',
             collisionType: 'persistent',

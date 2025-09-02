@@ -415,12 +415,11 @@ window.HelpSystem = HelpSystem;
 
 // Unified Button Management System - Replaces the complex multi-manager system
 const UnifiedButtonManager = {
-    // Button references for easy management
+    // Button references for easy management (removed levelup)
     buttons: {
         pause: { hexagon: null, text: null },
         music: { hexagon: null, text: null },
-        help: { hexagon: null, text: null },
-        levelup: { hexagon: null, text: null }
+        help: { hexagon: null, text: null }
     },
 
     // Current button state
@@ -429,11 +428,6 @@ const UnifiedButtonManager = {
     // Check if we're in FARCADE mode
     isFarcadeMode: function () {
         return typeof FARCADE_MODE !== 'undefined' && FARCADE_MODE;
-    },
-
-    // Check if we're in Boss Rush mode
-    isBossRushMode: function () {
-        return typeof BOSS_RUSH_MODE !== 'undefined' && BOSS_RUSH_MODE;
     },
 
     // Create all button types (called from ButtonDisplay.create)
@@ -482,25 +476,113 @@ const UnifiedButtonManager = {
             }
         });
 
-        // Create levelup button (Boss Rush mode only)
-        if (this.isBossRushMode()) {
-            this.buttons.levelup = this.createButton(scene, 'levelup', () => {
-                if (!gamePaused && !gameOver && window.BOSS_RUSH_MODE) {
-                    if (window.applyFreeLeveUpPenalty) {
-                        window.applyFreeLeveUpPenalty();
-                    }
-                    const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
-                    heroExp += xpNeeded;
-                    if (typeof GameUI !== 'undefined' && GameUI.updateExpBar) {
-                        GameUI.updateExpBar(scene);
-                    }
-                    console.log('Boss Rush: Free level up used (penalty applied)');
-                }
-            });
-        }
-
         // Set initial visibility state
         this.updateButtonVisibility(scene);
+    },
+
+    // Update button visibility based on current state (simplified without levelup logic)
+    updateButtonVisibility: function (scene) {
+        // Hide all buttons first
+        this.setButtonVisible('pause', false);
+        this.setButtonVisible('music', false);
+        this.setButtonVisible('help', false);
+
+        if (this.currentState === 'paused') {
+            // PAUSED STATE
+            if (this.isFarcadeMode()) {
+                // FARCADE + PAUSED: Pause stays in left, Help goes to right
+                this.setButtonVisible('pause', true); // Keep pause in bottom left
+                this.setButtonVisible('help', true);  // Help in bottom right
+                this.positionHelpButton(scene, 'music'); // Help replaces music position
+            } else {
+                // NORMAL + PAUSED: Help replaces Pause in left, Music in right
+                this.setButtonVisible('help', true); // Help in bottom left (pause position)
+                this.positionHelpButton(scene, 'pause');
+                this.setButtonVisible('music', true); // Music in bottom right
+            }
+        } else {
+            // UNPAUSED STATE
+            this.setButtonVisible('pause', true); // Pause always in bottom left when unpaused
+
+            if (this.isFarcadeMode()) {
+                // FARCADE mode: Help permanently replaces Music
+                this.setButtonVisible('help', true);
+                this.positionHelpButton(scene, 'music');
+            } else {
+                // Normal mode: Music in bottom right
+                this.setButtonVisible('music', true);
+            }
+        }
+    },
+
+    // Helper to position help button at another button's position
+    positionHelpButton: function (scene, targetButtonType) {
+        if (!this.buttons.help || !this.buttons.help.hexagon || !this.buttons.help.text) {
+            return;
+        }
+
+        const targetConfig = UI.buttons[targetButtonType];
+        if (!targetConfig) {
+            console.warn(`Cannot position help button: target button type '${targetButtonType}' not found`);
+            return;
+        }
+
+        const x = targetConfig.x();
+        const y = targetConfig.y();
+
+        this.buttons.help.hexagon.x = x;
+        this.buttons.help.hexagon.y = y;
+        this.buttons.help.text.setPosition(x, y);
+    },
+
+    // Helper to set button visibility
+    setButtonVisible: function (buttonType, visible) {
+        const button = this.buttons[buttonType];
+        if (button && button.hexagon && button.text) {
+            button.hexagon.setVisible(visible);
+            button.text.setVisible(visible);
+        }
+    },
+
+    // Destroy all buttons (updated to not include levelup)
+    destroyAllButtons: function (scene) {
+        Object.keys(this.buttons).forEach(buttonType => {
+            const button = this.buttons[buttonType];
+            if (button && button.hexagon) button.hexagon.destroy();
+            if (button && button.text) button.text.destroy();
+
+            // Also clean up scene references
+            if (scene && scene[`${buttonType}Hexagon`]) {
+                scene[`${buttonType}Hexagon`] = null;
+            }
+            if (scene && scene[`${buttonType}ButtonText`]) {
+                scene[`${buttonType}ButtonText`] = null;
+            }
+        });
+
+        // Reset button references (removed levelup)
+        this.buttons = {
+            pause: { hexagon: null, text: null },
+            music: { hexagon: null, text: null },
+            help: { hexagon: null, text: null }
+        };
+    },
+
+    // Update button positions (for resize handling)
+    updateButtonPositions: function (scene) {
+        Object.keys(this.buttons).forEach(buttonType => {
+            const button = this.buttons[buttonType];
+            const config = UI.buttons[buttonType];
+
+            if (button && button.hexagon && button.text && config) {
+                const x = config.x();
+                const y = config.y();
+
+                button.hexagon.x = x;
+                button.hexagon.y = y;
+                button.text.setPosition(x, y);
+            }
+        });
     },
 
     // Create a single button using the unified createHexagon function
@@ -616,148 +698,50 @@ const UnifiedButtonManager = {
         }
     },
 
-    // Destroy all buttons
-    destroyAllButtons: function (scene) {
-        Object.keys(this.buttons).forEach(buttonType => {
-            const button = this.buttons[buttonType];
-            if (button && button.hexagon) button.hexagon.destroy();
-            if (button && button.text) button.text.destroy();
-
-            // Also clean up scene references
-            if (scene && scene[`${buttonType}Hexagon`]) {
-                scene[`${buttonType}Hexagon`] = null;
-            }
-            if (scene && scene[`${buttonType}ButtonText`]) {
-                scene[`${buttonType}ButtonText`] = null;
-            }
-        });
-
-        // Reset button references
-        this.buttons = {
-            pause: { hexagon: null, text: null },
-            music: { hexagon: null, text: null },
-            help: { hexagon: null, text: null },
-            levelup: { hexagon: null, text: null }
-        };
-    },
-
-    // Update button positions (for resize handling)
-    updateButtonPositions: function (scene) {
-        Object.keys(this.buttons).forEach(buttonType => {
-            const button = this.buttons[buttonType];
-            const config = UI.buttons[buttonType];
-
-            if (button && button.hexagon && button.text && config) {
-                const x = config.x();
-                const y = config.y();
-
-                button.hexagon.x = x;
-                button.hexagon.y = y;
-                button.text.setPosition(x, y);
-            }
-        });
-    },
-
-    // Update button visibility based on current state
-    updateButtonVisibility: function (scene) {
-        // Hide all buttons first
-        this.setButtonVisible('pause', false);
-        this.setButtonVisible('music', false);
-        this.setButtonVisible('help', false);
-        this.setButtonVisible('levelup', false);
-
-        if (this.currentState === 'paused') {
-            // PAUSED STATE
-            if (this.isFarcadeMode()) {
-                // FARCADE + PAUSED: Pause stays in left, Help goes to right
-                this.setButtonVisible('pause', true); // Keep pause in bottom left
-                this.setButtonVisible('help', true);  // Help in bottom right
-
-                if (this.isBossRushMode()) {
-                    // Boss Rush: Help replaces Levelup in bottom right
-                    this.positionHelpButton(scene, 'levelup');
-                } else {
-                    // Normal: Help replaces Music in bottom right
-                    this.positionHelpButton(scene, 'music');
-                }
-            } else {
-                // NORMAL + PAUSED: Help replaces Pause in left
-                this.setButtonVisible('help', true); // Help in bottom left (pause position)
-                this.positionHelpButton(scene, 'pause');
-
-                if (this.isBossRushMode()) {
-                    // Boss Rush + Normal: Music in bottom right when paused
-                    this.setButtonVisible('music', true);
-                } else {
-                    // Regular: Music in bottom right when paused
-                    this.setButtonVisible('music', true);
-                }
-            }
-        } else {
-            // UNPAUSED STATE
-            this.setButtonVisible('pause', true); // Pause always in bottom left when unpaused
-
-            if (this.isBossRushMode()) {
-                // Boss Rush: Levelup in bottom right
-                this.setButtonVisible('levelup', true);
-            } else if (this.isFarcadeMode()) {
-                // FARCADE mode (not Boss Rush): Help permanently replaces Music
-                this.setButtonVisible('help', true);
-                this.positionHelpButton(scene, 'music');
-            } else {
-                // Normal mode (not FARCADE, not Boss Rush): Music in bottom right
-                this.setButtonVisible('music', true);
-            }
-        }
-    },
-
-    // Helper to position help button at another button's position
-    positionHelpButton: function (scene, targetButtonType) {
-        if (!this.buttons.help || !this.buttons.help.hexagon || !this.buttons.help.text) {
-            return;
-        }
-
-        const targetConfig = UI.buttons[targetButtonType];
-        if (!targetConfig) {
-            console.warn(`Cannot position help button: target button type '${targetButtonType}' not found`);
-            return;
-        }
-
-        const x = targetConfig.x();
-        const y = targetConfig.y();
-
-        this.buttons.help.hexagon.x = x;
-        this.buttons.help.hexagon.y = y;
-        this.buttons.help.text.setPosition(x, y);
-    },
-
-    // Helper to set button visibility
-    setButtonVisible: function (buttonType, visible) {
-        const button = this.buttons[buttonType];
-        if (button && button.hexagon && button.text) {
-            button.hexagon.setVisible(visible);
-            button.text.setVisible(visible);
-        }
-    },
-
     // State change handlers
     onGameStart: function (scene) {
         this.currentState = 'normal';
         this.updateButtonVisibility(scene);
-        console.log(`Button state: ${this.currentState} (FARCADE: ${this.isFarcadeMode()}, Boss Rush: ${this.isBossRushMode()})`);
+        console.log(`Button state: ${this.currentState} (FARCADE: ${this.isFarcadeMode()})`);
     },
 
     onGamePause: function (scene) {
         this.currentState = 'paused';
         this.updateButtonVisibility(scene);
-        console.log(`Button state: ${this.currentState} (FARCADE: ${this.isFarcadeMode()}, Boss Rush: ${this.isBossRushMode()})`);
+        console.log(`Button state: ${this.currentState} (FARCADE: ${this.isFarcadeMode()})`);
     },
 
     onGameResume: function (scene) {
         this.currentState = 'normal';
         this.updateButtonVisibility(scene);
-        console.log(`Button state: ${this.currentState} (FARCADE: ${this.isFarcadeMode()}, Boss Rush: ${this.isBossRushMode()})`);
+        console.log(`Button state: ${this.currentState} (FARCADE: ${this.isFarcadeMode()})`);
     }
+};
+
+// Export the unified system
+window.UnifiedButtonManager = UnifiedButtonManager;
+
+// Updated backward compatibility - remove levelup manager
+window.HelpButtonManager = {
+    isFarcadeMode: () => UnifiedButtonManager.isFarcadeMode(),
+    createHelpButton: (scene) => {
+        console.log('HelpButtonManager.createHelpButton called - handled by UnifiedButtonManager');
+    },
+    showHelpButton: (scene) => {
+        UnifiedButtonManager.currentState = 'paused';
+        UnifiedButtonManager.updateButtonVisibility(scene);
+    },
+    showPauseButton: (scene) => {
+        UnifiedButtonManager.currentState = UnifiedButtonManager.isFarcadeMode() ? 'farcade' : 'normal';
+        UnifiedButtonManager.updateButtonVisibility(scene);
+    },
+    updatePosition: (scene) => UnifiedButtonManager.updateButtonPositions(scene)
+};
+
+window.ButtonStateManager = {
+    onGameStart: (scene) => UnifiedButtonManager.onGameStart(scene),
+    onGamePause: (scene) => UnifiedButtonManager.onGamePause(scene),
+    onGameResume: (scene) => UnifiedButtonManager.onGameResume(scene)
 };
 
 // Export the unified system
@@ -785,16 +769,4 @@ window.ButtonStateManager = {
     onGameStart: (scene) => UnifiedButtonManager.onGameStart(scene),
     onGamePause: (scene) => UnifiedButtonManager.onGamePause(scene),
     onGameResume: (scene) => UnifiedButtonManager.onGameResume(scene)
-};
-
-window.LevelupButtonManager = {
-    isBossRushMode: () => UnifiedButtonManager.isBossRushMode(),
-    showLevelupButton: (scene) => {
-        // Handled by updateButtonVisibility
-        UnifiedButtonManager.updateButtonVisibility(scene);
-    },
-    hideLevelupButton: (scene) => {
-        // Handled by updateButtonVisibility  
-        UnifiedButtonManager.updateButtonVisibility(scene);
-    }
 };

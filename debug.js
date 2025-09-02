@@ -148,26 +148,26 @@ const DebugSystem = {
             }
         }, scene);
 
-        // Add instant level up key (R key) - ONLY for pure DEBUG_MODE now
+
+    },
+
+    // Setup debug/cheat keys (only available when DEBUG_MODE is true)
+    setupDebugKeys: function (scene) {
+
+        // Add instant level up key (R key)
         scene.input.keyboard.on('keydown-R', function () {
             // Skip if debug keys are disabled
             if (this.debugKeysDisabled) return;
 
             if (!gamePaused && !gameOver) {
-                if (isDebugMode) {
-                    // Add enough XP to level up
-                    const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
-                    heroExp += xpNeeded;
-                    GameUI.updateExpBar(this);
+                // Add enough XP to level up
+                const xpNeeded = xpForNextLevel(playerLevel) - heroExp;
+                heroExp += xpNeeded;
+                GameUI.updateExpBar(this);
 
-                    console.log("Debug: Free level up used");
-                }
+                console.log("Debug: Free level up used");
             }
         }, scene);
-    },
-
-    // Setup debug/cheat keys (only available when DEBUG_MODE is true)
-    setupDebugKeys: function (scene) {
 
         // Add debug key (T key for instant enemy spawn)
         scene.input.keyboard.on('keydown-T', function () {

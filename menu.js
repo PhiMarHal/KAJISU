@@ -1517,7 +1517,7 @@ const GameEndMenu = {
             const score = ScoreSystem.calculateScore(config.isVictory);
 
             // Animate the score reveal
-            ScoreSystem.animateScoreReveal(scene, this.elements.statsText, score);
+            ScoreSystem.animateScoreReveal(scene, this.elements.statsText, score, config.isVictory);
         }
     },
 

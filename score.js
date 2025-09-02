@@ -44,7 +44,8 @@ const ScoreSystem = {
             baseScore -= Math.floor(totalBonus * (bossSpawnTime - 120));
         }
 
-        return baseScore;
+        // Ensure score never goes below 0
+        return Math.max(0, baseScore);
     },
 
     // Calculate victory bonus that decreases over time
@@ -92,7 +93,7 @@ const ScoreSystem = {
         const score = this.calculateCurrentScore();
     },
 
-    // Update score display in the UI
+    // Update score display in the UI (without comma formatting)
     updateScoreDisplay: function (scoreValue) {
         const scene = game.scene.scenes[0];
         if (!scene || !scene.statusText) return;
@@ -100,8 +101,8 @@ const ScoreSystem = {
         const timeText = formatTime(elapsedTime);
         const difficultyLevel = getCurrentDifficulty();
 
-        // Format score without truncation - use toLocaleString for comma separation
-        const formattedScore = scoreValue.toLocaleString();
+        // Display score as plain number (no comma formatting)
+        const formattedScore = scoreValue.toString();
 
         // Include difficulty level in the display
         scene.statusText.setText(`Survived: ${timeText}  Score: ${formattedScore} (D${difficultyLevel})`);
@@ -127,8 +128,8 @@ const ScoreSystem = {
         return this.calculateCurrentScore(isVictory);
     },
 
-    // Animate the score with a counting effect where digits animate at different speeds
-    animateScoreReveal: function (scene, statsText, finalScore) {
+    // Updated animateScoreReveal with victory animation support
+    animateScoreReveal: function (scene, statsText, finalScore, isVictory = false) {
         if (!scene || !statsText) {
             console.error("Missing scene or statsText in animateScoreReveal");
             return;
@@ -213,24 +214,15 @@ const ScoreSystem = {
                 // Both segments now merged and faded out
                 console.log("Segments merged, creating score text");
 
-                // Calculate starting value and final display value
-                // For defeats: show the journey from negative to 0 (if negative)
-                // For victories: show the journey from penalty to final positive score
-                const baseScore = this.calculateCurrentScore(false); // Get score without victory bonus
-                const startValue = Math.min(baseScore, 0);
-
-                // For defeats with negative scores, normalize final display to 0
-                const displayScore = finalScore < 0 ? 0 : finalScore;
-
-                // Create score text with larger font
+                // Create score text with larger font, starting at 0
                 const scoreText = scene.add.text(
                     originalX,
                     originalY,
-                    startValue.toString(), // Start with the minimum value
+                    "0", // Start at 0
                     {
                         fontFamily: 'Arial',
                         fontSize: parseInt(statsText.style.fontSize) * 2, // Twice as large
-                        color: startValue < 0 ? '#FF4444' : '#FFD700', // Red for negative, gold for positive
+                        color: '#FFD700', // Gold color (no more red for negative)
                         fontStyle: 'bold'
                     }
                 ).setOrigin(0.5).setAlpha(0);
@@ -252,27 +244,54 @@ const ScoreSystem = {
                     onComplete: () => {
                         console.log("Score text fade-in complete, starting counter animation");
 
-                        // Animate from startValue to displayScore
-                        this.animateScoreCounter(scene, scoreText, displayScore, createdObjects, startValue);
+                        if (isVictory) {
+                            // Two-stage animation: survival score → pause → victory bonus
+                            this.animateVictoryScore(scene, scoreText, finalScore, createdObjects);
+                        } else {
+                            // Single-stage animation for defeats
+                            this.animateScoreCounter(scene, scoreText, finalScore, createdObjects, 0);
+                        }
                     }
                 });
             }
         });
     },
 
+    // New function for two-stage victory score animation
+    animateVictoryScore: function (scene, textObject, finalVictoryScore, createdObjects) {
+        console.log("Starting victory score animation");
+
+        // Calculate the survival score (without victory bonus)
+        const survivalScore = this.calculateCurrentScore(false);
+
+        console.log(`Victory animation: survival=${survivalScore}, final=${finalVictoryScore}`);
+
+        // Stage 1: Animate to survival score
+        this.animateScoreCounter(scene, textObject, survivalScore, createdObjects, 0, () => {
+            // Stage 2: Pause for 1 second, then continue to victory bonus
+            console.log("Survival score reached, pausing before victory bonus");
+
+            scene.time.delayedCall(1000, () => {
+                console.log("Adding victory bonus");
+
+                // Continue animation from survival score to final victory score
+                this.animateScoreCounter(scene, textObject, finalVictoryScore, createdObjects, survivalScore);
+            });
+        });
+    },
+
     // Add this property to track active animations:
     activeAnimation: null,
 
-    // Add this helper method for showing final score with celebration effect:
+    // Updated showFinalScore function without comma formatting
     showFinalScore: function (scene, textObject, finalScore) {
         if (!scene || !textObject || textObject.active === false) return;
 
-        // Format the final score properly without truncation
-        const formattedScore = finalScore.toLocaleString();
-        textObject.setText(formattedScore);
+        // Display as plain number (no comma formatting)
+        textObject.setText(finalScore.toString());
 
-        // Update color based on score
-        textObject.setColor(finalScore <= 0 ? '#FF4444' : '#FFD700');
+        // Always use gold color (no more negative score handling)
+        textObject.setColor('#FFD700');
 
         // Add celebration effect (scaling pulse)
         scene.tweens.add({
@@ -283,7 +302,7 @@ const ScoreSystem = {
         });
     },
 
-    // Method to skip directly to the end result
+    // Updated skipToFinalScore function for two-stage animation
     skipToFinalScore: function (scene) {
         // If no active animation, do nothing
         if (!this.activeAnimation) {
@@ -295,7 +314,7 @@ const ScoreSystem = {
             this.activeAnimation.tween.stop();
         }
 
-        // Show the final score with celebration
+        // Show the final score with celebration (skip directly to final victory score)
         this.showFinalScore(
             scene,
             this.activeAnimation.textObject,
@@ -308,8 +327,8 @@ const ScoreSystem = {
         return true;
     },
 
-    // Updated animateScoreCounter that accepts a custom start value
-    animateScoreCounter: function (scene, textObject, finalScore, createdObjects, startValue = 0) {
+    // Updated animateScoreCounter with callback support and no comma formatting
+    animateScoreCounter: function (scene, textObject, finalScore, createdObjects, startValue = 0, onCompleteCallback = null) {
         if (!scene || !textObject) {
             console.error("Missing scene or textObject in animateScoreCounter");
             return;
@@ -336,13 +355,11 @@ const ScoreSystem = {
                 if (textObject && textObject.active !== false) {
                     const currentValue = Math.floor(counter.value);
 
-                    // Format the current value properly without truncation
-                    const formattedValue = currentValue.toLocaleString();
-                    textObject.setText(formattedValue);
+                    // Display as plain number (no comma formatting)
+                    textObject.setText(currentValue.toString());
 
-                    // Update color during animation
-                    const color = currentValue <= 0 ? '#FF4444' : '#FFD700';
-                    textObject.setColor(color);
+                    // Keep gold color (no more negative score red)
+                    textObject.setColor('#FFD700');
                 }
             },
             onComplete: () => {
@@ -353,6 +370,11 @@ const ScoreSystem = {
 
                 // Show final score with celebration effect
                 this.showFinalScore(scene, textObject, finalScore);
+
+                // Call the completion callback if provided
+                if (onCompleteCallback) {
+                    onCompleteCallback();
+                }
             }
         });
 

@@ -152,7 +152,8 @@ function handleServiceWorkerForFarcade(mergedJs) {
     return modifiedJs;
 }
 
-// Clean injectFarcadeIntegrations function with exact pattern matching
+// Handle new score animation structure with victory staging
+
 function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
     console.log('Injecting Farcade SDK integrations...');
 
@@ -162,7 +163,7 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
     // First, handle service worker for Farcade deployment
     modifiedJs = handleServiceWorkerForFarcade(modifiedJs);
 
-    // 1. INJECT READY() CALL IN HTML TEMPLATE
+    // 1. INJECT READY() CALL IN HTML TEMPLATE (unchanged)
     let createPatternFound = false;
 
     const buildGamePattern = /(function create\(\) \{[\s\S]*?buildGame\.call\(this\);)/;
@@ -187,7 +188,7 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
         console.warn('Could not find create() function in HTML template to inject ready() call');
     }
 
-    // 2. MODIFY CREATERESTARTBUTTON TO SKIP IN FARCADE MODE
+    // 2. MODIFY CREATERESTARTBUTTON TO SKIP IN FARCADE MODE (unchanged)
     const createRestartButtonPattern = /(createRestartButton: function \(scene\) \{)/;
     const createRestartButtonMatch = modifiedJs.match(createRestartButtonPattern);
 
@@ -206,30 +207,7 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
         console.warn('Could not find createRestartButton function to modify');
     }
 
-    // 3. INJECT FARCADE GAME OVER CALL AFTER SHOWFINALSCORE IN ONCOMPLETE
-    const onCompletePattern = /(onComplete: \(\) => \{[\s\S]*?this\.showFinalScore\(scene, textObject, finalScore\);[\s\S]*?\})/;
-    const onCompleteMatch = modifiedJs.match(onCompletePattern);
-
-    if (onCompleteMatch) {
-        const originalCallback = onCompleteMatch[0];
-        const modifiedCallback = originalCallback.replace(
-            /(this\.showFinalScore\(scene, textObject, finalScore\);)/,
-            `$1
-
-                // Farcade SDK: Send game over with final score after animation completes
-                if (typeof FARCADE_MODE !== 'undefined' && FARCADE_MODE && window.FarcadeSDK) {
-                    console.log('Farcade SDK: Sending game over with final score:', finalScore);
-                    window.FarcadeSDK.singlePlayer.actions.gameOver({ score: finalScore });
-                }`
-        );
-
-        modifiedJs = modifiedJs.replace(originalCallback, modifiedCallback);
-        console.log('✓ Injected Farcade gameOver() call in animateScoreCounter completion');
-    } else {
-        console.warn('Could not find onComplete callback to inject Farcade gameOver() call');
-    }
-
-    // 4. INJECT FARCADE GAME OVER CALL IN SHOWFINALSCORE FOR SKIP FUNCTIONALITY
+    // 3. UPDATED: Inject Farcade gameOver call in showFinalScore (main injection point)
     const showFinalScorePattern = /(showFinalScore: function \(scene, textObject, finalScore\) \{[\s\S]*?yoyo: true[\s\S]*?\}\);[\s\S]*?\})/;
     const showFinalScoreMatch = modifiedJs.match(showFinalScorePattern);
 
@@ -239,20 +217,42 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
             /(yoyo: true[\s\S]*?\}\);)/,
             `$1
 
-        // Farcade SDK: Also send game over when score is shown immediately (skip case)
+        // Farcade SDK: Send game over with final score when animation completes
         if (typeof FARCADE_MODE !== 'undefined' && FARCADE_MODE && window.FarcadeSDK) {
-            console.log('Farcade SDK: Sending game over with final score (skip):', finalScore);
+            console.log('Farcade SDK: Sending game over with final score:', finalScore);
             window.FarcadeSDK.singlePlayer.actions.gameOver({ score: finalScore });
         }`
         );
 
         modifiedJs = modifiedJs.replace(originalFunction, modifiedFunction);
-        console.log('✓ Injected Farcade gameOver() call in showFinalScore for skip functionality');
+        console.log('✓ Injected Farcade gameOver() call in showFinalScore');
     } else {
         console.warn('Could not find showFinalScore function to inject gameOver() call');
     }
 
-    // 5. INJECT PLAY_AGAIN AND MUTE EVENT HANDLERS
+    // 4. UPDATED: More flexible pattern for onComplete in animateScoreCounter (backup)
+    // This handles cases where showFinalScore might not be called (edge cases)
+    const onCompleteBackupPattern = /(\/\/ Clear the active animation reference[\s\S]*?this\.activeAnimation = null;[\s\S]*?\/\/ Show final score with celebration effect[\s\S]*?this\.showFinalScore\(scene, textObject, finalScore\);)/;
+    const onCompleteBackupMatch = modifiedJs.match(onCompleteBackupPattern);
+
+    if (onCompleteBackupMatch) {
+        const originalCode = onCompleteBackupMatch[0];
+        const modifiedCode = originalCode + `
+
+                // Farcade SDK: Backup game over call (in case showFinalScore doesn't trigger)
+                if (typeof FARCADE_MODE !== 'undefined' && FARCADE_MODE && window.FarcadeSDK && !onCompleteCallback) {
+                    // Only send if this is the final animation (no callback = not a staged animation)
+                    console.log('Farcade SDK: Backup game over with final score:', finalScore);
+                    window.FarcadeSDK.singlePlayer.actions.gameOver({ score: finalScore });
+                }`;
+
+        modifiedJs = modifiedJs.replace(originalCode, modifiedCode);
+        console.log('✓ Injected backup Farcade gameOver() call in animateScoreCounter');
+    } else {
+        console.warn('Could not find animateScoreCounter onComplete to inject backup gameOver() call');
+    }
+
+    // 5. INJECT PLAY_AGAIN AND MUTE EVENT HANDLERS (unchanged)
     const windowGamePattern = /(window\.game = new Phaser\.Game\(config\);)/;
     const windowGameMatch = modifiedJs.match(windowGamePattern);
 
@@ -301,7 +301,7 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
         console.warn('Could not find window.game = new Phaser.Game(config) to inject event handlers');
     }
 
-    console.log('=== CLEAN FARCADE INTEGRATION COMPLETE ===\n');
+    console.log('=== UPDATED FARCADE INTEGRATION COMPLETE ===\n');
 
     return { modifiedHtml, modifiedJs };
 }

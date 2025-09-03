@@ -207,52 +207,51 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
         console.warn('Could not find createRestartButton function to modify');
     }
 
-    // 3. UPDATED: Inject Farcade gameOver call in showFinalScore (main injection point)
-    const showFinalScorePattern = /(showFinalScore: function \(scene, textObject, finalScore\) \{[\s\S]*?yoyo: true[\s\S]*?\}\);[\s\S]*?\})/;
-    const showFinalScoreMatch = modifiedJs.match(showFinalScorePattern);
+    // 3. UPDATED: Target the new isFinalStage logic in showFinalScore
+    const showFinalStagePattern = /(\/\/ Only trigger external integrations.*?on the final stage[\s\S]*?if \(isFinalStage\) \{[\s\S]*?console\.log\("Final stage reached.*?"\);[\s\S]*?\/\/ This is where Farcade SDK integration will hook in[\s\S]*?\})/;
+    const showFinalStageMatch = modifiedJs.match(showFinalStagePattern);
 
-    if (showFinalScoreMatch) {
-        const originalFunction = showFinalScoreMatch[0];
-        const modifiedFunction = originalFunction.replace(
-            /(yoyo: true[\s\S]*?\}\);)/,
-            `$1
-
-        // Farcade SDK: Send game over with final score when animation completes
+    if (showFinalStageMatch) {
+        const originalBlock = showFinalStageMatch[0];
+        const modifiedBlock = originalBlock.replace(
+            /(\/\/ This is where Farcade SDK integration will hook in[\s\S]*?\/\/ The merge script will inject the Farcade SDK call here, but only when isFinalStage is true)/,
+            `// Farcade SDK: Send game over with final score (only on final stage)
         if (typeof FARCADE_MODE !== 'undefined' && FARCADE_MODE && window.FarcadeSDK) {
             console.log('Farcade SDK: Sending game over with final score:', finalScore);
             window.FarcadeSDK.singlePlayer.actions.gameOver({ score: finalScore });
         }`
         );
 
-        modifiedJs = modifiedJs.replace(originalFunction, modifiedFunction);
-        console.log('✓ Injected Farcade gameOver() call in showFinalScore');
+        modifiedJs = modifiedJs.replace(originalBlock, modifiedBlock);
+        console.log('✓ Injected Farcade gameOver() call in showFinalScore isFinalStage block');
     } else {
-        console.warn('Could not find showFinalScore function to inject gameOver() call');
+        console.warn('Could not find showFinalScore isFinalStage block - trying fallback pattern');
+
+        // Fallback pattern - look for the simpler version
+        const fallbackPattern = /(showFinalScore: function \(scene, textObject, finalScore, isFinalStage = true\) \{[\s\S]*?yoyo: true[\s\S]*?\}\);[\s\S]*?\})/;
+        const fallbackMatch = modifiedJs.match(fallbackPattern);
+
+        if (fallbackMatch) {
+            const originalFunction = fallbackMatch[0];
+            const modifiedFunction = originalFunction.replace(
+                /(yoyo: true[\s\S]*?\}\);)/,
+                `$1
+
+    // Farcade SDK: Send game over with final score (only on final stage)
+    if (isFinalStage && typeof FARCADE_MODE !== 'undefined' && FARCADE_MODE && window.FarcadeSDK) {
+        console.log('Farcade SDK: Sending game over with final score:', finalScore);
+        window.FarcadeSDK.singlePlayer.actions.gameOver({ score: finalScore });
+    }`
+            );
+
+            modifiedJs = modifiedJs.replace(originalFunction, modifiedFunction);
+            console.log('✓ Injected Farcade gameOver() call in showFinalScore using fallback pattern');
+        } else {
+            console.warn('Could not find showFinalScore function with any pattern to inject gameOver() call');
+        }
     }
 
-    // 4. UPDATED: More flexible pattern for onComplete in animateScoreCounter (backup)
-    // This handles cases where showFinalScore might not be called (edge cases)
-    const onCompleteBackupPattern = /(\/\/ Clear the active animation reference[\s\S]*?this\.activeAnimation = null;[\s\S]*?\/\/ Show final score with celebration effect[\s\S]*?this\.showFinalScore\(scene, textObject, finalScore\);)/;
-    const onCompleteBackupMatch = modifiedJs.match(onCompleteBackupPattern);
-
-    if (onCompleteBackupMatch) {
-        const originalCode = onCompleteBackupMatch[0];
-        const modifiedCode = originalCode + `
-
-                // Farcade SDK: Backup game over call (in case showFinalScore doesn't trigger)
-                if (typeof FARCADE_MODE !== 'undefined' && FARCADE_MODE && window.FarcadeSDK && !onCompleteCallback) {
-                    // Only send if this is the final animation (no callback = not a staged animation)
-                    console.log('Farcade SDK: Backup game over with final score:', finalScore);
-                    window.FarcadeSDK.singlePlayer.actions.gameOver({ score: finalScore });
-                }`;
-
-        modifiedJs = modifiedJs.replace(originalCode, modifiedCode);
-        console.log('✓ Injected backup Farcade gameOver() call in animateScoreCounter');
-    } else {
-        console.warn('Could not find animateScoreCounter onComplete to inject backup gameOver() call');
-    }
-
-    // 5. INJECT PLAY_AGAIN AND MUTE EVENT HANDLERS (unchanged)
+    // 4. INJECT PLAY_AGAIN AND MUTE EVENT HANDLERS (unchanged)
     const windowGamePattern = /(window\.game = new Phaser\.Game\(config\);)/;
     const windowGameMatch = modifiedJs.match(windowGamePattern);
 
@@ -301,7 +300,7 @@ function injectFarcadeIntegrations(htmlTemplate, mergedJs) {
         console.warn('Could not find window.game = new Phaser.Game(config) to inject event handlers');
     }
 
-    console.log('=== UPDATED FARCADE INTEGRATION COMPLETE ===\n');
+    console.log('=== FINAL FARCADE INTEGRATION COMPLETE ===\n');
 
     return { modifiedHtml, modifiedJs };
 }

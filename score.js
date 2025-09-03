@@ -266,7 +266,7 @@ const ScoreSystem = {
 
         console.log(`Victory animation: survival=${survivalScore}, final=${finalVictoryScore}`);
 
-        // Stage 1: Animate to survival score
+        // Stage 1: Animate to survival score (NOT final stage)
         this.animateScoreCounter(scene, textObject, survivalScore, createdObjects, 0, () => {
             // Stage 2: Pause for 1 second, then continue to victory bonus
             console.log("Survival score reached, pausing before victory bonus");
@@ -274,17 +274,17 @@ const ScoreSystem = {
             scene.time.delayedCall(1000, () => {
                 console.log("Adding victory bonus");
 
-                // Continue animation from survival score to final victory score
-                this.animateScoreCounter(scene, textObject, finalVictoryScore, createdObjects, survivalScore);
+                // Continue animation from survival score to final victory score (IS final stage)
+                this.animateScoreCounter(scene, textObject, finalVictoryScore, createdObjects, survivalScore, null, true);
             });
-        });
+        }, false); // false = NOT the final stage
     },
 
     // Add this property to track active animations:
     activeAnimation: null,
 
     // Updated showFinalScore function without comma formatting
-    showFinalScore: function (scene, textObject, finalScore) {
+    showFinalScore: function (scene, textObject, finalScore, isFinalStage = true) {
         if (!scene || !textObject || textObject.active === false) return;
 
         // Display as plain number (no comma formatting)
@@ -300,6 +300,14 @@ const ScoreSystem = {
             duration: 200,
             yoyo: true
         });
+
+        // Only trigger external integrations (like Farcade SDK) on the final stage
+        if (isFinalStage) {
+            console.log("Final stage reached - external integrations can now trigger");
+
+            // This is where Farcade SDK integration will hook in
+            // The merge script will inject the Farcade SDK call here, but only when isFinalStage is true
+        }
     },
 
     // Updated skipToFinalScore function for two-stage animation
@@ -328,7 +336,7 @@ const ScoreSystem = {
     },
 
     // Updated animateScoreCounter with callback support and no comma formatting
-    animateScoreCounter: function (scene, textObject, finalScore, createdObjects, startValue = 0, onCompleteCallback = null) {
+    animateScoreCounter: function (scene, textObject, finalScore, createdObjects, startValue = 0, onCompleteCallback = null, isFinalStage = true) {
         if (!scene || !textObject) {
             console.error("Missing scene or textObject in animateScoreCounter");
             return;
@@ -368,8 +376,8 @@ const ScoreSystem = {
                 // Clear the active animation reference
                 this.activeAnimation = null;
 
-                // Show final score with celebration effect
-                this.showFinalScore(scene, textObject, finalScore);
+                // Show final score with celebration effect (pass isFinalStage)
+                this.showFinalScore(scene, textObject, finalScore, isFinalStage);
 
                 // Call the completion callback if provided
                 if (onCompleteCallback) {
@@ -383,7 +391,8 @@ const ScoreSystem = {
             tween: scoreTween,
             textObject: textObject,
             finalScore: finalScore,
-            displayScore: finalScore // Store the display score for skipping
+            displayScore: finalScore, // Store the display score for skipping
+            isFinalStage: isFinalStage // Store whether this is the final stage
         };
 
         return scoreTween;

@@ -1,5 +1,5 @@
 // Beam Perk Registry for KAJISU
-// Maps perks to their beam configurations and activation functions!
+// Maps perks to their beam configurations and activation functions
 
 // Registry system for beam perks
 const BeamPerkRegistry = {

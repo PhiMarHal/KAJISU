@@ -52,7 +52,7 @@ const InputSystem = {
         tapStartTime: 0,
         tapStartX: 0,
         tapStartY: 0,
-        tapHoldThreshold: 90, // 200 is BAD for mobile
+        tapHoldThreshold: 120, // 200 is BAD for mobile
         hasMoved: false,
         isWaitingForIntent: false, // waiting to see if it's a tap or drag
 

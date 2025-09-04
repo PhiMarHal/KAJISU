@@ -1066,7 +1066,23 @@ window.createLightningStrike = createLightningStrike;
 
 
 // Create a factory function for random shots components
-function createRandomShotsComponent(baseCooldown, damageMultiplier) {
+function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}) {
+    // Extract options with defaults
+    const {
+        // Burst mode options
+        burstDuration = null,        // If set, fires in bursts instead of continuous
+        burstInterval = null,        // Time between shots during burst
+
+        // Projectile customization
+        speed = 400,                 // Projectile speed
+        color = '#ffff00',           // Projectile color
+        symbol = '★',                // Projectile symbol
+        components = [],             // Array of component names to attach
+
+        // Cooldown stat (for burst mode)
+        cooldownStat = 'fireRate'    // Which stat affects cooldown
+    } = options;
+
     return {
         // Store timer reference
         shotsTimer: null,
@@ -1074,25 +1090,81 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier) {
         // Configuration
         baseCooldown: baseCooldown,
         damageMultiplier: damageMultiplier,
+        burstDuration: burstDuration,
+        burstInterval: burstInterval,
+        speed: speed,
+        color: color,
+        symbol: symbol,
+        components: components,
+        cooldownStat: cooldownStat,
 
         initialize: function (player) {
             // Get the scene
             const scene = game.scene.scenes[0];
             if (!scene) return;
 
-            // Create and register timer using the configured cooldown
-            this.shotsTimer = CooldownManager.createTimer({
-                statName: 'fireRate',
-                baseCooldown: this.baseCooldown,
-                formula: 'sqrt',
-                component: this,
-                callback: this.fireRandomShot,
-                callbackScope: this,
-                loop: true
-            });
+            if (this.burstDuration) {
+                // Burst mode: create timer for burst cycles
+                this.shotsTimer = CooldownManager.createTimer({
+                    statName: this.cooldownStat,
+                    baseCooldown: this.baseCooldown,
+                    formula: 'sqrt',
+                    component: this,
+                    callback: this.startBurst,
+                    callbackScope: this,
+                    loop: true
+                });
+
+                // Start first burst immediately
+                this.startBurst();
+            } else {
+                // Continuous mode: create timer for regular shots
+                this.shotsTimer = CooldownManager.createTimer({
+                    statName: this.cooldownStat,
+                    baseCooldown: this.baseCooldown,
+                    formula: 'sqrt',
+                    component: this,
+                    callback: this.fireRandomShot,
+                    callbackScope: this,
+                    loop: true
+                });
+
+                // Fire first shot immediately
+                this.fireRandomShot();
+            }
+        },
+
+        // Method to start a burst of shots
+        startBurst: function () {
+            if (gameOver || gamePaused) return;
+
+            const scene = game.scene.scenes[0];
+            if (!scene) return;
+
+            const shotsInBurst = Math.floor(this.burstDuration / this.burstInterval);
+            let shotsFired = 0;
 
             // Fire first shot immediately
             this.fireRandomShot();
+            shotsFired++;
+
+            // Create burst timer if more shots needed
+            if (shotsFired < shotsInBurst) {
+                const burstTimer = scene.time.addEvent({
+                    delay: this.burstInterval,
+                    callback: () => {
+                        this.fireRandomShot();
+                        shotsFired++;
+                        if (shotsFired >= shotsInBurst) {
+                            burstTimer.remove();
+                        }
+                    },
+                    callbackScope: this,
+                    repeat: shotsInBurst - shotsFired - 1
+                });
+
+                window.registerEffect('timer', burstTimer);
+            }
         },
 
         // Method to fire a projectile in a random direction
@@ -1115,12 +1187,21 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier) {
                 x: player.x,
                 y: player.y,
                 angle: randomAngle,
-                symbol: '★',
-                color: '#ffff00',
-                speed: 400,
+                symbol: this.symbol,
+                color: this.color,
+                speed: this.speed,
                 damage: actualDamage,
                 fontSize: getEffectiveSize(projectileSizeFactor, actualDamage)
             });
+
+            // Attach any specified components
+            if (projectile && this.components.length > 0) {
+                this.components.forEach(componentName => {
+                    if (ProjectileComponentSystem.componentTypes[componentName]) {
+                        ProjectileComponentSystem.addComponent(projectile, componentName);
+                    }
+                });
+            }
 
             return projectile;
         },
@@ -1164,6 +1245,26 @@ window.activateShootingStar = function () {
 // Function to activate meteor
 window.activateMeteor = function () {
     PlayerComponentSystem.addComponent('meteorAbility');
+};
+
+// Register the volcano component with burst mode
+PlayerComponentSystem.registerComponent('volcanoAbility', createRandomShotsComponent(60000, 2, {
+    burstDuration: 8000,        // 8 seconds of eruption
+    burstInterval: 100,         // Shot every 100ms (40 shots total)
+    speed: 200,                 // Slower projectiles for dramatic effect
+    components: ['fireEffect'], // Attach fire effect to each projectile
+    cooldownStat: 'luck'        // Cooldown scales with luck instead of fireRate
+}));
+
+// Register the perk
+PlayerPerkRegistry.registerPerkEffect('VOLCANO', {
+    componentName: 'volcanoAbility',
+    condition: function () { return true; }
+});
+
+// Activation function
+window.activateVolcano = function () {
+    PlayerComponentSystem.addComponent('volcanoAbility');
 };
 
 // Add this to hero.js - Generic factory function for HP-based multiplier perks

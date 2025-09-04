@@ -1187,6 +1187,18 @@ const PERKS = {
             window.activateThreeStars();
         }
     },
+    "VOLCANO": {
+        kanji: "火山",
+        kana: "かざん",
+        romaji: "kazan",
+        english: "Volcano",
+        description: "Erupts fiery projectiles in all directions",
+        color: "#FF4500", // Orange-red color
+        hoverColor: 0xDD3300,
+        onAcquire: function () {
+            window.activateVolcano();
+        }
+    },
     "BLIZZARD": {
         kanji: "吹雪",
         kana: "ふぶき",

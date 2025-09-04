@@ -58,17 +58,16 @@ const DropperPerkRegistry = {
 // Register the Amber Beetle perk (landmines)
 DropperPerkRegistry.registerDropperPerk('AMBER_BEETLE', {
     getConfig: function () {
-        const amberDamage = playerDamage * 2;
-
         return {
             symbol: '★',
             color: '#ffbf00', // Amber color
-            fontSize: getEffectiveSize(projectileSizeFactor, amberDamage),
+            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
             behaviorType: 'projectile',
-            damage: amberDamage,
+            damage: playerDamage,
             lifespan: 60000,
             options: {
-                visualEffect: 'createPulsing'
+                visualEffect: 'createPulsing',
+                effectComponent: 'explosionEffect'
             }
         };
     },

@@ -156,15 +156,22 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
         if (projectile.effectTriggered) return;
         projectile.effectTriggered = true;
 
+        // Set default values if not initialized (for dropper entities)
+        const damageMultiplier = this.damageMultiplier ?? 1;
+        const radiusMultiplier = this.radiusMultiplier ?? 80;
+        const falloffMultiplier = this.falloffMultiplier ?? 0;
+        const radius = this.radius ?? (radiusMultiplier * Math.sqrt(playerLuck / BASE_STATS.LUK));
+        const explosionSourceId = projectile.explosionSourceId ?? `explosion_${Date.now()}_${Math.random()}`;
+
         // Store the hit position (enemy's location)
         const hitX = enemy.x;
         const hitY = enemy.y;
 
         // Create explosion visual effect
-        this.createExplosionEffect(hitX, hitY, scene);
+        this.createExplosionEffect(hitX, hitY, scene, radius);
 
         // Calculate damage amount
-        const explosionDamage = playerDamage * this.damageMultiplier;
+        const explosionDamage = playerDamage * damageMultiplier;
 
         // Get all active enemies
         const allEnemies = EnemySystem.enemiesGroup.getChildren();
@@ -183,13 +190,13 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             // If enemy is within radius, apply damage
-            if (distance <= this.radius) {
+            if (distance <= radius) {
                 // Calculate damage with optional falloff
                 let damageAmount = explosionDamage;
 
                 // Apply falloff if enabled
-                if (this.falloffMultiplier > 0) {
-                    const falloff = 1 - (distance / this.radius) * this.falloffMultiplier;
+                if (falloffMultiplier > 0) {
+                    const falloff = 1 - (distance / radius) * falloffMultiplier;
                     damageAmount = explosionDamage * falloff;
                 }
 
@@ -197,7 +204,7 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
                 applyContactDamage.call(
                     scene,
                     {
-                        damageSourceId: projectile.explosionSourceId,
+                        damageSourceId: explosionSourceId,
                         damage: damageAmount,
                         active: true
                     },
@@ -209,8 +216,10 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
         });
     },
 
-    createExplosionEffect: function (x, y, scene) {
-        return VisualEffects.createExplosion(scene, x, y, this.radius, 0xFF9500, {
+    createExplosionEffect: function (x, y, scene, radius) {
+        // Use passed radius or fallback to instance radius
+        const effectRadius = radius ?? this.radius ?? (80 * Math.sqrt(playerLuck / BASE_STATS.LUK));
+        return VisualEffects.createExplosion(scene, x, y, effectRadius, 0xFF9500, {
             startScale: 0.2
         });
     }

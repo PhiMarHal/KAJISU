@@ -50,7 +50,8 @@ const RomajiChallengeSystem = {
             inputActive: true,
             attempts: 0,
             currentIndex: 0,
-            cardElements: []
+            cardElements: [],
+            cardObjects: []  // FIXED: Add array to store full card objects for proper cleanup
         };
 
         // Clean up UI elements references
@@ -287,9 +288,24 @@ const RomajiChallengeSystem = {
 
     // Update the perk card display
     updatePerkCardDisplay: function (scene) {
-        // Clear existing cards
+        // FIXED: Clean up existing cards properly (including pulse wrappers)
+        if (this.state.cardObjects && this.state.cardObjects.length > 0) {
+            this.state.cardObjects.forEach(cardObj => {
+                // Card objects from UnifiedCardSystem have an 'elements' array
+                if (cardObj && cardObj.elements && cardObj.elements.length > 0) {
+                    cardObj.elements.forEach(element => {
+                        if (element && element.destroy) {
+                            element.destroy();
+                        }
+                    });
+                }
+            });
+        }
+
+        // Clear existing cards from Phaser container
         this.elements.perkCardContainer.removeAll(true);
         this.state.cardElements = [];
+        this.state.cardObjects = []; // Store full card objects for proper cleanup
 
         const cardCount = this.state.currentCards;
 
@@ -335,6 +351,9 @@ const RomajiChallengeSystem = {
                 perkCallback: (perkId) => this.selectCard(scene, perkId)
             });
 
+            // FIXED: Store full card objects for proper cleanup
+            this.state.cardObjects.push(card);
+
             // Store card elements in the original format that the rest of the code expects
             this.state.cardElements.push({
                 background: card.elements[0], // First element is the background
@@ -345,6 +364,7 @@ const RomajiChallengeSystem = {
         // Update input visibility based on challenge state
         this.updateInputVisibility();
     },
+
 
     // Function to validate romaji input
     validateRomajiInput: function (scene) {
@@ -589,13 +609,29 @@ const RomajiChallengeSystem = {
             // End input challenge and rebuild all cards with full details
             this.state.inputActive = false;
 
-            // Clear and rebuild all cards
+            // FIXED: Properly clean up existing cards (including pulse wrappers) before rebuilding
+            if (this.state.cardObjects && this.state.cardObjects.length > 0) {
+                this.state.cardObjects.forEach(cardObj => {
+                    // Card objects from UnifiedCardSystem have an 'elements' array
+                    if (cardObj && cardObj.elements && cardObj.elements.length > 0) {
+                        cardObj.elements.forEach(element => {
+                            if (element && element.destroy) {
+                                element.destroy();
+                            }
+                        });
+                    }
+                });
+                this.state.cardObjects = [];
+            }
+
+            // Clear Phaser container and rebuild all cards
             this.elements.perkCardContainer.removeAll(true);
             this.updatePerkCardDisplay(scene);
 
             //console.log("Challenge ended after second failure");
         }
     },
+
 
     // Function to update input visibility
     updateInputVisibility: function () {
@@ -639,6 +675,21 @@ const RomajiChallengeSystem = {
         if (this.elements.concentricCircles) {
             this.elements.concentricCircles.destroy();
             this.elements.concentricCircles = null;
+        }
+
+        // FIXED: Clean up card objects (including pulse wrappers) before destroying container
+        if (this.state.cardObjects && this.state.cardObjects.length > 0) {
+            this.state.cardObjects.forEach(cardObj => {
+                // Card objects from UnifiedCardSystem have an 'elements' array
+                if (cardObj && cardObj.elements && cardObj.elements.length > 0) {
+                    cardObj.elements.forEach(element => {
+                        if (element && element.destroy) {
+                            element.destroy();
+                        }
+                    });
+                }
+            });
+            this.state.cardObjects = [];
         }
 
         // Clean up UI elements
@@ -685,6 +736,21 @@ const RomajiChallengeSystem = {
 
         // Restore debug keys
         this.restoreDebugKeys();
+
+        // FIXED: Clean up card objects (including pulse wrappers) before destroying container
+        if (this.state.cardObjects && this.state.cardObjects.length > 0) {
+            this.state.cardObjects.forEach(cardObj => {
+                // Card objects from UnifiedCardSystem have an 'elements' array
+                if (cardObj && cardObj.elements && cardObj.elements.length > 0) {
+                    cardObj.elements.forEach(element => {
+                        if (element && element.destroy) {
+                            element.destroy();
+                        }
+                    });
+                }
+            });
+            this.state.cardObjects = [];
+        }
 
         // Clean up concentric circles animation
         if (this.elements.concentricCircles) {

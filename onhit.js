@@ -221,8 +221,8 @@ OnHitEffectSystem.registerComponent('stormVengeanceEffect', {
 
     // Handle the player being hit
     onHit: function (scene, enemy) {
-        // Calculate number of lightning strikes based on player luck
-        const strikeCount = playerLuck;
+        // Calculate number of lightning strikes, sqrt luck 
+        const strikeCount = 4 * (Math.sqrt(playerLuck / BASE_STATS.LUK));
 
         // Create lightning strikes in a circle around the player
         this.createVengeanceStorm(scene, strikeCount);
@@ -231,7 +231,7 @@ OnHitEffectSystem.registerComponent('stormVengeanceEffect', {
     // Helper method to create multiple lightning strikes in a circle
     createVengeanceStorm: function (scene, count) {
         // Define the radius of the lightning storm
-        const radius = 192;
+        const radius = 256;
 
         // Create unique damage source ID for this storm
         const stormId = `vengeance_storm_${Date.now()}_${Math.random()}`;

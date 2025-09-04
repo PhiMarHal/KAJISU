@@ -365,7 +365,7 @@ const ShrineConfigs = {
         symbol: '癒',
         fontSize: '40px',
         color: '#00FF00',
-        baseCooldown: 24000,
+        baseCooldown: 32000,
         auraColor: 0x00FF00,
         effectInterval: 1000, // Heal every second
         onEnterAura: function (shrine) {
@@ -386,9 +386,9 @@ const ShrineConfigs = {
         symbol: '雷',
         fontSize: '40px',
         color: '#9966FF',
-        baseCooldown: 16000, // 16 seconds
+        baseCooldown: 20000,
         auraColor: 0x9966FF,
-        effectInterval: 200, // Lightning every 200ms
+        effectInterval: 250, // Lightning every 200ms
         onEnterAura: function (shrine) {
             //console.log("Entered storm shrine - lightning storm active!");
         },
@@ -415,9 +415,9 @@ const ShrineConfigs = {
         symbol: '鎚',
         fontSize: '40px',
         color: '#FFD700',
-        baseCooldown: 24000,
+        baseCooldown: 48000,
         auraColor: 0xFFD700,
-        effectInterval: 2000, // God hammer every 2 seconds
+        effectInterval: 1000, // God hammer every second
         onEnterAura: function (shrine) {
             //console.log("Entered god hammer shrine - divine hammers active!");
         },

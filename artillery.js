@@ -512,7 +512,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
     initialize: function (projectile) {
         // Visual indicator for the projectile itself
         ProjectileComponentSystem.setProjectileColor(projectile, '#FF4500', projectile.scene);
-        this.fireDamage = playerDamage / 10; // Default fire damage
+        this.fireDamage = playerDamage / (8 * Math.sqrt(playerLuck / BASE_STATS.LUK)); // Scales with luck!
         this.fireDuration = 4000; // 4s default duration
         this.fireTickInterval = 200; // 0.2 seconds default tick interval
     },

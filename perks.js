@@ -265,6 +265,27 @@ const PERKS = {
             // The component is added through PlayerPerkRegistry
         }
     },
+    "CORAL_LIZARD": {
+        kanji: "珊瑚蜥蜴",
+        kana: "さんごとかげ",
+        romaji: "sangotokage",
+        english: "Coral Lizard",
+        description: "+1 END and spawns 4 healing beacons",
+        color: "#FF7F50",
+        hoverColor: 0xE55B3C,
+        onAcquire: function () {
+            window.modifyStat('health', 1);
+
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                for (let i = 0; i < 4; i++) {
+                    scene.time.delayedCall(i * 200, function () {
+                        window.spawnBeacon('ANGEL_HONEY', scene);
+                    });
+                }
+            }
+        }
+    },
 
     // Food perks that increase max HP and heal the player
     "SUSHI": {

@@ -2,6 +2,89 @@
 // Manages collectible entities that spawn periodically and trigger effects
 
 const BeaconSystem = {
+    // New shared beacon creation method
+    createBeaconAt: function (scene, rawConfig, x = null, y = null) {
+        // Skip if game is over or paused
+        if (gameOver || gamePaused) return null;
+
+        // Apply defaults to the config (same as createBeaconComponent)
+        const defaults = {
+            beaconType: 'generic',
+            symbol: '★',
+            fontSize: '20px',
+            color: '#FFD700',
+            strokeColor: '#FFFFFF',
+            strokeThickness: 4,
+            baseCooldown: 60000,
+            cooldownStat: 'luck',
+            cooldownFormula: 'sqrt',
+            maxBeacons: null,
+            paddingX: 0.017,
+            paddingY: 0.025,
+            onCollect: function () { },
+            shadowConfig: {
+                offsetX: 0,
+                offsetY: 0,
+                color: '#FFFFFF',
+                blur: 10,
+                stroke: true,
+                fill: true
+            }
+        };
+
+        const config = { ...defaults, ...rawConfig };
+
+        // Limit beacons of this type
+        this.limitBeaconsByType(config.beaconType, config.maxBeacons);
+
+        // Use provided position or calculate random spawn position
+        if (x === null || y === null) {
+            x = Phaser.Math.Between(
+                game.config.width * config.paddingX,
+                game.config.width * (1 - config.paddingX)
+            );
+            y = Phaser.Math.Between(
+                game.config.height * config.paddingY,
+                game.config.height * (1 - config.paddingY)
+            );
+        }
+
+        // Create the beacon (now config.shadowConfig is guaranteed to exist)
+        const beacon = scene.add.text(x, y, config.symbol, {
+            fontFamily: 'Arial',
+            fontSize: config.fontSize,
+            color: config.color,
+            stroke: config.strokeColor,
+            strokeThickness: config.strokeThickness,
+            shadow: config.shadowConfig
+        }).setOrigin(0.5);
+
+        // Add physics body
+        scene.physics.world.enable(beacon);
+        beacon.body.setSize(beacon.width * 0.8, beacon.height * 0.8);
+        beacon.body.immovable = true;
+
+        // Mark beacon type and create unique ID
+        beacon.beaconType = config.beaconType;
+        beacon.beaconId = `${config.beaconType}_${Date.now()}_${Math.random()}`;
+
+        // Register for cleanup
+        window.registerEffect('entity', beacon);
+
+        // Add overlap with player
+        scene.physics.add.overlap(beacon, player, function (beacon, player) {
+            if (beacon.collected) return;
+            beacon.collected = true;
+            config.onCollect.call(scene, beacon);
+            BeaconSystem.createCollectionEffects.call(scene, beacon);
+        }.bind(scene), null, scene);
+
+        // Add pulsing animation
+        VisualEffects.createPulsing(scene, beacon);
+
+        return beacon;
+    },
+
     // Create a standardized beacon spawning component
     createBeaconComponent: function (config) {
         const defaults = {
@@ -62,69 +145,8 @@ const BeaconSystem = {
             },
 
             spawnBeacon: function (config) {
-                // Skip if game is over or paused
-                if (gameOver || gamePaused) return;
-
-                // Limit beacons of this type
-                BeaconSystem.limitBeaconsByType(config.beaconType, config.maxBeacons);
-
-                // Calculate spawn position with padding
-                const x = Phaser.Math.Between(
-                    game.config.width * config.paddingX,
-                    game.config.width * (1 - config.paddingX)
-                );
-                const y = Phaser.Math.Between(
-                    game.config.height * config.paddingY,
-                    game.config.height * (1 - config.paddingY)
-                );
-
-                // Create the beacon
-                const beacon = this.add.text(x, y, config.symbol, {
-                    fontFamily: 'Arial',
-                    fontSize: config.fontSize,
-                    color: config.color,
-                    stroke: config.strokeColor,
-                    strokeThickness: config.strokeThickness,
-                    shadow: config.shadowConfig
-                }).setOrigin(0.5);
-
-                // Add physics body
-                this.physics.world.enable(beacon);
-                beacon.body.setSize(beacon.width * 0.8, beacon.height * 0.8);
-                beacon.body.immovable = true;
-
-                // Mark beacon type and create unique ID
-                beacon.beaconType = config.beaconType;
-                beacon.beaconId = `${config.beaconType}_${Date.now()}_${Math.random()}`;
-
-                // Track in activeEffects.entities
-                if (!activeEffects.entities) {
-                    activeEffects.entities = [];
-                }
-
-                // Register for cleanup
-                window.registerEffect('entity', beacon);
-
-                // Add overlap with player
-                this.physics.add.overlap(beacon, player, function (beacon, player) {
-                    // Only collect if not already collected
-                    if (beacon.collected) return;
-
-                    // Mark as collected to prevent multiple triggers
-                    beacon.collected = true;
-
-                    // Call the custom effect
-                    config.onCollect.call(this, beacon);
-
-                    // Standard collection visual effects
-                    BeaconSystem.createCollectionEffects.call(this, beacon);
-
-                }.bind(this), null, this);
-
-                // Add pulsing animation
-                VisualEffects.createPulsing(this, beacon);
-
-                return beacon;
+                // Now just delegates to the shared method
+                return BeaconSystem.createBeaconAt(this, config);
             },
 
             cleanup: function (player) {
@@ -340,3 +362,12 @@ const BeaconConfigs = {
 // Export the system and configs
 window.BeaconSystem = BeaconSystem;
 window.BeaconConfigs = BeaconConfigs;
+
+// Add global utility function
+window.spawnBeacon = function (beaconType, scene, x = null, y = null) {
+    if (!BeaconConfigs[beaconType]) {
+        console.warn(`Unknown beacon type: ${beaconType}`);
+        return null;
+    }
+    return BeaconSystem.createBeaconAt(scene, BeaconConfigs[beaconType], x, y);
+};

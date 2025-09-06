@@ -1,8 +1,5 @@
 // Map of all available perks
 const PERKS = {
-    // =========================================================================
-    // ANIMAL-COLOR PERKS
-    // =========================================================================
     "RED_DRAGON": {
         kanji: "赤竜",
         kana: "あかりゅう",
@@ -26,6 +23,23 @@ const PERKS = {
         hoverColor: 0x2980b9,
         onAcquire: function () {
 
+        }
+    },
+    "GOLDEN_HAWK": {
+        kanji: "金鷹",
+        kana: "きんたか",
+        romaji: "kintaka",
+        english: "Golden Hawk",
+        description: "+1 AGI and calls down a divine hammer",
+        color: "#FFD700",
+        hoverColor: 0xB8860B,
+        onAcquire: function () {
+            window.modifyStat('fireRate', 1);
+
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                dropGodHammer.call(scene);
+            }
         }
     },
     "FATED_SHIELD": {
@@ -1678,7 +1692,7 @@ const PERKS = {
         kana: "べにさんだん",
         romaji: "benisandan",
         english: "Crimson Scatter",
-        description: "Higher damage at short range, lower dmg at long rng",
+        description: "Deal more damage up close, less damage far away",
         color: "#FF3030",
         hoverColor: 0xC02020,
         onAcquire: function () {
@@ -1689,7 +1703,7 @@ const PERKS = {
         kana: "くれないのいかり",
         romaji: "kurenainoikari",
         english: "Crimson Fury",
-        description: "Double damage when below 25% health",
+        description: "+100% damage when below 50% health",
         color: "#FF0000",
         hoverColor: 0xCC0000,
         onAcquire: function () {

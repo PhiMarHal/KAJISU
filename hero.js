@@ -189,7 +189,7 @@ PlayerComponentSystem.registerComponent('berserkerState', {
     update: function (player) {
         // Check if we should deactivate (health above threshold)
         const healthPercentage = playerHealth / maxPlayerHealth;
-        if (healthPercentage > 0.25) {
+        if (healthPercentage > 0.5) {
             PlayerComponentSystem.removeComponent('berserkerState');
         }
     },

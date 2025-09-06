@@ -1069,18 +1069,13 @@ window.createLightningStrike = createLightningStrike;
 function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}) {
     // Extract options with defaults
     const {
-        // Burst mode options
-        burstDuration = null,        // If set, fires in bursts instead of continuous
-        burstInterval = null,        // Time between shots during burst
-
-        // Projectile customization
-        speed = 400,                 // Projectile speed
-        color = '#ffff00',           // Projectile color
-        symbol = '★',                // Projectile symbol
-        components = [],             // Array of component names to attach
-
-        // Cooldown stat (for burst mode)
-        cooldownStat = 'fireRate'    // Which stat affects cooldown
+        burstDuration = null,
+        burstInterval = null,
+        speed = 400,
+        color = '#ffff00',
+        symbol = '★',
+        components = [],
+        cooldownStat = 'fireRate'
     } = options;
 
     return {
@@ -1098,8 +1093,10 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
         components: components,
         cooldownStat: cooldownStat,
 
+        // Track if we need to fire initial shot/burst when game resumes
+        needsInitialAction: false,
+
         initialize: function (player) {
-            // Get the scene
             const scene = game.scene.scenes[0];
             if (!scene) return;
 
@@ -1115,8 +1112,12 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
                     loop: true
                 });
 
-                // Start first burst immediately
-                this.startBurst();
+                // Start first burst immediately if not paused, otherwise defer
+                if (gamePaused) {
+                    this.needsInitialAction = true;
+                } else {
+                    this.startBurst();
+                }
             } else {
                 // Continuous mode: create timer for regular shots
                 this.shotsTimer = CooldownManager.createTimer({
@@ -1129,8 +1130,25 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
                     loop: true
                 });
 
-                // Fire first shot immediately
-                this.fireRandomShot();
+                // Fire first shot immediately if not paused, otherwise defer
+                if (gamePaused) {
+                    this.needsInitialAction = true;
+                } else {
+                    this.fireRandomShot();
+                }
+            }
+        },
+
+        // Add update method to handle deferred initial actions
+        update: function (player) {
+            // Fire initial action when game resumes
+            if (this.needsInitialAction && !gamePaused) {
+                this.needsInitialAction = false;
+                if (this.burstDuration) {
+                    this.startBurst();
+                } else {
+                    this.fireRandomShot();
+                }
             }
         },
 
@@ -1169,20 +1187,14 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
 
         // Method to fire a projectile in a random direction
         fireRandomShot: function () {
-            // Skip if game is over or paused
             if (gameOver || gamePaused) return;
 
-            // Get the scene
             const scene = game.scene.scenes[0];
             if (!scene) return;
 
-            // Generate random angle (0 to 2π)
             const randomAngle = Math.random() * Math.PI * 2;
-
-            // Calculate the actual damage for this projectile
             const actualDamage = getEffectiveDamage() * this.damageMultiplier;
 
-            // Create the projectile using WeaponSystem with proper context
             const projectile = WeaponSystem.createProjectile.call(WeaponSystem, scene, {
                 x: player.x,
                 y: player.y,
@@ -1208,7 +1220,6 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
 
         // Cleanup on removal
         cleanup: function (player) {
-            // Remove timer
             if (this.shotsTimer) {
                 CooldownManager.removeTimer(this.shotsTimer);
                 this.shotsTimer = null;

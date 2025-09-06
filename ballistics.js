@@ -94,22 +94,13 @@ ProjectilePerkRegistry.registerPerkEffect('PURPLE_OWL', {
 ProjectilePerkRegistry.registerPerkEffect('TITAN_STOMP', {
     componentName: 'stompEffect',
     applyChance: true, // Apply based on chance calculation
-    configGenerator: function (scene) {
-        return {
-            // We could add custom config here if needed
-        };
-    }
 });
 
 // Register the explosion area effect perk
 ProjectilePerkRegistry.registerPerkEffect('AMBER_NOVA', {
     componentName: 'explosionEffect',
+    chanceMultiplier: 0.5,
     applyChance: true, // Apply based on chance
-    configGenerator: function (scene) {
-        return {
-            // We could add custom config here if needed
-        };
-    }
 });
 
 ProjectilePerkRegistry.registerPerkEffect('PIERCING_SHOTS', {

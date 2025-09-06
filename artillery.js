@@ -68,9 +68,9 @@ const ProjectileComponentSystem = {
 
 // Configuration variables for Crimson Scatter (distance-based damage)
 const CRIMSON_SCATTER_CONFIG = {
-    maxDamageMultiplier: 1.6,  // Maximum multiplier at close range
-    minDamageMultiplier: 0.4,  // Minimum multiplier at maximum distance
-    distanceMultiplier: 400
+    maxDamageMultiplier: 1.5,  // Maximum multiplier at close range
+    minDamageMultiplier: 0.5,  // Minimum multiplier at maximum distance
+    distanceMultiplier: 500
 };
 
 // Register component for distance-based damage (Crimson Scatter)
@@ -79,7 +79,7 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
         // Store our start position and base damage in the component
         this.startX = projectile.x;
         this.startY = projectile.y;
-        this.baseDamage = playerDamage;
+        this.baseDamage = getEffectiveDamage(); // ✅ Now uses effective damage with all multipliers
 
         // Calculate maxDistance dynamically based on current playerFireRate
         this.maxDistance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * CRIMSON_SCATTER_CONFIG.distanceMultiplier;
@@ -105,8 +105,14 @@ ProjectileComponentSystem.registerComponent('distanceDamage', {
         // Update projectile damage
         projectile.damage = this.baseDamage * damageMultiplier;
 
-        // Update projectile scale to reflect damage (visual feedback)
-        projectile.setScale(damageMultiplier);
+        // Update projectile size using proper size calculation system
+        const newSize = getEffectiveSize(null, projectile.damage);
+        if (projectile.projectileType === 'sprite') {
+            const scaleFactor = newSize / (projectile.actualWidth ?? 16);
+            projectile.setScale(scaleFactor);
+        } else if (projectile.setFontSize) {
+            projectile.setFontSize(newSize);
+        }
     }
 });
 

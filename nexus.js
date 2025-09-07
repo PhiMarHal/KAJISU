@@ -780,8 +780,8 @@ OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
             pattern: 'directionFollowing', // Use our custom pattern
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage, // Keep for backward compatibility
-            damageMultiplier: 0.2, // Add for dynamic scaling
-            damageInterval: 50,
+            damageMultiplier: 0.3, // Add for dynamic scaling
+            damageInterval: 100,
             lifespan: null, // Permanent
             options: {
                 oscillationSpeed: 0.004, // Speed of the breathing effect
@@ -801,8 +801,8 @@ window.activateBrightLance = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'BRIGHT_LANCE');
 };
 
-// TORCH
-OrbitalPerkRegistry.registerPerkOrbital('TORCH', {
+// TORCHLIGHT
+OrbitalPerkRegistry.registerPerkOrbital('TORCHLIGHT', {
     getConfig: function () {
         return {
             symbol: '炬', // Kanji for "torch"
@@ -815,7 +815,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TORCH', {
             pattern: 'directionFollowing', // Follow player movement direction
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage,
-            damageMultiplier: 0.2, // 20% of player damage for contact
+            damageMultiplier: 0.10, // 10% of player damage for contact
             damageInterval: 100, // Fast contact damage interval
             lifespan: null, // Permanent
             options: {
@@ -845,6 +845,59 @@ window.activateTorch = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'TORCH');
 };
 
+// SKY_MESSENGER
+OrbitalPerkRegistry.registerPerkOrbital('SKY_MESSENGER', {
+    getConfig: function () {
+        return {
+            symbol: '凧', // Kanji for "kite"
+            color: '#00DDFF', // Bright cyan color (storm theme)
+            fontSize: 24, // Smaller size
+            radius: 256, // Larger orbit radius
+            speed: 0.5, // Moderate speed
+            direction: 'counterclockwise',
+            pattern: 'oscillating', // Oscillating pattern like WILD_FAIRY
+            collisionType: 'persistent', // Never dies, stays after hitting enemies
+            damage: playerDamage * 0.2, // 20% contact damage
+            damageInterval: 1000,
+            lifespan: null, // Permanent
+            options: {
+                wobbleFrequency: 4,
+                wobbleAmplitude: 90
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly, no respawning needed
+});
+
+// Add this activation function to nexus.js
+window.activateSkyMessenger = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create the persistent orbital
+    const orbitalConfig = OrbitalPerkRegistry.perkOrbitalConfigs['SKY_MESSENGER'].getConfig();
+    const orbital = OrbitalSystem.create(scene, orbitalConfig);
+
+    // Set up lightning strike timer using CooldownManager for proper pause handling and luck scaling
+    const lightningTimer = CooldownManager.createTimer({
+        baseCooldown: 4000,
+        statName: 'luck',
+        formula: 'sqrt',
+        component: orbital,
+        callback: function () {
+            // Only strike if the orbital still exists
+            if (orbital.entity && orbital.entity.active && !orbital.destroyed) {
+                window.createLightningStrike(scene, orbital.entity.x, orbital.entity.y);
+            }
+        },
+        callbackScope: scene,
+        loop: true
+    });
+
+    // Register the lightning timer for cleanup
+    window.registerEffect('timer', lightningTimer);
+};
 
 // HEALING_FAIRY
 OrbitalPerkRegistry.registerPerkOrbital('HEALING_FAIRY', {

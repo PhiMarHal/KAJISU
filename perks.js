@@ -581,16 +581,28 @@ const PERKS = {
             window.activateBrightLance();
         }
     },
-    "TORCH": {
+    "TORCHLIGHT": {
         kanji: "炬火",
         kana: "たいまつ",
         romaji: "taimatsu",
-        english: "Torch",
-        description: "A burning torch that follows your movement and ignites enemies",
+        english: "Torchlight",
+        description: "Set the world ablaze",
         color: "#FF4500", // Orange-red color
         hoverColor: 0xDD3300,
         onAcquire: function () {
             window.activateTorch();
+        }
+    },
+    "SKY_MESSENGER": {
+        kanji: "空使者",
+        kana: "そらししゃ",
+        romaji: "sorashisha",
+        english: "Sky Messenger",
+        description: "A kite experiment",
+        color: "#00DDFF", // Bright cyan color
+        hoverColor: 0x00BBDD,
+        onAcquire: function () {
+            window.activateSkyMessenger();
         }
     },
     "LAVA_FAIRIES": {

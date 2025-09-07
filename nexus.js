@@ -780,8 +780,8 @@ OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
             pattern: 'directionFollowing', // Use our custom pattern
             collisionType: 'persistent', // Stays after hitting enemies
             damage: playerDamage, // Keep for backward compatibility
-            damageMultiplier: 1.0, // Add for dynamic scaling
-            damageInterval: 500,
+            damageMultiplier: 0.2, // Add for dynamic scaling
+            damageInterval: 50,
             lifespan: null, // Permanent
             options: {
                 oscillationSpeed: 0.004, // Speed of the breathing effect

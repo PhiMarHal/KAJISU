@@ -801,6 +801,51 @@ window.activateBrightLance = function () {
     OrbitalPerkRegistry.applyPerkOrbital(scene, 'BRIGHT_LANCE');
 };
 
+// TORCH
+OrbitalPerkRegistry.registerPerkOrbital('TORCH', {
+    getConfig: function () {
+        return {
+            symbol: '炬', // Kanji for "torch"
+            color: '#FF4500', // Orange-red color
+            fontSize: 32, // Standard size
+            radius: 96,
+            angle: Math.random() * Math.PI * 2, // Random starting angle
+            speed: 10, // Rotation speed factor for direction following
+            direction: 'clockwise',
+            pattern: 'directionFollowing', // Follow player movement direction
+            collisionType: 'persistent', // Stays after hitting enemies
+            damage: playerDamage,
+            damageMultiplier: 0.2, // 20% of player damage for contact
+            damageInterval: 100, // Fast contact damage interval
+            lifespan: null, // Permanent
+            options: {
+                oscillationSpeed: 0.004, // Speed of the breathing effect
+                oscillationAmount: 32, // Amplitude of oscillation
+                components: [
+                    {
+                        name: 'fireEffect',
+                        config: {
+                            useCooldown: true, // Enable cooldown mode
+                            fireCooldown: 2000  // 2000ms between fires
+                        }
+                    }
+                ]
+            }
+        };
+    },
+    count: 1,
+    activationMethod: 'immediate' // Create instantly when perk is acquired
+});
+
+window.activateTorch = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Apply the perk orbital
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'TORCH');
+};
+
+
 // HEALING_FAIRY
 OrbitalPerkRegistry.registerPerkOrbital('HEALING_FAIRY', {
     getConfig: function () {

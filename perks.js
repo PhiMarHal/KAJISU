@@ -581,6 +581,18 @@ const PERKS = {
             window.activateBrightLance();
         }
     },
+    "TORCH": {
+        kanji: "炬火",
+        kana: "たいまつ",
+        romaji: "taimatsu",
+        english: "Torch",
+        description: "A burning torch that follows your movement and ignites enemies",
+        color: "#FF4500", // Orange-red color
+        hoverColor: 0xDD3300,
+        onAcquire: function () {
+            window.activateTorch();
+        }
+    },
     "LAVA_FAIRIES": {
         kanji: "溶岩精",
         kana: "ようがんせい",

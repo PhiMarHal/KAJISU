@@ -1261,7 +1261,7 @@ window.activateMeteor = function () {
 // Register the volcano component with burst mode
 PlayerComponentSystem.registerComponent('volcanoAbility', createRandomShotsComponent(60000, 2, {
     burstDuration: 8000,        // 8 seconds of eruption
-    burstInterval: 100,         // Shot every 100ms (40 shots total)
+    burstInterval: 200,         // Shot every 200ms (40 shots total)
     speed: 200,                 // Slower projectiles for dramatic effect
     components: ['fireEffect'], // Attach fire effect to each projectile
     cooldownStat: 'luck'        // Cooldown scales with luck instead of fireRate

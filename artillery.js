@@ -513,23 +513,40 @@ function createPersistentEffect(scene, x, y, config = {}) {
 // Make the function globally accessible
 window.createPersistentEffect = createPersistentEffect;
 
-// Update the fireEffect component in artillery.js to use the generalized function
+// Replace the existing fireEffect component in artillery.js with this enhanced version
 ProjectileComponentSystem.registerComponent('fireEffect', {
+    // Set default values that can be overridden by config
+    useCooldown: false, // Default: no cooldown (original behavior)
+    fireCooldown: 500, // Default cooldown duration
+    lastFireTime: 0, // Track when we last created fire
+
     initialize: function (projectile) {
         // Visual indicator for the projectile itself
         ProjectileComponentSystem.setProjectileColor(projectile, '#FF4500', projectile.scene);
         this.fireDamage = playerDamage / (8 * Math.sqrt(playerLuck / BASE_STATS.LUK)); // Scales with luck!
         this.fireDuration = 4000; // 4s default duration
         this.fireTickInterval = 200; // 0.2 seconds default tick interval
+
+        // Initialize lastFireTime if using cooldown mode
+        if (this.useCooldown) {
+            this.lastFireTime = 0;
+        }
     },
 
     onHit: function (projectile, enemy, scene) {
         // Don't create fire if enemy is already dead
         if (!enemy || !enemy.active || enemy.health <= 0) return;
 
-        // Prevent multiple triggers for piercing projectiles
-        if (projectile.effectTriggered) return;
-        projectile.effectTriggered = true;
+        // Handle cooldown mode (for persistent orbitals)
+        if (this.useCooldown) {
+            const currentTime = scene.time.now;
+            if (currentTime - this.lastFireTime < this.fireCooldown) return;
+            this.lastFireTime = currentTime;
+        } else {
+            // Handle one-time mode (for projectiles)
+            if (projectile.effectTriggered) return;
+            projectile.effectTriggered = true;
+        }
 
         // Use the generalized function to create fire
         createPersistentEffect(scene, projectile.x, projectile.y, {

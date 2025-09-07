@@ -279,14 +279,80 @@ const PERKS = {
             const scene = game.scene.scenes[0];
             if (scene) {
                 for (let i = 0; i < 4; i++) {
-                    scene.time.delayedCall(i * 200, function () {
+                    window.createPauseAwareDelay(scene, i * 200, function () {
                         window.spawnBeacon('ANGEL_HONEY', scene);
                     });
                 }
             }
         }
     },
+    "HEAVEN_BLESSING": {
+        kanji: "天恵",
+        kana: "てんえい",
+        romaji: "tenei",
+        english: "Heaven Blessing",
+        description: "+1 LUK and spawns divine beacons equal to your LUK",
+        color: "#FFD700", // Gold to match divine theme
+        hoverColor: 0xDAA520,
+        onAcquire: function () {
+            // Give +1 LUK
+            window.modifyStat('luck', 1);
 
+            // Get the current scene
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                // Spawn many divine beacons - limit system will cap at playerLuck
+                for (let i = 0; i < playerLuck; i++) {
+                    window.createPauseAwareDelay(scene, i * 200, function () {
+                        window.spawnBeacon('DIVINE_BEACON', scene);
+                    });
+                }
+            }
+        }
+    },
+    "NIMBLE_LEOPARD": {
+        kanji: "敏豹",
+        kana: "びんひょう",
+        romaji: "binhyou",
+        english: "Nimble Leopard",
+        description: "+1 POW and spawns an augmentation beacon",
+        color: "#FF4500", // Orange-red to match augmentation theme
+        hoverColor: 0xDD3300,
+        onAcquire: function () {
+            // Give +1 POW
+            window.modifyStat('damage', 1);
+
+            // Get the current scene
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                window.createPauseAwareDelay(scene, 100, function () {
+                    window.spawnBeacon('AUGMENTATION', scene);
+                });
+            }
+        }
+    },
+    "SPEED_OF_LIGHT": {
+        kanji: "光速",
+        kana: "こうそく",
+        romaji: "kousoku",
+        english: "Speed of Light",
+        description: "+1 AGI and spawns 4 alien clock beacons",
+        color: "#FFFFFF", // White color
+        hoverColor: 0xDDDDDD,
+        onAcquire: function () {
+            window.modifyStat('fireRate', 1);
+
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                for (let i = 0; i < 4; i++) {
+                    // Use pause-aware delay instead of scene.time.delayedCall
+                    window.createPauseAwareDelay(scene, i * 200, function () {
+                        window.spawnBeacon('ALIEN_CLOCK', scene);
+                    });
+                }
+            }
+        }
+    },
     // Food perks that increase max HP and heal the player
     "SUSHI": {
         kanji: "寿司",
@@ -574,6 +640,34 @@ const PERKS = {
         hoverColor: 0x00BBDD,
         onAcquire: function () {
 
+        }
+    },
+    "LIGHTNING_STRUCK": {
+        kanji: "落雷",
+        kana: "らくらい",
+        romaji: "rakurai",
+        english: "Lightning Struck",
+        description: "Lightning never strikes twice. It strikes four times",
+        color: "#00DDFF", // Bright yellow for lightning
+        hoverColor: 0x00BBDD,
+        onAcquire: function () {
+            // Give +1 END
+            window.modifyStat('health', 1);
+
+            // Get the current scene and store player position
+            const scene = game.scene.scenes[0];
+            if (scene) {
+                // Store player position when perk is acquired
+                const strikeX = player.x;
+                const strikeY = player.y;
+
+                // Create 4 lightning strikes at 1 second intervals
+                for (let i = 0; i < 4; i++) {
+                    window.createPauseAwareDelay(scene, i * 1000, function () {
+                        window.createLightningStrike(scene, strikeX, strikeY);
+                    });
+                }
+            }
         }
     },
     "STORM_VENGEANCE": {

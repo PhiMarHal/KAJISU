@@ -274,8 +274,8 @@ const PlayerPerkRegistry = {
 PlayerPerkRegistry.registerPerkEffect('CRIMSON_FURY', {
     componentName: 'berserkerState',
     condition: function () {
-        // Active when health is below 25%
-        return playerHealth / maxPlayerHealth <= 0.25;
+        // Active when health is below 50%
+        return playerHealth / maxPlayerHealth <= 0.5;
     }
 });
 

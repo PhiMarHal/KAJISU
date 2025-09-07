@@ -719,6 +719,23 @@
             GameUI.updateStatCircles(this);
         };
 
+        // Pause-aware delay that works like CooldownManager but for simple delays
+        function createPauseAwareDelay(scene, delay, callback, callbackScope = null) {
+            // Use CooldownManager's pause-aware timer system but with a fixed delay
+            return CooldownManager.createTimer({
+                statName: null, // No stat scaling
+                baseCooldown: delay,
+                formula: null, // No formula, just use raw delay (fixed)
+                component: null,
+                callback: callback,
+                callbackScope: callbackScope || scene,
+                loop: false // One-time delay
+            });
+        }
+
+        // Make it globally accessible
+        window.createPauseAwareDelay = createPauseAwareDelay;
+
         function startGame() {
             // Reset game state variables
             gameOver = false;

@@ -253,7 +253,8 @@ const BackgroundAnimationSystem = {
 
 // L Pattern Background System for full-viewport coverage
 const LPatternBackgroundSystem = {
-    canvas: null,
+    patternCanvas: null,
+    borderCanvas: null,
     isInitialized: false,
 
     // Configuration
@@ -262,7 +263,8 @@ const LPatternBackgroundSystem = {
         thickness: 4,
         spacing: 4,
         color: '#FFD700',
-        opacity: 0.5  // Low opacity so it doesn't interfere with game
+        opacity: 0.5,
+        borderWidth: 8
     },
 
     // Initialize the L pattern background
@@ -271,11 +273,16 @@ const LPatternBackgroundSystem = {
 
         console.log("Initializing L pattern background...");
 
-        // Create full-viewport canvas
-        this.createCanvas();
+        // Create canvases
+        this.createCanvases();
 
-        // Draw the pattern
+        // Draw the pattern immediately
         this.drawPattern();
+
+        // Wait for Phaser canvas to be ready, then handle borders
+        setTimeout(() => {
+            this.updateBorders();
+        }, 200);
 
         // Listen for window resize
         window.addEventListener('resize', () => this.handleResize());
@@ -284,36 +291,122 @@ const LPatternBackgroundSystem = {
         console.log("L pattern background initialized");
     },
 
-    // Create the background canvas
-    createCanvas: function () {
-        // Create canvas element
-        this.canvas = document.createElement('canvas');
-        this.canvas.id = 'l-pattern-background';
+    // Create separate canvases for pattern and border
+    createCanvases: function () {
+        // Create pattern canvas
+        this.patternCanvas = document.createElement('canvas');
+        this.patternCanvas.id = 'l-pattern-background';
+        this.patternCanvas.style.position = 'fixed';
+        this.patternCanvas.style.top = '0';
+        this.patternCanvas.style.left = '0';
+        this.patternCanvas.style.width = '100vw';
+        this.patternCanvas.style.height = '100vh';
+        this.patternCanvas.style.zIndex = '-1000';
+        this.patternCanvas.style.pointerEvents = 'none';
+        this.patternCanvas.style.opacity = this.config.opacity;
+        this.patternCanvas.width = window.innerWidth;
+        this.patternCanvas.height = window.innerHeight;
+        document.body.appendChild(this.patternCanvas);
 
-        // Style the canvas to cover the full viewport behind everything
-        this.canvas.style.position = 'fixed';
-        this.canvas.style.top = '0';
-        this.canvas.style.left = '0';
-        this.canvas.style.width = '100vw';
-        this.canvas.style.height = '100vh';
-        this.canvas.style.zIndex = '-1000';
-        this.canvas.style.pointerEvents = 'none';
-        this.canvas.style.opacity = this.config.opacity;
+        // Create border canvas (full opacity)
+        this.borderCanvas = document.createElement('canvas');
+        this.borderCanvas.id = 'l-border-background';
+        this.borderCanvas.style.position = 'fixed';
+        this.borderCanvas.style.top = '0';
+        this.borderCanvas.style.left = '0';
+        this.borderCanvas.style.width = '100vw';
+        this.borderCanvas.style.height = '100vh';
+        this.borderCanvas.style.zIndex = '-999';
+        this.borderCanvas.style.pointerEvents = 'none';
+        this.borderCanvas.style.opacity = '1.0';
+        this.borderCanvas.width = window.innerWidth;
+        this.borderCanvas.height = window.innerHeight;
+        document.body.appendChild(this.borderCanvas);
+    },
 
-        // Set actual canvas size to viewport size
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+    // Find the actual Phaser canvas element
+    findPhaserCanvas: function () {
+        // Try multiple selectors to find the Phaser canvas
+        const selectors = [
+            '#game-container canvas',
+            '.phaser-canvas',
+            'canvas[data-phaser="true"]',
+            '#game-container > canvas'
+        ];
 
-        // Add to body
-        document.body.appendChild(this.canvas);
+        for (const selector of selectors) {
+            const canvas = document.querySelector(selector);
+            if (canvas) {
+                console.log("Found Phaser canvas with selector:", selector);
+                return canvas;
+            }
+        }
+
+        // Fallback: find any canvas inside game-container
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+            const canvas = gameContainer.querySelector('canvas');
+            if (canvas) {
+                console.log("Found canvas in game-container");
+                return canvas;
+            }
+        }
+
+        console.warn("Could not find Phaser canvas");
+        return null;
+    },
+
+    // Check letterboxing and determine which sides need borders
+    getLetterboxingSides: function () {
+        const phaserCanvas = this.findPhaserCanvas();
+        if (!phaserCanvas) {
+            return { top: false, bottom: false, left: false, right: false };
+        }
+
+        const canvasRect = phaserCanvas.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        console.log("Canvas rect:", canvasRect);
+        console.log("Viewport:", viewportWidth, "x", viewportHeight);
+
+        const sides = {
+            left: canvasRect.left > 10,
+            right: (viewportWidth - canvasRect.right) > 10,
+            top: canvasRect.top > 10,
+            bottom: (viewportHeight - canvasRect.bottom) > 10
+        };
+
+        console.log("Letterboxing sides:", sides);
+        return sides;
+    },
+
+    // Check if any letterboxing exists
+    hasAnyLetterboxing: function () {
+        const sides = this.getLetterboxingSides();
+        return sides.left || sides.right || sides.top || sides.bottom;
+    },
+
+    // Update borders based on current layout
+    updateBorders: function () {
+        const letterboxingSides = this.getLetterboxingSides();
+        const hasAnyBoxing = this.hasAnyLetterboxing();
+
+        if (hasAnyBoxing) {
+            this.drawGameBorder(letterboxingSides);
+            this.hideCSSBorderDecorations();
+        } else {
+            this.clearBorder();
+            this.showCSSBorderDecorations();
+        }
     },
 
     // Draw the L pattern
     drawPattern: function () {
-        if (!this.canvas) return;
+        if (!this.patternCanvas) return;
 
-        const ctx = this.canvas.getContext('2d');
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const ctx = this.patternCanvas.getContext('2d');
+        ctx.clearRect(0, 0, this.patternCanvas.width, this.patternCanvas.height);
         ctx.fillStyle = this.config.color;
 
         // Calculate L dimensions with 3:2 ratio (standing up)
@@ -327,8 +420,8 @@ const LPatternBackgroundSystem = {
         const patternWidth = pairWidth + this.config.spacing;
         const verticalSpacing = verticalHeight + this.config.spacing;
 
-        const numPatternsPerRow = Math.ceil(this.canvas.width / patternWidth) + 2;
-        const rows = Math.ceil(this.canvas.height / verticalSpacing) + 1;
+        const numPatternsPerRow = Math.ceil(this.patternCanvas.width / patternWidth) + 2;
+        const rows = Math.ceil(this.patternCanvas.height / verticalSpacing) + 1;
 
         for (let row = 0; row < rows; row++) {
             // Calculate row offset
@@ -336,7 +429,7 @@ const LPatternBackgroundSystem = {
 
             // Create temporary canvas for this row to avoid opacity compounding
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = this.canvas.width;
+            tempCanvas.width = this.patternCanvas.width;
             tempCanvas.height = verticalHeight;
             const tempCtx = tempCanvas.getContext('2d');
             tempCtx.fillStyle = this.config.color;
@@ -345,7 +438,7 @@ const LPatternBackgroundSystem = {
                 const patternStartX = patternIndex * patternWidth - rowOffset;
                 const tempY = 0;
 
-                if (patternStartX > this.canvas.width + patternWidth) continue;
+                if (patternStartX > this.patternCanvas.width + patternWidth) continue;
 
                 // Normal L position
                 const normalLX = patternStartX;
@@ -353,13 +446,13 @@ const LPatternBackgroundSystem = {
                 const invertedLX = patternStartX + overlapOffset;
 
                 // Draw normal L on temp canvas
-                if (normalLX + horizontalWidth > 0 && normalLX < this.canvas.width) {
+                if (normalLX + horizontalWidth > 0 && normalLX < this.patternCanvas.width) {
                     tempCtx.fillRect(normalLX, tempY, thickness, verticalHeight);
                     tempCtx.fillRect(normalLX, tempY + verticalHeight - thickness, horizontalWidth, thickness);
                 }
 
                 // Draw inverted L on temp canvas
-                if (invertedLX + horizontalWidth > 0 && invertedLX < this.canvas.width) {
+                if (invertedLX + horizontalWidth > 0 && invertedLX < this.patternCanvas.width) {
                     tempCtx.fillRect(invertedLX, tempY, horizontalWidth, thickness);
                     tempCtx.fillRect(invertedLX + horizontalWidth - thickness, tempY, thickness, verticalHeight);
                 }
@@ -367,7 +460,7 @@ const LPatternBackgroundSystem = {
 
             // Draw temp canvas to main canvas with row-based opacity
             const y = row * verticalSpacing;
-            if (y <= this.canvas.height) {
+            if (y <= this.patternCanvas.height) {
                 ctx.globalAlpha = (row % 2 === 0) ? 0.5 : 1.0;
                 ctx.drawImage(tempCanvas, 0, y);
                 ctx.globalAlpha = 1.0;
@@ -375,34 +468,116 @@ const LPatternBackgroundSystem = {
         }
     },
 
+    // Draw border around game area only on needed sides
+    drawGameBorder: function (sides) {
+        const phaserCanvas = this.findPhaserCanvas();
+        if (!phaserCanvas) return;
+
+        const ctx = this.borderCanvas.getContext('2d');
+        ctx.clearRect(0, 0, this.borderCanvas.width, this.borderCanvas.height);
+
+        const canvasRect = phaserCanvas.getBoundingClientRect();
+        const borderWidth = this.config.borderWidth;
+
+        ctx.fillStyle = this.config.color;
+
+        const x = canvasRect.left;
+        const y = canvasRect.top;
+        const width = canvasRect.width;
+        const height = canvasRect.height;
+
+        console.log("Drawing border around canvas at:", x, y, width, height);
+
+        // Draw only the sides that have letterboxing
+        if (sides.top) {
+            ctx.fillRect(x - borderWidth, y - borderWidth, width + (borderWidth * 2), borderWidth);
+        }
+
+        if (sides.bottom) {
+            ctx.fillRect(x - borderWidth, y + height, width + (borderWidth * 2), borderWidth);
+        }
+
+        if (sides.left) {
+            ctx.fillRect(x - borderWidth, y, borderWidth, height);
+        }
+
+        if (sides.right) {
+            ctx.fillRect(x + width, y, borderWidth, height);
+        }
+
+        console.log("Drew game border - letterboxing on sides:", sides);
+    },
+
+    // Clear the border canvas
+    clearBorder: function () {
+        if (!this.borderCanvas) return;
+        const ctx = this.borderCanvas.getContext('2d');
+        ctx.clearRect(0, 0, this.borderCanvas.width, this.borderCanvas.height);
+    },
+
+    // Hide CSS border decorations when we're drawing our own border
+    hideCSSBorderDecorations: function () {
+        const decorations = document.querySelectorAll('.border-decoration');
+        decorations.forEach(decoration => {
+            decoration.style.display = 'none';
+        });
+    },
+
+    // Show CSS border decorations when no letterboxing
+    showCSSBorderDecorations: function () {
+        // Don't show decorations in KAJISULI mode or mobile
+        if (document.body.classList.contains('kajisuli-mode')) return;
+        if (window.innerWidth <= 768) return;
+
+        const decorations = document.querySelectorAll('.border-decoration');
+        decorations.forEach(decoration => {
+            decoration.style.display = 'block';
+        });
+    },
+
     // Handle window resize
     handleResize: function () {
-        if (!this.canvas) return;
+        if (!this.patternCanvas || !this.borderCanvas) return;
 
-        // Update canvas size
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        // Update canvas sizes
+        this.patternCanvas.width = window.innerWidth;
+        this.patternCanvas.height = window.innerHeight;
+        this.borderCanvas.width = window.innerWidth;
+        this.borderCanvas.height = window.innerHeight;
 
         // Redraw pattern
         this.drawPattern();
+
+        // Update borders after a short delay to let layout settle
+        setTimeout(() => {
+            this.updateBorders();
+        }, 50);
     },
 
-    // Set opacity
+    // Set opacity (only affects pattern, not border)
     setOpacity: function (opacity) {
         this.config.opacity = Math.max(0, Math.min(1, opacity));
-        if (this.canvas) {
-            this.canvas.style.opacity = this.config.opacity;
+        if (this.patternCanvas) {
+            this.patternCanvas.style.opacity = this.config.opacity;
         }
     },
 
     // Clean up
     cleanup: function () {
-        if (this.canvas && this.canvas.parentNode) {
-            this.canvas.parentNode.removeChild(this.canvas);
+        if (this.patternCanvas && this.patternCanvas.parentNode) {
+            this.patternCanvas.parentNode.removeChild(this.patternCanvas);
         }
-        this.canvas = null;
+        if (this.borderCanvas && this.borderCanvas.parentNode) {
+            this.borderCanvas.parentNode.removeChild(this.borderCanvas);
+        }
+        this.patternCanvas = null;
+        this.borderCanvas = null;
         this.isInitialized = false;
         window.removeEventListener('resize', this.handleResize);
+
+        // Restore CSS decorations
+        this.showCSSBorderDecorations();
+
         console.log("L pattern background cleaned up");
     }
 };

@@ -92,11 +92,6 @@
             max-height: 100vh;
         }
 
-        /* Hide decorations in KAJISULI mode - keep existing */
-        body.kajisuli-mode .border-decoration {
-            display: none !important;
-        }
-
         /* Mobile breakpoint styling - keep existing */
         @media (max-width: 768px) {
             body {
@@ -110,10 +105,6 @@
                 max-width: none;
                 max-height: none;
             }
-
-            .border-decoration {
-                display: none;
-            }
         }
 
         #game-ui {
@@ -125,62 +116,11 @@
             pointer-events: none;
             font-size: 14px;
         }
-
-        /* Game border decorations - keep exactly as original */
-        .border-decoration {
-            position: absolute;
-            background-color: transparent;
-            border-style: solid;
-            border-color: #FFD700;
-            z-index: 5;
-            pointer-events: none;
-        }
-
-        /* Top-left L */
-        #border-top-left {
-            top: -8px;
-            left: -8px;
-            width: 200px;
-            height: 100px;
-            border-width: 8px 0 0 8px;
-        }
-
-        /* Top-right L */
-        #border-top-right {
-            top: -8px;
-            right: -8px;
-            width: 100px;
-            height: 200px;
-            border-width: 8px 8px 0 0;
-        }
-
-        /* Bottom-left L */
-        #border-bottom-left {
-            bottom: -8px;
-            left: -8px;
-            width: 100px;
-            height: 200px;
-            border-width: 0 0 8px 8px;
-        }
-
-        /* Bottom-right L */
-        #border-bottom-right {
-            bottom: -8px;
-            right: -8px;
-            width: 200px;
-            height: 100px;
-            border-width: 0 8px 8px 0;
-        }
     </style>
 </head>
 
 <body>
     <div id="game-container">
-        <!-- L-shaped border decorations -->
-        <div id="border-top-left" class="border-decoration"></div>
-        <div id="border-top-right" class="border-decoration"></div>
-        <div id="border-bottom-left" class="border-decoration"></div>
-        <div id="border-bottom-right" class="border-decoration"></div>
     </div>
 
     <script>

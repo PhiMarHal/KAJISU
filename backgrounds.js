@@ -394,10 +394,8 @@ const LPatternBackgroundSystem = {
 
         if (hasAnyBoxing) {
             this.drawGameBorder(letterboxingSides);
-            this.hideCSSBorderDecorations();
         } else {
             this.clearBorder();
-            this.showCSSBorderDecorations();
         }
     },
 
@@ -513,26 +511,6 @@ const LPatternBackgroundSystem = {
         if (!this.borderCanvas) return;
         const ctx = this.borderCanvas.getContext('2d');
         ctx.clearRect(0, 0, this.borderCanvas.width, this.borderCanvas.height);
-    },
-
-    // Hide CSS border decorations when we're drawing our own border
-    hideCSSBorderDecorations: function () {
-        const decorations = document.querySelectorAll('.border-decoration');
-        decorations.forEach(decoration => {
-            decoration.style.display = 'none';
-        });
-    },
-
-    // Show CSS border decorations when no letterboxing
-    showCSSBorderDecorations: function () {
-        // Don't show decorations in KAJISULI mode or mobile
-        if (document.body.classList.contains('kajisuli-mode')) return;
-        if (window.innerWidth <= 768) return;
-
-        const decorations = document.querySelectorAll('.border-decoration');
-        decorations.forEach(decoration => {
-            decoration.style.display = 'block';
-        });
     },
 
     // Handle window resize

@@ -251,5 +251,162 @@ const BackgroundAnimationSystem = {
     }
 };
 
-// Export the background animation system
+// L Pattern Background System for full-viewport coverage
+const LPatternBackgroundSystem = {
+    canvas: null,
+    isInitialized: false,
+
+    // Configuration
+    config: {
+        size: 6,
+        thickness: 4,
+        spacing: 4,
+        color: '#FFD700',
+        opacity: 0.5  // Low opacity so it doesn't interfere with game
+    },
+
+    // Initialize the L pattern background
+    init: function () {
+        if (this.isInitialized) return;
+
+        console.log("Initializing L pattern background...");
+
+        // Create full-viewport canvas
+        this.createCanvas();
+
+        // Draw the pattern
+        this.drawPattern();
+
+        // Listen for window resize
+        window.addEventListener('resize', () => this.handleResize());
+
+        this.isInitialized = true;
+        console.log("L pattern background initialized");
+    },
+
+    // Create the background canvas
+    createCanvas: function () {
+        // Create canvas element
+        this.canvas = document.createElement('canvas');
+        this.canvas.id = 'l-pattern-background';
+
+        // Style the canvas to cover the full viewport behind everything
+        this.canvas.style.position = 'fixed';
+        this.canvas.style.top = '0';
+        this.canvas.style.left = '0';
+        this.canvas.style.width = '100vw';
+        this.canvas.style.height = '100vh';
+        this.canvas.style.zIndex = '-1000';
+        this.canvas.style.pointerEvents = 'none';
+        this.canvas.style.opacity = this.config.opacity;
+
+        // Set actual canvas size to viewport size
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+
+        // Add to body
+        document.body.appendChild(this.canvas);
+    },
+
+    // Draw the L pattern
+    drawPattern: function () {
+        if (!this.canvas) return;
+
+        const ctx = this.canvas.getContext('2d');
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.fillStyle = this.config.color;
+
+        // Calculate L dimensions with 3:2 ratio (standing up)
+        const verticalHeight = this.config.size * 3;
+        const horizontalWidth = this.config.size * 2;
+        const thickness = this.config.thickness;
+
+        // Interlocking pattern dimensions
+        const overlapOffset = horizontalWidth * 0.6;
+        const pairWidth = horizontalWidth * 1.6;
+        const patternWidth = pairWidth + this.config.spacing;
+        const verticalSpacing = verticalHeight + this.config.spacing;
+
+        const numPatternsPerRow = Math.ceil(this.canvas.width / patternWidth) + 2;
+        const rows = Math.ceil(this.canvas.height / verticalSpacing) + 1;
+
+        for (let row = 0; row < rows; row++) {
+            // Calculate row offset
+            const rowOffset = (row % 2 === 1) ? patternWidth / 3 : 0;
+
+            // Create temporary canvas for this row to avoid opacity compounding
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = this.canvas.width;
+            tempCanvas.height = verticalHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.fillStyle = this.config.color;
+
+            for (let patternIndex = 0; patternIndex < numPatternsPerRow; patternIndex++) {
+                const patternStartX = patternIndex * patternWidth - rowOffset;
+                const tempY = 0;
+
+                if (patternStartX > this.canvas.width + patternWidth) continue;
+
+                // Normal L position
+                const normalLX = patternStartX;
+                // Inverted L position
+                const invertedLX = patternStartX + overlapOffset;
+
+                // Draw normal L on temp canvas
+                if (normalLX + horizontalWidth > 0 && normalLX < this.canvas.width) {
+                    tempCtx.fillRect(normalLX, tempY, thickness, verticalHeight);
+                    tempCtx.fillRect(normalLX, tempY + verticalHeight - thickness, horizontalWidth, thickness);
+                }
+
+                // Draw inverted L on temp canvas
+                if (invertedLX + horizontalWidth > 0 && invertedLX < this.canvas.width) {
+                    tempCtx.fillRect(invertedLX, tempY, horizontalWidth, thickness);
+                    tempCtx.fillRect(invertedLX + horizontalWidth - thickness, tempY, thickness, verticalHeight);
+                }
+            }
+
+            // Draw temp canvas to main canvas with row-based opacity
+            const y = row * verticalSpacing;
+            if (y <= this.canvas.height) {
+                ctx.globalAlpha = (row % 2 === 0) ? 0.5 : 1.0;
+                ctx.drawImage(tempCanvas, 0, y);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+    },
+
+    // Handle window resize
+    handleResize: function () {
+        if (!this.canvas) return;
+
+        // Update canvas size
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+
+        // Redraw pattern
+        this.drawPattern();
+    },
+
+    // Set opacity
+    setOpacity: function (opacity) {
+        this.config.opacity = Math.max(0, Math.min(1, opacity));
+        if (this.canvas) {
+            this.canvas.style.opacity = this.config.opacity;
+        }
+    },
+
+    // Clean up
+    cleanup: function () {
+        if (this.canvas && this.canvas.parentNode) {
+            this.canvas.parentNode.removeChild(this.canvas);
+        }
+        this.canvas = null;
+        this.isInitialized = false;
+        window.removeEventListener('resize', this.handleResize);
+        console.log("L pattern background cleaned up");
+    }
+};
+
+// Export both systems
 window.BackgroundAnimationSystem = BackgroundAnimationSystem;
+window.LPatternBackgroundSystem = LPatternBackgroundSystem;

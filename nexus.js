@@ -842,7 +842,7 @@ window.activateTorch = function () {
     if (!scene) return;
 
     // Apply the perk orbital
-    OrbitalPerkRegistry.applyPerkOrbital(scene, 'TORCH');
+    OrbitalPerkRegistry.applyPerkOrbital(scene, 'TORCHLIGHT');
 };
 
 // SKY_MESSENGER

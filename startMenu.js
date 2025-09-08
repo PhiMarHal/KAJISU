@@ -772,8 +772,8 @@ const StartMenuSystem = {
 
         const config = {
             type: Phaser.AUTO,
-            width: this.state.kajisuliMode ? 720 : 1200,
-            height: this.state.kajisuliMode ? 1280 : 800,
+            width: this.state.kajisuliMode ? 800 : 1200,
+            height: this.state.kajisuliMode ? 1200 : 800,
             parent: 'game-container',
             physics: {
                 default: 'arcade',

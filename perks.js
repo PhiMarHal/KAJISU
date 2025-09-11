@@ -42,6 +42,18 @@ const PERKS = {
             }
         }
     },
+    "HERO_STATUE": {
+        kanji: "英雄像",
+        kana: "えいゆうぞう",
+        romaji: "eiyuuzou",
+        english: "Hero Statue",
+        description: "A monument to yourself",
+        color: "#A08831",     // New golden color
+        hoverColor: 0x806C23, // Darker gold for hover (128, 108, 35)
+        onAcquire: function () {
+            window.activateHeroStatue();
+        }
+    },
     "FATED_SHIELD": {
         kanji: "運命の盾",
         kana: "うんめいのたて",

@@ -577,5 +577,74 @@ window.activateHammerQueen = function () {
     DropperPerkRegistry.applyDropperPerk(scene, 'HAMMER_QUEEN');
 };
 
+// HERO_STATUE
+DropperPerkRegistry.registerDropperPerk('HERO_STATUE', {
+    getConfig: function () {
+        return {
+            symbol: HERO_CHARACTER,
+            color: '#A08831',
+            fontSize: 32,
+            behaviorType: 'playerPushable',
+            damage: playerDamage * 0.4,
+            damageInterval: 400,
+            colliderSize: 1.0,
+            lifespan: null, // Permanent
+            health: 999999999, // Effectively indestructible
+            options: {
+                // Physics configuration
+                physics: {
+                    bounce: 0.5,
+                    drag: 100,
+                    mass: 0.1,
+                    maxVelocity: 200
+                },
+                // Unified firing configuration - same as any familiar!
+                isFiring: true,
+                firingBehavior: 'heroStatue',
+                firingCooldown: 1000,
+                firingCooldownStat: 'fireRate', // Scale with fire rate
+                firingRange: 400
+            }
+        };
+    },
+    cooldown: null,
+    cooldownStat: null,
+    cooldownFormula: null,
+    positionMode: 'player',
+    activationMethod: 'immediate'
+});
+
+window.activateHeroStatue = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create the statue
+    DropperPerkRegistry.applyDropperPerk(scene, 'HERO_STATUE');
+
+    // Find the created statue and set up firing - same as any familiar!
+    scene.time.delayedCall(100, function () {
+        const heroStatue = DropperSystem.getAll().find(drop =>
+            drop.options && drop.options.isFiring && drop.options.firingBehavior === 'heroStatue'
+        );
+
+        if (heroStatue) {
+            // Use the SAME setup function as orbitals
+            heroStatue.firingTimer = EntityFiringSystem.setupEntityFiringTimer(
+                scene,
+                heroStatue, // Pass the drop object (has drop.entity)
+                heroStatue.options.firingBehavior,
+                heroStatue.options.firingCooldown,
+                {
+                    statName: heroStatue.options.firingCooldownStat,
+                    formula: 'sqrt',
+                    maxDistance: heroStatue.options.firingRange,
+                    rangeModifier: 1.0,
+                    rangeScaling: false // Don't apply additional range scaling
+                }
+            );
+        }
+    });
+};
+
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

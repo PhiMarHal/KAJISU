@@ -629,6 +629,25 @@ const DropperSystem = {
                 visualEffect: true
             });
         }
+
+        // Generic firing behavior for droppers
+        else if (drop.options && drop.options.firingBehavior) {
+            // Use the generalized entity firing system
+            const behaviorName = drop.options.firingBehavior;
+            const firingRange = drop.options.firingRange || 400;
+
+            if (EntityFiringSystem.behaviors[behaviorName]) {
+                EntityFiringSystem.behaviors[behaviorName](
+                    scene,
+                    drop.entity,
+                    scene.time.now,
+                    firingRange
+                );
+            } else {
+                console.warn(`Unknown firing behavior: ${behaviorName}`);
+            }
+        }
+
         // Can add more effect types here as needed
     },
 

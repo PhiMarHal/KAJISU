@@ -202,7 +202,8 @@
         let activeEffects = {
             timers: [],         // Store all active timers
             entities: [],       // Store all entities created by perks 
-            activePerks: []     // Store all acquired perks
+            activePerks: [],     // Store all acquired perks
+            fireTracking: []
         };
 
         // Initial player stats
@@ -350,6 +351,7 @@
             activeEffects.timers = [];
             activeEffects.entities = [];
             activeEffects.activePerks = [];
+            activeEffects.fireTracking = [];
 
             // Make sure time flows
             window.TimeDilationSystem.cleanup();

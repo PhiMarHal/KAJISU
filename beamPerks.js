@@ -212,5 +212,54 @@ window.activateCausticRay = function () {
     BeamPerkRegistry.applyPerkBeam(scene, 'CAUSTIC_RAY');
 };
 
+// Add this to beamPerks.js after the CAUSTIC_RAY registration
+
+// Register the FLAME_THROWER perk
+BeamPerkRegistry.registerPerkBeam('FLAME_THROWING', {
+    getConfig: function () {
+        return {
+            symbol: '火炎',             // "Flame" in kanji
+            color: '#FF4500',         // Orange-red color to match fire theme
+            fontSize: 24,             // Medium beam thickness
+            damage: playerDamage * 0.5, // 50% damage per laser tick, plus fire DOT
+            damageInterval: 500,      // Damage every 500ms
+            duration: 4000,           // 4 second beam duration
+            beamWidth: 24,            // 24px beam width
+            followPlayer: true,       // Beam follows player movement
+            chargeTime: 2000,         // 2 second charge time
+            physicsComponents: ['fireEffect'], // Apply fire effect to hit enemies
+            onChargeStart: function (scene) {
+                // Orange charging effect to match fire theme
+                VisualEffects.createChargingEffect(scene, {
+                    color: '#FF4500',     // Orange-red to match beam color
+                    duration: 2000        // Match charge time
+                });
+            },
+            onBeamStart: function (scene, beam) {
+            },
+            onBeamEnd: function (scene, beam) {
+                // Optional: Add beam end effect here
+            }
+        };
+    },
+    cooldown: function () {
+        return 48000;
+    },
+    activationMethod: 'timer'
+});
+
+// Function to activate the FLAME_THROWING perk
+window.activateFlamethrower = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Fire the first beam immediately
+    const beamConfig = BeamPerkRegistry.perkBeamConfigs['FLAME_THROWING'].getConfig();
+    BeamSystem.create(scene, beamConfig);
+
+    // Set up the timer system for future beams
+    BeamPerkRegistry.applyPerkBeam(scene, 'FLAME_THROWING');
+};
+
 // Export the registry for use in other files
 window.BeamPerkRegistry = BeamPerkRegistry;

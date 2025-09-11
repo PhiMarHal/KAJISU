@@ -202,6 +202,18 @@ const PERKS = {
             window.activateCausticRay();
         }
     },
+    "FLAME_THROWING": {
+        kanji: "火炎放射",
+        kana: "かえんほうしゃ",
+        romaji: "kaenhousha",
+        english: "Flame Throwing",
+        description: "Charges up and fires a burning beam that sets enemies ablaze",
+        color: "#FF4500",        // Orange-red color to match fire theme
+        hoverColor: 0xDD3300,    // Slightly darker orange-red for hover
+        onAcquire: function () {
+            window.activateFlamethrower();
+        }
+    },
     "DENIAL_OF_FATE": {
         kanji: "運命否定",
         kana: "うんめいひてい",

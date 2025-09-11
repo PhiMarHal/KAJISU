@@ -405,7 +405,7 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
     }
 });
 
-// Create a persistent damage-over-time effect at a specific position
+// Enhanced createPersistentEffect that uses canvas textures for better performance
 function createPersistentEffect(scene, x, y, config = {}) {
     // Default configuration
     const defaults = {
@@ -425,20 +425,26 @@ function createPersistentEffect(scene, x, y, config = {}) {
     // Merge with provided config
     const effectConfig = { ...defaults, ...config };
 
-    // Create the effect object
-    const effect = scene.add.text(x, y, effectConfig.symbol, {
-        fontFamily: 'Arial',
-        fontSize: effectConfig.fontSize,
+    // Extract fontSize as number for canvas texture system
+    const fontSizeNumber = typeof effectConfig.fontSize === 'string'
+        ? parseInt(effectConfig.fontSize.replace('px', ''))
+        : effectConfig.fontSize;
+
+    // Create the effect object using canvas texture system instead of text
+    const effect = KanjiTextureSystem.createProjectileSprite(scene, {
+        x: x,
+        y: y,
+        symbol: effectConfig.symbol,
         color: effectConfig.color,
-        fontStyle: 'bold'
-    }).setOrigin(0.5);
+        fontSize: fontSizeNumber
+    });
 
     // Set initial alpha
     effect.setAlpha(effectConfig.alpha);
 
     // Add physics body
     scene.physics.world.enable(effect);
-    effect.body.setSize(effect.width * effectConfig.bodyScale, effect.height * effectConfig.bodyScale);
+    effect.body.setSize(effect.actualWidth * effectConfig.bodyScale, effect.actualHeight * effectConfig.bodyScale);
     effect.body.setAllowGravity(false);
     effect.body.setImmovable(true);
 
@@ -513,7 +519,23 @@ function createPersistentEffect(scene, x, y, config = {}) {
 // Make the function globally accessible
 window.createPersistentEffect = createPersistentEffect;
 
-// Replace the existing fireEffect component in artillery.js with this enhanced version
+// Global fire tracking system
+const MAX_GLOBAL_FIRES = 64;
+
+// Helper function to properly destroy a fire effect
+function destroyFireEffect(fireTracker) {
+    if (!fireTracker || !fireTracker.effect) return;
+
+    // Destroy the fire effect sprite
+    if (fireTracker.effect.active) {
+        fireTracker.effect.destroy();
+    }
+
+    // Clear references
+    fireTracker.effect = null;
+}
+
+// Updated fireEffect component with global fire tracking
 ProjectileComponentSystem.registerComponent('fireEffect', {
     // Set default values that can be overridden by config
     useCooldown: false, // Default: no cooldown (original behavior)
@@ -537,8 +559,14 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
         // Don't create fire if enemy is already dead
         if (!enemy || !enemy.active || enemy.health <= 0) return;
 
-        // Handle cooldown mode (for persistent orbitals)
-        if (this.useCooldown) {
+        // Detect if this is a beam by checking if projectile has a damageSourceId starting with "beam_"
+        const isBeam = projectile.damageSourceId && projectile.damageSourceId.startsWith('beam_');
+
+        if (isBeam) {
+            // For beams, the beam system handles all cooldowns per-enemy
+            // Just create the fire effect every time we're called
+        } else if (this.useCooldown) {
+            // Handle cooldown mode (for persistent orbitals)
             const currentTime = scene.time.now;
             if (currentTime - this.lastFireTime < this.fireCooldown) return;
             this.lastFireTime = currentTime;
@@ -548,8 +576,24 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
             projectile.effectTriggered = true;
         }
 
-        // Use the generalized function to create fire
-        createPersistentEffect(scene, projectile.x, projectile.y, {
+        // Clean up dead fires first
+        for (let i = activeEffects.fireTracking.length - 1; i >= 0; i--) {
+            const fireTracker = activeEffects.fireTracking[i];
+            if (!fireTracker.effect || !fireTracker.effect.active) {
+                activeEffects.fireTracking.splice(i, 1);
+            }
+        }
+
+        // If we're at capacity, destroy the oldest fire
+        if (activeEffects.fireTracking.length >= MAX_GLOBAL_FIRES) {
+            const oldestFire = activeEffects.fireTracking.shift(); // Remove first (oldest)
+            if (oldestFire.effect && oldestFire.effect.active) {
+                oldestFire.effect.destroy();
+            }
+        }
+
+        // Create fire effect at enemy position
+        const fireEffect = createPersistentEffect(scene, enemy.x, enemy.y, {
             symbol: '火', // Fire kanji
             color: '#FF4500', // Orange-red color
             fontSize: '24px',
@@ -558,6 +602,29 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
             duration: this.fireDuration,
             sourceEffect: 'fire'
         });
+
+        // Add to fire tracking
+        const fireTracker = {
+            effect: fireEffect,
+            createdAt: scene.time.now
+        };
+
+        activeEffects.fireTracking.push(fireTracker);
+
+        // Set up cleanup when fire effect is destroyed
+        const originalDestroy = fireEffect.destroy;
+        fireEffect.destroy = function () {
+            // Remove from tracking when destroyed
+            if (activeEffects.fireTracking) {
+                const index = activeEffects.fireTracking.indexOf(fireTracker);
+                if (index > -1) {
+                    activeEffects.fireTracking.splice(index, 1);
+                }
+            }
+
+            // Call original destroy
+            originalDestroy.call(this);
+        };
     }
 });
 

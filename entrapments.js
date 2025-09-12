@@ -177,17 +177,17 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             fontSize: 24, // Smaller size as requested
             behaviorType: 'projectile', // Dies on enemy contact
             damage: playerDamage, // Full player damage on contact
-            lifespan: 240000, // more of a sanity check than anything
+            lifespan: 60000,
             options: {
                 hasPeriodicEffect: true, // Generic flag for drops with periodic effects
-                periodicEffectCooldown: 6000, // Base cooldown for the effect
+                periodicEffectCooldown: 5000, // Base cooldown for the effect
                 fireImmediately: true, // Flag to indicate it should fire immediately on spawn
                 visualEffect: 'createPulsing' // Flag for visual pulsing effect
             }
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 31000, // Base 31 second cooldown
+    cooldown: 15000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -201,7 +201,7 @@ window.activateBloomingFlower = function () {
     if (!scene) return;
 
     // Setup periodic effects for drops (only needs to be done once)
-    setupPeriodicEffectsSystem(scene);
+    //setupPeriodicEffectsSystem(scene);
 
     // Create a flower configuration
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['BLOOMING_FLOWER'].getConfig();
@@ -228,17 +228,17 @@ DropperPerkRegistry.registerDropperPerk('LASER_FLOWER', {
             behaviorType: 'projectile', // Stays around to keep firing
             damage: playerDamage, // Base damage
             damageInterval: 1000, // Not really used for laser flowers
-            lifespan: 240000, // Long lifespan like other flowers
+            lifespan: 60000,
             options: {
                 hasPeriodicEffect: true, // Uses the periodic effect system
-                periodicEffectCooldown: 13000,
+                periodicEffectCooldown: 12000,
                 fireImmediately: true, // Fire immediately when spawned
                 visualEffect: 'createPulsing', // Pulsing animation
                 isLaserFlower: true // Flag to identify this as a laser flower
             }
         };
     },
-    cooldown: 35000, // Base 33 second cooldown for spawning new flowers
+    cooldown: 20000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -252,7 +252,7 @@ window.activateLaserFlower = function () {
     if (!scene) return;
 
     // Setup periodic effects for drops (only needs to be done once)
-    setupPeriodicEffectsSystem(scene);
+    //setupPeriodicEffectsSystem(scene);
 
     // Create a laser flower configuration
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['LASER_FLOWER'].getConfig();
@@ -280,7 +280,7 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
             behaviorType: 'areaEffect', // Use area effect behavior
             damage: playerDamage * 1,
             damageInterval: 0, // Not used for area effects
-            lifespan: 240000, // sanity check
+            lifespan: 60000,
             options: {
                 areaEffectInterval: 9000, //
                 areaEffectRadius: 320, // Base radius
@@ -291,7 +291,7 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 15000, // Base 15 second cooldown
+    cooldown: 10000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -327,7 +327,7 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
             behaviorType: 'areaEffect', // Use area effect behavior
             damage: playerDamage,
             damageInterval: 0, // Not used for area effects
-            lifespan: 240000, // sanity check
+            lifespan: 60000,
             options: {
                 areaEffectInterval: 7000, //
                 areaEffectRadius: 240, //
@@ -338,7 +338,7 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 20000, // Base 20 second cooldown
+    cooldown: 10000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -524,7 +524,7 @@ window.activateCloudKing = function () {
     if (!scene) return;
 
     // Setup periodic effects for drops (only needs to be done once)
-    setupPeriodicEffectsSystem(scene);
+    //setupPeriodicEffectsSystem(scene);
 
     // Apply the dropper perk (will create one crown immediately)
     DropperPerkRegistry.applyDropperPerk(scene, 'CLOUD_KING');
@@ -545,9 +545,9 @@ DropperPerkRegistry.registerDropperPerk('HAMMER_QUEEN', {
             health: 999999999, // Effectively indestructible
             options: {
                 hasPeriodicEffect: true, // Enable periodic hammers
-                periodicEffectCooldown: 20000, // Base 20 second cooldown
+                periodicEffectCooldown: 20000,
                 fireImmediately: false, // Don't fire immediately on spawn
-                isHammerQueen: true, // Flag to identify this as a hammer queen
+                isHammerQueen: true,
                 // Same physics configuration as CLOUD_KING
                 physics: {
                     bounce: 0.5, // Lower bounce than GOLDEN_AGE
@@ -571,7 +571,7 @@ window.activateHammerQueen = function () {
     if (!scene) return;
 
     // Setup periodic effects for drops (only needs to be done once)
-    setupPeriodicEffectsSystem(scene);
+    //setupPeriodicEffectsSystem(scene);
 
     // Apply the dropper perk (will create one crown immediately)
     DropperPerkRegistry.applyDropperPerk(scene, 'HAMMER_QUEEN');
@@ -603,7 +603,7 @@ DropperPerkRegistry.registerDropperPerk('HERO_STATUE', {
                 firingBehavior: 'heroStatue',
                 firingCooldown: 1000,
                 firingCooldownStat: 'fireRate', // Scale with fire rate
-                firingRange: 400
+                firingRange: 400,
             }
         };
     },

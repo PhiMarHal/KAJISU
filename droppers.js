@@ -278,6 +278,16 @@ const DropperSystem = {
             window.registerEffect('timer', timer);
         }
 
+        if (drop.options && drop.options.hasPeriodicEffect) {
+            DropperSystem.createDropEffectTimer(scene, drop);
+
+            // Fire immediately if requested
+            if (drop.options.fireImmediately && !drop.hasInitiallyFired) {
+                drop.hasInitiallyFired = true;
+                DropperSystem.processDropEffect(scene, drop);
+            }
+        }
+
         return drop;
     },
 
@@ -656,15 +666,6 @@ const DropperSystem = {
         // Get cooldown from options or use default
         const baseCooldown = drop.options.periodicEffectCooldown ?? 10000;
 
-        // If drop should fire immediately, process effect now
-        if (drop.options.fireImmediately && !drop.hasInitiallyFired) {
-            // Mark as having fired to prevent duplicates
-            drop.hasInitiallyFially = true;
-
-            // Process effect immediately
-            this.processDropEffect(scene, drop);
-        }
-
         // Create timer using CooldownManager
         drop.effectTimer = CooldownManager.createTimer({
             statName: 'luck',
@@ -692,9 +693,9 @@ const DropperSystem = {
     setupPeriodicEffectsSystem: function (scene) {
         // Create a timer to periodically check all drops with effects
         const checkTimer = CooldownManager.createTimer({
-            statName: 'luck',
+            statName: null,
             baseCooldown: 1000, // Check every second
-            formula: 'divide',
+            formula: 'fixed',
             callback: function () {
                 if (gameOver || gamePaused) return;
 

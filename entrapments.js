@@ -646,5 +646,69 @@ window.activateHeroStatue = function () {
     });
 };
 
+DropperPerkRegistry.registerDropperPerk('FLAME_PILLAR', {
+    getConfig: function () {
+        return {
+            symbol: '炎', // Fire symbol for the totem
+            color: '#FF4500', // Orange-red fire color
+            fontSize: 32,
+            behaviorType: 'playerPushable',
+            damage: playerDamage * 0.4,
+            damageInterval: 400,
+            colliderSize: 1.0,
+            lifespan: null, // Permanent
+            health: 999999999, // Effectively indestructible
+            options: {
+                // Physics configuration similar to other totems
+                physics: {
+                    bounce: 0.5,
+                    drag: 100,
+                    mass: 0.1,
+                    maxVelocity: 200
+                },
+                // Firing configuration
+                firingBehavior: 'burningTotem',
+                firingCooldown: 1000, // 4 second base cooldown
+                firingCooldownStat: 'luck',
+                firingRange: 400
+            }
+        };
+    },
+    cooldown: null,
+    cooldownStat: null,
+    cooldownFormula: null,
+    positionMode: 'player',
+    activationMethod: 'immediate'
+});
+
+window.activateBurningTotem = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create the burning totem
+    DropperPerkRegistry.applyDropperPerk(scene, 'FLAME_PILLAR');
+
+    const burningTotem = DropperSystem.getAll().find(drop =>
+        drop.options && drop.options.firingBehavior === 'burningTotem'
+    );
+
+    if (burningTotem) {
+        burningTotem.firingTimer = EntityFiringSystem.setupEntityFiringTimer(
+            scene,
+            burningTotem,
+            burningTotem.options.firingBehavior,
+            burningTotem.options.firingCooldown,
+            {
+                statName: burningTotem.options.firingCooldownStat,
+                formula: 'sqrt',
+                maxDistance: burningTotem.options.firingRange,
+                rangeModifier: 1.0,
+                rangeScaling: false
+            }
+        );
+    }
+};
+
+
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

@@ -180,6 +180,50 @@ const EntityFiringBehaviors = {
             return true;
         }
         return false;
+    },
+
+    burningTotem: function (scene, entity, time, maxDistance = 400) {
+        // Always fire (no enemy targeting needed)
+        // Generate random angle (0 to 2π radians for full 360° coverage)
+        const randomAngle = Math.random() * Math.PI * 2;
+
+        const projectile = fireProjectileFromEntity(scene, entity, null, {
+            damage: playerDamage, // Lower initial damage since it creates fire
+            speed: 400, // Initial speed before deceleration  
+            color: '#FF4500', // Orange-red fire color
+            symbol: '火', // Fire symbol
+            overrideAngle: randomAngle // Use random direction instead of targeting
+        });
+
+        if (projectile) {
+            ProjectileComponentSystem.addComponent(projectile, 'fireEffect');
+            // Add enhanced stasisEffect with custom parameters
+            ProjectileComponentSystem.addComponent(projectile, 'stasisEffect', {
+                damageMultiplier: 1.0, // No damage bonus (instead of default 1.5x)
+                onZeroSpeed: function (projectile, scene) {
+                    // Add fireEffect component to the projectile and trigger it manually
+                    ProjectileComponentSystem.addComponent(projectile, 'fireEffect');
+
+                    // Create a fake "enemy" position object at the projectile's location
+                    const fakeHitTarget = {
+                        x: projectile.x,
+                        y: projectile.y,
+                        active: true
+                    };
+
+                    // Manually trigger the fireEffect's onHit method
+                    const fireComponent = projectile.components.fireEffect;
+                    if (fireComponent && fireComponent.onHit) {
+                        fireComponent.onHit(projectile, fakeHitTarget, scene);
+                    }
+
+                    // Destroy the projectile now that it's become fire
+                    projectile.destroy();
+                }
+            });
+        }
+
+        return true; // Always return true since we always fire
     }
 };
 

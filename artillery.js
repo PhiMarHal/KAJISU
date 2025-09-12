@@ -833,21 +833,21 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
 // Stasis Effect
 ProjectileComponentSystem.registerComponent('stasisEffect', {
     initialize: function (projectile) {
-        // Store base damage using getEffectiveDamage() and apply multiplier
+        // Store base damage using getEffectiveDamage()
         this.baseDamage = getEffectiveDamage();
-        projectile.damage = this.baseDamage * 1.5;
 
-        // Update projectile size to reflect the doubled damage
+        // Apply configurable damage multiplier (defaults to 1.5 for backwards compatibility)
+        const damageMultiplier = this.damageMultiplier ?? 1.5;
+        projectile.damage = this.baseDamage * damageMultiplier;
+
+        // Update projectile size to reflect the new damage
         const newSize = getEffectiveSize(null, projectile.damage);
 
         // Handle both text and sprite projectiles for size updates
         if (projectile.projectileType === 'sprite') {
-            // For sprites, we'd need to create a new texture with the new size
-            // For now, just use scale
             const scaleFactor = newSize / (projectile.actualWidth || 16);
             projectile.setScale(scaleFactor);
         } else if (projectile.setFontSize) {
-            // For text projectiles
             projectile.setFontSize(newSize);
         }
 
@@ -859,13 +859,13 @@ ProjectileComponentSystem.registerComponent('stasisEffect', {
         }
 
         // Force this projectile to be non-piercing for balance reasons
-        // (Prevents overpowered interaction with piercing perk)
         projectile.piercing = false;
 
         // Track elapsed time for deceleration calculation
         this.timeElapsed = 0;
         this.lastUpdate = undefined;
-        this.initialized = false; // Flag to track when velocity is captured
+        this.initialized = false;
+        this.zeroSpeedTriggered = false; // Track if we've triggered the zero-speed effect
 
         // Set up a fixed lifespan timer 
         const lifespan = 8000;
@@ -903,7 +903,8 @@ ProjectileComponentSystem.registerComponent('stasisEffect', {
                 this.lastUpdate = scene.time.now;
 
                 // Ensure damage is correctly applied (in case it was reset)
-                projectile.damage = this.baseDamage * 2;
+                const damageMultiplier = this.damageMultiplier ?? 1.5;
+                projectile.damage = this.baseDamage * damageMultiplier;
             }
             return; // Skip until initialized
         }
@@ -923,5 +924,13 @@ ProjectileComponentSystem.registerComponent('stasisEffect', {
             this.directionX * currentSpeed,
             this.directionY * currentSpeed
         );
+
+        // Check if we've reached zero speed and should trigger an effect
+        if (!this.zeroSpeedTriggered && this.currentSpeedMultiplier <= 0 && this.onZeroSpeed) {
+            this.zeroSpeedTriggered = true;
+
+            // Call the configured zero-speed effect
+            this.onZeroSpeed(projectile, scene);
+        }
     }
 });

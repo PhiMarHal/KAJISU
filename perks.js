@@ -1533,6 +1533,18 @@ const PERKS = {
             // Logic handled by ProjectilePerkRegistry
         }
     },
+    "FLAME_PILLAR": {
+        kanji: "炎柱",
+        kana: "えんちゅう",
+        romaji: "enchuu",
+        english: "Flame Pillar",
+        description: "The fiery totem burns all",
+        color: "#FF4500", // Orange-red fire color
+        hoverColor: 0xCC3300, // Darker red for hover
+        onAcquire: function () {
+            window.activateBurningTotem();
+        }
+    },
     "GOLDEN_AGE": {
         kanji: "全盛期",
         kana: "ぜんせいき",

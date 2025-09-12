@@ -187,7 +187,7 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 15000,
+    cooldown: 10000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -238,7 +238,7 @@ DropperPerkRegistry.registerDropperPerk('LASER_FLOWER', {
             }
         };
     },
-    cooldown: 20000,
+    cooldown: 18000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -291,7 +291,7 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 10000,
+    cooldown: 12000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -338,7 +338,7 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 10000,
+    cooldown: 12000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen

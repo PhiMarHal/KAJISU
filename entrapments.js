@@ -180,7 +180,7 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             lifespan: 60000,
             options: {
                 hasPeriodicEffect: true, // Generic flag for drops with periodic effects
-                periodicEffectCooldown: 5000, // Base cooldown for the effect
+                periodicEffectCooldown: 4600, // Base cooldown for the effect
                 fireImmediately: true, // Flag to indicate it should fire immediately on spawn
                 visualEffect: 'createPulsing' // Flag for visual pulsing effect
             }
@@ -231,7 +231,7 @@ DropperPerkRegistry.registerDropperPerk('LASER_FLOWER', {
             lifespan: 60000,
             options: {
                 hasPeriodicEffect: true, // Uses the periodic effect system
-                periodicEffectCooldown: 12000,
+                periodicEffectCooldown: 11800,
                 fireImmediately: true, // Fire immediately when spawned
                 visualEffect: 'createPulsing', // Pulsing animation
                 isLaserFlower: true // Flag to identify this as a laser flower
@@ -282,8 +282,8 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
             damageInterval: 0, // Not used for area effects
             lifespan: 60000,
             options: {
-                areaEffectInterval: 9000, //
-                areaEffectRadius: 320, // Base radius
+                areaEffectInterval: 9200, //
+                areaEffectRadius: 260, // Base radius
                 pulseColor: 0x2aad27, // Green color for the pulse effect
                 visualEffect: 'createPulsing', // Add pulsing animation
                 effectComponent: 'poisonEffect' // Use the poisonEffect component
@@ -329,8 +329,8 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
             damageInterval: 0, // Not used for area effects
             lifespan: 60000,
             options: {
-                areaEffectInterval: 7000, //
-                areaEffectRadius: 240, //
+                areaEffectInterval: 7100, //
+                areaEffectRadius: 220, //
                 pulseColor: 0x00ffff, // Cyan color for the pulse effect
                 visualEffect: 'createPulsing', // Add pulsing animation
                 effectComponent: 'slowEffect' // Use the slowEffect component

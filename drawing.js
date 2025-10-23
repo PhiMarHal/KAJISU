@@ -29,9 +29,9 @@ const KanjiDrawingSystem = {
 
     // Configuration
     config: {
-        challengeInterval: 4000, // 4 seconds for testing (change to 180000 for production = 3 minutes)
+        challengeInterval: 1000, // 1 second for testing (change to 180000 for production = 3 minutes)
         maxAttemptsPerStroke: 2,
-        strokeMatchTolerance: 50, // Pixels of tolerance for stroke matching
+        strokeMatchTolerance: 80, // Pixels of tolerance for stroke matching
         showGuideAfterMisses: true
     },
 
@@ -310,7 +310,7 @@ const KanjiDrawingSystem = {
         }
     },
 
-    // Check if a stroke is valid by comparing direction with target
+    // Check if a stroke is valid by comparing with target in screen space
     checkStrokeValidity: function (path) {
         // Basic checks first
         if (path.length < 5) return false;
@@ -326,7 +326,7 @@ const KanjiDrawingSystem = {
         // Must be at least 30 pixels
         if (length < 30) return false;
 
-        // If we have stroke data, compare direction
+        // If we have stroke data, compare with target
         if (this.state.currentKanji.strokes &&
             this.state.currentStroke < this.state.currentKanji.strokes.length) {
 
@@ -334,23 +334,28 @@ const KanjiDrawingSystem = {
             const targetPoints = this.extractSVGPoints(targetPath);
 
             if (targetPoints && targetPoints.length >= 2) {
-                // Normalize both paths to same coordinate space
-                const drawnNorm = this.normalizeDrawnPath(path);
-                const targetNorm = this.normalizeTargetPath(targetPoints);
+                // Transform target to screen space using SAME transform as rendering
+                const targetScreen = this.transformToScreen(targetPoints);
 
-                // Compare directions
-                const similarity = this.compareStrokeDirection(drawnNorm, targetNorm);
-
-                // Require 50% similarity in direction
-                return similarity > 0.5;
+                if (targetScreen && targetScreen.length >= 2) {
+                    // Compare drawn stroke with target in screen space
+                    return this.compareStrokes(path, targetScreen);
+                }
             }
         }
 
-        // Fallback if no stroke data - just accept reasonable length
-        return true;
+        // Fallback: just check directness
+        const start = path[0];
+        const end = path[path.length - 1];
+        const straightLineDistance = Math.sqrt(
+            Math.pow(end.x - start.x, 2) +
+            Math.pow(end.y - start.y, 2)
+        );
+        const directness = straightLineDistance / length;
+        return directness > 0.25;
     },
 
-    // Extract start and end points from SVG path string
+    // Extract coordinates from SVG path string
     extractSVGPoints: function (pathString) {
         const coords = pathString.match(/-?\d+\.?\d*/g);
         if (!coords || coords.length < 4) return null;
@@ -367,66 +372,107 @@ const KanjiDrawingSystem = {
         return points;
     },
 
-    // Normalize drawn path relative to drawing area
-    normalizeDrawnPath: function (path) {
+    // Transform SVG coordinates to screen space (using SAME logic as rendering)
+    transformToScreen: function (svgPoints) {
         const drawAreaSize = Math.min(Math.min(game.config.width * 0.9, 600) - 80, 400);
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2 - 30;
 
         const bounds = this.state.kanjiBounds;
-        if (!bounds) return path;
+        if (!bounds) return null;
 
-        const scale = Math.min(
-            (drawAreaSize - 40) / bounds.width,
-            (drawAreaSize - 40) / bounds.height
-        );
+        // Use EXACT same scale calculation as drawGuideStroke
+        const padding = 30;
+        const maxDimension = Math.max(bounds.width, bounds.height);
+        const targetSize = drawAreaSize - padding * 2;
+        let scale = targetSize / maxDimension;
+        const maxScale = targetSize / 109;
+        scale = Math.min(scale, maxScale);
 
+        // Use EXACT same offset calculation as drawGuideStroke
         const offsetX = centerX - bounds.centerX * scale;
         const offsetY = centerY - bounds.centerY * scale;
 
-        // Convert drawn screen coordinates to SVG coordinate space
-        return path.map(point => ({
-            x: (point.x - offsetX) / scale,
-            y: (point.y - offsetY) / scale
+        // Transform points
+        return svgPoints.map(point => ({
+            x: point.x * scale + offsetX,
+            y: point.y * scale + offsetY
         }));
     },
 
-    // Normalize target path (already in SVG coordinates)
-    normalizeTargetPath: function (points) {
-        return points;
-    },
+    // Compare drawn stroke with target stroke (both in screen space)
+    compareStrokes: function (drawn, target) {
+        if (drawn.length < 2 || target.length < 2) return false;
 
-    // Compare direction between drawn and target strokes
-    compareStrokeDirection: function (drawn, target) {
-        if (drawn.length < 2 || target.length < 2) return 0;
-
-        // Get overall direction vectors
         const drawnStart = drawn[0];
         const drawnEnd = drawn[drawn.length - 1];
         const targetStart = target[0];
         const targetEnd = target[target.length - 1];
 
-        const drawnDx = drawnEnd.x - drawnStart.x;
-        const drawnDy = drawnEnd.y - drawnStart.y;
-        const targetDx = targetEnd.x - targetStart.x;
-        const targetDy = targetEnd.y - targetStart.y;
+        // Calculate distances between start/end points
+        // Check both forward and backward directions
+        const forwardStartDist = Math.sqrt(
+            Math.pow(drawnStart.x - targetStart.x, 2) +
+            Math.pow(drawnStart.y - targetStart.y, 2)
+        );
+        const forwardEndDist = Math.sqrt(
+            Math.pow(drawnEnd.x - targetEnd.x, 2) +
+            Math.pow(drawnEnd.y - targetEnd.y, 2)
+        );
 
-        const drawnLen = Math.sqrt(drawnDx * drawnDx + drawnDy * drawnDy);
-        const targetLen = Math.sqrt(targetDx * targetDx + targetDy * targetDy);
+        const backwardStartDist = Math.sqrt(
+            Math.pow(drawnStart.x - targetEnd.x, 2) +
+            Math.pow(drawnStart.y - targetEnd.y, 2)
+        );
+        const backwardEndDist = Math.sqrt(
+            Math.pow(drawnEnd.x - targetStart.x, 2) +
+            Math.pow(drawnEnd.y - targetStart.y, 2)
+        );
 
-        if (drawnLen === 0 || targetLen === 0) return 0;
+        // Use combined distance instead of requiring both individually
+        // This is more forgiving - if one endpoint is very accurate, the other can be slightly off
+        const forwardTotal = forwardStartDist + forwardEndDist;
+        const backwardTotal = backwardStartDist + backwardEndDist;
 
-        // Normalize vectors
-        const drawnNormX = drawnDx / drawnLen;
-        const drawnNormY = drawnDy / drawnLen;
-        const targetNormX = targetDx / targetLen;
-        const targetNormY = targetDy / targetLen;
+        const combinedTolerance = 110; // Combined distance for both endpoints (generous)
+        const maxSingleEndpoint = 70; // No single endpoint can be more than 70px off
 
-        // Dot product gives cosine of angle
-        const dotProduct = drawnNormX * targetNormX + drawnNormY * targetNormY;
+        // Check forward direction
+        const forwardMatch = (forwardTotal < combinedTolerance &&
+            forwardStartDist < maxSingleEndpoint &&
+            forwardEndDist < maxSingleEndpoint);
 
-        // Convert to 0-1 similarity (1 = same direction, 0 = opposite)
-        return (dotProduct + 1) / 2;
+        // Check backward direction
+        const backwardMatch = (backwardTotal < combinedTolerance &&
+            backwardStartDist < maxSingleEndpoint &&
+            backwardEndDist < maxSingleEndpoint);
+
+        // If neither direction matches, reject
+        if (!forwardMatch && !backwardMatch) {
+            console.log(`Stroke rejected: Forward total: ${Math.round(forwardTotal)} (${Math.round(forwardStartDist)},${Math.round(forwardEndDist)}) Backward total: ${Math.round(backwardTotal)} (${Math.round(backwardStartDist)},${Math.round(backwardEndDist)})`);
+            return false;
+        }
+
+        // Additional check: sample a middle point
+        if (drawn.length > 4 && target.length > 4) {
+            const drawnMid = drawn[Math.floor(drawn.length / 2)];
+            const targetMid = target[Math.floor(target.length / 2)];
+
+            const midTolerance = 75; // Middle point tolerance
+
+            const midDist = Math.sqrt(
+                Math.pow(drawnMid.x - targetMid.x, 2) +
+                Math.pow(drawnMid.y - targetMid.y, 2)
+            );
+
+            if (midDist > midTolerance) {
+                console.log(`Stroke rejected: middle point too far (${Math.round(midDist)}px, limit ${midTolerance})`);
+                return false;
+            }
+        }
+
+        console.log(`Stroke accepted! Forward: ${Math.round(forwardTotal)} Backward: ${Math.round(backwardTotal)}`);
+        return true;
     },
 
     // Accept the stroke as correct
@@ -541,6 +587,7 @@ const KanjiDrawingSystem = {
     calculateSVGBounds: function (strokes) {
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
+        let hasValidCoords = false;
 
         strokes.forEach(pathString => {
             // Extract coordinates from SVG path string
@@ -552,13 +599,28 @@ const KanjiDrawingSystem = {
                 if (i + 1 < coords.length) {
                     const x = parseFloat(coords[i]);
                     const y = parseFloat(coords[i + 1]);
+
+                    // Skip invalid coordinates
+                    if (isNaN(x) || isNaN(y)) continue;
+
                     minX = Math.min(minX, x);
                     maxX = Math.max(maxX, x);
                     minY = Math.min(minY, y);
                     maxY = Math.max(maxY, y);
+                    hasValidCoords = true;
                 }
             }
         });
+
+        // Fallback to default bounds if no valid coordinates found
+        if (!hasValidCoords) {
+            console.warn('No valid coordinates found in kanji strokes, using defaults');
+            return {
+                minX: 0, maxX: 109, minY: 0, maxY: 109,
+                width: 109, height: 109,
+                centerX: 54.5, centerY: 54.5
+            };
+        }
 
         const width = maxX - minX;
         const height = maxY - minY;
@@ -602,11 +664,16 @@ const KanjiDrawingSystem = {
         if (!bounds) return;
 
         // Calculate scale to fit kanji in drawing area with padding
-        const padding = 20; // pixels
-        const scale = Math.min(
-            (drawAreaSize - padding * 2) / bounds.width,
-            (drawAreaSize - padding * 2) / bounds.height
-        );
+        const padding = 30; // Increased padding
+        const maxDimension = Math.max(bounds.width, bounds.height);
+
+        // Calculate scale, but cap it to prevent overly large kanji
+        const targetSize = drawAreaSize - padding * 2;
+        let scale = targetSize / maxDimension;
+
+        // Cap maximum scale - don't let kanji get bigger than the KanjiVG standard size
+        const maxScale = targetSize / 109; // KanjiVG's coordinate system is 109x109
+        scale = Math.min(scale, maxScale);
 
         // Calculate offset to center the kanji
         const offsetX = centerX - bounds.centerX * scale;

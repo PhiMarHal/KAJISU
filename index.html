@@ -24,6 +24,7 @@
     <script src="artillery.js"></script>
     <script src="dictionary.js"></script>
     <script src="bestiary.js"></script>
+    <script src="drawing.js"></script>
     <script src="entrapments.js"></script>
     <script src="beamLogic.js"></script>
     <script src="beamPerks.js"></script>
@@ -464,6 +465,11 @@
             player.romaji = HERO_ROMAJI;
             player.english = HERO_ENGLISH;
 
+            // Initialize drawing system
+            if (window.KanjiDrawingSystem) {
+                KanjiDrawingSystem.init(this);
+            }
+
             // Add physics to player
             this.physics.world.enable(player);
             player.body.setCollideWorldBounds(true);
@@ -731,6 +737,11 @@
 
             if (RomajiChallengeSystem) {
                 RomajiChallengeSystem.resetState();
+            }
+
+            if (window.KanjiDrawingSystem) {
+                KanjiDrawingSystem.destroy();
+                KanjiDrawingSystem.init(this);
             }
 
             // Hide pause screen if it was visible

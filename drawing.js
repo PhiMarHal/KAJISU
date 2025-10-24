@@ -160,9 +160,6 @@ const KanjiDrawingSystem = {
         ).setOrigin(0.5);
         this.elements.container.add(title);
 
-        // We'll show strokes one at a time instead of the full character
-        // (This will be implemented when we add real stroke data)
-
         // Drawing area dimensions
         const drawAreaSize = Math.min(panelWidth - 80, 400);
         const drawAreaTop = centerY - drawAreaSize / 2 - 30;
@@ -170,7 +167,7 @@ const KanjiDrawingSystem = {
         // Drawing area border (for visual reference)
         const drawAreaBorder = scene.add.rectangle(
             centerX,
-            centerY - 30,
+            drawAreaTop + drawAreaSize / 2,
             drawAreaSize,
             drawAreaSize
         );
@@ -216,7 +213,7 @@ const KanjiDrawingSystem = {
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.strokeFeedback);
 
-        // Get stroke count (for now, use a simple estimate based on kanji complexity)
+        // Get stroke count
         const strokeCount = this.state.currentKanji.strokeCount ??
             this.getStrokeCount(this.state.currentKanji.character);
 
@@ -234,7 +231,7 @@ const KanjiDrawingSystem = {
         this.elements.container.add(instructions);
 
         // Setup input handlers
-        this.setupInputHandlers(scene, centerX, centerY - 30, drawAreaSize);
+        this.setupInputHandlers(scene, centerX, drawAreaTop + drawAreaSize / 2, drawAreaSize);
     },
 
     // Setup mouse and touch input handlers
@@ -400,79 +397,89 @@ const KanjiDrawingSystem = {
         }));
     },
 
-    // Compare drawn stroke with target stroke (both in screen space)
-    compareStrokes: function (drawn, target) {
-        if (drawn.length < 2 || target.length < 2) return false;
+    // Resample a path at uniform arc-length intervals
+    resamplePathUniform: function (points, targetSampleCount) {
+        if (points.length < 2) return points;
 
-        const drawnStart = drawn[0];
-        const drawnEnd = drawn[drawn.length - 1];
-        const targetStart = target[0];
-        const targetEnd = target[target.length - 1];
-
-        // Calculate distances between start/end points
-        // Check both forward and backward directions
-        const forwardStartDist = Math.sqrt(
-            Math.pow(drawnStart.x - targetStart.x, 2) +
-            Math.pow(drawnStart.y - targetStart.y, 2)
-        );
-        const forwardEndDist = Math.sqrt(
-            Math.pow(drawnEnd.x - targetEnd.x, 2) +
-            Math.pow(drawnEnd.y - targetEnd.y, 2)
-        );
-
-        const backwardStartDist = Math.sqrt(
-            Math.pow(drawnStart.x - targetEnd.x, 2) +
-            Math.pow(drawnStart.y - targetEnd.y, 2)
-        );
-        const backwardEndDist = Math.sqrt(
-            Math.pow(drawnEnd.x - targetStart.x, 2) +
-            Math.pow(drawnEnd.y - targetStart.y, 2)
-        );
-
-        // Use combined distance instead of requiring both individually
-        // This is more forgiving - if one endpoint is very accurate, the other can be slightly off
-        const forwardTotal = forwardStartDist + forwardEndDist;
-        const backwardTotal = backwardStartDist + backwardEndDist;
-
-        const combinedTolerance = 110; // Combined distance for both endpoints (generous)
-        const maxSingleEndpoint = 70; // No single endpoint can be more than 70px off
-
-        // Check forward direction
-        const forwardMatch = (forwardTotal < combinedTolerance &&
-            forwardStartDist < maxSingleEndpoint &&
-            forwardEndDist < maxSingleEndpoint);
-
-        // Check backward direction
-        const backwardMatch = (backwardTotal < combinedTolerance &&
-            backwardStartDist < maxSingleEndpoint &&
-            backwardEndDist < maxSingleEndpoint);
-
-        // If neither direction matches, reject
-        if (!forwardMatch && !backwardMatch) {
-            console.log(`Stroke rejected: Forward total: ${Math.round(forwardTotal)} (${Math.round(forwardStartDist)},${Math.round(forwardEndDist)}) Backward total: ${Math.round(backwardTotal)} (${Math.round(backwardStartDist)},${Math.round(backwardEndDist)})`);
-            return false;
+        // Calculate total path length and segment lengths
+        let totalLength = 0;
+        const segmentLengths = [];
+        for (let i = 1; i < points.length; i++) {
+            const dx = points[i].x - points[i - 1].x;
+            const dy = points[i].y - points[i - 1].y;
+            const segLen = Math.sqrt(dx * dx + dy * dy);
+            segmentLengths.push(segLen);
+            totalLength += segLen;
         }
 
-        // Additional check: sample a middle point
-        if (drawn.length > 4 && target.length > 4) {
-            const drawnMid = drawn[Math.floor(drawn.length / 2)];
-            const targetMid = target[Math.floor(target.length / 2)];
+        if (totalLength === 0) return [points[0]];
 
-            const midTolerance = 75; // Middle point tolerance
+        // Determine actual sample count based on path length
+        const sampleCount = Math.max(targetSampleCount, Math.ceil(totalLength / 5));
+        const resampled = [];
 
-            const midDist = Math.sqrt(
-                Math.pow(drawnMid.x - targetMid.x, 2) +
-                Math.pow(drawnMid.y - targetMid.y, 2)
-            );
+        // Sample at uniform arc-length intervals
+        for (let sample = 0; sample < sampleCount; sample++) {
+            const targetDist = (sample / (sampleCount - 1)) * totalLength;
+            let currentDist = 0;
 
-            if (midDist > midTolerance) {
-                console.log(`Stroke rejected: middle point too far (${Math.round(midDist)}px, limit ${midTolerance})`);
-                return false;
+            for (let i = 0; i < segmentLengths.length; i++) {
+                if (currentDist + segmentLengths[i] >= targetDist) {
+                    const ratio = segmentLengths[i] === 0 ? 0 :
+                        (targetDist - currentDist) / segmentLengths[i];
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    resampled.push({
+                        x: p1.x + (p2.x - p1.x) * ratio,
+                        y: p1.y + (p2.y - p1.y) * ratio
+                    });
+                    break;
+                }
+                currentDist += segmentLengths[i];
             }
         }
 
-        console.log(`Stroke accepted! Forward: ${Math.round(forwardTotal)} Backward: ${Math.round(backwardTotal)}`);
-        return true;
+        return resampled;
+    },
+
+    // Calculate average distance between two equally-sampled paths
+    calculatePathDistance: function (path1, path2) {
+        if (path1.length === 0 || path2.length === 0) return Infinity;
+
+        let totalDist = 0;
+        const minLen = Math.min(path1.length, path2.length);
+
+        for (let i = 0; i < minLen; i++) {
+            const dx = path1[i].x - path2[i].x;
+            const dy = path1[i].y - path2[i].y;
+            totalDist += Math.sqrt(dx * dx + dy * dy);
+        }
+
+        return totalDist / minLen;
+    },
+
+    // Compare drawn stroke with target stroke by comparing actual shapes
+    compareStrokes: function (drawn, target) {
+        if (drawn.length < 2 || target.length < 2) return false;
+
+        // Resample both paths to uniform arc-length intervals
+        const drawnResampled = this.resamplePathUniform(drawn, 50);
+        const targetResampled = this.resamplePathUniform(target, 50);
+
+        // Compare forward direction (drawn in same direction as target)
+        const forwardError = this.calculatePathDistance(drawnResampled, targetResampled);
+
+        // Compare backward direction (drawn in opposite direction as target)
+        const targetReversed = [...targetResampled].reverse();
+        const backwardError = this.calculatePathDistance(drawnResampled, targetReversed);
+
+        // Use the better of the two directions
+        const error = Math.min(forwardError, backwardError);
+        const tolerance = 85;
+
+        console.log(`Shape error: ${Math.round(error)} (limit: ${tolerance})`);
+
+        return error < tolerance;
     },
 
     // Accept the stroke as correct
@@ -534,11 +541,8 @@ const KanjiDrawingSystem = {
             // Feedback is set in showStrokeGuide
         } else {
             // Show feedback for retry
-            this.showStrokeFeedback('Try again!', '#ff0000');
+            this.showStrokeFeedback('Try again!', '#ffaa00');
         }
-
-        // Clear the current path
-        this.state.currentPath = [];
     },
 
     // Redraw the current stroke in a different color

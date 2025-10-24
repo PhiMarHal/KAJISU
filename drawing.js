@@ -352,21 +352,82 @@ const KanjiDrawingSystem = {
         return directness > 0.25;
     },
 
-    // Extract coordinates from SVG path string
+    // Extract and trace SVG path string to get actual point array
+    // Handles basic M, L, C commands (enough for KanjiVG format)
     extractSVGPoints: function (pathString) {
-        const coords = pathString.match(/-?\d+\.?\d*/g);
-        if (!coords || coords.length < 4) return null;
-
         const points = [];
-        for (let i = 0; i < coords.length; i += 2) {
-            if (i + 1 < coords.length) {
-                points.push({
-                    x: parseFloat(coords[i]),
-                    y: parseFloat(coords[i + 1])
-                });
+        if (!pathString) return null;
+
+        // Simple SVG path parser for KanjiVG format
+        const commands = pathString.match(/[MmLlCcSsZz][^MmLlCcSsZz]*/g);
+        if (!commands) return null;
+
+        let currentX = 0;
+        let currentY = 0;
+
+        for (const cmd of commands) {
+            const type = cmd[0];
+            const args = cmd.slice(1).trim().match(/-?\d+\.?\d*/g) || [];
+            const nums = args.map(Number);
+
+            if (type === 'M') {
+                // Move to (absolute)
+                currentX = nums[0];
+                currentY = nums[1];
+                points.push({ x: currentX, y: currentY });
+            } else if (type === 'm') {
+                // Move to (relative)
+                currentX += nums[0];
+                currentY += nums[1];
+                points.push({ x: currentX, y: currentY });
+            } else if (type === 'L') {
+                // Line to (absolute)
+                currentX = nums[0];
+                currentY = nums[1];
+                points.push({ x: currentX, y: currentY });
+            } else if (type === 'l') {
+                // Line to (relative)
+                currentX += nums[0];
+                currentY += nums[1];
+                points.push({ x: currentX, y: currentY });
+            } else if (type === 'C') {
+                // Cubic Bezier (absolute) - approximate with points along curve
+                const x1 = nums[0], y1 = nums[1];
+                const x2 = nums[2], y2 = nums[3];
+                const x = nums[4], y = nums[5];
+
+                // Trace curve with 10 intermediate points
+                for (let t = 0.1; t <= 1; t += 0.1) {
+                    const mt = 1 - t;
+                    const cx = mt * mt * mt * currentX + 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t * x;
+                    const cy = mt * mt * mt * currentY + 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t * t * t * y;
+                    points.push({ x: cx, y: cy });
+                }
+                currentX = x;
+                currentY = y;
+            } else if (type === 'c') {
+                // Cubic Bezier (relative)
+                const x1 = currentX + nums[0], y1 = currentY + nums[1];
+                const x2 = currentX + nums[2], y2 = currentY + nums[3];
+                const x = currentX + nums[4], y = currentY + nums[5];
+
+                for (let t = 0.1; t <= 1; t += 0.1) {
+                    const mt = 1 - t;
+                    const cx = mt * mt * mt * currentX + 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t * x;
+                    const cy = mt * mt * mt * currentY + 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t * t * t * y;
+                    points.push({ x: cx, y: cy });
+                }
+                currentX = x;
+                currentY = y;
+            } else if (type === 'Z' || type === 'z') {
+                // Close path
+                if (points.length > 0) {
+                    points.push(points[0]);
+                }
             }
         }
-        return points;
+
+        return points.length >= 2 ? points : null;
     },
 
     // Transform SVG coordinates to screen space (using SAME logic as rendering)
@@ -397,89 +458,82 @@ const KanjiDrawingSystem = {
         }));
     },
 
-    // Resample a path at uniform arc-length intervals
-    resamplePathUniform: function (points, targetSampleCount) {
-        if (points.length < 2) return points;
+    // Find the closest point on the target path to a given point
+    closestPointOnPath: function (point, path) {
+        let minDist = Infinity;
+        let closestPoint = path[0];
 
-        // Calculate total path length and segment lengths
-        let totalLength = 0;
-        const segmentLengths = [];
-        for (let i = 1; i < points.length; i++) {
-            const dx = points[i].x - points[i - 1].x;
-            const dy = points[i].y - points[i - 1].y;
-            const segLen = Math.sqrt(dx * dx + dy * dy);
-            segmentLengths.push(segLen);
-            totalLength += segLen;
-        }
-
-        if (totalLength === 0) return [points[0]];
-
-        // Determine actual sample count based on path length
-        const sampleCount = Math.max(targetSampleCount, Math.ceil(totalLength / 5));
-        const resampled = [];
-
-        // Sample at uniform arc-length intervals
-        for (let sample = 0; sample < sampleCount; sample++) {
-            const targetDist = (sample / (sampleCount - 1)) * totalLength;
-            let currentDist = 0;
-
-            for (let i = 0; i < segmentLengths.length; i++) {
-                if (currentDist + segmentLengths[i] >= targetDist) {
-                    const ratio = segmentLengths[i] === 0 ? 0 :
-                        (targetDist - currentDist) / segmentLengths[i];
-                    const p1 = points[i];
-                    const p2 = points[i + 1];
-                    resampled.push({
-                        x: p1.x + (p2.x - p1.x) * ratio,
-                        y: p1.y + (p2.y - p1.y) * ratio
-                    });
-                    break;
-                }
-                currentDist += segmentLengths[i];
+        for (let i = 0; i < path.length; i++) {
+            const dx = point.x - path[i].x;
+            const dy = point.y - path[i].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDist) {
+                minDist = dist;
+                closestPoint = path[i];
             }
         }
 
-        return resampled;
+        return { point: closestPoint, distance: minDist };
     },
 
-    // Calculate average distance between two equally-sampled paths
-    calculatePathDistance: function (path1, path2) {
-        if (path1.length === 0 || path2.length === 0) return Infinity;
-
-        let totalDist = 0;
-        const minLen = Math.min(path1.length, path2.length);
-
-        for (let i = 0; i < minLen; i++) {
-            const dx = path1[i].x - path2[i].x;
-            const dy = path1[i].y - path2[i].y;
-            totalDist += Math.sqrt(dx * dx + dy * dy);
-        }
-
-        return totalDist / minLen;
-    },
-
-    // Compare drawn stroke with target stroke by comparing actual shapes
+    // Compare drawn stroke with target stroke using corridor checking
     compareStrokes: function (drawn, target) {
         if (drawn.length < 2 || target.length < 2) return false;
 
-        // Resample both paths to uniform arc-length intervals
-        const drawnResampled = this.resamplePathUniform(drawn, 50);
-        const targetResampled = this.resamplePathUniform(target, 50);
+        let totalDeviation = 0;
+        let pointCount = 0;
+        let maxDeviation = 0;
 
-        // Compare forward direction (drawn in same direction as target)
-        const forwardError = this.calculatePathDistance(drawnResampled, targetResampled);
+        // Check how far each drawn point is from the nearest target point
+        for (let i = 0; i < drawn.length; i++) {
+            const result = this.closestPointOnPath(drawn[i], target);
+            totalDeviation += result.distance;
+            maxDeviation = Math.max(maxDeviation, result.distance);
+            pointCount++;
+        }
 
-        // Compare backward direction (drawn in opposite direction as target)
-        const targetReversed = [...targetResampled].reverse();
-        const backwardError = this.calculatePathDistance(drawnResampled, targetReversed);
+        const averageDeviation = totalDeviation / pointCount;
 
-        // Use the better of the two directions
-        const error = Math.min(forwardError, backwardError);
-        const tolerance = 85;
+        // Also check that endpoints are roughly correct
+        const drawnStart = drawn[0];
+        const drawnEnd = drawn[drawn.length - 1];
+        const targetStart = target[0];
+        const targetEnd = target[target.length - 1];
 
-        console.log(`Shape error: ${Math.round(error)} (limit: ${tolerance})`);
+        const startDist = Math.sqrt(
+            Math.pow(drawnStart.x - targetStart.x, 2) +
+            Math.pow(drawnStart.y - targetStart.y, 2)
+        );
+        const endDist = Math.sqrt(
+            Math.pow(drawnEnd.x - targetEnd.x, 2) +
+            Math.pow(drawnEnd.y - targetEnd.y, 2)
+        );
 
-        return error < tolerance;
+        // Try backward direction too
+        const backwardStartDist = Math.sqrt(
+            Math.pow(drawnStart.x - targetEnd.x, 2) +
+            Math.pow(drawnStart.y - targetEnd.y, 2)
+        );
+        const backwardEndDist = Math.sqrt(
+            Math.pow(drawnEnd.x - targetStart.x, 2) +
+            Math.pow(drawnEnd.y - targetStart.y, 2)
+        );
+
+        const forwardEndpointError = Math.max(startDist, endDist);
+        const backwardEndpointError = Math.max(backwardStartDist, backwardEndDist);
+        const endpointError = Math.min(forwardEndpointError, backwardEndpointError);
+
+        const corridorTolerance = 60;  // Average deviation allowed
+        const endpointTolerance = 100; // Endpoints must be within this
+        const maxPointTolerance = 120; // No single point can be more than this
+
+        const isValid = (averageDeviation < corridorTolerance &&
+            endpointError < endpointTolerance &&
+            maxDeviation < maxPointTolerance);
+
+        console.log(`Corridor check - Avg: ${Math.round(averageDeviation)}, Max: ${Math.round(maxDeviation)}, Endpoints: ${Math.round(endpointError)} | Valid: ${isValid}`);
+
+        return isValid;
     },
 
     // Accept the stroke as correct

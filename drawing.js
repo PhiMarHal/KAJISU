@@ -29,7 +29,7 @@ const KanjiDrawingSystem = {
     config: {
         challengeInterval: 1000,
         maxAttemptsPerStroke: 2,
-        // These are now enforced inside compareStrokes
+        strokeMatchTolerance: 20,
         kanjiSize: 109
     },
 
@@ -48,6 +48,7 @@ const KanjiDrawingSystem = {
         this.challengeTimer = scene.time.addEvent({
             delay: this.config.challengeInterval,
             callback: () => {
+                // Added extra check for gamePaused to prevent stacking
                 if (!gameOver && !gamePaused && !window.levelUpInProgress && !this.state.active) {
                     this.startChallenge(scene);
                 }
@@ -61,8 +62,14 @@ const KanjiDrawingSystem = {
     startChallenge: function (scene) {
         if (this.state.active || gameOver || window.levelUpInProgress) return;
 
-        gamePaused = true;
-        if (scene.physics) scene.physics.pause();
+        // FIX: Use PauseSystem to stop Enemy Spawners and Timers
+        if (window.PauseSystem) {
+            PauseSystem.pauseGame();
+        } else {
+            // Fallback if PauseSystem missing (though you have it)
+            gamePaused = true;
+            if (scene.physics) scene.physics.pause();
+        }
 
         this.state.currentKanji = getRandomKanji();
 
@@ -168,21 +175,27 @@ const KanjiDrawingSystem = {
         const g = this.elements.graphics;
         g.clear();
 
-        // 1. Draw Guides
+        // 1. Draw Guides (Progressive System)
         if (this.state.targetStrokePoints && this.state.targetStrokePoints[this.state.currentStroke]) {
             const guidePoints = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
 
             if (guidePoints && guidePoints.length > 0) {
-                g.lineStyle(12, 0x444444, 0.5);
-                g.beginPath();
-                g.moveTo(guidePoints[0].x, guidePoints[0].y);
-                for (let i = 1; i < guidePoints.length; i++) {
-                    g.lineTo(guidePoints[i].x, guidePoints[i].y);
+                // CONDITION: Show Gray Outline only after 2 attempts
+                if (this.state.strokeAttempts >= 2) {
+                    g.lineStyle(12, 0x444444, 0.5);
+                    g.beginPath();
+                    g.moveTo(guidePoints[0].x, guidePoints[0].y);
+                    for (let i = 1; i < guidePoints.length; i++) {
+                        g.lineTo(guidePoints[i].x, guidePoints[i].y);
+                    }
+                    g.strokePath();
                 }
-                g.strokePath();
 
-                g.fillStyle(0x00ff00, 0.5);
-                g.fillCircle(guidePoints[0].x, guidePoints[0].y, 6);
+                // CONDITION: Show Start Dot if stroke 0 OR attempts >= 1
+                if (this.state.currentStroke === 0 || this.state.strokeAttempts >= 1) {
+                    g.fillStyle(0x00ff00, 0.8);
+                    g.fillCircle(guidePoints[0].x, guidePoints[0].y, 8);
+                }
             }
         }
 
@@ -253,7 +266,6 @@ const KanjiDrawingSystem = {
         }));
     },
 
-    // Helper: Calculate total length of a point path
     getPathLength: function (path) {
         let len = 0;
         for (let i = 1; i < path.length; i++) {
@@ -265,14 +277,10 @@ const KanjiDrawingSystem = {
     compareStrokes: function (drawn, target) {
         if (drawn.length < 2 || target.length < 2) return false;
 
-        // NEW: Length Check
-        // If the user draws a huge scribble, length will be massive
-        // If the user draws a tiny dot, length will be small
         const drawnLen = this.getPathLength(drawn);
         const targetLen = this.getPathLength(target);
         const lengthRatio = drawnLen / targetLen;
 
-        // Must be between 50% and 150% of target length
         if (lengthRatio < 0.5 || lengthRatio > 1.5) {
             console.log(`Stroke Failed: Length Mismatch. Ratio: ${lengthRatio.toFixed(2)}`);
             return false;
@@ -301,10 +309,9 @@ const KanjiDrawingSystem = {
         const endDist = Phaser.Math.Distance.BetweenPoints(drawnEnd, targetEnd);
         const endpointError = Math.max(startDist, endDist);
 
-        // NEW: Stricter Tolerances
-        const corridorTolerance = 20; // Average distance from line
-        const endpointTolerance = 30; // Distance from start/end points
-        const hardMaxDeviation = 50;  // If ANY point is > 50px away, fail (prevents big loops)
+        const corridorTolerance = 20;
+        const endpointTolerance = 30;
+        const hardMaxDeviation = 50;
 
         const isValid = (
             averageDeviation < corridorTolerance &&
@@ -371,8 +378,10 @@ const KanjiDrawingSystem = {
             this.renderScene(scene);
         }, 300);
 
-        if (this.state.strokeAttempts >= this.config.maxAttemptsPerStroke) {
-            this.showStrokeFeedback('Watch closely...', '#ffff00');
+        if (this.state.strokeAttempts === 1) {
+            this.showStrokeFeedback('Start at the green dot', '#ffff00');
+        } else if (this.state.strokeAttempts === 2) {
+            this.showStrokeFeedback('Guide added', '#ffff00');
             this.state.missedStrokes++;
         } else {
             this.showStrokeFeedback('Try again!', '#ffaa00');
@@ -463,9 +472,15 @@ const KanjiDrawingSystem = {
         this.state.active = false;
         this.state.challengeComplete = false;
 
-        gamePaused = false;
-        if (scene && scene.physics) {
-            scene.physics.resume();
+        // FIX: Use PauseSystem to Resume Game Logic (Resumes physics and timers)
+        if (window.PauseSystem) {
+            PauseSystem.resumeGame();
+        } else {
+            // Fallback
+            gamePaused = false;
+            if (scene && scene.physics) {
+                scene.physics.resume();
+            }
         }
     },
 

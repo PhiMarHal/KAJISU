@@ -1,5 +1,4 @@
 // drawing.js - Kanji Drawing Challenge System
-// Presents a drawing challenge at intervals, where player draws a kanji for XP rewards
 
 const KanjiDrawingSystem = {
     // UI elements
@@ -7,8 +6,7 @@ const KanjiDrawingSystem = {
         container: null,
         background: null,
         borderRect: null,
-        canvas: null,
-        graphics: null,
+        graphics: null, // Used for both user input AND guide
         infoText: null,
         strokeFeedback: null
     },
@@ -18,48 +16,38 @@ const KanjiDrawingSystem = {
         active: false,
         currentKanji: null,
         currentStroke: 0,
-        strokeAttempts: 0, // Attempts for current stroke
-        missedStrokes: 0,  // Total strokes that were missed (after 2+ attempts)
+        strokeAttempts: 0,
+        missedStrokes: 0,
         isDrawing: false,
         currentPath: [],
         completedStrokes: [],
-        challengeComplete: false, // Prevent processing after completion
-        kanjiBounds: null // Cache bounding box for consistent positioning
+        challengeComplete: false,
+        // Cached points for the current kanji to avoid re-parsing SVG constantly
+        targetStrokePoints: []
     },
 
     // Configuration
     config: {
-        challengeInterval: 1000, // 1 second for testing (change to 180000 for production = 3 minutes)
+        challengeInterval: 1000,
         maxAttemptsPerStroke: 2,
-        strokeMatchTolerance: 80, // Pixels of tolerance for stroke matching
-        showGuideAfterMisses: true
+        // Reduced tolerances for stricter gameplay
+        strokeMatchTolerance: 35,
+        // Standard KanjiVG coordinate system
+        kanjiSize: 109
     },
 
-    // Timer reference
     challengeTimer: null,
 
-    // Initialize the system
     init: function (scene) {
-        if (!scene || !scene.add) {
-            console.error("Cannot initialize KanjiDrawingSystem: Invalid scene");
-            return;
-        }
-
-        // Start the interval timer for challenges
+        if (!scene || !scene.add) return;
         this.startChallengeTimer(scene);
-
         console.log("Kanji Drawing System initialized");
     },
 
-    // Start the timer for periodic challenges
     startChallengeTimer: function (scene) {
-        // Clear existing timer if any
         if (this.challengeTimer) {
             this.challengeTimer.remove();
-            this.challengeTimer = null;
         }
-
-        // Create new timer
         this.challengeTimer = scene.time.addEvent({
             delay: this.config.challengeInterval,
             callback: () => {
@@ -70,27 +58,18 @@ const KanjiDrawingSystem = {
             callbackScope: this,
             loop: true
         });
-
         registerTimer(this.challengeTimer);
     },
 
-    // Start a drawing challenge
     startChallenge: function (scene) {
-        // Don't start if already active or game conditions prevent it
-        if (this.state.active || gameOver || window.levelUpInProgress) {
-            return;
-        }
+        if (this.state.active || gameOver || window.levelUpInProgress) return;
 
-        // Pause the game
         gamePaused = true;
-        if (scene.physics) {
-            scene.physics.pause();
-        }
+        if (scene.physics) scene.physics.pause();
 
-        // Select a random kanji from dictionary
         this.state.currentKanji = getRandomKanji();
 
-        // Reset challenge state
+        // Reset State
         this.state.active = true;
         this.state.currentStroke = 0;
         this.state.strokeAttempts = 0;
@@ -100,141 +79,73 @@ const KanjiDrawingSystem = {
         this.state.completedStrokes = [];
         this.state.challengeComplete = false;
 
-        // Calculate and cache bounding box for consistent positioning
-        this.state.kanjiBounds = this.calculateSVGBounds(this.state.currentKanji.strokes);
+        // Pre-calculate target points for ALL strokes in this Kanji to ensure consistency
+        this.state.targetStrokePoints = this.state.currentKanji.strokes.map(strokePath =>
+            this.extractSVGPoints(strokePath)
+        );
 
-        // Create the UI
         this.createChallengeUI(scene);
-
         console.log(`Started drawing challenge for: ${this.state.currentKanji.character}`);
     },
 
-    // Create the challenge UI
     createChallengeUI: function (scene) {
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
 
-        // Create container
-        this.elements.container = scene.add.container(0, 0);
-        this.elements.container.setDepth(1500); // Higher than pause/levelup screens
+        this.elements.container = scene.add.container(0, 0).setDepth(1500);
 
-        // Full-screen semi-transparent background
-        const fullscreenBg = scene.add.rectangle(
-            centerX, centerY,
-            game.config.width, game.config.height,
-            0x000000, 0.8
-        );
+        // Backgrounds
+        const fullscreenBg = scene.add.rectangle(centerX, centerY, game.config.width, game.config.height, 0x000000, 0.8);
         this.elements.container.add(fullscreenBg);
 
-        // Drawing panel dimensions
         const panelWidth = Math.min(game.config.width * 0.9, 600);
         const panelHeight = Math.min(game.config.height * 0.9, 700);
 
-        // Black background panel
-        this.elements.background = scene.add.rectangle(
-            centerX, centerY,
-            panelWidth, panelHeight,
-            0x000000
-        );
+        this.elements.background = scene.add.rectangle(centerX, centerY, panelWidth, panelHeight, 0x000000);
         this.elements.container.add(this.elements.background);
 
-        // Gold border
-        this.elements.borderRect = scene.add.rectangle(
-            centerX, centerY,
-            panelWidth, panelHeight
-        );
-        this.elements.borderRect.setStrokeStyle(4, 0xFFD700);
+        this.elements.borderRect = scene.add.rectangle(centerX, centerY, panelWidth, panelHeight).setStrokeStyle(4, 0xFFD700);
         this.elements.container.add(this.elements.borderRect);
 
         // Title
-        const title = scene.add.text(
-            centerX,
-            centerY - panelHeight / 2 + 40,
-            'DRAW THE KANJI',
-            {
-                fontFamily: 'Arial',
-                fontSize: '32px',
-                color: '#FFD700',
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5);
+        const title = scene.add.text(centerX, centerY - panelHeight / 2 + 40, 'DRAW THE KANJI', {
+            fontFamily: 'Arial', fontSize: '32px', color: '#FFD700', fontStyle: 'bold'
+        }).setOrigin(0.5);
         this.elements.container.add(title);
 
-        // Drawing area dimensions
-        const drawAreaSize = Math.min(panelWidth - 80, 400);
-        const drawAreaTop = centerY - drawAreaSize / 2 - 30;
+        // Graphics for Drawing
+        // FIX: Added setDepth relative to container, but crucial part is it's added TO the container below
+        this.elements.graphics = scene.add.graphics().setDepth(1501);
+        this.elements.container.add(this.elements.graphics); // <--- FIX: Added to container so it gets destroyed with it
 
-        // Drawing area border (for visual reference)
-        const drawAreaBorder = scene.add.rectangle(
-            centerX,
-            drawAreaTop + drawAreaSize / 2,
-            drawAreaSize,
-            drawAreaSize
-        );
-        drawAreaBorder.setStrokeStyle(2, 0x666666);
-        this.elements.container.add(drawAreaBorder);
+        // Draw Guide immediately
+        this.renderScene(scene);
 
-        // Graphics for drawing
-        this.elements.graphics = scene.add.graphics();
-        this.elements.graphics.setDepth(1501);
-
-        // If we have real stroke data, show the first stroke as a light guide
-        if (this.state.currentKanji.strokes && this.state.currentKanji.strokes.length > 0) {
-            this.drawGuideStroke(scene, 0, 0x666666, 0.3);
-        }
-
-        // Info text at bottom (kana, romaji, english)
+        // Info Text
         const infoY = centerY + panelHeight / 2 - 60;
         const kanji = this.state.currentKanji;
-        this.elements.infoText = scene.add.text(
-            centerX,
-            infoY,
+        this.elements.infoText = scene.add.text(centerX, infoY,
             `${kanji.kana} (${kanji.romaji}) - ${kanji.english}`,
-            {
-                fontFamily: 'Arial',
-                fontSize: '24px',
-                color: '#ffffff',
-                fontStyle: 'bold'
-            }
+            { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', fontStyle: 'bold' }
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.infoText);
 
-        // Stroke feedback text
-        this.elements.strokeFeedback = scene.add.text(
-            centerX,
-            infoY + 40,
-            '',
-            {
-                fontFamily: 'Arial',
-                fontSize: '20px',
-                color: '#00ff00',
-                fontStyle: 'bold'
-            }
+        this.elements.strokeFeedback = scene.add.text(centerX, infoY + 40, '',
+            { fontFamily: 'Arial', fontSize: '20px', color: '#00ff00', fontStyle: 'bold' }
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.strokeFeedback);
 
-        // Get stroke count
-        const strokeCount = this.state.currentKanji.strokeCount ??
-            this.getStrokeCount(this.state.currentKanji.character);
+        // Input Area Calculation
+        const drawAreaSize = Math.min(panelWidth - 80, 400);
+        const drawAreaTop = centerY - drawAreaSize / 2 - 30;
 
-        // Instructions
-        const instructions = scene.add.text(
-            centerX,
-            centerY - panelHeight / 2 + 80,
-            `Draw ${strokeCount} strokes`,
-            {
-                fontFamily: 'Arial',
-                fontSize: '18px',
-                color: '#cccccc'
-            }
-        ).setOrigin(0.5);
-        this.elements.container.add(instructions);
+        // Visual border for draw area
+        const drawAreaBorder = scene.add.rectangle(centerX, drawAreaTop + drawAreaSize / 2, drawAreaSize, drawAreaSize).setStrokeStyle(2, 0x333333);
+        this.elements.container.add(drawAreaBorder);
 
-        // Setup input handlers
         this.setupInputHandlers(scene, centerX, drawAreaTop + drawAreaSize / 2, drawAreaSize);
     },
 
-    // Setup mouse and touch input handlers
     setupInputHandlers: function (scene, centerX, centerY, drawAreaSize) {
         const halfSize = drawAreaSize / 2;
         const minX = centerX - halfSize;
@@ -242,686 +153,322 @@ const KanjiDrawingSystem = {
         const minY = centerY - halfSize;
         const maxY = centerY + halfSize;
 
-        // Mouse/touch down - start drawing
         scene.input.on('pointerdown', (pointer) => {
             if (!this.state.active) return;
-
-            const x = pointer.x;
-            const y = pointer.y;
-
-            // Check if pointer is within drawing area
-            if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+            if (pointer.x >= minX && pointer.x <= maxX && pointer.y >= minY && pointer.y <= maxY) {
                 this.state.isDrawing = true;
-                this.state.currentPath = [{ x, y }];
+                this.state.currentPath = [{ x: pointer.x, y: pointer.y }];
             }
         });
 
-        // Mouse/touch move - continue drawing
         scene.input.on('pointermove', (pointer) => {
             if (!this.state.active || !this.state.isDrawing) return;
-
-            const x = pointer.x;
-            const y = pointer.y;
-
-            // Add point to path
-            this.state.currentPath.push({ x, y });
-
-            // Draw the stroke in gold
-            if (this.state.currentPath.length > 1) {
-                const prev = this.state.currentPath[this.state.currentPath.length - 2];
-                this.elements.graphics.lineStyle(8, 0xFFD700, 1);
-                this.elements.graphics.beginPath();
-                this.elements.graphics.moveTo(prev.x, prev.y);
-                this.elements.graphics.lineTo(x, y);
-                this.elements.graphics.strokePath();
-            }
+            this.state.currentPath.push({ x: pointer.x, y: pointer.y });
+            this.renderScene(scene);
         });
 
-        // Mouse/touch up - finish stroke
         scene.input.on('pointerup', () => {
             if (!this.state.active || !this.state.isDrawing || this.state.challengeComplete) return;
-
             this.state.isDrawing = false;
             this.validateStroke(scene);
         });
     },
 
-    // Validate the drawn stroke
+    // Unified Render Function
+    renderScene: function (scene) {
+        // Safety check: if graphics destroyed or scene changing, don't draw
+        if (!this.elements.graphics || !this.elements.graphics.scene) return;
+
+        const g = this.elements.graphics;
+        g.clear();
+
+        // 1. Draw Guides (Target Stroke) in Grey
+        if (this.state.targetStrokePoints && this.state.targetStrokePoints[this.state.currentStroke]) {
+            const guidePoints = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
+
+            if (guidePoints && guidePoints.length > 0) {
+                g.lineStyle(12, 0x444444, 0.5);
+                g.beginPath();
+                g.moveTo(guidePoints[0].x, guidePoints[0].y);
+                for (let i = 1; i < guidePoints.length; i++) {
+                    g.lineTo(guidePoints[i].x, guidePoints[i].y);
+                }
+                g.strokePath();
+
+                // Draw start point indicator
+                g.fillStyle(0x00ff00, 0.5);
+                g.fillCircle(guidePoints[0].x, guidePoints[0].y, 6);
+            }
+        }
+
+        // 2. Draw Completed Strokes in White
+        g.lineStyle(8, 0xffffff, 1);
+        this.state.completedStrokes.forEach(stroke => {
+            if (stroke.length < 2) return;
+            g.beginPath();
+            g.moveTo(stroke[0].x, stroke[0].y);
+            for (let i = 1; i < stroke.length; i++) {
+                g.lineTo(stroke[i].x, stroke[i].y);
+            }
+            g.strokePath();
+        });
+
+        // 3. Draw Current User Input in Gold
+        if (this.state.currentPath.length > 1) {
+            g.lineStyle(8, 0xFFD700, 1);
+            g.beginPath();
+            g.moveTo(this.state.currentPath[0].x, this.state.currentPath[0].y);
+            for (let i = 1; i < this.state.currentPath.length; i++) {
+                g.lineTo(this.state.currentPath[i].x, this.state.currentPath[i].y);
+            }
+            g.strokePath();
+        }
+    },
+
     validateStroke: function (scene) {
         if (this.state.currentPath.length < 2) {
-            // Path too short, ignore
             this.state.currentPath = [];
+            this.renderScene(scene);
             return;
         }
 
-        // For now, we'll use a simple validation that accepts any reasonable stroke
-        // In the future, this would check against actual stroke order data
-        const isValid = this.checkStrokeValidity(this.state.currentPath);
+        const rawTargetPoints = this.state.targetStrokePoints[this.state.currentStroke];
+
+        if (!rawTargetPoints) {
+            this.acceptStroke(scene);
+            return;
+        }
+
+        const screenTargetPoints = this.transformToScreen(rawTargetPoints);
+        const isValid = this.compareStrokes(this.state.currentPath, screenTargetPoints);
 
         if (isValid) {
-            // Stroke is correct!
             this.acceptStroke(scene);
         } else {
-            // Stroke is wrong
             this.rejectStroke(scene);
         }
     },
 
-    // Check if a stroke is valid by comparing with target in screen space
-    checkStrokeValidity: function (path) {
-        // Basic checks first
-        if (path.length < 5) return false;
-
-        // Calculate path length
-        let length = 0;
-        for (let i = 1; i < path.length; i++) {
-            const dx = path[i].x - path[i - 1].x;
-            const dy = path[i].y - path[i - 1].y;
-            length += Math.sqrt(dx * dx + dy * dy);
-        }
-
-        // Must be at least 30 pixels
-        if (length < 30) return false;
-
-        // If we have stroke data, compare with target
-        if (this.state.currentKanji.strokes &&
-            this.state.currentStroke < this.state.currentKanji.strokes.length) {
-
-            const targetPath = this.state.currentKanji.strokes[this.state.currentStroke];
-            const targetPoints = this.extractSVGPoints(targetPath);
-
-            if (targetPoints && targetPoints.length >= 2) {
-                // Transform target to screen space using SAME transform as rendering
-                const targetScreen = this.transformToScreen(targetPoints);
-
-                if (targetScreen && targetScreen.length >= 2) {
-                    // Compare drawn stroke with target in screen space
-                    return this.compareStrokes(path, targetScreen);
-                }
-            }
-        }
-
-        // Fallback: just check directness
-        const start = path[0];
-        const end = path[path.length - 1];
-        const straightLineDistance = Math.sqrt(
-            Math.pow(end.x - start.x, 2) +
-            Math.pow(end.y - start.y, 2)
-        );
-        const directness = straightLineDistance / length;
-        return directness > 0.25;
-    },
-
-    // Extract and sample SVG path using native browser SVG methods
-    // This is 100% accurate to what the browser renders
-    extractSVGPoints: function (pathString) {
-        if (!pathString) return null;
-
-        // Create a temporary SVG path element
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', pathString);
-        svg.appendChild(path);
-        document.body.appendChild(svg);
-
-        try {
-            const totalLength = path.getTotalLength();
-            const points = [];
-
-            // Sample points at uniform arc-length intervals
-            const sampleDistance = Math.max(2, totalLength / 100); // At least 100 samples
-            for (let distance = 0; distance <= totalLength; distance += sampleDistance) {
-                const pt = path.getPointAtLength(distance);
-                points.push({
-                    x: pt.x,
-                    y: pt.y
-                });
-            }
-
-            // Always include the endpoint
-            const endPt = path.getPointAtLength(totalLength);
-            points.push({
-                x: endPt.x,
-                y: endPt.y
-            });
-
-            return points.length >= 2 ? points : null;
-        } finally {
-            document.body.removeChild(svg);
-        }
-    },
-
-    // Transform SVG coordinates to screen space (using SAME logic as rendering)
     transformToScreen: function (svgPoints) {
-        const drawAreaSize = Math.min(Math.min(game.config.width * 0.9, 600) - 80, 400);
+        if (!svgPoints) return [];
+
+        const panelWidth = Math.min(game.config.width * 0.9, 600);
+        const drawAreaSize = Math.min(panelWidth - 80, 400);
+        const padding = 40;
+
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2 - 30;
 
-        const bounds = this.state.kanjiBounds;
-        if (!bounds) return null;
+        const scale = (drawAreaSize - padding * 2) / this.config.kanjiSize;
 
-        // Use EXACT same scale calculation as drawGuideStroke
-        const padding = 30;
-        const maxDimension = Math.max(bounds.width, bounds.height);
-        const targetSize = drawAreaSize - padding * 2;
-        let scale = targetSize / maxDimension;
-        const maxScale = targetSize / 109;
-        scale = Math.min(scale, maxScale);
+        const startX = centerX - (this.config.kanjiSize * scale) / 2;
+        const startY = centerY - (this.config.kanjiSize * scale) / 2;
 
-        // Use EXACT same offset calculation as drawGuideStroke
-        const offsetX = centerX - bounds.centerX * scale;
-        const offsetY = centerY - bounds.centerY * scale;
-
-        // Transform points
-        return svgPoints.map(point => ({
-            x: point.x * scale + offsetX,
-            y: point.y * scale + offsetY
+        return svgPoints.map(p => ({
+            x: startX + (p.x * scale),
+            y: startY + (p.y * scale)
         }));
     },
 
-    // Find the closest point on the target path to a given point
-    closestPointOnPath: function (point, path) {
-        let minDist = Infinity;
-        let closestPoint = path[0];
-
-        for (let i = 0; i < path.length; i++) {
-            const dx = point.x - path[i].x;
-            const dy = point.y - path[i].y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDist) {
-                minDist = dist;
-                closestPoint = path[i];
-            }
-        }
-
-        return { point: closestPoint, distance: minDist };
-    },
-
-    // Compare drawn stroke with target stroke using corridor checking
     compareStrokes: function (drawn, target) {
         if (drawn.length < 2 || target.length < 2) return false;
 
         let totalDeviation = 0;
-        let pointCount = 0;
         let maxDeviation = 0;
 
-        // Check how far each drawn point is from the nearest target point
-        for (let i = 0; i < drawn.length; i++) {
+        const sampleRate = Math.max(1, Math.floor(drawn.length / 15));
+        let samples = 0;
+
+        for (let i = 0; i < drawn.length; i += sampleRate) {
             const result = this.closestPointOnPath(drawn[i], target);
             totalDeviation += result.distance;
             maxDeviation = Math.max(maxDeviation, result.distance);
-            pointCount++;
+            samples++;
         }
 
-        const averageDeviation = totalDeviation / pointCount;
+        const averageDeviation = totalDeviation / samples;
 
-        // Also check that endpoints are roughly correct
         const drawnStart = drawn[0];
         const drawnEnd = drawn[drawn.length - 1];
         const targetStart = target[0];
         const targetEnd = target[target.length - 1];
 
-        const startDist = Math.sqrt(
-            Math.pow(drawnStart.x - targetStart.x, 2) +
-            Math.pow(drawnStart.y - targetStart.y, 2)
-        );
-        const endDist = Math.sqrt(
-            Math.pow(drawnEnd.x - targetEnd.x, 2) +
-            Math.pow(drawnEnd.y - targetEnd.y, 2)
-        );
+        const startDist = Phaser.Math.Distance.BetweenPoints(drawnStart, targetStart);
+        const endDist = Phaser.Math.Distance.BetweenPoints(drawnEnd, targetEnd);
 
-        // Try backward direction too
-        const backwardStartDist = Math.sqrt(
-            Math.pow(drawnStart.x - targetEnd.x, 2) +
-            Math.pow(drawnStart.y - targetEnd.y, 2)
-        );
-        const backwardEndDist = Math.sqrt(
-            Math.pow(drawnEnd.x - targetStart.x, 2) +
-            Math.pow(drawnEnd.y - targetStart.y, 2)
-        );
+        const endpointError = Math.max(startDist, endDist);
 
-        const forwardEndpointError = Math.max(startDist, endDist);
-        const backwardEndpointError = Math.max(backwardStartDist, backwardEndDist);
-        const endpointError = Math.min(forwardEndpointError, backwardEndpointError);
+        // STRICTER TOLERANCES
+        // Average deviation allowed (Px)
+        const corridorTolerance = 35;
+        // Endpoint accuracy (Px)
+        const endpointTolerance = 60;
 
-        // Increased tolerances to account for stroke width (3px = 1.5px radius) and rendering artifacts
-        const corridorTolerance = 50;  // Average deviation allowed
-        const endpointTolerance = 90;  // Endpoints must be within this
-        const maxPointTolerance = 100; // No single point can be more than this
+        const isValid = (averageDeviation < corridorTolerance && endpointError < endpointTolerance);
 
-        const isValid = (averageDeviation < corridorTolerance &&
-            endpointError < endpointTolerance &&
-            maxDeviation < maxPointTolerance);
-
-        console.log(`Corridor - Avg: ${Math.round(averageDeviation)}, Max: ${Math.round(maxDeviation)}, Endpoints: ${Math.round(endpointError)} | ${isValid ? 'PASS' : 'FAIL'}`);
+        console.log(`Stroke Check: AvgDev=${Math.round(averageDeviation)}, EndErr=${Math.round(endpointError)} -> ${isValid ? "PASS" : "FAIL"}`);
 
         return isValid;
     },
 
-    // Accept the stroke as correct
+    closestPointOnPath: function (point, path) {
+        let minDist = Infinity;
+        let closestPoint = path[0];
+
+        for (let i = 0; i < path.length; i++) {
+            const dist = Phaser.Math.Distance.BetweenPoints(point, path[i]);
+            if (dist < minDist) {
+                minDist = dist;
+                closestPoint = path[i];
+            }
+        }
+        return { point: closestPoint, distance: minDist };
+    },
+
     acceptStroke: function (scene) {
-        // Turn the stroke white to indicate success
-        this.redrawCurrentStroke(0xffffff);
+        const perfectStroke = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
+        this.state.completedStrokes.push(perfectStroke);
 
-        // Add to completed strokes
-        this.state.completedStrokes.push([...this.state.currentPath]);
         this.state.currentPath = [];
-
-        // Move to next stroke
         this.state.currentStroke++;
         this.state.strokeAttempts = 0;
 
-        // Show feedback
         this.showStrokeFeedback('Correct!', '#00ff00');
+        this.renderScene(scene);
 
-        // Check if kanji is complete
-        const totalStrokes = this.state.currentKanji.strokeCount ??
-            this.getStrokeCount(this.state.currentKanji.character);
+        const totalStrokes = this.state.currentKanji.strokes.length;
 
         if (this.state.currentStroke >= totalStrokes) {
-            // Mark as complete to prevent further strokes
             this.state.challengeComplete = true;
-
-            // Challenge complete!
             setTimeout(() => {
                 this.completeChallenge(scene);
-            }, 500);
-        } else {
-            // Show next stroke guide if available
-            if (this.state.currentKanji.strokes &&
-                this.state.currentStroke < this.state.currentKanji.strokes.length) {
-                setTimeout(() => {
-                    // Clear previous SVG strokes
-                    if (this.elements.svgOverlay) {
-                        while (this.elements.svgOverlay.firstChild) {
-                            this.elements.svgOverlay.removeChild(this.elements.svgOverlay.firstChild);
-                        }
-                    }
-                    this.drawGuideStroke(scene, this.state.currentStroke, 0x666666, 0.3);
-                }, 300);
-            }
+            }, 200);
         }
     },
 
-    // Reject the stroke as incorrect
     rejectStroke: function (scene) {
-        // Blink red
-        this.blinkStroke(scene, 0xff0000);
+        if (!this.elements.graphics) return;
 
+        const g = this.elements.graphics;
+        g.lineStyle(8, 0xff0000, 1);
+        g.beginPath();
+        g.moveTo(this.state.currentPath[0].x, this.state.currentPath[0].y);
+        for (let i = 1; i < this.state.currentPath.length; i++) {
+            g.lineTo(this.state.currentPath[i].x, this.state.currentPath[i].y);
+        }
+        g.strokePath();
+
+        this.state.currentPath = [];
         this.state.strokeAttempts++;
 
+        setTimeout(() => {
+            this.renderScene(scene);
+        }, 300);
+
         if (this.state.strokeAttempts >= this.config.maxAttemptsPerStroke) {
-            // Too many attempts - show guide and count as missed
+            this.showStrokeFeedback('Watch closely...', '#ffff00');
             this.state.missedStrokes++;
-            this.showStrokeGuide(scene);
-            // Feedback is set in showStrokeGuide
         } else {
-            // Show feedback for retry
             this.showStrokeFeedback('Try again!', '#ffaa00');
         }
     },
 
-    // Redraw the current stroke in a different color
-    redrawCurrentStroke: function (color) {
-        if (this.state.currentPath.length < 2) return;
-
-        this.elements.graphics.lineStyle(8, color, 1);
-        this.elements.graphics.beginPath();
-        this.elements.graphics.moveTo(this.state.currentPath[0].x, this.state.currentPath[0].y);
-
-        for (let i = 1; i < this.state.currentPath.length; i++) {
-            this.elements.graphics.lineTo(this.state.currentPath[i].x, this.state.currentPath[i].y);
-        }
-
-        this.elements.graphics.strokePath();
-    },
-
-    // Blink a stroke red
-    blinkStroke: function (scene, color) {
-        // Redraw in red
-        this.redrawCurrentStroke(color);
-
-        // After a brief delay, clear it
-        setTimeout(() => {
-            // Clear the failed stroke
-            this.elements.graphics.clear();
-
-            // Redraw all completed strokes in white
-            this.state.completedStrokes.forEach(stroke => {
-                if (stroke.length < 2) return;
-
-                this.elements.graphics.lineStyle(8, 0xffffff, 1);
-                this.elements.graphics.beginPath();
-                this.elements.graphics.moveTo(stroke[0].x, stroke[0].y);
-
-                for (let i = 1; i < stroke.length; i++) {
-                    this.elements.graphics.lineTo(stroke[i].x, stroke[i].y);
-                }
-
-                this.elements.graphics.strokePath();
-            });
-        }, 300);
-    },
-
-    // Calculate bounding box from SVG path strings
-    calculateSVGBounds: function (strokes) {
-        let minX = Infinity, maxX = -Infinity;
-        let minY = Infinity, maxY = -Infinity;
-        let hasValidCoords = false;
-
-        strokes.forEach(pathString => {
-            // Extract coordinates from SVG path string
-            // Match all numbers (including decimals and negatives)
-            const coords = pathString.match(/-?\d+\.?\d*/g);
-            if (!coords) return;
-
-            for (let i = 0; i < coords.length; i += 2) {
-                if (i + 1 < coords.length) {
-                    const x = parseFloat(coords[i]);
-                    const y = parseFloat(coords[i + 1]);
-
-                    // Skip invalid coordinates
-                    if (isNaN(x) || isNaN(y)) continue;
-
-                    minX = Math.min(minX, x);
-                    maxX = Math.max(maxX, x);
-                    minY = Math.min(minY, y);
-                    maxY = Math.max(maxY, y);
-                    hasValidCoords = true;
-                }
-            }
-        });
-
-        // Fallback to default bounds if no valid coordinates found
-        if (!hasValidCoords) {
-            console.warn('No valid coordinates found in kanji strokes, using defaults');
-            return {
-                minX: 0, maxX: 109, minY: 0, maxY: 109,
-                width: 109, height: 109,
-                centerX: 54.5, centerY: 54.5
-            };
-        }
-
-        const width = maxX - minX;
-        const height = maxY - minY;
-        const centerX = minX + width / 2;
-        const centerY = minY + height / 2;
-
-        return { minX, maxX, minY, maxY, width, height, centerX, centerY };
-    },
-
-    // Draw a guide stroke from stroke data using native SVG rendering
-    drawGuideStroke: function (scene, strokeIndex, color, alpha) {
-        const strokes = this.state.currentKanji.strokes;
-        if (!strokes || strokeIndex >= strokes.length) {
-            return;
-        }
-
-        const strokePath = strokes[strokeIndex];
-        if (!strokePath || typeof strokePath !== 'string') return;
-
-        // Create SVG element if it doesn't exist
-        if (!this.elements.svgOverlay) {
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.style.position = 'absolute';
-            svg.style.top = '0';
-            svg.style.left = '0';
-            svg.style.width = '100%';
-            svg.style.height = '100%';
-            svg.style.pointerEvents = 'none';
-            svg.style.zIndex = '1501';
-            document.body.appendChild(svg);
-            this.elements.svgOverlay = svg;
-        }
-
-        // Calculate drawing area dimensions
-        const drawAreaSize = Math.min(Math.min(game.config.width * 0.9, 600) - 80, 400);
-        const centerX = game.config.width / 2;
-        const centerY = game.config.height / 2 - 30;
-
-        // Use cached bounds for consistent positioning
-        const bounds = this.state.kanjiBounds;
-        if (!bounds) return;
-
-        // Calculate scale to fit kanji in drawing area with padding
-        const padding = 30; // Increased padding
-        const maxDimension = Math.max(bounds.width, bounds.height);
-
-        // Calculate scale, but cap it to prevent overly large kanji
-        const targetSize = drawAreaSize - padding * 2;
-        let scale = targetSize / maxDimension;
-
-        // Cap maximum scale - don't let kanji get bigger than the KanjiVG standard size
-        const maxScale = targetSize / 109; // KanjiVG's coordinate system is 109x109
-        scale = Math.min(scale, maxScale);
-
-        // Calculate offset to center the kanji
-        const offsetX = centerX - bounds.centerX * scale;
-        const offsetY = centerY - bounds.centerY * scale;
-
-        // Create path element
+    extractSVGPoints: function (pathString) {
+        if (!pathString) return [];
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', strokePath);
-        path.setAttribute('stroke', `#${color.toString(16).padStart(6, '0')}`);
-        path.setAttribute('stroke-width', '3');
-        path.setAttribute('fill', 'none');
-        path.setAttribute('opacity', alpha);
-        path.setAttribute('stroke-linecap', 'round');
-        path.setAttribute('stroke-linejoin', 'round');
-        path.setAttribute('transform', `translate(${offsetX}, ${offsetY}) scale(${scale})`);
+        path.setAttribute('d', pathString);
 
-        this.elements.svgOverlay.appendChild(path);
-    },
+        const totalLength = path.getTotalLength();
+        const points = [];
+        const step = 5;
 
-    // Show a guide for the correct stroke
-    showStrokeGuide: function (scene) {
-        const strokeIndex = this.state.currentStroke;
-
-        // Clear any existing SVG paths
-        if (this.elements.svgOverlay) {
-            while (this.elements.svgOverlay.firstChild) {
-                this.elements.svgOverlay.removeChild(this.elements.svgOverlay.firstChild);
-            }
+        for (let i = 0; i <= totalLength; i += step) {
+            const pt = path.getPointAtLength(i);
+            points.push({ x: pt.x, y: pt.y });
         }
 
-        if (this.state.currentKanji.strokes && strokeIndex < this.state.currentKanji.strokes.length) {
-            // Draw the actual stroke in light gray
-            this.drawGuideStroke(scene, strokeIndex, 0x888888, 0.6);
+        const endPt = path.getPointAtLength(totalLength);
+        points.push({ x: endPt.x, y: endPt.y });
 
-            if (this.elements.strokeFeedback) {
-                this.elements.strokeFeedback.setText('Guide shown - follow the gray line');
-                this.elements.strokeFeedback.setColor('#888888');
-            }
-        } else {
-            // Fallback if no stroke data
-            if (this.elements.strokeFeedback) {
-                this.elements.strokeFeedback.setText('Guide unavailable - draw any stroke');
-                this.elements.strokeFeedback.setColor('#888888');
-            }
-        }
-
-        console.log(`Showing guide for stroke ${strokeIndex + 1}`);
+        return points;
     },
 
-    // Show stroke feedback message
     showStrokeFeedback: function (message, color) {
         if (!this.elements.strokeFeedback) return;
-
         this.elements.strokeFeedback.setText(message);
         this.elements.strokeFeedback.setColor(color);
-
-        // Clear after a delay
-        setTimeout(() => {
-            if (this.elements.strokeFeedback) {
+        if (this.feedbackTimer) clearTimeout(this.feedbackTimer);
+        this.feedbackTimer = setTimeout(() => {
+            if (this.elements.strokeFeedback && this.elements.strokeFeedback.active) {
                 this.elements.strokeFeedback.setText('');
             }
-        }, 2000);
+        }, 1500);
     },
 
-    // Get stroke count for a kanji (improved estimates until we have real data)
-    getStrokeCount: function (character) {
-        // Common kanji with known stroke counts for better accuracy
-        const knownStrokes = {
-            '鬼': 10, '龍': 16, '蛇': 11, '魔': 21, '死': 6, '獣': 16, '骨': 10, '影': 15,
-            '鮫': 17, '妖': 7, '霊': 15, '怨': 9, '邪': 8, '呪': 9, '魂': 14, '闇': 17,
-            '煉': 13, '殺': 10, '禍': 13, '悪': 11, '屍': 9, '凶': 4, '餓': 15, '狂': 7,
-            '災': 7, '亡': 3, '滅': 13, '崩': 11, '破': 10, '裂': 12, '灰': 6, '焦': 12,
-            '血': 6, '斬': 11, '刺': 8, '砕': 9, '毒': 8, '疫': 9, '病': 10, '腐': 14,
-            '蝕': 15, '墓': 13, '棺': 12, '葬': 12, '鎖': 18, '縛': 16, '罠': 11, '恐': 10,
-            '脅': 10, '絶': 12, '終': 11, '喪': 12, '虚': 11, '空': 8, '虫': 6, '蜘': 14,
-            '蛛': 12, '蠍': 19, '蟹': 19, '蛾': 15, '蝶': 15, '蜂': 13, '蟻': 19, '蛭': 12,
-            '蚊': 10, '蠅': 18, '蝙': 15, '蟲': 18, '髑': 23, '髏': 22, '怪': 8, '妄': 6,
-            '憑': 16, '鵺': 19, '魘': 23
-        };
-
-        // Return known stroke count if available
-        if (knownStrokes[character]) {
-            return knownStrokes[character];
-        }
-
-        // Fallback: estimate based on Unicode and complexity
-        const code = character.charCodeAt(0);
-        if (code < 0x5200) return 6;   // Simpler kanji
-        if (code < 0x7000) return 9;   // Medium complexity
-        if (code < 0x9000) return 12;  // More complex
-        return 15; // Very complex kanji
-    },
-
-    // Complete the challenge and award XP
     completeChallenge: function (scene) {
-        const totalStrokes = this.getStrokeCount(this.state.currentKanji.character);
+        const totalStrokes = this.state.currentKanji.strokes.length;
         const correctStrokes = totalStrokes - this.state.missedStrokes;
-        const accuracy = correctStrokes / totalStrokes;
+        const accuracy = Math.max(0, correctStrokes / totalStrokes);
 
-        // Calculate XP reward (full level worth, scaled by accuracy)
-        const fullLevelXP = xpForNextLevel(playerLevel);
-        const xpReward = Math.ceil(fullLevelXP * accuracy);
+        const xpReward = Math.ceil(xpForNextLevel(playerLevel) * (0.5 + (accuracy * 0.5)));
 
-        // Award XP
         heroExp += xpReward;
         GameUI.updateExpBar(scene);
-
-        // Show completion message
         this.showCompletionMessage(scene, xpReward, accuracy);
 
-        // Clean up after a delay
         setTimeout(() => {
             this.cleanup(scene);
-        }, 3000);
+        }, 2500);
     },
 
-    // Show completion message
     showCompletionMessage: function (scene, xpReward, accuracy) {
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
+        const accPct = Math.round(accuracy * 100);
 
-        const accuracyPercent = Math.round(accuracy * 100);
+        const msg = scene.add.text(centerX, centerY,
+            `EXCELLENT!\nAccuracy: ${accPct}%\n+${xpReward} XP`,
+            { fontFamily: 'Arial', fontSize: '40px', color: '#00ff00', fontStyle: 'bold', align: 'center', stroke: '#000000', strokeThickness: 4 }
+        ).setOrigin(0.5).setDepth(1502);
 
-        const message = scene.add.text(
-            centerX,
-            centerY + 150,
-            `${accuracyPercent}% Accuracy!\n+${xpReward} XP`,
-            {
-                fontFamily: 'Arial',
-                fontSize: '28px',
-                color: '#00ff00',
-                fontStyle: 'bold',
-                align: 'center'
-            }
-        ).setOrigin(0.5);
-
-        message.setDepth(1502);
-
-        // Animate the message
         scene.tweens.add({
-            targets: message,
-            scale: { from: 0.8, to: 1.2 },
-            alpha: { from: 1, to: 0 },
-            duration: 2500,
-            ease: 'Cubic.easeOut',
-            onComplete: () => {
-                message.destroy();
-            }
+            targets: msg,
+            scale: { from: 0.5, to: 1.2 },
+            duration: 400,
+            yoyo: true,
+            hold: 1000,
+            onComplete: () => msg.destroy()
         });
     },
 
-    // Clean up the challenge UI
     cleanup: function (scene) {
-        // Destroy graphics
+        // Explicitly destroy graphics to ensure no "ghosts" remain
         if (this.elements.graphics) {
             this.elements.graphics.destroy();
             this.elements.graphics = null;
         }
 
-        // Remove SVG overlay
-        if (this.elements.svgOverlay) {
-            this.elements.svgOverlay.remove();
-            this.elements.svgOverlay = null;
-        }
-
-        // Destroy container and all children
         if (this.elements.container) {
             this.elements.container.destroy();
             this.elements.container = null;
         }
 
-        // Clear elements
-        this.elements = {
-            container: null,
-            background: null,
-            borderRect: null,
-            canvas: null,
-            graphics: null,
-            svgOverlay: null,
-            infoText: null,
-            strokeFeedback: null
-        };
+        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null, strokeFeedback: null };
 
-        // Reset state
         this.state.active = false;
-        this.state.currentKanji = null;
-        this.state.currentStroke = 0;
-        this.state.strokeAttempts = 0;
-        this.state.missedStrokes = 0;
-        this.state.isDrawing = false;
-        this.state.currentPath = [];
-        this.state.completedStrokes = [];
         this.state.challengeComplete = false;
-        this.state.kanjiBounds = null;
 
-        // Resume game
         gamePaused = false;
-        if (scene.physics) {
+        // Null check to prevent crash on game exit
+        if (scene && scene.physics) {
             scene.physics.resume();
         }
-
-        console.log("Drawing challenge completed and cleaned up");
     },
 
-    // Cleanup when game ends/restarts
     destroy: function () {
-        if (this.challengeTimer) {
-            this.challengeTimer.remove();
-            this.challengeTimer = null;
-        }
-
-        if (this.elements.graphics) {
-            this.elements.graphics.destroy();
-        }
-
-        if (this.elements.svgOverlay) {
-            this.elements.svgOverlay.remove();
-        }
-
-        if (this.elements.container) {
-            this.elements.container.destroy();
-        }
-
-        this.state.active = false;
-        this.state.challengeComplete = false;
-        this.state.kanjiBounds = null;
+        if (this.challengeTimer) this.challengeTimer.remove();
+        this.cleanup(null);
     }
 };
 
-// Make available globally
 window.KanjiDrawingSystem = KanjiDrawingSystem;

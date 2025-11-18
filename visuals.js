@@ -530,9 +530,10 @@ const VisualEffects = {
         return kanjis;
     },
 
-    // Particle effect for Kanji Drawing (Success/Fail)
+    // Particle effect for Kanji Drawing (Success Only)
     createKanjiStrokeEffect: function (scene, pathPoints, type) {
-        if (!scene || !pathPoints || pathPoints.length < 2) return;
+        // Only handle success effects now
+        if (!scene || !pathPoints || pathPoints.length < 2 || type !== 'success') return;
 
         // Ensure soft glow texture exists
         const textureKey = 'kanji_particle_soft';
@@ -546,37 +547,21 @@ const VisualEffects = {
         const particles = scene.add.particles(textureKey);
         particles.setDepth(2000); // Very high depth
 
-        const isSuccess = type === 'success';
-        let emitter;
-        let step; // Density of particles
-
-        if (isSuccess) {
-            // Success: Feisty White Fireworks
-            emitter = particles.createEmitter({
-                speed: { min: 150, max: 350 }, // Much faster expansion
-                scale: { start: 1.2, end: 0 }, // Start bigger
-                alpha: { start: 1, end: 0 },
-                lifespan: 500,
-                blendMode: 'ADD',
-                tint: 0xffffff, // Pure white, no gold
-                on: false
-            });
-            step = 4; // Standard density
-        } else {
-            // Fail: Sad Drips (Dud)
-            emitter = particles.createEmitter({
-                speed: { min: 40, max: 100 }, // Faster initial "splurt" than before
-                gravityY: 400, // Heavier gravity for quicker drop
-                scale: { start: 0.6, end: 0 },
-                alpha: { start: 0.8, end: 0 },
-                lifespan: 300, // Dies very quickly
-                tint: 0x888888, // Grey
-                on: false
-            });
-            step = 8; // Much less dense (fewer particles)
-        }
+        // Success: Feisty White Pop
+        const emitter = particles.createEmitter({
+            speed: { min: 60, max: 140 }, // Tighter range
+            scale: { start: 1, end: 0 }, // Standard pop size
+            alpha: { start: 1, end: 0 },
+            lifespan: 400, // Short life for "pop" feeling
+            blendMode: 'ADD',
+            tint: 0xffffff, // Pure White
+            on: false
+        });
 
         // Emit particles along the path
+        // Step = 8 means 50% fewer particles than before
+        const step = 8;
+
         for (let i = 0; i < pathPoints.length; i += step) {
             const pt = pathPoints[i];
             emitter.emitParticle(1, pt.x, pt.y);

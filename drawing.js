@@ -357,31 +357,48 @@ const KanjiDrawingSystem = {
     },
 
     rejectStroke: function (scene) {
-        // Visual Effect: Sad Drips
-        VisualEffects.createKanjiStrokeEffect(scene, this.state.currentPath, 'fail');
+        // NEW: Shake Effect for Failure
+        if (!this.elements.container) return;
 
-        if (!this.elements.graphics) return;
+        // 1. Create a Temporary Graphics object for the red line
+        const tempG = scene.add.graphics();
+        tempG.setDepth(1502); // Higher than standard graphics
+        this.elements.container.add(tempG);
 
-        // Red flash
-        const g = this.elements.graphics;
-        g.lineStyle(8, 0xff0000, 1);
-        g.beginPath();
-        g.moveTo(this.state.currentPath[0].x, this.state.currentPath[0].y);
-        for (let i = 1; i < this.state.currentPath.length; i++) {
-            g.lineTo(this.state.currentPath[i].x, this.state.currentPath[i].y);
+        // 2. Draw the user's bad stroke in red
+        tempG.lineStyle(8, 0xff0000, 1);
+        tempG.beginPath();
+        if (this.state.currentPath.length > 0) {
+            tempG.moveTo(this.state.currentPath[0].x, this.state.currentPath[0].y);
+            for (let i = 1; i < this.state.currentPath.length; i++) {
+                tempG.lineTo(this.state.currentPath[i].x, this.state.currentPath[i].y);
+            }
         }
-        g.strokePath();
+        tempG.strokePath();
 
+        // 3. Shake Animation (Tween x position)
+        scene.tweens.add({
+            targets: tempG,
+            x: { from: -2, to: 2 }, // Relative shake pixels
+            duration: 60,
+            yoyo: true,
+            repeat: 2,
+            onComplete: () => {
+                tempG.destroy(); // Cleanup after shake
+            }
+        });
+
+        // Clear current path immediately (the tempG handles visual feedback)
         this.state.currentPath = [];
         this.state.strokeAttempts++;
 
-        setTimeout(() => {
-            this.renderScene(scene);
-        }, 300);
-
+        // Update logic for next attempt
         if (this.state.strokeAttempts === 2) {
             this.state.missedStrokes++;
         }
+
+        // Re-render scene (updates dots/guides if needed)
+        this.renderScene(scene);
     },
 
     extractSVGPoints: function (pathString) {

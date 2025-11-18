@@ -6,7 +6,7 @@ const KanjiDrawingSystem = {
         container: null,
         background: null,
         borderRect: null,
-        graphics: null, // Used for both user input AND guide
+        graphics: null,
         infoText: null,
         strokeFeedback: null
     },
@@ -22,7 +22,6 @@ const KanjiDrawingSystem = {
         currentPath: [],
         completedStrokes: [],
         challengeComplete: false,
-        // Cached points for the current kanji to avoid re-parsing SVG constantly
         targetStrokePoints: []
     },
 
@@ -30,9 +29,7 @@ const KanjiDrawingSystem = {
     config: {
         challengeInterval: 1000,
         maxAttemptsPerStroke: 2,
-        // Reduced tolerances for stricter gameplay
-        strokeMatchTolerance: 35,
-        // Standard KanjiVG coordinate system
+        // These are now enforced inside compareStrokes
         kanjiSize: 109
     },
 
@@ -79,7 +76,6 @@ const KanjiDrawingSystem = {
         this.state.completedStrokes = [];
         this.state.challengeComplete = false;
 
-        // Pre-calculate target points for ALL strokes in this Kanji to ensure consistency
         this.state.targetStrokePoints = this.state.currentKanji.strokes.map(strokePath =>
             this.extractSVGPoints(strokePath)
         );
@@ -94,7 +90,6 @@ const KanjiDrawingSystem = {
 
         this.elements.container = scene.add.container(0, 0).setDepth(1500);
 
-        // Backgrounds
         const fullscreenBg = scene.add.rectangle(centerX, centerY, game.config.width, game.config.height, 0x000000, 0.8);
         this.elements.container.add(fullscreenBg);
 
@@ -107,21 +102,16 @@ const KanjiDrawingSystem = {
         this.elements.borderRect = scene.add.rectangle(centerX, centerY, panelWidth, panelHeight).setStrokeStyle(4, 0xFFD700);
         this.elements.container.add(this.elements.borderRect);
 
-        // Title
         const title = scene.add.text(centerX, centerY - panelHeight / 2 + 40, 'DRAW THE KANJI', {
             fontFamily: 'Arial', fontSize: '32px', color: '#FFD700', fontStyle: 'bold'
         }).setOrigin(0.5);
         this.elements.container.add(title);
 
-        // Graphics for Drawing
-        // FIX: Added setDepth relative to container, but crucial part is it's added TO the container below
         this.elements.graphics = scene.add.graphics().setDepth(1501);
-        this.elements.container.add(this.elements.graphics); // <--- FIX: Added to container so it gets destroyed with it
+        this.elements.container.add(this.elements.graphics);
 
-        // Draw Guide immediately
         this.renderScene(scene);
 
-        // Info Text
         const infoY = centerY + panelHeight / 2 - 60;
         const kanji = this.state.currentKanji;
         this.elements.infoText = scene.add.text(centerX, infoY,
@@ -135,11 +125,9 @@ const KanjiDrawingSystem = {
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.strokeFeedback);
 
-        // Input Area Calculation
         const drawAreaSize = Math.min(panelWidth - 80, 400);
         const drawAreaTop = centerY - drawAreaSize / 2 - 30;
 
-        // Visual border for draw area
         const drawAreaBorder = scene.add.rectangle(centerX, drawAreaTop + drawAreaSize / 2, drawAreaSize, drawAreaSize).setStrokeStyle(2, 0x333333);
         this.elements.container.add(drawAreaBorder);
 
@@ -174,15 +162,13 @@ const KanjiDrawingSystem = {
         });
     },
 
-    // Unified Render Function
     renderScene: function (scene) {
-        // Safety check: if graphics destroyed or scene changing, don't draw
         if (!this.elements.graphics || !this.elements.graphics.scene) return;
 
         const g = this.elements.graphics;
         g.clear();
 
-        // 1. Draw Guides (Target Stroke) in Grey
+        // 1. Draw Guides
         if (this.state.targetStrokePoints && this.state.targetStrokePoints[this.state.currentStroke]) {
             const guidePoints = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
 
@@ -195,13 +181,12 @@ const KanjiDrawingSystem = {
                 }
                 g.strokePath();
 
-                // Draw start point indicator
                 g.fillStyle(0x00ff00, 0.5);
                 g.fillCircle(guidePoints[0].x, guidePoints[0].y, 6);
             }
         }
 
-        // 2. Draw Completed Strokes in White
+        // 2. Draw Completed Strokes
         g.lineStyle(8, 0xffffff, 1);
         this.state.completedStrokes.forEach(stroke => {
             if (stroke.length < 2) return;
@@ -213,7 +198,7 @@ const KanjiDrawingSystem = {
             g.strokePath();
         });
 
-        // 3. Draw Current User Input in Gold
+        // 3. Draw Current User Input
         if (this.state.currentPath.length > 1) {
             g.lineStyle(8, 0xFFD700, 1);
             g.beginPath();
@@ -233,7 +218,6 @@ const KanjiDrawingSystem = {
         }
 
         const rawTargetPoints = this.state.targetStrokePoints[this.state.currentStroke];
-
         if (!rawTargetPoints) {
             this.acceptStroke(scene);
             return;
@@ -260,7 +244,6 @@ const KanjiDrawingSystem = {
         const centerY = game.config.height / 2 - 30;
 
         const scale = (drawAreaSize - padding * 2) / this.config.kanjiSize;
-
         const startX = centerX - (this.config.kanjiSize * scale) / 2;
         const startY = centerY - (this.config.kanjiSize * scale) / 2;
 
@@ -270,12 +253,33 @@ const KanjiDrawingSystem = {
         }));
     },
 
+    // Helper: Calculate total length of a point path
+    getPathLength: function (path) {
+        let len = 0;
+        for (let i = 1; i < path.length; i++) {
+            len += Phaser.Math.Distance.BetweenPoints(path[i - 1], path[i]);
+        }
+        return len;
+    },
+
     compareStrokes: function (drawn, target) {
         if (drawn.length < 2 || target.length < 2) return false;
 
+        // NEW: Length Check
+        // If the user draws a huge scribble, length will be massive
+        // If the user draws a tiny dot, length will be small
+        const drawnLen = this.getPathLength(drawn);
+        const targetLen = this.getPathLength(target);
+        const lengthRatio = drawnLen / targetLen;
+
+        // Must be between 50% and 150% of target length
+        if (lengthRatio < 0.5 || lengthRatio > 1.5) {
+            console.log(`Stroke Failed: Length Mismatch. Ratio: ${lengthRatio.toFixed(2)}`);
+            return false;
+        }
+
         let totalDeviation = 0;
         let maxDeviation = 0;
-
         const sampleRate = Math.max(1, Math.floor(drawn.length / 15));
         let samples = 0;
 
@@ -295,18 +299,20 @@ const KanjiDrawingSystem = {
 
         const startDist = Phaser.Math.Distance.BetweenPoints(drawnStart, targetStart);
         const endDist = Phaser.Math.Distance.BetweenPoints(drawnEnd, targetEnd);
-
         const endpointError = Math.max(startDist, endDist);
 
-        // STRICTER TOLERANCES
-        // Average deviation allowed (Px)
-        const corridorTolerance = 35;
-        // Endpoint accuracy (Px)
-        const endpointTolerance = 60;
+        // NEW: Stricter Tolerances
+        const corridorTolerance = 20; // Average distance from line
+        const endpointTolerance = 30; // Distance from start/end points
+        const hardMaxDeviation = 50;  // If ANY point is > 50px away, fail (prevents big loops)
 
-        const isValid = (averageDeviation < corridorTolerance && endpointError < endpointTolerance);
+        const isValid = (
+            averageDeviation < corridorTolerance &&
+            endpointError < endpointTolerance &&
+            maxDeviation < hardMaxDeviation
+        );
 
-        console.log(`Stroke Check: AvgDev=${Math.round(averageDeviation)}, EndErr=${Math.round(endpointError)} -> ${isValid ? "PASS" : "FAIL"}`);
+        console.log(`Stroke Check: AvgDev=${Math.round(averageDeviation)}, MaxDev=${Math.round(maxDeviation)}, EndErr=${Math.round(endpointError)} -> ${isValid ? "PASS" : "FAIL"}`);
 
         return isValid;
     },
@@ -442,7 +448,6 @@ const KanjiDrawingSystem = {
     },
 
     cleanup: function (scene) {
-        // Explicitly destroy graphics to ensure no "ghosts" remain
         if (this.elements.graphics) {
             this.elements.graphics.destroy();
             this.elements.graphics = null;
@@ -459,7 +464,6 @@ const KanjiDrawingSystem = {
         this.state.challengeComplete = false;
 
         gamePaused = false;
-        // Null check to prevent crash on game exit
         if (scene && scene.physics) {
             scene.physics.resume();
         }

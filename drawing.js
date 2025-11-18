@@ -8,7 +8,7 @@ const KanjiDrawingSystem = {
         borderRect: null,
         graphics: null,
         infoText: null,
-        strokeFeedback: null
+        strokeFeedback: null // Kept reference, but only used for guide hints now
     },
 
     // Challenge state
@@ -48,7 +48,6 @@ const KanjiDrawingSystem = {
         this.challengeTimer = scene.time.addEvent({
             delay: this.config.challengeInterval,
             callback: () => {
-                // Added extra check for gamePaused to prevent stacking
                 if (!gameOver && !gamePaused && !window.levelUpInProgress && !this.state.active) {
                     this.startChallenge(scene);
                 }
@@ -62,11 +61,10 @@ const KanjiDrawingSystem = {
     startChallenge: function (scene) {
         if (this.state.active || gameOver || window.levelUpInProgress) return;
 
-        // FIX: Use PauseSystem to stop Enemy Spawners and Timers
+        // Pause game logic
         if (window.PauseSystem) {
             PauseSystem.pauseGame();
         } else {
-            // Fallback if PauseSystem missing (though you have it)
             gamePaused = true;
             if (scene.physics) scene.physics.pause();
         }
@@ -175,12 +173,12 @@ const KanjiDrawingSystem = {
         const g = this.elements.graphics;
         g.clear();
 
-        // 1. Draw Guides (Progressive System)
+        // 1. Draw Guides
         if (this.state.targetStrokePoints && this.state.targetStrokePoints[this.state.currentStroke]) {
             const guidePoints = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
 
             if (guidePoints && guidePoints.length > 0) {
-                // CONDITION: Show Gray Outline only after 2 attempts
+                // Show Gray Outline only after 2 attempts
                 if (this.state.strokeAttempts >= 2) {
                     g.lineStyle(12, 0x444444, 0.5);
                     g.beginPath();
@@ -191,7 +189,7 @@ const KanjiDrawingSystem = {
                     g.strokePath();
                 }
 
-                // CONDITION: Show Start Dot if stroke 0 OR attempts >= 1
+                // Show Start Dot if stroke 0 OR attempts >= 1
                 if (this.state.currentStroke === 0 || this.state.strokeAttempts >= 1) {
                     g.fillStyle(0x00ff00, 0.8);
                     g.fillCircle(guidePoints[0].x, guidePoints[0].y, 8);
@@ -282,7 +280,6 @@ const KanjiDrawingSystem = {
         const lengthRatio = drawnLen / targetLen;
 
         if (lengthRatio < 0.5 || lengthRatio > 1.5) {
-            console.log(`Stroke Failed: Length Mismatch. Ratio: ${lengthRatio.toFixed(2)}`);
             return false;
         }
 
@@ -319,8 +316,6 @@ const KanjiDrawingSystem = {
             maxDeviation < hardMaxDeviation
         );
 
-        console.log(`Stroke Check: AvgDev=${Math.round(averageDeviation)}, MaxDev=${Math.round(maxDeviation)}, EndErr=${Math.round(endpointError)} -> ${isValid ? "PASS" : "FAIL"}`);
-
         return isValid;
     },
 
@@ -339,6 +334,9 @@ const KanjiDrawingSystem = {
     },
 
     acceptStroke: function (scene) {
+        // Visual Effect: Fireworks
+        VisualEffects.createKanjiStrokeEffect(scene, this.state.currentPath, 'success');
+
         const perfectStroke = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
         this.state.completedStrokes.push(perfectStroke);
 
@@ -346,7 +344,6 @@ const KanjiDrawingSystem = {
         this.state.currentStroke++;
         this.state.strokeAttempts = 0;
 
-        this.showStrokeFeedback('Correct!', '#00ff00');
         this.renderScene(scene);
 
         const totalStrokes = this.state.currentKanji.strokes.length;
@@ -355,13 +352,17 @@ const KanjiDrawingSystem = {
             this.state.challengeComplete = true;
             setTimeout(() => {
                 this.completeChallenge(scene);
-            }, 200);
+            }, 500);
         }
     },
 
     rejectStroke: function (scene) {
+        // Visual Effect: Sad Drips
+        VisualEffects.createKanjiStrokeEffect(scene, this.state.currentPath, 'fail');
+
         if (!this.elements.graphics) return;
 
+        // Red flash
         const g = this.elements.graphics;
         g.lineStyle(8, 0xff0000, 1);
         g.beginPath();
@@ -378,13 +379,8 @@ const KanjiDrawingSystem = {
             this.renderScene(scene);
         }, 300);
 
-        if (this.state.strokeAttempts === 1) {
-            this.showStrokeFeedback('Start at the green dot', '#ffff00');
-        } else if (this.state.strokeAttempts === 2) {
-            this.showStrokeFeedback('Guide added', '#ffff00');
+        if (this.state.strokeAttempts === 2) {
             this.state.missedStrokes++;
-        } else {
-            this.showStrokeFeedback('Try again!', '#ffaa00');
         }
     },
 
@@ -472,11 +468,9 @@ const KanjiDrawingSystem = {
         this.state.active = false;
         this.state.challengeComplete = false;
 
-        // FIX: Use PauseSystem to Resume Game Logic (Resumes physics and timers)
         if (window.PauseSystem) {
             PauseSystem.resumeGame();
         } else {
-            // Fallback
             gamePaused = false;
             if (scene && scene.physics) {
                 scene.physics.resume();

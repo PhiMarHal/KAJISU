@@ -530,6 +530,64 @@ const VisualEffects = {
         return kanjis;
     },
 
+    // Particle effect for Kanji Drawing (Success/Fail)
+    createKanjiStrokeEffect: function (scene, pathPoints, type) {
+        if (!scene || !pathPoints || pathPoints.length < 2) return;
+
+        // Ensure soft glow texture exists
+        const textureKey = 'kanji_particle_soft';
+        if (!scene.textures.exists(textureKey)) {
+            const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
+            graphics.fillStyle(0xffffff, 1);
+            graphics.fillCircle(4, 4, 4); // 8x8 texture
+            graphics.generateTexture(textureKey, 8, 8);
+        }
+
+        const particles = scene.add.particles(textureKey);
+        particles.setDepth(2000); // Very high depth
+
+        const isSuccess = type === 'success';
+        let emitter;
+        let step; // Density of particles
+
+        if (isSuccess) {
+            // Success: Feisty White Fireworks
+            emitter = particles.createEmitter({
+                speed: { min: 150, max: 350 }, // Much faster expansion
+                scale: { start: 1.2, end: 0 }, // Start bigger
+                alpha: { start: 1, end: 0 },
+                lifespan: 500,
+                blendMode: 'ADD',
+                tint: 0xffffff, // Pure white, no gold
+                on: false
+            });
+            step = 4; // Standard density
+        } else {
+            // Fail: Sad Drips (Dud)
+            emitter = particles.createEmitter({
+                speed: { min: 40, max: 100 }, // Faster initial "splurt" than before
+                gravityY: 400, // Heavier gravity for quicker drop
+                scale: { start: 0.6, end: 0 },
+                alpha: { start: 0.8, end: 0 },
+                lifespan: 300, // Dies very quickly
+                tint: 0x888888, // Grey
+                on: false
+            });
+            step = 8; // Much less dense (fewer particles)
+        }
+
+        // Emit particles along the path
+        for (let i = 0; i < pathPoints.length; i += step) {
+            const pt = pathPoints[i];
+            emitter.emitParticle(1, pt.x, pt.y);
+        }
+
+        // Auto cleanup
+        scene.time.delayedCall(1000, () => {
+            if (particles) particles.destroy();
+        });
+    },
+
     // Create animated concentric circles for Phaser scenes (pause screen)
     createConcentricCircles: function (scene, options = {}) {
         const config = {

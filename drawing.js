@@ -8,7 +8,7 @@ const KanjiDrawingSystem = {
         borderRect: null,
         graphics: null,
         infoText: null,
-        strokeFeedback: null // Kept reference, but only used for guide hints now
+        // Removed strokeFeedback text element
     },
 
     // Challenge state
@@ -17,7 +17,8 @@ const KanjiDrawingSystem = {
         currentKanji: null,
         currentStroke: 0,
         strokeAttempts: 0,
-        missedStrokes: 0,
+        totalMistakes: 0, // Track total mistakes for accuracy calc
+        missedStrokes: 0, // Track strokes that needed a guide (internal logic)
         isDrawing: false,
         currentPath: [],
         completedStrokes: [],
@@ -75,6 +76,7 @@ const KanjiDrawingSystem = {
         this.state.active = true;
         this.state.currentStroke = 0;
         this.state.strokeAttempts = 0;
+        this.state.totalMistakes = 0; // Reset accuracy tracker
         this.state.missedStrokes = 0;
         this.state.isDrawing = false;
         this.state.currentPath = [];
@@ -107,8 +109,24 @@ const KanjiDrawingSystem = {
         this.elements.borderRect = scene.add.rectangle(centerX, centerY, panelWidth, panelHeight).setStrokeStyle(4, 0xFFD700);
         this.elements.container.add(this.elements.borderRect);
 
-        const title = scene.add.text(centerX, centerY - panelHeight / 2 + 40, 'DRAW THE KANJI', {
-            fontFamily: 'Arial', fontSize: '32px', color: '#FFD700', fontStyle: 'bold'
+        // Layout Calculation for Vertical Centering
+        const drawAreaSize = Math.min(panelWidth - 80, 400);
+        const drawAreaTopOffset = 30; // Offset from center
+
+        const panelTopY = centerY - panelHeight / 2;
+        const panelBottomY = centerY + panelHeight / 2;
+
+        const drawAreaTopY = centerY - drawAreaSize / 2 - drawAreaTopOffset;
+        const drawAreaBottomY = drawAreaTopY + drawAreaSize;
+
+        // Center Title in the top gap
+        const titleY = (panelTopY + drawAreaTopY) / 2;
+
+        const title = scene.add.text(centerX, titleY, 'DRAW THE KANJI', {
+            fontFamily: 'Arial',
+            fontSize: '42px', // Increased font size (+~30%)
+            color: '#FFD700',
+            fontStyle: 'bold'
         }).setOrigin(0.5);
         this.elements.container.add(title);
 
@@ -117,26 +135,27 @@ const KanjiDrawingSystem = {
 
         this.renderScene(scene);
 
-        const infoY = centerY + panelHeight / 2 - 60;
+        // Center Info Text in the bottom gap
+        const infoY = (panelBottomY + drawAreaBottomY) / 2;
+
         const kanji = this.state.currentKanji;
         this.elements.infoText = scene.add.text(centerX, infoY,
             `${kanji.kana} (${kanji.romaji}) - ${kanji.english}`,
-            { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', fontStyle: 'bold' }
+            {
+                fontFamily: 'Arial',
+                fontSize: '34px', // Increased font size (+~40%)
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.infoText);
 
-        this.elements.strokeFeedback = scene.add.text(centerX, infoY + 40, '',
-            { fontFamily: 'Arial', fontSize: '20px', color: '#00ff00', fontStyle: 'bold' }
-        ).setOrigin(0.5);
-        this.elements.container.add(this.elements.strokeFeedback);
-
-        const drawAreaSize = Math.min(panelWidth - 80, 400);
-        const drawAreaTop = centerY - drawAreaSize / 2 - 30;
-
-        const drawAreaBorder = scene.add.rectangle(centerX, drawAreaTop + drawAreaSize / 2, drawAreaSize, drawAreaSize).setStrokeStyle(2, 0x333333);
+        // Drawing Area Border - White and Thicker
+        const drawAreaBorder = scene.add.rectangle(centerX, drawAreaTopY + drawAreaSize / 2, drawAreaSize, drawAreaSize)
+            .setStrokeStyle(4, 0xffffff); // Solid White, Thicker
         this.elements.container.add(drawAreaBorder);
 
-        this.setupInputHandlers(scene, centerX, drawAreaTop + drawAreaSize / 2, drawAreaSize);
+        this.setupInputHandlers(scene, centerX, drawAreaTopY + drawAreaSize / 2, drawAreaSize);
     },
 
     setupInputHandlers: function (scene, centerX, centerY, drawAreaSize) {
@@ -357,15 +376,14 @@ const KanjiDrawingSystem = {
     },
 
     rejectStroke: function (scene) {
-        // NEW: Shake Effect for Failure
         if (!this.elements.container) return;
 
-        // 1. Create a Temporary Graphics object for the red line
+        // Create Temporary Graphics for the bad stroke
         const tempG = scene.add.graphics();
-        tempG.setDepth(1502); // Higher than standard graphics
+        tempG.setDepth(1502);
         this.elements.container.add(tempG);
 
-        // 2. Draw the user's bad stroke in red
+        // Draw the bad stroke in Red
         tempG.lineStyle(8, 0xff0000, 1);
         tempG.beginPath();
         if (this.state.currentPath.length > 0) {
@@ -376,7 +394,7 @@ const KanjiDrawingSystem = {
         }
         tempG.strokePath();
 
-        // 3. Shake Animation (Tween x position)
+        // 3. Shake Animation (Updated config)
         scene.tweens.add({
             targets: tempG,
             x: { from: -2, to: 2 }, // Relative shake pixels
@@ -388,17 +406,19 @@ const KanjiDrawingSystem = {
             }
         });
 
-        // Clear current path immediately (the tempG handles visual feedback)
         this.state.currentPath = [];
         this.state.strokeAttempts++;
 
-        // Update logic for next attempt
+        // Count every mistake for accuracy calculation
+        this.state.totalMistakes++;
+
+        setTimeout(() => {
+            this.renderScene(scene);
+        }, 300);
+
         if (this.state.strokeAttempts === 2) {
             this.state.missedStrokes++;
         }
-
-        // Re-render scene (updates dots/guides if needed)
-        this.renderScene(scene);
     },
 
     extractSVGPoints: function (pathString) {
@@ -421,24 +441,18 @@ const KanjiDrawingSystem = {
         return points;
     },
 
-    showStrokeFeedback: function (message, color) {
-        if (!this.elements.strokeFeedback) return;
-        this.elements.strokeFeedback.setText(message);
-        this.elements.strokeFeedback.setColor(color);
-        if (this.feedbackTimer) clearTimeout(this.feedbackTimer);
-        this.feedbackTimer = setTimeout(() => {
-            if (this.elements.strokeFeedback && this.elements.strokeFeedback.active) {
-                this.elements.strokeFeedback.setText('');
-            }
-        }, 1500);
-    },
-
     completeChallenge: function (scene) {
         const totalStrokes = this.state.currentKanji.strokes.length;
-        const correctStrokes = totalStrokes - this.state.missedStrokes;
-        const accuracy = Math.max(0, correctStrokes / totalStrokes);
 
-        const xpReward = Math.ceil(xpForNextLevel(playerLevel) * (0.5 + (accuracy * 0.5)));
+        // Accuracy = Strokes / (Strokes + Mistakes)
+        // Example: 1 stroke. Miss twice (2 mistakes). Get it right (1 stroke).
+        // Accuracy = 1 / 3 = 33%.
+        const totalAttempts = totalStrokes + this.state.totalMistakes;
+        const accuracy = totalAttempts > 0 ? (totalStrokes / totalAttempts) : 0;
+
+        // XP = Full Level XP * Accuracy
+        const fullLevelXP = xpForNextLevel(playerLevel);
+        const xpReward = Math.ceil(fullLevelXP * accuracy);
 
         heroExp += xpReward;
         GameUI.updateExpBar(scene);
@@ -454,8 +468,9 @@ const KanjiDrawingSystem = {
         const centerY = game.config.height / 2;
         const accPct = Math.round(accuracy * 100);
 
+        // Simplified Message
         const msg = scene.add.text(centerX, centerY,
-            `EXCELLENT!\nAccuracy: ${accPct}%\n+${xpReward} XP`,
+            `Accuracy: ${accPct}%\n+${xpReward} XP`,
             { fontFamily: 'Arial', fontSize: '40px', color: '#00ff00', fontStyle: 'bold', align: 'center', stroke: '#000000', strokeThickness: 4 }
         ).setOrigin(0.5).setDepth(1502);
 

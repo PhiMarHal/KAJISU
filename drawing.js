@@ -8,7 +8,6 @@ const KanjiDrawingSystem = {
         borderRect: null,
         graphics: null,
         infoText: null,
-        // Removed strokeFeedback text element
     },
 
     // Challenge state
@@ -17,18 +16,19 @@ const KanjiDrawingSystem = {
         currentKanji: null,
         currentStroke: 0,
         strokeAttempts: 0,
-        totalMistakes: 0, // Track total mistakes for accuracy calc
-        missedStrokes: 0, // Track strokes that needed a guide (internal logic)
+        totalMistakes: 0,
+        missedStrokes: 0,
         isDrawing: false,
         currentPath: [],
         completedStrokes: [],
         challengeComplete: false,
-        targetStrokePoints: []
+        targetStrokePoints: [],
+        history: [] // Track drawn kanji to prevent repeats
     },
 
     // Configuration
     config: {
-        challengeInterval: 1000,
+        challengeInterval: 10000,
         maxAttemptsPerStroke: 2,
         strokeMatchTolerance: 20,
         kanjiSize: 109
@@ -59,6 +59,66 @@ const KanjiDrawingSystem = {
         registerTimer(this.challengeTimer);
     },
 
+    // New Helper: Select Kanji based on Game State
+    selectNextKanji: function () {
+        // Default to random if required globals aren't found
+        if (typeof window.getRandomEnemyTypeByRank !== 'function') {
+            console.warn("getRandomEnemyTypeByRank not found, falling back to random dictionary selection");
+            return getRandomKanji();
+        }
+
+        const isBossMode = window.bossSpawned;
+        const currentRank = window.currentEnemyRank || 1;
+
+        // Determine eligible ranks
+        let ranks = [];
+        if (isBossMode) {
+            // Boss appeared: Pick from any tier up to current
+            for (let i = 1; i <= currentRank; i++) ranks.push(i);
+        } else {
+            // Normal: Only current tier
+            ranks.push(currentRank);
+        }
+
+        // Attempt to find a unique Kanji
+        let selectedChar = null;
+        let foundNew = false;
+
+        // Try 20 times to find a non-repeated character
+        // If we fail, we assume the tier is exhausted and allow repeats
+        const maxTries = 20;
+
+        for (let i = 0; i < maxTries; i++) {
+            // Pick random rank from eligible list
+            const r = ranks[Math.floor(Math.random() * ranks.length)];
+
+            // Get random char for that rank
+            const char = window.getRandomEnemyTypeByRank(r);
+
+            // Check history
+            if (!this.state.history.includes(char)) {
+                selectedChar = char;
+                foundNew = true;
+                break;
+            }
+
+            // Store as fallback
+            selectedChar = char;
+        }
+
+        if (foundNew) {
+            this.state.history.push(selectedChar);
+        } else {
+            // Pool exhausted (or unlucky), clear history for this character so we don't get stuck
+            // Resetting the whole history is safer to ensure rotation
+            this.state.history = [selectedChar];
+            console.log("Kanji pool exhausted or retry limit reached, history reset.");
+        }
+
+        // Convert character string to Kanji Dictionary object
+        return getKanji(selectedChar) || getRandomKanji(); // Fallback if mapping fails
+    },
+
     startChallenge: function (scene) {
         if (this.state.active || gameOver || window.levelUpInProgress) return;
 
@@ -70,13 +130,14 @@ const KanjiDrawingSystem = {
             if (scene.physics) scene.physics.pause();
         }
 
-        this.state.currentKanji = getRandomKanji();
+        // SELECT KANJI using new logic
+        this.state.currentKanji = this.selectNextKanji();
 
         // Reset State
         this.state.active = true;
         this.state.currentStroke = 0;
         this.state.strokeAttempts = 0;
-        this.state.totalMistakes = 0; // Reset accuracy tracker
+        this.state.totalMistakes = 0;
         this.state.missedStrokes = 0;
         this.state.isDrawing = false;
         this.state.currentPath = [];
@@ -111,7 +172,7 @@ const KanjiDrawingSystem = {
 
         // Layout Calculation for Vertical Centering
         const drawAreaSize = Math.min(panelWidth - 80, 400);
-        const drawAreaTopOffset = 30; // Offset from center
+        const drawAreaTopOffset = 30;
 
         const panelTopY = centerY - panelHeight / 2;
         const panelBottomY = centerY + panelHeight / 2;
@@ -119,12 +180,12 @@ const KanjiDrawingSystem = {
         const drawAreaTopY = centerY - drawAreaSize / 2 - drawAreaTopOffset;
         const drawAreaBottomY = drawAreaTopY + drawAreaSize;
 
-        // Center Title in the top gap
+        // Center Title
         const titleY = (panelTopY + drawAreaTopY) / 2;
 
         const title = scene.add.text(centerX, titleY, 'DRAW THE KANJI', {
             fontFamily: 'Arial',
-            fontSize: '42px', // Increased font size (+~30%)
+            fontSize: '42px',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5);
@@ -135,7 +196,7 @@ const KanjiDrawingSystem = {
 
         this.renderScene(scene);
 
-        // Center Info Text in the bottom gap
+        // Center Info Text
         const infoY = (panelBottomY + drawAreaBottomY) / 2;
 
         const kanji = this.state.currentKanji;
@@ -143,16 +204,16 @@ const KanjiDrawingSystem = {
             `${kanji.kana} (${kanji.romaji}) - ${kanji.english}`,
             {
                 fontFamily: 'Arial',
-                fontSize: '34px', // Increased font size (+~40%)
+                fontSize: '34px',
                 color: '#ffffff',
                 fontStyle: 'bold'
             }
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.infoText);
 
-        // Drawing Area Border - White and Thicker
+        // Drawing Area Border
         const drawAreaBorder = scene.add.rectangle(centerX, drawAreaTopY + drawAreaSize / 2, drawAreaSize, drawAreaSize)
-            .setStrokeStyle(4, 0xffffff); // Solid White, Thicker
+            .setStrokeStyle(4, 0xffffff);
         this.elements.container.add(drawAreaBorder);
 
         this.setupInputHandlers(scene, centerX, drawAreaTopY + drawAreaSize / 2, drawAreaSize);
@@ -325,9 +386,9 @@ const KanjiDrawingSystem = {
         const endDist = Phaser.Math.Distance.BetweenPoints(drawnEnd, targetEnd);
         const endpointError = Math.max(startDist, endDist);
 
-        const corridorTolerance = 20;
-        const endpointTolerance = 30;
-        const hardMaxDeviation = 50;
+        const corridorTolerance = 30;
+        const endpointTolerance = 40;
+        const hardMaxDeviation = 60;
 
         const isValid = (
             averageDeviation < corridorTolerance &&
@@ -378,12 +439,10 @@ const KanjiDrawingSystem = {
     rejectStroke: function (scene) {
         if (!this.elements.container) return;
 
-        // Create Temporary Graphics for the bad stroke
         const tempG = scene.add.graphics();
         tempG.setDepth(1502);
         this.elements.container.add(tempG);
 
-        // Draw the bad stroke in Red
         tempG.lineStyle(8, 0xff0000, 1);
         tempG.beginPath();
         if (this.state.currentPath.length > 0) {
@@ -394,22 +453,20 @@ const KanjiDrawingSystem = {
         }
         tempG.strokePath();
 
-        // 3. Shake Animation (Updated config)
         scene.tweens.add({
             targets: tempG,
-            x: { from: -2, to: 2 }, // Relative shake pixels
+            x: { from: -2, to: 2 },
             duration: 60,
             yoyo: true,
             repeat: 2,
             onComplete: () => {
-                tempG.destroy(); // Cleanup after shake
+                tempG.destroy();
             }
         });
 
         this.state.currentPath = [];
         this.state.strokeAttempts++;
 
-        // Count every mistake for accuracy calculation
         this.state.totalMistakes++;
 
         setTimeout(() => {
@@ -444,13 +501,9 @@ const KanjiDrawingSystem = {
     completeChallenge: function (scene) {
         const totalStrokes = this.state.currentKanji.strokes.length;
 
-        // Accuracy = Strokes / (Strokes + Mistakes)
-        // Example: 1 stroke. Miss twice (2 mistakes). Get it right (1 stroke).
-        // Accuracy = 1 / 3 = 33%.
         const totalAttempts = totalStrokes + this.state.totalMistakes;
         const accuracy = totalAttempts > 0 ? (totalStrokes / totalAttempts) : 0;
 
-        // XP = Full Level XP * Accuracy
         const fullLevelXP = xpForNextLevel(playerLevel);
         const xpReward = Math.ceil(fullLevelXP * accuracy);
 
@@ -468,7 +521,6 @@ const KanjiDrawingSystem = {
         const centerY = game.config.height / 2;
         const accPct = Math.round(accuracy * 100);
 
-        // Simplified Message
         const msg = scene.add.text(centerX, centerY,
             `Accuracy: ${accPct}%\n+${xpReward} XP`,
             { fontFamily: 'Arial', fontSize: '40px', color: '#00ff00', fontStyle: 'bold', align: 'center', stroke: '#000000', strokeThickness: 4 }
@@ -495,7 +547,7 @@ const KanjiDrawingSystem = {
             this.elements.container = null;
         }
 
-        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null, strokeFeedback: null };
+        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null };
 
         this.state.active = false;
         this.state.challengeComplete = false;

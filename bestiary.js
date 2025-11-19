@@ -109,7 +109,7 @@ let ENEMY_TIER_ASSIGNMENTS = {
 };
 
 // Initialize enemy tier assignments
-function initializeEnemyTiers(tierCounts = { 1: 8, 2: 4, 3: 2, 4: 2, 5: 2, 6: 2 }) {
+function initializeEnemyTiers(tierCounts = { 1: 4, 2: 4, 3: 4, 4: 1, 5: 1, 6: 1 }) {
     // Reset assignments
     ENEMY_TIER_ASSIGNMENTS = {
         1: [], 2: [], 3: [], 4: [], 5: [], 6: []

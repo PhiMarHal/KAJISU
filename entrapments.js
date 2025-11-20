@@ -61,9 +61,9 @@ DropperPerkRegistry.registerDropperPerk('AMBER_BEETLE', {
         return {
             symbol: '★',
             color: '#ffbf00', // Amber color
-            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
+            fontSize: getEffectiveSize(),
             behaviorType: 'projectile',
-            damage: playerDamage,
+            damage: (getEffectiveDamage() + playerLuck) / 2,
             lifespan: 60000,
             options: {
                 visualEffect: 'createPulsing',
@@ -97,7 +97,7 @@ DropperPerkRegistry.registerDropperPerk('MAGMA_FLOOR', {
             color: '#FF4400', // Orange-red color for magma
             fontSize: 64, // Very large size as requested
             behaviorType: 'persistent', // Persistent type to stay and deal damage
-            damage: playerDamage, // Full player damage
+            damage: (getEffectiveDamage() + playerLuck) / 2,
             damageInterval: 1000, // 1 second between damage applications
             lifespan: playerLuck * 1000, // Lasts for playerLuck seconds
             options: {
@@ -459,7 +459,7 @@ DropperPerkRegistry.registerDropperPerk('GOLDEN_AGE', {
             color: '#ffd700', // Gold/yellow color
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: playerDamage,
+            damage: getEffectiveDamage() + playerLuck,
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
@@ -491,7 +491,7 @@ DropperPerkRegistry.registerDropperPerk('CLOUD_KING', {
             color: '#00DDFF', // Blue color like Storm Beacon
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: playerDamage * 0.4, // Very low damage
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
@@ -523,9 +523,6 @@ window.activateCloudKing = function () {
     const scene = game.scene.scenes[0];
     if (!scene) return;
 
-    // Setup periodic effects for drops (only needs to be done once)
-    //setupPeriodicEffectsSystem(scene);
-
     // Apply the dropper perk (will create one crown immediately)
     DropperPerkRegistry.applyDropperPerk(scene, 'CLOUD_KING');
 };
@@ -538,7 +535,7 @@ DropperPerkRegistry.registerDropperPerk('HAMMER_QUEEN', {
             color: '#FFD700', // Gold color like God Hammer
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: playerDamage * 0.4, // Very low damage (same as CLOUD_KING)
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
@@ -570,9 +567,6 @@ window.activateHammerQueen = function () {
     const scene = game.scene.scenes[0];
     if (!scene) return;
 
-    // Setup periodic effects for drops (only needs to be done once)
-    //setupPeriodicEffectsSystem(scene);
-
     // Apply the dropper perk (will create one crown immediately)
     DropperPerkRegistry.applyDropperPerk(scene, 'HAMMER_QUEEN');
 };
@@ -585,7 +579,7 @@ DropperPerkRegistry.registerDropperPerk('HERO_STATUE', {
             color: '#A08831',
             fontSize: 32,
             behaviorType: 'playerPushable',
-            damage: playerDamage * 0.4,
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 400,
             colliderSize: 1.0,
             lifespan: null, // Permanent
@@ -653,7 +647,7 @@ DropperPerkRegistry.registerDropperPerk('FLAME_PILLAR', {
             color: '#FF4500', // Orange-red fire color
             fontSize: 32,
             behaviorType: 'playerPushable',
-            damage: playerDamage * 0.4,
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 400,
             colliderSize: 1.0,
             lifespan: null, // Permanent

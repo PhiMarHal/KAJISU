@@ -459,7 +459,8 @@ DropperPerkRegistry.registerDropperPerk('GOLDEN_AGE', {
             color: '#ffd700', // Gold/yellow color
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: getEffectiveDamage() + playerLuck,
+            damage: playerDamage, // Base damage for backward compatibility
+            damageMultiplier: 1.0, // Dynamic scaling
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
@@ -491,7 +492,8 @@ DropperPerkRegistry.registerDropperPerk('CLOUD_KING', {
             color: '#00DDFF', // Blue color like Storm Beacon
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: (getEffectiveDamage() + playerLuck) * 0.5,
+            damage: playerDamage * 0.4, // Base damage for backward compatibility
+            damageMultiplier: 0.4, // Dynamic scaling
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
@@ -535,7 +537,8 @@ DropperPerkRegistry.registerDropperPerk('HAMMER_QUEEN', {
             color: '#FFD700', // Gold color like God Hammer
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: (getEffectiveDamage() + playerLuck) * 0.5,
+            damage: playerDamage * 0.4, // Base damage for backward compatibility
+            damageMultiplier: 0.4, // Dynamic scaling
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
@@ -579,7 +582,8 @@ DropperPerkRegistry.registerDropperPerk('HERO_STATUE', {
             color: '#A08831',
             fontSize: 32,
             behaviorType: 'playerPushable',
-            damage: (getEffectiveDamage() + playerLuck) * 0.5,
+            damage: playerDamage * 0.4, // Base damage for backward compatibility
+            damageMultiplier: 0.4, // Dynamic scaling
             damageInterval: 400,
             colliderSize: 1.0,
             lifespan: null, // Permanent
@@ -647,7 +651,8 @@ DropperPerkRegistry.registerDropperPerk('FLAME_PILLAR', {
             color: '#FF4500', // Orange-red fire color
             fontSize: 32,
             behaviorType: 'playerPushable',
-            damage: (getEffectiveDamage() + playerLuck) * 0.5,
+            damage: playerDamage * 0.4, // Base damage for backward compatibility
+            damageMultiplier: 0.4, // Dynamic scaling
             damageInterval: 400,
             colliderSize: 1.0,
             lifespan: null, // Permanent
@@ -663,7 +668,6 @@ DropperPerkRegistry.registerDropperPerk('FLAME_PILLAR', {
                 // Firing configuration
                 firingBehavior: 'burningTotem',
                 firingCooldown: 1000, // 4 second base cooldown
-                firingCooldownStat: 'luck',
                 firingRange: 400
             }
         };
@@ -693,8 +697,11 @@ window.activateBurningTotem = function () {
             burningTotem.options.firingBehavior,
             burningTotem.options.firingCooldown,
             {
-                statName: burningTotem.options.firingCooldownStat,
-                formula: 'sqrt',
+                // NEW: Use custom function and dependencies
+                statFunction: () => getEffectiveFireRate() + playerLuck,
+                statDependencies: ['fireRate', 'luck'],
+                baseStatFunction: () => BASE_STATS.AGI + BASE_STATS.LUK,
+                formula: 'divide',
                 maxDistance: burningTotem.options.firingRange,
                 rangeModifier: 1.0,
                 rangeScaling: false

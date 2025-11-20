@@ -8,12 +8,20 @@ const drops = [];
 const DropBehaviors = {
     // projectile behavior - detonates on enemy contact
     projectile: function (scene, drop, enemy) {
+        // Calculate current damage
+        let currentDamage;
+        if (drop.damageMultiplier !== undefined) {
+            currentDamage = (getEffectiveDamage() + playerLuck) * drop.damageMultiplier;
+        } else {
+            currentDamage = drop.entity.damage;
+        }
+
         // Apply damage to the enemy using the contact damage system
         applyContactDamage.call(
             scene,
             drop.entity,
             enemy,
-            drop.entity.damage,
+            currentDamage,  // Use calculated damage
             drop.damageInterval
         );
 
@@ -50,12 +58,20 @@ const DropBehaviors = {
 
     // Persistent behavior - deals continuous damage while enemies overlap
     persistent: function (scene, drop, enemy) {
-        // Apply contact damage with the specified cooldown
+        // Calculate current damage
+        let currentDamage;
+        if (drop.damageMultiplier !== undefined) {
+            currentDamage = (getEffectiveDamage() + playerLuck) * drop.damageMultiplier;
+        } else {
+            currentDamage = drop.entity.damage;
+        }
+
+        // Apply damage to the enemy using the contact damage system
         applyContactDamage.call(
             scene,
             drop.entity,
             enemy,
-            drop.entity.damage,
+            currentDamage,  // Use calculated damage
             drop.damageInterval
         );
     },
@@ -76,23 +92,27 @@ const DropBehaviors = {
 
     // Player pushable behavior - entities that can be pushed by player
     playerPushable: function (scene, drop, enemy) {
-        // Check if the pushable object is actually moving
         const body = drop.entity.body;
-        if (!body) return; // Safety check
+        if (!body) return;
 
-        // Calculate velocity magnitude (very low compute)
         const velocityMagnitude = Math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y);
-
-        // Only apply damage if moving faster than threshold
-        const velocityThreshold = drop.options?.velocityThreshold ?? 1; // Default 1px/second
+        const velocityThreshold = drop.options?.velocityThreshold ?? 1;
 
         if (velocityMagnitude > velocityThreshold) {
+            // Calculate current damage
+            let currentDamage;
+            if (drop.damageMultiplier !== undefined) {
+                currentDamage = (getEffectiveDamage() + playerLuck) * drop.damageMultiplier;
+            } else {
+                currentDamage = drop.entity.damage;
+            }
+
             // Apply damage to the enemy using the contact damage system
             applyContactDamage.call(
                 scene,
                 drop.entity,
                 enemy,
-                drop.entity.damage,
+                currentDamage,  // Use calculated damage
                 drop.damageInterval
             );
         }
@@ -118,7 +138,7 @@ const DropperSystem = {
             x: player.x,                 // X position (default to player position)
             y: player.y,                 // Y position (default to player position)
             behaviorType: 'projectile',  // Behavior type ('projectile', 'persistent', 'areaEffect')
-            damage: playerDamage,        // Damage dealt to enemies
+            damage: (getEffectiveDamage() + playerLuck),        // Damage dealt to enemies
             damageInterval: 500,         // Minimum time between damage instances in ms
             colliderSize: 0.8,           // Size multiplier for collision detection
             lifespan: null,              // Time in ms before auto-destruction (null for permanent)
@@ -211,6 +231,7 @@ const DropperSystem = {
             entity: entity,
             behaviorType: dropConfig.behaviorType,
             damageInterval: dropConfig.damageInterval,
+            damageMultiplier: dropConfig.damageMultiplier,
             createdAt: scene.time.now,
             lifespan: dropConfig.lifespan,
             areaEffectInterval: dropConfig.options.areaEffectInterval ?? 1000,
@@ -341,8 +362,15 @@ const DropperSystem = {
             // If within effect radius, apply effect
             if (distance <= radius) {
                 // Always apply regular damage
-                const damageAmount = drop.entity.damage;
+                let damageAmount;
+                if (drop.damageMultiplier !== undefined) {
+                    damageAmount = (getEffectiveDamage() + playerLuck) * drop.damageMultiplier;
+                } else {
+                    damageAmount = drop.entity.damage;
+                }
                 const areaSourceId = `${drop.entity.damageSourceId}_area_${enemy.id ?? Math.random()}`;
+
+
 
                 applyContactDamage.call(
                     scene,

@@ -8,6 +8,7 @@ const KanjiDrawingSystem = {
         borderRect: null,
         graphics: null,
         infoText: null,
+        concentricCircles: null
     },
 
     // Challenge state
@@ -23,12 +24,12 @@ const KanjiDrawingSystem = {
         completedStrokes: [],
         challengeComplete: false,
         targetStrokePoints: [],
-        history: [] // Track drawn kanji to prevent repeats
+        history: []
     },
 
     // Configuration
     config: {
-        challengeInterval: 180000,
+        challengeInterval: 180000, // 3 minutes
         maxAttemptsPerStroke: 2,
         strokeMatchTolerance: 20,
         kanjiSize: 109
@@ -59,70 +60,67 @@ const KanjiDrawingSystem = {
         registerTimer(this.challengeTimer);
     },
 
-    // New Helper: Select Kanji based on Game State
     selectNextKanji: function () {
-        // Default to random if required globals aren't found
+        const time = (typeof elapsedTime !== 'undefined') ? elapsedTime : 0;
+        const configs = window.rankConfigs || {};
+        const maxRank = (window.BOSS_CONFIG && window.BOSS_CONFIG.max_rank) ? window.BOSS_CONFIG.max_rank : 6;
+
+        let calculatedRank = 1;
+        let isBossMode = false;
+
+        Object.keys(configs).forEach(rankStr => {
+            const r = parseInt(rankStr);
+            if (configs[r] && time >= configs[r].startTime) {
+                if (r > calculatedRank) calculatedRank = r;
+            }
+        });
+
+        if (calculatedRank >= maxRank) {
+            isBossMode = true;
+        }
+
+        let eligibleRanks = [];
+        if (isBossMode) {
+            for (let i = 1; i <= calculatedRank; i++) {
+                eligibleRanks.push(i);
+            }
+        } else {
+            eligibleRanks.push(calculatedRank);
+        }
+
         if (typeof window.getRandomEnemyTypeByRank !== 'function') {
-            console.warn("getRandomEnemyTypeByRank not found, falling back to random dictionary selection");
             return getRandomKanji();
         }
 
-        const isBossMode = window.bossSpawned;
-        const currentRank = window.currentEnemyRank || 1;
-
-        // Determine eligible ranks
-        let ranks = [];
-        if (isBossMode) {
-            // Boss appeared: Pick from any tier up to current
-            for (let i = 1; i <= currentRank; i++) ranks.push(i);
-        } else {
-            // Normal: Only current tier
-            ranks.push(currentRank);
-        }
-
-        // Attempt to find a unique Kanji
         let selectedChar = null;
         let foundNew = false;
-
-        // Try 20 times to find a non-repeated character
-        // If we fail, we assume the tier is exhausted and allow repeats
         const maxTries = 20;
 
         for (let i = 0; i < maxTries; i++) {
-            // Pick random rank from eligible list
-            const r = ranks[Math.floor(Math.random() * ranks.length)];
-
-            // Get random char for that rank
+            const r = eligibleRanks[Math.floor(Math.random() * eligibleRanks.length)];
             const char = window.getRandomEnemyTypeByRank(r);
 
-            // Check history
             if (!this.state.history.includes(char)) {
                 selectedChar = char;
                 foundNew = true;
                 break;
             }
-
-            // Store as fallback
             selectedChar = char;
         }
 
         if (foundNew) {
             this.state.history.push(selectedChar);
         } else {
-            // Pool exhausted (or unlucky), clear history for this character so we don't get stuck
-            // Resetting the whole history is safer to ensure rotation
             this.state.history = [selectedChar];
-            console.log("Kanji pool exhausted or retry limit reached, history reset.");
+            console.log(`Kanji pool for Rank ${calculatedRank} exhausted, resetting history.`);
         }
 
-        // Convert character string to Kanji Dictionary object
-        return getKanji(selectedChar) || getRandomKanji(); // Fallback if mapping fails
+        return getKanji(selectedChar) || getRandomKanji();
     },
 
     startChallenge: function (scene) {
         if (this.state.active || gameOver || window.levelUpInProgress) return;
 
-        // Pause game logic
         if (window.PauseSystem) {
             PauseSystem.pauseGame();
         } else {
@@ -130,10 +128,8 @@ const KanjiDrawingSystem = {
             if (scene.physics) scene.physics.pause();
         }
 
-        // SELECT KANJI using new logic
         this.state.currentKanji = this.selectNextKanji();
 
-        // Reset State
         this.state.active = true;
         this.state.currentStroke = 0;
         this.state.strokeAttempts = 0;
@@ -156,33 +152,59 @@ const KanjiDrawingSystem = {
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
 
+        // Calculate Box Size (Square)
+        const boxSize = Math.min(game.config.width * 0.9, game.config.height * 0.9, 600);
+
+        // --- Concentric Circles Animation ---
+        // Using params inspired by pause.js (0.08/0.04) 
+        // but applying to MAX screen dimension so they peek out from behind the box
+        const screenSize = Math.max(game.config.width, game.config.height);
+        const baseRadiusMultiplier = 0.08;
+        const incrementMultiplier = 0.04;
+
+        if (window.VisualEffects && window.VisualEffects.createConcentricCircles) {
+            this.elements.concentricCircles = VisualEffects.createConcentricCircles(scene, {
+                x: centerX,
+                y: centerY,
+                circleCount: 8,
+                baseRadius: screenSize * baseRadiusMultiplier,
+                radiusIncrement: screenSize * incrementMultiplier,
+                gapRatio: 0.4,
+                rotationSpeed: 24,
+                color: 0xFFD700,
+                strokeWidth: 4,
+                segmentCount: 4,
+                depth: 1499
+            });
+
+            if (this.elements.concentricCircles.setVisible) {
+                this.elements.concentricCircles.setVisible(true);
+            }
+        }
+
         this.elements.container = scene.add.container(0, 0).setDepth(1500);
 
         const fullscreenBg = scene.add.rectangle(centerX, centerY, game.config.width, game.config.height, 0x000000, 0.8);
         this.elements.container.add(fullscreenBg);
 
-        const panelWidth = Math.min(game.config.width * 0.9, 600);
-        const panelHeight = Math.min(game.config.height * 0.9, 700);
-
-        this.elements.background = scene.add.rectangle(centerX, centerY, panelWidth, panelHeight, 0x000000);
+        this.elements.background = scene.add.rectangle(centerX, centerY, boxSize, boxSize, 0x000000);
         this.elements.container.add(this.elements.background);
 
-        this.elements.borderRect = scene.add.rectangle(centerX, centerY, panelWidth, panelHeight).setStrokeStyle(4, 0xFFD700);
+        this.elements.borderRect = scene.add.rectangle(centerX, centerY, boxSize, boxSize).setStrokeStyle(4, 0xFFD700);
         this.elements.container.add(this.elements.borderRect);
 
-        // Layout Calculation for Vertical Centering
-        const drawAreaSize = Math.min(panelWidth - 80, 400);
-        const drawAreaTopOffset = 30;
+        // --- Layout Calculation ---
+        const drawAreaSize = Math.min(boxSize - 80, 400);
+        const drawAreaTopOffset = 0;
 
-        const panelTopY = centerY - panelHeight / 2;
-        const panelBottomY = centerY + panelHeight / 2;
+        const panelTopY = centerY - boxSize / 2;
+        const panelBottomY = centerY + boxSize / 2;
 
         const drawAreaTopY = centerY - drawAreaSize / 2 - drawAreaTopOffset;
         const drawAreaBottomY = drawAreaTopY + drawAreaSize;
 
-        // Center Title
+        // 1. Title
         const titleY = (panelTopY + drawAreaTopY) / 2;
-
         const title = scene.add.text(centerX, titleY, 'DRAW THE KANJI', {
             fontFamily: 'Arial',
             fontSize: '42px',
@@ -196,9 +218,8 @@ const KanjiDrawingSystem = {
 
         this.renderScene(scene);
 
-        // Center Info Text
+        // 2. Info Text
         const infoY = (panelBottomY + drawAreaBottomY) / 2;
-
         const kanji = this.state.currentKanji;
         this.elements.infoText = scene.add.text(centerX, infoY,
             `${kanji.kana} (${kanji.romaji}) - ${kanji.english}`,
@@ -211,9 +232,13 @@ const KanjiDrawingSystem = {
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.infoText);
 
-        // Drawing Area Border
-        const drawAreaBorder = scene.add.rectangle(centerX, drawAreaTopY + drawAreaSize / 2, drawAreaSize, drawAreaSize)
-            .setStrokeStyle(4, 0xffffff);
+        // 3. Drawing Area Border
+        const drawAreaBorder = scene.add.rectangle(
+            centerX,
+            drawAreaTopY + drawAreaSize / 2,
+            drawAreaSize,
+            drawAreaSize
+        ).setStrokeStyle(4, 0xffffff);
         this.elements.container.add(drawAreaBorder);
 
         this.setupInputHandlers(scene, centerX, drawAreaTopY + drawAreaSize / 2, drawAreaSize);
@@ -258,7 +283,6 @@ const KanjiDrawingSystem = {
             const guidePoints = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
 
             if (guidePoints && guidePoints.length > 0) {
-                // Show Gray Outline only after 2 attempts
                 if (this.state.strokeAttempts >= 2) {
                     g.lineStyle(12, 0x444444, 0.5);
                     g.beginPath();
@@ -269,7 +293,6 @@ const KanjiDrawingSystem = {
                     g.strokePath();
                 }
 
-                // Show Start Dot if stroke 0 OR attempts >= 1
                 if (this.state.currentStroke === 0 || this.state.strokeAttempts >= 1) {
                     g.fillStyle(0x00ff00, 0.8);
                     g.fillCircle(guidePoints[0].x, guidePoints[0].y, 8);
@@ -277,7 +300,7 @@ const KanjiDrawingSystem = {
             }
         }
 
-        // 2. Draw Completed Strokes
+        // 2. Completed Strokes
         g.lineStyle(8, 0xffffff, 1);
         this.state.completedStrokes.forEach(stroke => {
             if (stroke.length < 2) return;
@@ -289,7 +312,7 @@ const KanjiDrawingSystem = {
             g.strokePath();
         });
 
-        // 3. Draw Current User Input
+        // 3. Current Input
         if (this.state.currentPath.length > 1) {
             g.lineStyle(8, 0xFFD700, 1);
             g.beginPath();
@@ -359,9 +382,7 @@ const KanjiDrawingSystem = {
         const targetLen = this.getPathLength(target);
         const lengthRatio = drawnLen / targetLen;
 
-        if (lengthRatio < 0.5 || lengthRatio > 1.5) {
-            return false;
-        }
+        if (lengthRatio < 0.5 || lengthRatio > 1.5) return false;
 
         let totalDeviation = 0;
         let maxDeviation = 0;
@@ -386,17 +407,13 @@ const KanjiDrawingSystem = {
         const endDist = Phaser.Math.Distance.BetweenPoints(drawnEnd, targetEnd);
         const endpointError = Math.max(startDist, endDist);
 
-        const corridorTolerance = 30;
-        const endpointTolerance = 40;
-        const hardMaxDeviation = 60;
+        const corridorTolerance = 20;
+        const endpointTolerance = 30;
+        const hardMaxDeviation = 50;
 
-        const isValid = (
-            averageDeviation < corridorTolerance &&
+        return (averageDeviation < corridorTolerance &&
             endpointError < endpointTolerance &&
-            maxDeviation < hardMaxDeviation
-        );
-
-        return isValid;
+            maxDeviation < hardMaxDeviation);
     },
 
     closestPointOnPath: function (point, path) {
@@ -414,7 +431,6 @@ const KanjiDrawingSystem = {
     },
 
     acceptStroke: function (scene) {
-        // Visual Effect: Fireworks
         VisualEffects.createKanjiStrokeEffect(scene, this.state.currentPath, 'success');
 
         const perfectStroke = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
@@ -466,7 +482,6 @@ const KanjiDrawingSystem = {
 
         this.state.currentPath = [];
         this.state.strokeAttempts++;
-
         this.state.totalMistakes++;
 
         setTimeout(() => {
@@ -537,6 +552,11 @@ const KanjiDrawingSystem = {
     },
 
     cleanup: function (scene) {
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.destroy();
+            this.elements.concentricCircles = null;
+        }
+
         if (this.elements.graphics) {
             this.elements.graphics.destroy();
             this.elements.graphics = null;
@@ -547,7 +567,7 @@ const KanjiDrawingSystem = {
             this.elements.container = null;
         }
 
-        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null };
+        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null, concentricCircles: null };
 
         this.state.active = false;
         this.state.challengeComplete = false;

@@ -199,7 +199,7 @@ const WeaponSystem = {
 
     // Fire a basic projectile
     fireBasicProjectile: function (scene, angle) {
-        /*
+
         // Create the projectile
         const projectile = this.createProjectile(scene, {
             x: player.x,
@@ -208,7 +208,7 @@ const WeaponSystem = {
         });
 
         return projectile;
-        */
+
     },
 
     // Create a projectile with the appropriate properties

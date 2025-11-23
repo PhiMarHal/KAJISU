@@ -249,10 +249,14 @@ const DropperSystem = {
 
         // If this is an area effect, set up its timer using CooldownManager
         if (drop.behaviorType === 'areaEffect') {
+            // UPDATED: Use options for stat scaling of area effect interval if provided
             drop.areaEffectTimer = CooldownManager.createTimer({
-                statName: 'luck', // Assuming area effect radius/frequency scales with luck
+                statName: drop.options.areaEffectStatName ?? 'luck',
+                statFunction: drop.options.areaEffectStatFunction,
+                statDependencies: drop.options.areaEffectStatDependencies,
+                baseStatFunction: drop.options.areaEffectBaseStatFunction,
                 baseCooldown: drop.areaEffectInterval,
-                formula: 'sqrt',
+                formula: drop.options.areaEffectFormula ?? 'sqrt',
                 component: drop, // Reference for cleanup
                 callback: function () {
                     if (gameOver || gamePaused || drop.destroyed ||
@@ -452,6 +456,9 @@ const DropperSystem = {
             cooldown: 4000,                        // Base Cooldown in ms
             cooldownStat: null,                    // Stat that affects cooldown
             cooldownFormula: null,                 // Formula for stat scaling
+            statFunction: null,                    // Custom function for calculating current stat value
+            statDependencies: null,                // Array of stat names this depends on
+            baseStatFunction: null,                // Function for calculating base stat value
             positionMode: 'player',                // 'player', 'random', or 'trail'
             trailInterval: 32,                    // For 'trail' mode, min distance to place new drop
             lastDropPos: { x: 0, y: 0 },           // For 'trail' mode, last position where we dropped
@@ -471,6 +478,9 @@ const DropperSystem = {
         const timer = CooldownManager.createTimer({
             baseCooldown: dropperConfig.cooldown,
             statName: dropperConfig.cooldownStat,
+            statFunction: dropperConfig.statFunction,        // Pass custom stat function
+            statDependencies: dropperConfig.statDependencies, // Pass dependencies
+            baseStatFunction: dropperConfig.baseStatFunction, // Pass base stat function
             formula: dropperConfig.cooldownFormula,
             component: dropperConfig, // Pass the config object as component for potential future reference
             callback: function () {
@@ -567,8 +577,11 @@ const DropperSystem = {
                         {
                             timer: this.timer,
                             baseCooldown: newCooldown,
-                            statName: this.timer.statName, // Preserve existing statName
-                            formula: this.timer.formula,   // Preserve existing formula
+                            statName: this.timer.statName,
+                            statFunction: this.timer.statFunction,
+                            statDependencies: this.timer.statDependencies,
+                            baseStatFunction: this.timer.baseStatFunction,
+                            formula: this.timer.formula,
                             callback: this.timer.callback,
                             callbackScope: this.timer.callbackScope,
                             loop: this.timer.loop
@@ -695,10 +708,14 @@ const DropperSystem = {
         const baseCooldown = drop.options.periodicEffectCooldown ?? 10000;
 
         // Create timer using CooldownManager
+        // UPDATED: Use options for stat scaling if provided, default to 'luck'/'sqrt' for backward compat
         drop.effectTimer = CooldownManager.createTimer({
-            statName: 'luck',
+            statName: drop.options.periodicEffectStatName ?? 'luck',
+            statFunction: drop.options.periodicEffectStatFunction,
+            statDependencies: drop.options.periodicEffectStatDependencies,
+            baseStatFunction: drop.options.periodicEffectBaseStatFunction,
             baseCooldown: baseCooldown,
-            formula: 'sqrt',
+            formula: drop.options.periodicEffectFormula ?? 'sqrt',
             component: drop, // Store reference for easier cleanup
             callback: function () {
                 if (gameOver || gamePaused) return;

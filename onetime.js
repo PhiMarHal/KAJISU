@@ -75,7 +75,8 @@ const OneTimeEffects = {
             if (!allEnemies || allEnemies.length === 0) return;
 
             // Calculate massive damage
-            const megaDamage = playerDamage * 50;
+            // Hardcoded to 1000 damage to ensure a reliable screen wipe regardless of stats
+            const megaDamage = 1000;
 
             // Calculate shockwave origin (player position)
             const originX = player.x;
@@ -374,4 +375,4 @@ window.triggerOneTimeEffect = function (effectName) {
 
 // Export the effects registry and utilities
 window.OneTimeEffects = OneTimeEffects;
-window.StatManipulation = StatManipulation;
+window.StatManipulation = StatManipulation; F

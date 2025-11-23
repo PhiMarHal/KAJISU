@@ -4,7 +4,8 @@
 // Unified firing behaviors - work with any entity that has x/y coordinates
 const EntityFiringBehaviors = {
     sniper: function (scene, entity, time, maxDistance = 400) {
-        const damage = playerDamage * 2;
+        // Damage was playerDamage * 2 -> (Effective + Luck) * 1.0
+        const damage = (getEffectiveDamage() + playerLuck) * 1.0;
         const speed = 800;
         const projectileColor = '#FF55AA';
 
@@ -21,7 +22,8 @@ const EntityFiringBehaviors = {
     },
 
     copy: function (scene, entity, time, maxDistance = 400) {
-        const damage = playerDamage * 0.5;
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
         const target = findClosestVisibleEnemy(scene, maxDistance);
 
         if (target) {
@@ -34,7 +36,8 @@ const EntityFiringBehaviors = {
     },
 
     cold: function (scene, entity, time, maxDistance = 400) {
-        const damage = playerDamage * 0.5;
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
         const projectileColor = '#00FFFF';
         const target = findClosestVisibleEnemy(scene, maxDistance);
 
@@ -53,7 +56,8 @@ const EntityFiringBehaviors = {
     },
 
     fun: function (scene, entity, time, maxDistance = 400) {
-        const damage = playerDamage * 0.5;
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
         const availableEffects = [
             { component: 'slowEffect', color: '#00FFFF', symbol: '❄' },
             { component: 'poisonEffect', color: '#2AAD27', symbol: '☠' },
@@ -81,7 +85,8 @@ const EntityFiringBehaviors = {
     },
 
     berserk: function (scene, entity, time, maxDistance = 400) {
-        const damage = playerDamage * 0.5;
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
         const target = findRandomVisibleEnemy(scene, maxDistance);
 
         if (target) {
@@ -94,7 +99,8 @@ const EntityFiringBehaviors = {
     },
 
     healer: function (scene, entity, time, maxDistance = 400) {
-        const damage = playerDamage * 0.5;
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
         const projectileColor = '#00ff00';
         const projectileSymbol = '癒';
         const speed = 100;
@@ -118,7 +124,7 @@ const EntityFiringBehaviors = {
 
     finger: function (scene, entity, time, maxDistance = Infinity, options = {}) {
         const defaults = {
-            damage: playerDamage,
+            damage: (getEffectiveDamage() + playerLuck) * 0.5, // Default to 0.5x scale
             speed: 1000,
             color: '#FFFF00',
             symbol: '　',
@@ -149,7 +155,8 @@ const EntityFiringBehaviors = {
 
     deathFinger: function (scene, entity, time, maxDistance = Infinity) {
         return EntityFiringBehaviors.finger(scene, entity, time, maxDistance, {
-            damage: playerDamage / 2,
+            // Damage was playerDamage / 2 (0.5 scale) -> (Effective + Luck) * 0.25
+            damage: (getEffectiveDamage() + playerLuck) * 0.25,
             speed: 1000,
             color: '#FFFF00',
             symbol: '　',
@@ -159,7 +166,8 @@ const EntityFiringBehaviors = {
 
     decayFinger: function (scene, entity, time, maxDistance = Infinity) {
         return EntityFiringBehaviors.finger(scene, entity, time, maxDistance, {
-            damage: playerDamage * 0.2,
+            // Damage was playerDamage * 0.2 (0.2 scale) -> (Effective + Luck) * 0.1
+            damage: (getEffectiveDamage() + playerLuck) * 0.1,
             speed: 1000,
             color: '#88AA22',
             symbol: '　',
@@ -172,7 +180,8 @@ const EntityFiringBehaviors = {
 
         if (target) {
             fireProjectileFromEntity(scene, entity, target, {
-                damage: playerDamage * 0.5,
+                // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+                damage: (getEffectiveDamage() + playerLuck) * 0.25,
                 speed: 400,
                 color: '#FFFF00',
                 symbol: '★'
@@ -188,7 +197,8 @@ const EntityFiringBehaviors = {
         const randomAngle = Math.random() * Math.PI * 2;
 
         const projectile = fireProjectileFromEntity(scene, entity, null, {
-            damage: playerDamage, // Lower initial damage since it creates fire
+            // Damage was playerDamage (1.0 scale) -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             speed: 400, // Initial speed before deceleration  
             color: '#FF4500', // Orange-red fire color
             symbol: '火', // Fire symbol
@@ -271,7 +281,8 @@ function findRandomVisibleEnemy(scene, maxDistance = 400, sourceEntity = player)
 // Unified projectile firing function
 function fireProjectileFromEntity(scene, entity, target, options = {}) {
     const config = {
-        damage: playerDamage * 0.5,
+        // Default: (Effective + Luck) * 0.25 (approx half player damage with standard stats)
+        damage: (getEffectiveDamage() + playerLuck) * 0.25,
         speed: 400,
         color: '#ffff00',
         symbol: '★',
@@ -346,17 +357,30 @@ function setupEntityFiringTimer(scene, entityWrapper, behaviorType, baseCooldown
         return null;
     }
 
+    // Default to multi-stat configuration
     const config = {
-        statName: 'luck',
-        formula: 'sqrt',
+        statName: 'luck', // Fallback stat name
+        statFunction: options.statFunction,
+        statDependencies: options.statDependencies,
+        baseStatFunction: options.baseStatFunction,
+        formula: options.formula || 'sqrt',
         maxDistance: 400,
         rangeModifier: 1.0,
         rangeScaling: true, // Whether to scale range with fire rate
         ...options
     };
 
+    // If using divide formula and no baseCooldown is calculated externally (passed as raw ms),
+    // we assume the baseCooldown passed in is the TARGET time at default stats (8),
+    // so we multiply by 8 to get the actual mathematical base.
+    // HOWEVER, in nexus.js we are already passing in the pre-calculated base (e.g., 32000).
+    // So we use baseCooldown as is.
+
     const firingTimer = CooldownManager.createTimer({
         statName: config.statName,
+        statFunction: config.statFunction,
+        statDependencies: config.statDependencies,
+        baseStatFunction: config.baseStatFunction,
         baseCooldown: baseCooldown,
         formula: config.formula,
         component: entityWrapper,
@@ -425,14 +449,25 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
 }
 
 function setupFamiliarFiringTimer(scene, orbital, behaviorType, baseCooldown = 4000) {
+    // Convert baseCooldown to new system if using 'divide' logic
+    // If baseCooldown is small (e.g. 4000ms), multiply by 8
+    // But since we call this from nexus.js which might pass raw values, we handle it there or here.
+    // For now, we assume nexus.js is passing the "target" time (e.g., 4000) and we need to scale it up
+    // if we switch to 'divide'.
+
+    // UPDATED: Switch to new stat formula: (FireRate + Luck)
+    // Base Cooldown calculation: Target * 8 (since 4+4=8)
+    const scaledBaseCooldown = baseCooldown * 8;
+
     const options = {
-        statName: 'luck',
-        formula: 'sqrt',
+        statFunction: () => getEffectiveFireRate() + playerLuck,
+        statDependencies: ['fireRate', 'luck'],
+        formula: 'divide',
         rangeModifier: orbital.options?.rangeModifier ?? 1.0,
         rangeScaling: true
     };
 
-    return setupEntityFiringTimer(scene, orbital, behaviorType, baseCooldown, options);
+    return setupEntityFiringTimer(scene, orbital, behaviorType, scaledBaseCooldown, options);
 }
 
 // Export unified system

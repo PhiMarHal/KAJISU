@@ -235,8 +235,9 @@ const CollisionBehaviors = {
         // Calculate current damage based on stored multiplier and current player stats
         let currentDamage;
         if (orbital.damageMultiplier !== undefined) {
-            // Use multiplier with current player damage
-            currentDamage = playerDamage * orbital.damageMultiplier;
+            // UPDATED: Use (EffectiveDamage + Luck) as the base, matching new droppers logic
+            // The multiplier in nexus.js will be halved to compensate
+            currentDamage = (getEffectiveDamage() + playerLuck) * orbital.damageMultiplier;
         } else {
             // Fallback to stored damage (for backward compatibility)
             currentDamage = orbital.entity.damage;
@@ -373,7 +374,7 @@ const OrbitalSystem = {
             direction: 'clockwise',      // Direction of rotation ('clockwise' or 'counterclockwise')
             pattern: 'standard',         // Movement pattern
             collisionType: 'persistent', // Collision behavior type ('persistent', 'projectile', 'explosive')
-            damage: playerDamage,        // Damage dealt to enemies
+            damage: (getEffectiveDamage() + playerLuck) * 0.5, // Default damage logic
             damageInterval: 500,         // Minimum time between damage instances in ms
             colliderSize: 0.8,           // Size multiplier for collision detection
             lifespan: null,              // Time in ms before auto-destruction (null for permanent)

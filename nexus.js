@@ -14,6 +14,9 @@ const OrbitalPerkRegistry = {
             cooldown: config.cooldown ?? null,                       // Base Cooldown (now a number)
             cooldownStat: config.cooldownStat ?? null,               // Stat that affects cooldown (e.g., 'luck', 'fireRate')
             cooldownFormula: config.cooldownFormula ?? null,         // Formula for stat scaling ('sqrt', 'divide', 'multiply')
+            statFunction: config.statFunction ?? null,               // Custom stat calculation function
+            statDependencies: config.statDependencies ?? null,       // Dependencies for the custom function
+            baseStatFunction: config.baseStatFunction ?? null,       // Base stat calculation
             activationMethod: config.activationMethod ?? 'immediate', // How the orbital is activated (immediate, onHit, etc.)
             customCallback: config.customCallback ?? null            // Custom callback function for complex perks
         };
@@ -62,11 +65,6 @@ const OrbitalPerkRegistry = {
     setupOrbitalTimer: function (scene, perkConfig) {
         if (!perkConfig.cooldown) return;
 
-        // Use properties directly from perkConfig
-        const baseCooldownValue = perkConfig.cooldown;
-        const statNameForCooldown = perkConfig.cooldownStat;
-        const formulaForCooldown = perkConfig.cooldownFormula;
-
         // Determine callback function to use
         let timerCallback;
 
@@ -91,10 +89,14 @@ const OrbitalPerkRegistry = {
         }
 
         // Create timer to spawn orbitals using CooldownManager
+        // UPDATED: Now passes statFunction and dependencies properly
         const timer = CooldownManager.createTimer({
-            baseCooldown: baseCooldownValue,
-            statName: statNameForCooldown,
-            formula: formulaForCooldown,
+            baseCooldown: perkConfig.cooldown,
+            statName: perkConfig.cooldownStat,
+            formula: perkConfig.cooldownFormula,
+            statFunction: perkConfig.statFunction,
+            statDependencies: perkConfig.statDependencies,
+            baseStatFunction: perkConfig.baseStatFunction,
             component: perkConfig, // Pass perkConfig as component for potential future reference/cleanup
             callback: timerCallback,
             callbackScope: scene,
@@ -118,7 +120,8 @@ OrbitalPerkRegistry.registerPerkOrbital('WILD_FAIRY', {
             direction: 'counterclockwise',
             pattern: 'oscillating',
             collisionType: 'persistent',
-            damageMultiplier: 0.5, // 50% of current player damage
+            // Updated multiplier: 0.25 (was 0.5, halved because base damage is now calculated with +Luck)
+            damageMultiplier: 0.25,
             damageInterval: 500,
             lifespan: null,
             options: {
@@ -150,17 +153,18 @@ OrbitalPerkRegistry.registerPerkOrbital('TEAL_OCTOPUS', {
             speed: 2,
             pattern: 'standard',
             collisionType: 'projectile', // Destroyed on hit
-            damage: playerDamage,
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 0, // Not used for projectiles
             lifespan: 16000, // Delete after 20 seconds, to avoid infinite stacking
             options: {}
         };
     },
     count: 1,
-    // Updated cooldown to be a base number, with stat and formula
-    cooldown: 1200, // Base cooldown for Teal Octopus
-    cooldownStat: 'fireRate',
-    cooldownFormula: 'sqrt',
+    // Cooldown: 1200ms * 8 = 9600
+    cooldown: 9600,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer'
 });
 
@@ -189,17 +193,18 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_OCTOPUS', {
             direction: 'counterclockwise', // Key difference: counter-clockwise rotation
             pattern: 'standard',
             collisionType: 'projectile', // Destroyed on hit
-            damage: playerDamage,
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 0, // Not used for projectiles
             lifespan: 16000, //
             options: {}
         };
     },
     count: 1,
-    // Updated cooldown to be a base number, with stat and formula
-    cooldown: 1200, // Base cooldown for Inverted Octopus
-    cooldownStat: 'fireRate',
-    cooldownFormula: 'sqrt',
+    // Cooldown: 1200ms * 8 = 9600
+    cooldown: 9600,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer'
 });
 
@@ -229,7 +234,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TENTACLE_GRASP', {
             speed: 1, // Moderate speed
             pattern: 'oscillating', // Use oscillating pattern for organic movement
             collisionType: 'projectile', // Destroyed on hit with enemies
-            damage: playerDamage,
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 0, // Not used for projectiles
             lifespan: 60000, // avoid too much stacking. cd / 2 should be min at luck=1
             options: {
@@ -239,9 +244,11 @@ OrbitalPerkRegistry.registerPerkOrbital('TENTACLE_GRASP', {
         };
     },
     count: 1, // This is ignored when customCallback is used
-    cooldown: 30000, // Base cooldown for Tentacle Grasp
-    cooldownStat: 'luck',
-    cooldownFormula: 'sqrt',
+    // Cooldown: 30000ms * 8 = 240000
+    cooldown: 240000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer',
     // Add custom callback that creates the full tentacle pattern
     customCallback: function (scene) {
@@ -296,7 +303,7 @@ function launchTentacles(scene) {
                 direction: 'clockwise',
                 pattern: 'oscillating', // Use oscillating pattern for organic movement
                 collisionType: 'projectile', // Destroyed on hit with enemies
-                damage: playerDamage, //
+                damage: (getEffectiveDamage() + playerLuck) * 0.5, //
                 damageInterval: 0, // Not used for projectiles
                 lifespan: 60000, // avoid too much stacking. cd / 2 should be min at luck=1
                 options: {
@@ -335,8 +342,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
             speed: 1,
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage, // Keep for backward compatibility
-            damageMultiplier: 1.0, // Add for dynamic scaling
+            damageMultiplier: 0.5, // 0.5 (was 1.0, halved)
             damageInterval: 500,
             lifespan: null, // Permanent
             options: {}
@@ -358,8 +364,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_HEAD', {
             speed: 1,
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage, // Keep for backward compatibility
-            damageMultiplier: 1.0, // Add for dynamic scaling
+            damageMultiplier: 0.5, // 0.5 (was 1.0, halved)
             damageInterval: 500,
             lifespan: null, // Permanent
             options: {}
@@ -381,8 +386,7 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_LEG', {
             speed: 1,
             pattern: 'standard',
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage, // Keep for backward compatibility
-            damageMultiplier: 1.0, // Add for dynamic scaling
+            damageMultiplier: 0.5, // 0.5 (was 1.0, halved)
             damageInterval: 500, // Half second cooldown between damage applications
             lifespan: null, // Permanent
             options: {}
@@ -443,8 +447,7 @@ OrbitalPerkRegistry.registerPerkOrbital('SNIPER_FAIRY', {
             speed: 1, // Moderate speed
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Keep for backward compatibility
-            damageMultiplier: 0.1, // Add for dynamic scaling
+            damageMultiplier: 0.05, // 0.05 (was 0.1, halved)
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -493,8 +496,7 @@ OrbitalPerkRegistry.registerPerkOrbital('COPY_FAIRY', {
             speed: 1, // Standard speed
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Keep for backward compatibility
-            damageMultiplier: 0.1, // Add for dynamic scaling
+            damageMultiplier: 0.05, // 0.05 (was 0.1, halved)
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -539,8 +541,7 @@ OrbitalPerkRegistry.registerPerkOrbital('BERSERK_FAIRY', {
             speed: 2, // Faster speed
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Keep for backward compatibility
-            damageMultiplier: 0.1, // Add for dynamic scaling
+            damageMultiplier: 0.05, // 0.05 (was 0.1, halved)
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -586,8 +587,7 @@ OrbitalPerkRegistry.registerPerkOrbital('COLD_FAIRY', {
             direction: 'counterclockwise', // Counter-clockwise as requested
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Keep for backward compatibility
-            damageMultiplier: 0.1, // Add for dynamic scaling
+            damageMultiplier: 0.05, // 0.05 (was 0.1, halved)
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -633,8 +633,7 @@ OrbitalPerkRegistry.registerPerkOrbital('FUN_FAIRY', {
             direction: 'clockwise',
             pattern: 'standard', // Standard circular orbit
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Keep for backward compatibility
-            damageMultiplier: 0.1, // Add for dynamic scaling
+            damageMultiplier: 0.05, // 0.05 (was 0.1, halved)
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -778,8 +777,7 @@ OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
             direction: 'clockwise', // Not really used due to custom movement
             pattern: 'directionFollowing', // Use our custom pattern
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage, // Keep for backward compatibility
-            damageMultiplier: 0.3, // Add for dynamic scaling
+            damageMultiplier: 0.15, // 0.15 (was 0.3, halved)
             damageInterval: 100,
             lifespan: null, // Permanent
             options: {
@@ -813,8 +811,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TORCHLIGHT', {
             direction: 'clockwise',
             pattern: 'directionFollowing', // Follow player movement direction
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage,
-            damageMultiplier: 0.10, // 10% of player damage for contact
+            damageMultiplier: 0.05, // 0.05 (was 0.10, halved)
             damageInterval: 100, // Fast contact damage interval
             lifespan: null, // Permanent
             options: {
@@ -856,7 +853,8 @@ OrbitalPerkRegistry.registerPerkOrbital('SKY_MESSENGER', {
             direction: 'counterclockwise',
             pattern: 'oscillating', // Oscillating pattern like WILD_FAIRY
             collisionType: 'persistent', // Never dies, stays after hitting enemies
-            damage: playerDamage * 0.2, // 20% contact damage
+            // damage: playerDamage * 0.2 -> (Effective + Luck) * 0.1
+            damage: (getEffectiveDamage() + playerLuck) * 0.1,
             damageInterval: 1000,
             lifespan: null, // Permanent
             options: {
@@ -909,8 +907,7 @@ OrbitalPerkRegistry.registerPerkOrbital('HEALING_FAIRY', {
             speed: 1, // Moderate speed
             pattern: 'oscillating', // More dynamic movement pattern
             collisionType: 'persistent', // Stays after hitting enemies
-            damage: playerDamage * 0.1, // Keep for backward compatibility
-            damageMultiplier: 0.1, // Add for dynamic scaling
+            damageMultiplier: 0.05, // 0.05 (was 0.1, halved)
             damageInterval: 500, // Half second between damage ticks
             lifespan: null, // Permanent
             options: {
@@ -957,7 +954,8 @@ OrbitalPerkRegistry.registerPerkOrbital('LAVA_FAIRIES', {
             speed: 1.6, // Moderate speed
             pattern: 'standard', // Standard circular pattern as requested
             collisionType: 'projectile', // Dies when hit enemies
-            damage: playerDamage * 0.5, // Half player damage
+            // damage: playerDamage * 0.5 -> (Effective + Luck) * 0.25
+            damage: (getEffectiveDamage() + playerLuck) * 0.25,
             damageInterval: 500, // Half second between damage ticks
             lifespan: 16000, // 16 seconds lifespan
             options: {
@@ -970,10 +968,11 @@ OrbitalPerkRegistry.registerPerkOrbital('LAVA_FAIRIES', {
             }
         };
     },
-    // This perk has a fixed cooldown, so no stat/formula needed for the cooldown itself.
-    cooldown: 4000, // Fixed 4 second cooldown
-    cooldownStat: null, // No stat scaling for the cooldown
-    cooldownFormula: null, // No formula for the cooldown
+    // Cooldown: 4000ms * 8 = 32000
+    cooldown: 32000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer' // Create periodically
 });
 
@@ -1001,7 +1000,8 @@ OrbitalPerkRegistry.registerPerkOrbital('WRECKING_BALL', {
             direction: 'clockwise',
             pattern: 'figureEight', //
             collisionType: 'explosive', // Use the explosive collision behavior
-            damage: playerDamage * 4,
+            // damage: playerDamage * 4 -> (Effective + Luck) * 2.0
+            damage: (getEffectiveDamage() + playerLuck) * 2.0,
             damageInterval: 0, // Not used for explosive behavior
             lifespan: null, // Permanent until hit
             options: {
@@ -1009,10 +1009,11 @@ OrbitalPerkRegistry.registerPerkOrbital('WRECKING_BALL', {
             }
         };
     },
-    // Updated cooldown to be a base number, with stat and formula
-    cooldown: 8000,
-    cooldownStat: 'luck',
-    cooldownFormula: 'sqrt',
+    // Cooldown: 8000ms * 8 = 64000
+    cooldown: 64000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer' // Create periodically on a timer
 });
 
@@ -1041,9 +1042,11 @@ OrbitalPerkRegistry.registerPerkOrbital('COMET', {
             direction: 'clockwise',
             pattern: 'spiralOut', // Use our new spiral out pattern
             collisionType: 'projectile', // Destroyed on hit
-            damage: playerDamage,
+            // damage: playerDamage -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 0, // Not used for projectiles
-            lifespan: playerLuck * 2000,
+            // Lifespan: sqrt(playerLuck), target 8000ms at 4 LUK -> sqrt(4)*X=8000 -> 2*X=8000 -> X=4000
+            lifespan: Math.sqrt(playerLuck) * 4000,
             options: {
                 startRadius: 16, // Start close to the player
                 expansionRate: 32 // Pixels per second expansion rate
@@ -1051,9 +1054,11 @@ OrbitalPerkRegistry.registerPerkOrbital('COMET', {
         };
     },
     count: 1,
-    cooldown: 2000, // Base cooldown
-    cooldownStat: 'fireRate',
-    cooldownFormula: 'sqrt',
+    // Cooldown: 2000ms * 8 = 16000
+    cooldown: 16000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer'
 });
 
@@ -1082,9 +1087,11 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_COMET', {
             direction: 'counterclockwise', // Key difference: counter-clockwise rotation
             pattern: 'spiralOut', // Use our new spiral out pattern
             collisionType: 'projectile', // Destroyed on hit
-            damage: playerDamage,
+            // damage: playerDamage -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 0, // Not used for projectiles
-            lifespan: playerLuck * 2000,
+            // Lifespan: sqrt(playerLuck), target 8000ms at 4 LUK -> sqrt(4)*X=8000 -> 2*X=8000 -> X=4000
+            lifespan: Math.sqrt(playerLuck) * 4000,
             options: {
                 startRadius: 16, // Start close to the player
                 expansionRate: 32 // Pixels per second expansion rate
@@ -1092,9 +1099,11 @@ OrbitalPerkRegistry.registerPerkOrbital('INVERTED_COMET', {
         };
     },
     count: 1,
-    cooldown: 2000, // Base cooldown
-    cooldownStat: 'fireRate',
-    cooldownFormula: 'sqrt',
+    // Cooldown: 2000ms * 8 = 16000
+    cooldown: 16000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer'
 });
 
@@ -1123,16 +1132,19 @@ OrbitalPerkRegistry.registerPerkOrbital('THREE_STARS', {
             direction: 'clockwise',
             pattern: 'standard',
             collisionType: 'persistent',
-            damage: playerDamage * 2,
+            // damage: playerDamage * 2 -> (Effective + Luck) * 1.0
+            damage: (getEffectiveDamage() + playerLuck) * 1.0,
             damageInterval: 240,
             lifespan: 8000,
             options: {}
         };
     },
     count: 3, // Will create 3 orbitals with createMultiple
-    cooldown: 60000,
-    cooldownStat: 'luck',
-    cooldownFormula: 'sqrt',
+    // Cooldown: 60000ms * 8 = 480000
+    cooldown: 480000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer'
 });
 
@@ -1161,7 +1173,8 @@ OrbitalPerkRegistry.registerPerkOrbital('BLIZZARD', {
             direction: 'clockwise', // Will be overridden by alternating pattern
             pattern: 'spiralOut',
             collisionType: 'projectile',
-            damage: playerDamage,
+            // damage: playerDamage -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 0,
             lifespan: 8000,
             options: {
@@ -1176,9 +1189,11 @@ OrbitalPerkRegistry.registerPerkOrbital('BLIZZARD', {
         };
     },
     count: 1, // Ignored when using customCallback
-    cooldown: 60000, // 60 second base cooldown
-    cooldownStat: 'luck',
-    cooldownFormula: 'sqrt',
+    // Cooldown: 60000ms * 8 = 480000
+    cooldown: 480000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer',
     customCallback: function (scene) {
         launchBlizzard(scene);
@@ -1223,16 +1238,18 @@ OrbitalPerkRegistry.registerPerkOrbital('INFINITE_GLIMPSE', {
             direction: 'clockwise',
             pattern: 'figureEight', // Use figure-8 movement pattern
             collisionType: 'persistent', // Stays after hitting enemies (key difference from TEAL_OCTOPUS)
-            damage: playerLuck, // This perk has stable stats, and only luck scales its damage
+            damage: playerLuck, // Kept as playerLuck since this is a specific luck-damage perk
             damageInterval: 1000,
             lifespan: 16000,
             options: {}
         };
     },
     count: 1,
-    cooldown: 4000, // Fixed 4 second cooldown
-    cooldownStat: null, // No stat scaling
-    cooldownFormula: 'fixed', // Fixed cooldown - not affected by luck
+    // Cooldown: 4000ms * 8 = 32000
+    cooldown: 32000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer' // Create periodically on a timer
 });
 
@@ -1262,9 +1279,11 @@ OrbitalPerkRegistry.registerPerkOrbital('COLD_WIND', {
             direction: 'clockwise',
             pattern: 'spiralOut', // Use spiral out pattern like COMET
             collisionType: 'projectile', // Destroyed on hit
-            damage: playerDamage,
+            // damage: playerDamage -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 0, // Not used for projectiles
-            lifespan: playerLuck * 1000, // 1 second per luck point (vs COMET's 2 seconds)
+            // Lifespan: sqrt(playerLuck), target 4000ms at 4 LUK -> sqrt(4)*X=4000 -> 2*X=4000 -> X=2000
+            lifespan: Math.sqrt(playerLuck) * 2000,
             options: {
                 startRadius: 16, // Start close to the player
                 expansionRate: 32, // Pixels per second expansion rate
@@ -1277,9 +1296,11 @@ OrbitalPerkRegistry.registerPerkOrbital('COLD_WIND', {
         };
     },
     count: 1,
-    cooldown: 4000, // 4 second base cooldown (vs COMET's 2 seconds)
-    cooldownStat: 'fireRate',
-    cooldownFormula: 'sqrt',
+    // Cooldown: 4000ms * 8 = 32000
+    cooldown: 32000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer'
 });
 

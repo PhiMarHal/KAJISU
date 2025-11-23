@@ -317,9 +317,11 @@ const BeaconConfigs = {
             const scene = this;
             const boostDuration = playerLuck * 1000; // Convert to milliseconds
 
-            // Increase both multipliers by 1
-            berserkMultiplier += 1.0;
-            archerMultiplier += 1.0;
+            const statBonus = 0.4;
+
+            // Increase both multipliers by 0.4
+            berserkMultiplier += statBonus;
+            archerMultiplier += statBonus;
 
             console.log(`Augmentation boost activated! Duration: ${boostDuration}ms`);
 
@@ -331,8 +333,8 @@ const BeaconConfigs = {
                 delay: boostDuration,
                 callback: function () {
                     // Remove the boost
-                    berserkMultiplier -= 1.0;
-                    archerMultiplier -= 1.0;
+                    berserkMultiplier -= statBonus;
+                    archerMultiplier -= statBonus;
 
                     // Ensure multipliers don't go below 1.0
                     if (berserkMultiplier < 1.0) {

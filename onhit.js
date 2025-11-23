@@ -543,9 +543,9 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
     // Store component state
     stepTimer: null,
     stepCount: 0,
-    maxSteps: 10, // 10 steps of 5% = 50% max boost
+    maxSteps: 10, // 10 steps of 2% = 20% max boost
     stepInterval: 4000, // 4 seconds between steps
-    stepSize: 0.05, // 5% increase per step
+    stepSize: 0.02, // 2% increase per step
     // Store contribution from this perk
     berserkContribution: 0,
     archerContribution: 0,

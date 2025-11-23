@@ -148,7 +148,7 @@ PlayerComponentSystem.registerComponent('berserkerState', {
     originalColor: null,
 
     // Track our contribution to the global berserkMultiplier
-    damageMultiplier: 1.0, // Changed from 2.0 to 1.0 (represents +100%)
+    damageMultiplier: 0.4, // +40%
     colorTween: null,
 
     initialize: function (player) {
@@ -282,7 +282,7 @@ PlayerPerkRegistry.registerPerkEffect('CRIMSON_FURY', {
 // Register component for archer state (Eternal Rhythm)
 PlayerComponentSystem.registerComponent('eternalRhythmState', {
     // Store original values and state
-    maxMultiplier: 2.0,
+    maxMultiplier: 1.4, // Changed from 2.0 to 1.4 (max boost +0.4)
     currentMultiplier: 1.0,
     isActive: false,
     accumulator: 0,

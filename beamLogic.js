@@ -89,7 +89,8 @@ const BeamSystem = {
             symbol: '光',              // Default kanji for light
             color: '#00FFFF',          // Default cyan color
             fontSize: 32,              // Size of each kanji character
-            damage: playerDamage,      // Damage per tick
+            // Updated default damage: (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 100,       // Time between damage ticks (ms)
             duration: 2000,            // How long the beam lasts (ms)
             beamWidth: 32,             // Width of the beam collision

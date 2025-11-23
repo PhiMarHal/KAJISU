@@ -617,7 +617,7 @@ PlayerComponentSystem.registerComponent('secondChanceShieldAbility', {
         this.readyForUse = true;
     },
 
-    cleanup: function () {
+    cleanup: function (player) {
         // Remove cooldown timer if it exists
         if (this.cooldownTimer) {
             // First remove from CooldownManager's registry
@@ -858,7 +858,8 @@ function dropGodHammer(options = {}) {
     hammer.body.setSize(hammer.width * 1, hammer.height * 1);
 
     // Set properties for the hammer
-    hammer.damage = playerDamage * 10;
+    // Damage was playerDamage * 10 -> (Effective + Luck) * 5
+    hammer.damage = (getEffectiveDamage() + playerLuck) * 5;
     hammer.damageSourceId = 'godHammer';
 
     // Register entity for cleanup
@@ -911,7 +912,8 @@ function createLightningStrike(scene, x, y, options = {}) {
     if (gameOver || gamePaused) return;
 
     // Default options
-    const damage = options.damage ?? (playerDamage * 4); // 4x damage as in your code
+    // Damage was playerDamage * 4 -> (Effective + Luck) * 2
+    const damage = options.damage ?? ((getEffectiveDamage() + playerLuck) * 2);
     const color = options.color ?? '#FFDD00';
     const size = options.size ?? 32;
     const symbol = options.symbol ?? '雷';
@@ -1075,7 +1077,10 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
         color = '#ffff00',
         symbol = '★',
         components = [],
-        cooldownStat = 'fireRate'
+        cooldownStat = null, // Default null to allow flexibility
+        formula = 'divide', // Default to divide formula
+        statFunction = () => getEffectiveFireRate() + playerLuck, // Default to FR + Luck
+        statDependencies = ['fireRate', 'luck']
     } = options;
 
     return {
@@ -1092,6 +1097,9 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
         symbol: symbol,
         components: components,
         cooldownStat: cooldownStat,
+        formula: formula,
+        statFunction: statFunction,
+        statDependencies: statDependencies,
 
         // Track if we need to fire initial shot/burst when game resumes
         needsInitialAction: false,
@@ -1104,8 +1112,10 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
                 // Burst mode: create timer for burst cycles
                 this.shotsTimer = CooldownManager.createTimer({
                     statName: this.cooldownStat,
+                    statFunction: this.statFunction,
+                    statDependencies: this.statDependencies,
                     baseCooldown: this.baseCooldown,
-                    formula: 'sqrt',
+                    formula: this.formula,
                     component: this,
                     callback: this.startBurst,
                     callbackScope: this,
@@ -1122,8 +1132,10 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
                 // Continuous mode: create timer for regular shots
                 this.shotsTimer = CooldownManager.createTimer({
                     statName: this.cooldownStat,
+                    statFunction: this.statFunction,
+                    statDependencies: this.statDependencies,
                     baseCooldown: this.baseCooldown,
-                    formula: 'sqrt',
+                    formula: this.formula,
                     component: this,
                     callback: this.fireRandomShot,
                     callbackScope: this,
@@ -1193,7 +1205,8 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
             if (!scene) return;
 
             const randomAngle = Math.random() * Math.PI * 2;
-            const actualDamage = getEffectiveDamage() * this.damageMultiplier;
+            // New damage formula applied here: (Eff + Luck) * 0.5 * Multiplier
+            const actualDamage = (getEffectiveDamage() + playerLuck) * 0.5 * this.damageMultiplier;
 
             const projectile = WeaponSystem.createProjectile.call(WeaponSystem, scene, {
                 x: player.x,
@@ -1229,8 +1242,11 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
 }
 
 // Register separate components for each perk to allow stacking
-PlayerComponentSystem.registerComponent('shootingStarAbility', createRandomShotsComponent(600, 1));
-PlayerComponentSystem.registerComponent('meteorAbility', createRandomShotsComponent(3000, 4));
+// SHOOTING_STAR: Base 600ms * 8 = 4800. Uses defaults (FR+Luck, Divide)
+PlayerComponentSystem.registerComponent('shootingStarAbility', createRandomShotsComponent(4800, 1));
+
+// METEOR: Base 3000ms * 8 = 24000. Uses defaults (FR+Luck, Divide)
+PlayerComponentSystem.registerComponent('meteorAbility', createRandomShotsComponent(24000, 4));
 
 // Register the Shooting Star perk
 PlayerPerkRegistry.registerPerkEffect('SHOOTING_STAR', {
@@ -1259,12 +1275,13 @@ window.activateMeteor = function () {
 };
 
 // Register the volcano component with burst mode
-PlayerComponentSystem.registerComponent('volcanoAbility', createRandomShotsComponent(60000, 2, {
+// VOLCANO: Now uses (FR+Luck) and divide formula. 60000ms target * 8 = 480000
+PlayerComponentSystem.registerComponent('volcanoAbility', createRandomShotsComponent(480000, 2, {
     burstDuration: 8000,        // 8 seconds of eruption
     burstInterval: 200,         // Shot every 200ms (40 shots total)
     speed: 200,                 // Slower projectiles for dramatic effect
     components: ['fireEffect'], // Attach fire effect to each projectile
-    cooldownStat: 'luck'        // Cooldown scales with luck instead of fireRate
+    // Using defaults for cooldownStat (null), formula (divide), and statFunction (FR+Luck)
 }));
 
 // Register the perk

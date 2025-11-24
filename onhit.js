@@ -735,8 +735,8 @@ OnHitPerkRegistry.registerPerkEffect('FLAWLESS_FIGHT', {
 OnHitEffectSystem.registerComponent('angerRisingEffect', {
     // Track the multiplier contribution from this perk
     multiplierContribution: 0,
-    maxMultiplier: 1.0,
-    multiplierStep: 0.1,
+    maxMultiplier: 0.4,
+    multiplierStep: 0.04,
     decayTimer: null,
     decayInterval: 30000, // 30 seconds between decay steps
     originalColor: null,   // Store the player's original color

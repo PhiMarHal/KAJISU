@@ -1246,7 +1246,7 @@ const PERKS = {
         kana: "しゅうえん",
         romaji: "shuuen",
         english: "Final Catastrophe",
-        description: "One-time massive damage to all enemies",
+        description: "One massive explosion damaging all enemies",
         color: "#FF3300", // Bright red-orange
         hoverColor: 0xCC2200,
         onAcquire: function () {
@@ -1282,7 +1282,7 @@ const PERKS = {
         kana: "いかりじょうしょう",
         romaji: "ikarijoushou",
         english: "Anger Rising",
-        description: "Get hit, deal more damage (+10%, up to +100%)",
+        description: "Get hit, deal more damage (+4%, up to +40%)",
         color: "#FF4500", // Orange-red
         hoverColor: 0xDD3300,
         onAcquire: function () {
@@ -1465,7 +1465,7 @@ const PERKS = {
         kana: "かんぺき",
         romaji: "kanpeki",
         english: "Flawless Fight",
-        description: "+POW/+AGI while not hit (+5%, up to +50%)",
+        description: "+POW/+AGI while not hit (+2%, up to +20%)",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {

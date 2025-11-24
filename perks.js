@@ -811,7 +811,7 @@ const PERKS = {
         kanji: "鎚神社",
         kana: "つちじんじゃ",
         romaji: "tsuchijinja",
-        english: "God Hammer Shrine",
+        english: "Godhammer Shrine",
         description: "Spawns shrines that drop divine hammers while standing in them",
         color: "#FFD700",
         hoverColor: 0xDAA520,

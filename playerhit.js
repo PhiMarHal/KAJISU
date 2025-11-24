@@ -2,10 +2,21 @@
 
 // Track whether player is currently invincible (to prevent multiple rapid hits)
 let playerInvincible = false;
-let playerInvincibilityDuration = 960;
 
 // Visual effect elements
 let damageVignette = null;
+
+// Helper function to calculate invincibility duration based on END (maxPlayerHealth)
+// 4 END = 960ms -> 240ms per point
+function getInvincibilityDuration() {
+    return maxPlayerHealth * 240;
+}
+
+// Helper function to calculate flash repeats based on END
+// 4 END = 8 repeats -> 2 repeats per point
+function getFlashRepeats() {
+    return Math.max(1, Math.floor(maxPlayerHealth * 2));
+}
 
 // Initialize the player hit system
 function initPlayerHitSystem(scene) {
@@ -102,11 +113,14 @@ function showDamageVignette(scene, intensity = 1.0) {
     // Immediately set alpha based on intensity
     damageVignette.setAlpha(0.9 * intensity);
 
+    // Calculate duration dynamically based on current stats
+    const duration = getInvincibilityDuration();
+
     // Create fade-out animation that matches invincibility duration
     damageVignette.fadeTween = scene.tweens.add({
         targets: damageVignette,
         alpha: 0,
-        duration: playerInvincibilityDuration * 0.95, // Slightly shorter than invincibility for safety
+        duration: duration * 0.95, // Slightly shorter than invincibility for safety
         ease: 'Sine.easeOut',
         onComplete: function () {
             // Ensure we're completely invisible
@@ -137,14 +151,19 @@ function makePlayerInvincible(scene) {
     // Always grant invincibility, regardless of current state
     playerInvincible = true;
 
+    // Calculate dynamic values based on current END
+    const duration = getInvincibilityDuration();
+    const repeats = getFlashRepeats();
+
     // Flash the player (visual feedback)
     scene.tweens.add({
         targets: player,
         alpha: 0.5,
         scale: 1.2,
-        duration: playerInvincibilityDuration / 6,
+        // Time per flash is total duration divided by number of flashes
+        duration: duration / repeats,
         yoyo: true,
-        repeat: 6,
+        repeat: repeats,
         onComplete: function () {
             // Ensure alpha and scale are reset properly
             player.alpha = 1;
@@ -152,8 +171,8 @@ function makePlayerInvincible(scene) {
         }
     });
 
-    // Remove invincibility after a while
-    scene.time.delayedCall(playerInvincibilityDuration, function () {
+    // Remove invincibility after the calculated duration
+    scene.time.delayedCall(duration, function () {
         playerInvincible = false;
 
         // Double-check alpha is reset even if tween was interrupted

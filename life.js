@@ -23,8 +23,8 @@ const LifeSystem = {
 
     // Setup health regeneration
     setupHealthRegeneration: function (scene) {
-        // Calculate delay based on max health (100s / maxHealth)
-        const regenDelay = Math.ceil(100000 / maxPlayerHealth); // In milliseconds
+        // Calculate delay based on max health (80s / maxHealth)
+        const regenDelay = Math.ceil(80000 / maxPlayerHealth); // In milliseconds
 
         // Remove any existing regen timer
         if (this.healthRegenTimer) {

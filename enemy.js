@@ -16,6 +16,28 @@ const DIFFICULTY_CONFIG = {
     minDelays: [800, 600, 400, 400]
 };
 
+// Supplementary spawn configuration - fills in when enemy count is too low
+const SUPPLEMENTARY_SPAWN_CONFIG = {
+    // Check interval in ms based on difficulty (index 0-3 for difficulty 1-4)
+    checkIntervals: [32000, 16000, 8000, 4000], // 32s, 16s, 8s, 4s
+
+    // Get the check interval for current difficulty
+    getCheckInterval: function () {
+        const difficulty = getCurrentDifficulty();
+        return this.checkIntervals[difficulty - 1] ?? 16000;
+    },
+
+    // Get the minimum enemy threshold (based on minutes elapsed)
+    getMinEnemyThreshold: function () {
+        return Math.floor(elapsedTime / 60); // Minutes elapsed
+    },
+
+    // Get the number of enemies to spawn when below threshold
+    getSpawnCount: function () {
+        return Math.floor(elapsedTime / 60); // Minutes elapsed (separate variable for future flexibility)
+    }
+};
+
 // Get current difficulty level (1-4)
 function getCurrentDifficulty() {
     return window.DIFFICULTY_LEVEL ?? 2; // Default to difficulty 2
@@ -99,6 +121,9 @@ const EnemySystem = {
     // Track spawners for different ranks
     enemySpawners: {},
 
+    // Track supplementary spawner timer
+    supplementarySpawner: null,
+
     // Reference to the active scene
     scene: null,
 
@@ -123,9 +148,54 @@ const EnemySystem = {
         // Initialize enemy tier assignments
         initializeEnemyTiers();
 
+        // Initialize supplementary spawner
+        this.initializeSupplementarySpawner(scene);
+
         console.log("Enemy system initialized" + (window.HARD_MODE_ENABLED ? " (HARD MODE)" : ""));
 
         return this;
+    },
+
+    // Initialize the supplementary spawner that fills in when enemy count is too low
+    initializeSupplementarySpawner: function (scene) {
+        // Clean up existing supplementary spawner if any
+        if (this.supplementarySpawner) {
+            this.supplementarySpawner.remove();
+            this.supplementarySpawner = null;
+        }
+
+        const checkInterval = SUPPLEMENTARY_SPAWN_CONFIG.getCheckInterval();
+
+        // Create the periodic check timer
+        this.supplementarySpawner = registerTimer(scene.time.addEvent({
+            delay: checkInterval,
+            callback: () => { this.checkAndSpawnSupplementary(); },
+            callbackScope: this,
+            loop: true
+        }));
+
+        console.log(`Supplementary spawner initialized with ${checkInterval}ms interval`);
+    },
+
+    // Check enemy count and spawn additional tier 1 enemies if needed
+    checkAndSpawnSupplementary: function () {
+        // Skip if game is over or paused
+        if (gameOver || gamePaused) return;
+
+        // Get current enemy count and thresholds
+        const currentCount = this.getEnemyCount();
+        const minThreshold = SUPPLEMENTARY_SPAWN_CONFIG.getMinEnemyThreshold();
+        const spawnCount = SUPPLEMENTARY_SPAWN_CONFIG.getSpawnCount();
+
+        // Only spawn if we're below the threshold and threshold is at least 1
+        if (minThreshold > 0 && currentCount < minThreshold) {
+            // Spawn tier 1 enemies to fill in
+            for (let i = 0; i < spawnCount; i++) {
+                this.spawnEnemyOfRank(1);
+            }
+
+            console.log(`Supplementary spawn: added ${spawnCount} tier 1 enemies (was ${currentCount}, threshold ${minThreshold})`);
+        }
     },
 
     // Function to spawn enemy of specific rank
@@ -898,6 +968,12 @@ const EnemySystem = {
         // Reset spawners
         this.enemySpawners = {};
 
+        // Clean up supplementary spawner
+        if (this.supplementarySpawner) {
+            this.supplementarySpawner.remove();
+            this.supplementarySpawner = null;
+        }
+
         // Reset boss-related state
         bossMode = false;
         activeBoss = null;
@@ -920,6 +996,11 @@ const EnemySystem = {
 
         // Initialize enemy tiers with dynamic assignments
         initializeEnemyTiers();
+
+        // Reinitialize supplementary spawner with current difficulty settings
+        if (this.scene) {
+            this.initializeSupplementarySpawner(this.scene);
+        }
 
         console.log("Enemy system reset" + (window.HARD_MODE_ENABLED ? " (HARD MODE)" : ""));
     }
@@ -944,6 +1025,9 @@ window.BOSS_CONFIG = BOSS_CONFIG;
 
 // Export the helper function
 window.getRankScaleFactor = getRankScaleFactor;
+
+// Export supplementary spawn config for external access/modification
+window.SUPPLEMENTARY_SPAWN_CONFIG = SUPPLEMENTARY_SPAWN_CONFIG;
 
 // Setter functions to modify variables
 EnemySystem.setEnemySpeedFactor = function (value) {

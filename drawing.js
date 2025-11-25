@@ -8,7 +8,8 @@ const KanjiDrawingSystem = {
         borderRect: null,
         graphics: null,
         infoText: null,
-        concentricCircles: null
+        concentricCircles: null,
+        greenDotIndicator: null
     },
 
     // Challenge state
@@ -24,7 +25,8 @@ const KanjiDrawingSystem = {
         completedStrokes: [],
         challengeComplete: false,
         targetStrokePoints: [],
-        history: []
+        history: [],
+        lastAnimatedStroke: -1
     },
 
     // Configuration
@@ -139,6 +141,7 @@ const KanjiDrawingSystem = {
         this.state.currentPath = [];
         this.state.completedStrokes = [];
         this.state.challengeComplete = false;
+        this.state.lastAnimatedStroke = -1;
 
         this.state.targetStrokePoints = this.state.currentKanji.strokes.map(strokePath =>
             this.extractSVGPoints(strokePath)
@@ -283,8 +286,8 @@ const KanjiDrawingSystem = {
             const guidePoints = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
 
             if (guidePoints && guidePoints.length > 0) {
-                if (this.state.strokeAttempts >= 2) {
-                    g.lineStyle(12, 0x444444, 0.5);
+                if (this.state.strokeAttempts >= 1) {
+                    g.lineStyle(12, 0x666666, 0.6);
                     g.beginPath();
                     g.moveTo(guidePoints[0].x, guidePoints[0].y);
                     for (let i = 1; i < guidePoints.length; i++) {
@@ -293,10 +296,8 @@ const KanjiDrawingSystem = {
                     g.strokePath();
                 }
 
-                if (this.state.currentStroke === 0 || this.state.strokeAttempts >= 1) {
-                    g.fillStyle(0x00ff00, 0.8);
-                    g.fillCircle(guidePoints[0].x, guidePoints[0].y, 8);
-                }
+                // Animate green dot when stroke changes
+                this.updateGreenDotIndicator(scene, guidePoints[0].x, guidePoints[0].y);
             }
         }
 
@@ -321,6 +322,38 @@ const KanjiDrawingSystem = {
                 g.lineTo(this.state.currentPath[i].x, this.state.currentPath[i].y);
             }
             g.strokePath();
+        }
+    },
+
+    // Animate the green dot indicator when stroke changes
+    updateGreenDotIndicator: function (scene, x, y) {
+        const shouldAnimate = this.state.lastAnimatedStroke !== this.state.currentStroke;
+
+        // Create or update the green dot
+        if (!this.elements.greenDotIndicator) {
+            this.elements.greenDotIndicator = scene.add.circle(x, y, 8, 0x00ff00, 0.8);
+            this.elements.greenDotIndicator.setDepth(1502);
+            this.elements.container.add(this.elements.greenDotIndicator);
+        }
+
+        // Update position
+        this.elements.greenDotIndicator.setPosition(x, y);
+
+        // Animate if this is a new stroke
+        if (shouldAnimate) {
+            this.state.lastAnimatedStroke = this.state.currentStroke;
+
+            // Kill any existing tweens on this object
+            scene.tweens.killTweensOf(this.elements.greenDotIndicator);
+
+            // Grow from tiny to full size
+            this.elements.greenDotIndicator.setScale(0.2);
+            scene.tweens.add({
+                targets: this.elements.greenDotIndicator,
+                scale: 1,
+                duration: 400,
+                ease: 'Back.easeOut'
+            });
         }
     },
 
@@ -407,9 +440,9 @@ const KanjiDrawingSystem = {
         const endDist = Phaser.Math.Distance.BetweenPoints(drawnEnd, targetEnd);
         const endpointError = Math.max(startDist, endDist);
 
-        const corridorTolerance = 20;
-        const endpointTolerance = 30;
-        const hardMaxDeviation = 50;
+        const corridorTolerance = 30;
+        const endpointTolerance = 50;
+        const hardMaxDeviation = 60;
 
         return (averageDeviation < corridorTolerance &&
             endpointError < endpointTolerance &&
@@ -562,15 +595,21 @@ const KanjiDrawingSystem = {
             this.elements.graphics = null;
         }
 
+        if (this.elements.greenDotIndicator) {
+            this.elements.greenDotIndicator.destroy();
+            this.elements.greenDotIndicator = null;
+        }
+
         if (this.elements.container) {
             this.elements.container.destroy();
             this.elements.container = null;
         }
 
-        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null, concentricCircles: null };
+        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null, concentricCircles: null, greenDotIndicator: null };
 
         this.state.active = false;
         this.state.challengeComplete = false;
+        this.state.lastAnimatedStroke = -1;
 
         if (window.PauseSystem) {
             PauseSystem.resumeGame();

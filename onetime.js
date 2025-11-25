@@ -375,4 +375,4 @@ window.triggerOneTimeEffect = function (effectName) {
 
 // Export the effects registry and utilities
 window.OneTimeEffects = OneTimeEffects;
-window.StatManipulation = StatManipulation; F
+window.StatManipulation = StatManipulation;

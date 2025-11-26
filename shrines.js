@@ -321,16 +321,16 @@ const ShrineConfigs = {
         symbol: '怒',
         fontSize: '40px',
         color: '#FF0000',
-        baseCooldown: 20000, // 20 seconds
+        baseCooldown: 40000, // 40 seconds
         auraColor: 0xFF0000,
         effectInterval: 0, // No periodic effect, just enter/exit
         onEnterAura: function (shrine) {
-            berserkMultiplier += 0.5;
+            berserkMultiplier += 0.8;
             //console.log("Entered berserk shrine - damage boost active!");
             GameUI.updateStatCircles(shrine.scene);
         },
         onExitAura: function (shrine) {
-            berserkMultiplier -= 0.5;
+            berserkMultiplier -= 0.8;
             if (berserkMultiplier < 1.0) berserkMultiplier = 1.0;
             //console.log("Left berserk shrine - damage boost ended");
             GameUI.updateStatCircles(shrine.scene);
@@ -342,17 +342,17 @@ const ShrineConfigs = {
         symbol: '弓',
         fontSize: '40px',
         color: '#00FFFF',
-        baseCooldown: 20000, // 20 seconds
+        baseCooldown: 40000, // 40 seconds
         auraColor: 0x00FFFF,
         effectInterval: 0, // No periodic effect, just enter/exit
         onEnterAura: function (shrine) {
-            archerMultiplier += 0.5;
+            archerMultiplier += 0.8;
             //console.log("Entered archer shrine - fire rate boost active!");
             GameUI.updateStatCircles(shrine.scene);
             WeaponSystem.updateFiringRate(shrine.scene);
         },
         onExitAura: function (shrine) {
-            archerMultiplier -= 0.5;
+            archerMultiplier -= 0.8;
             if (archerMultiplier < 1.0) archerMultiplier = 1.0;
             //console.log("Left archer shrine - fire rate boost ended");
             GameUI.updateStatCircles(shrine.scene);
@@ -388,7 +388,7 @@ const ShrineConfigs = {
         color: '#9966FF',
         baseCooldown: 20000,
         auraColor: 0x9966FF,
-        effectInterval: 250, // Lightning every 200ms
+        effectInterval: 200, // Lightning every 200ms
         onEnterAura: function (shrine) {
             //console.log("Entered storm shrine - lightning storm active!");
         },

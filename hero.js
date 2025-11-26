@@ -148,7 +148,7 @@ PlayerComponentSystem.registerComponent('berserkerState', {
     originalColor: null,
 
     // Track our contribution to the global berserkMultiplier
-    damageMultiplier: 0.4, // +40%
+    damageMultiplier: 0.8, // +80%
     colorTween: null,
 
     initialize: function (player) {
@@ -189,7 +189,7 @@ PlayerComponentSystem.registerComponent('berserkerState', {
     update: function (player) {
         // Check if we should deactivate (health above threshold)
         const healthPercentage = playerHealth / maxPlayerHealth;
-        if (healthPercentage > 0.5) {
+        if (healthPercentage > 0.3) {
             PlayerComponentSystem.removeComponent('berserkerState');
         }
     },
@@ -274,15 +274,15 @@ const PlayerPerkRegistry = {
 PlayerPerkRegistry.registerPerkEffect('CRIMSON_FURY', {
     componentName: 'berserkerState',
     condition: function () {
-        // Active when health is below 50%
-        return playerHealth / maxPlayerHealth <= 0.5;
+        // Active when health is below 30%
+        return playerHealth / maxPlayerHealth <= 0.3;
     }
 });
 
 // Register component for archer state (Eternal Rhythm)
 PlayerComponentSystem.registerComponent('eternalRhythmState', {
     // Store original values and state
-    maxMultiplier: 1.4, // Changed from 2.0 to 1.4 (max boost +0.4)
+    maxMultiplier: 1.8, // max boost +0.8
     currentMultiplier: 1.0,
     isActive: false,
     accumulator: 0,
@@ -386,7 +386,7 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
         const isPlayerMoving = speed > this.velocityThreshold;
 
         // Calculate the rate of change
-        const maxTimeSeconds = 60 / playerLuck;
+        const maxTimeSeconds = 160 / playerLuck;
         const changeRate = deltaTime / maxTimeSeconds;
 
         if (isPlayerMoving) {
@@ -1301,16 +1301,17 @@ function createHealthMultiplierComponent(multiplierName, getMultiplierRef, setMu
         // Track our contribution to the specified multiplier
         currentContribution: 0,
         multiplierName: multiplierName,
+        maxContribution: 0.40, // Cap at +0.40
 
         initialize: function (player) {
             // Calculate initial contribution based on current health
-            // Formula: playerHealth * (Math.sqrt(playerLuck) * 0.01)
-            this.currentContribution = playerHealth * (Math.sqrt(playerLuck) * 0.01);
+            // Formula: +0.04 per HP, capped at maxContribution
+            this.currentContribution = Math.min(playerHealth * 0.04, this.maxContribution);
 
             // Add our contribution to the specified multiplier
             setMultiplierRef(getMultiplierRef() + this.currentContribution);
 
-            console.log(`${this.multiplierName} activated! Initial contribution: +${this.currentContribution.toFixed(1)} (${playerHealth} HP)`);
+            console.log(`${this.multiplierName} activated! Initial contribution: +${this.currentContribution.toFixed(2)} (${playerHealth} HP)`);
 
             // Update player stats display
             const scene = game.scene.scenes[0];
@@ -1321,9 +1322,8 @@ function createHealthMultiplierComponent(multiplierName, getMultiplierRef, setMu
 
         update: function (player) {
             // Calculate what our contribution should be based on current health
-            // Formula: playerHealth * (Math.sqrt(playerLuck) * 0.01)
-            // This will automatically update when playerLuck changes because playerLuck is global
-            const newContribution = playerHealth * (Math.sqrt(playerLuck) * 0.01);
+            // Formula: +0.04 per HP, capped at maxContribution
+            const newContribution = Math.min(playerHealth * 0.04, this.maxContribution);
 
             // Only update if there's a meaningful change
             if (Math.abs(this.currentContribution - newContribution) > 0.01) {

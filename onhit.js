@@ -543,12 +543,15 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
     // Store component state
     stepTimer: null,
     stepCount: 0,
-    maxSteps: 10, // 10 steps of 2% = 20% max boost
-    stepInterval: 4000, // 4 seconds between steps
-    stepSize: 0.02, // 2% increase per step
+    maxSteps: 10, // 10 steps of 4% = 40% max boost each
+    stepInterval: 8000, // 8 seconds between steps (2x slower)
+    stepSize: 0.04, // 4% increase per step
     // Store contribution from this perk
     berserkContribution: 0,
     archerContribution: 0,
+    // Track active glow tween for cleanup
+    activeGlowTween: null,
+    originalColor: null,
 
     // Initialize component
     initialize: function () {
@@ -556,6 +559,10 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
         this.berserkContribution = 0;
         this.archerContribution = 0;
         this.stepCount = 0;
+        this.activeGlowTween = null;
+
+        // Store player's original color
+        this.originalColor = player.style ? player.style.color : '#ffffff';
 
         // Start the step timer
         this.startStepTimer();
@@ -563,6 +570,15 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
 
     // Handle player being hit
     onHit: function (scene, enemy) {
+        // Stop any active glow tween and restore color
+        if (this.activeGlowTween) {
+            this.activeGlowTween.stop();
+            this.activeGlowTween = null;
+            if (player && player.active && this.originalColor) {
+                player.setColor(this.originalColor);
+            }
+        }
+
         // Reset step counter
         this.stepCount = 0;
 
@@ -640,14 +656,20 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
             // Get scene for visual effects
             const scene = game.scene.scenes[0];
             if (scene && player && player.active) {
-                // Store original color
-                const originalColor = player.style.color || '#ffffff';
+                // Use stored original color
+                const originalColor = this.originalColor;
+                const component = this;
+
+                // Stop any existing glow tween
+                if (this.activeGlowTween) {
+                    this.activeGlowTween.stop();
+                }
 
                 // Create a smooth glowing animation
-                const glowTween = scene.tweens.add({
+                this.activeGlowTween = scene.tweens.add({
                     targets: { value: 0 },
                     value: 1,
-                    duration: 600,
+                    duration: 2000,
                     yoyo: true, // Important for smooth pulse
                     onUpdate: function (tween) {
                         if (!player || !player.active) return;
@@ -688,6 +710,7 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
                         if (player && player.active) {
                             player.setColor(originalColor);
                         }
+                        component.activeGlowTween = null;
                     }
                 });
 
@@ -699,6 +722,17 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
 
     // Clean up component
     cleanup: function () {
+        // Stop any active glow tween
+        if (this.activeGlowTween) {
+            this.activeGlowTween.stop();
+            this.activeGlowTween = null;
+        }
+
+        // Restore original player color
+        if (player && player.active && this.originalColor) {
+            player.setColor(this.originalColor);
+        }
+
         // Remove our contribution from the global multipliers
         berserkMultiplier -= this.berserkContribution;
         archerMultiplier -= this.archerContribution;
@@ -735,10 +769,10 @@ OnHitPerkRegistry.registerPerkEffect('FLAWLESS_FIGHT', {
 OnHitEffectSystem.registerComponent('angerRisingEffect', {
     // Track the multiplier contribution from this perk
     multiplierContribution: 0,
-    maxMultiplier: 0.4,
-    multiplierStep: 0.04,
+    maxMultiplier: 0.8,
+    multiplierStep: 0.1,
     decayTimer: null,
-    decayInterval: 30000, // 30 seconds between decay steps
+    decayInterval: 10000, // 10 seconds between decay steps
     originalColor: null,   // Store the player's original color
 
     // Initialize component

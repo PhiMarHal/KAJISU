@@ -42,6 +42,18 @@ const PERKS = {
             }
         }
     },
+    "HERO_STATUE": {
+        kanji: "英雄像",
+        kana: "えいゆうぞう",
+        romaji: "eiyuuzou",
+        english: "Hero Statue",
+        description: "A monument to yourself",
+        color: "#A08831",     // New golden color
+        hoverColor: 0x806C23, // Darker gold for hover (128, 108, 35)
+        onAcquire: function () {
+            window.activateHeroStatue();
+        }
+    },
     "FATED_SHIELD": {
         kanji: "運命の盾",
         kana: "うんめいのたて",
@@ -200,6 +212,18 @@ const PERKS = {
         hoverColor: 0x1a8d17,    // Darker green for hover
         onAcquire: function () {
             window.activateCausticRay();
+        }
+    },
+    "FLAME_THROWING": {
+        kanji: "火炎放射",
+        kana: "かえんほうしゃ",
+        romaji: "kaenhousha",
+        english: "Flame Throwing",
+        description: "Charges up and fires a burning beam that sets enemies ablaze",
+        color: "#FF4500",        // Orange-red color to match fire theme
+        hoverColor: 0xDD3300,    // Slightly darker orange-red for hover
+        onAcquire: function () {
+            window.activateFlamethrower();
         }
     },
     "DENIAL_OF_FATE": {
@@ -787,7 +811,7 @@ const PERKS = {
         kanji: "鎚神社",
         kana: "つちじんじゃ",
         romaji: "tsuchijinja",
-        english: "God Hammer Shrine",
+        english: "Godhammer Shrine",
         description: "Spawns shrines that drop divine hammers while standing in them",
         color: "#FFD700",
         hoverColor: 0xDAA520,
@@ -1222,7 +1246,7 @@ const PERKS = {
         kana: "しゅうえん",
         romaji: "shuuen",
         english: "Final Catastrophe",
-        description: "One-time massive damage to all enemies",
+        description: "One massive explosion damaging all enemies",
         color: "#FF3300", // Bright red-orange
         hoverColor: 0xCC2200,
         onAcquire: function () {
@@ -1258,7 +1282,7 @@ const PERKS = {
         kana: "いかりじょうしょう",
         romaji: "ikarijoushou",
         english: "Anger Rising",
-        description: "Get hit, deal more damage (+10%, up to +100%)",
+        description: "Get hit, deal more damage (+4%, up to +40%)",
         color: "#FF4500", // Orange-red
         hoverColor: 0xDD3300,
         onAcquire: function () {
@@ -1441,7 +1465,7 @@ const PERKS = {
         kana: "かんぺき",
         romaji: "kanpeki",
         english: "Flawless Fight",
-        description: "+POW/+AGI while not hit (+5%, up to +50%)",
+        description: "+POW/+AGI while not hit (+2%, up to +20%)",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {
@@ -1507,6 +1531,18 @@ const PERKS = {
         hoverColor: 0x6A1BA2,
         onAcquire: function () {
             // Logic handled by ProjectilePerkRegistry
+        }
+    },
+    "FLAME_PILLAR": {
+        kanji: "炎柱",
+        kana: "えんちゅう",
+        romaji: "enchuu",
+        english: "Flame Pillar",
+        description: "The fiery totem burns all",
+        color: "#FF4500", // Orange-red fire color
+        hoverColor: 0xCC3300, // Darker red for hover
+        onAcquire: function () {
+            window.activateBurningTotem();
         }
     },
     "GOLDEN_AGE": {
@@ -1842,7 +1878,7 @@ const PERKS = {
         kana: "くれないのいかり",
         romaji: "kurenainoikari",
         english: "Crimson Fury",
-        description: "+100% damage when below 50% health",
+        description: "+40% damage when below 50% health",
         color: "#FF0000",
         hoverColor: 0xCC0000,
         onAcquire: function () {

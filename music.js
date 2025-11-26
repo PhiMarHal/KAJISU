@@ -23,7 +23,8 @@ function detectMusicUrl() {
 // Dynamic configuration
 const MUSIC_CONFIG = {
     baseUrl: detectMusicUrl(),
-    trackCount: 25
+    normalTrackCount: 25, // Track count for 'track-XX'
+    altTrackCount: 28     // Track count for 'alt-XX'
 };
 
 const MusicSystem = {
@@ -47,7 +48,7 @@ const MusicSystem = {
 
     // Configuration
     silenceDuration: 4000,  // 1 second of silence between tracks
-    fadeDuration: 4000,    // 40 seconds fade in/out
+    fadeDuration: 4000,    // 4 seconds fade in/out
     volume: 0.7,            // Default maximum volume (0-1)
     musicEnabled: true,     // Music enabled/disabled flag
 
@@ -326,12 +327,14 @@ const MusicSystem = {
     // Preload just track metadata, not actual audio content
     preload: function (scene) {
         // Determine track prefix based on STRANGE music setting
-        const trackPrefix = window.STRANGE_MUSIC_ENABLED ? 'alt' : 'track';
+        const isStrange = window.STRANGE_MUSIC_ENABLED;
+        const trackPrefix = isStrange ? 'alt' : 'track';
+        const trackCount = isStrange ? MUSIC_CONFIG.altTrackCount : MUSIC_CONFIG.normalTrackCount;
 
-        console.log(`Music system using ${trackPrefix} tracks (Strange Music: ${window.STRANGE_MUSIC_ENABLED ? 'ON' : 'OFF'})`);
+        console.log(`Music system using ${trackPrefix} tracks (Count: ${trackCount})`);
 
         // Just build a list of track IDs without loading them
-        for (let i = 1; i <= MUSIC_CONFIG.trackCount; i++) {
+        for (let i = 1; i <= trackCount; i++) {
             const trackId = `${trackPrefix}-${String(i).padStart(2, '0')}`;
             this.tracks.push(trackId);
         }
@@ -374,6 +377,18 @@ const MusicSystem = {
     // Load and play the next track
     playNextTrack: function () {
         if (!this.musicEnabled || !this.scene || this.isLoading) return;
+
+        // SAFETY CHECK: Prevent infinite loop if all tracks are failing
+        if (this.failedTracks.size >= this.tracks.length && this.tracks.length > 0) {
+            console.warn("All tracks failed to load. Pausing music system for 30 seconds.");
+            // Wait 30 seconds before clearing failures and trying again
+            this.createMusicTimer(30000, () => {
+                console.log("Resuming music attempts...");
+                this.failedTracks.clear();
+                this.playNextTrack();
+            });
+            return;
+        }
 
         // Reset fade out flag
         this.isFadingOut = false;
@@ -562,8 +577,15 @@ const MusicSystem = {
         // Create a loader for just this track
         const loader = new Phaser.Loader.LoaderPlugin(this.scene);
 
+        // CRITICAL FIX: Flag to prevent race condition between timeout and loader events
+        // This prevents double-retrying which causes exponential load spikes
+        let isRequestActive = true;
+
         // Add timeout handling
         const timeoutId = setTimeout(() => {
+            if (!isRequestActive) return;
+            isRequestActive = false;
+
             console.warn(`Track ${trackId} load timeout`);
             this.handleLoadFailure(trackId, 'timeout', onComplete, retryCount);
         }, 10000); // 10 second timeout
@@ -573,7 +595,10 @@ const MusicSystem = {
 
         // Handle completion
         loader.once('complete', () => {
+            if (!isRequestActive) return;
+            isRequestActive = false;
             clearTimeout(timeoutId);
+
             console.log(`Finished loading track: ${trackId}`);
 
             try {
@@ -598,14 +623,20 @@ const MusicSystem = {
 
         // Handle loader errors
         loader.once('loaderror', (fileObj) => {
+            if (!isRequestActive) return;
+            isRequestActive = false;
             clearTimeout(timeoutId);
+
             console.error(`Loader error for track ${trackId}:`, fileObj);
             this.handleLoadFailure(trackId, 'loaderror', onComplete, retryCount);
         });
 
         // Handle file processing errors
         loader.once('fileerror', (file) => {
+            if (!isRequestActive) return;
+            isRequestActive = false;
             clearTimeout(timeoutId);
+
             console.error(`File error for track ${trackId}:`, file);
             this.handleLoadFailure(trackId, 'fileerror', onComplete, retryCount);
         });
@@ -614,7 +645,10 @@ const MusicSystem = {
         try {
             loader.start();
         } catch (error) {
+            if (!isRequestActive) return;
+            isRequestActive = false;
             clearTimeout(timeoutId);
+
             console.error(`Error starting loader for track ${trackId}:`, error);
             this.handleLoadFailure(trackId, error, onComplete, retryCount);
         }

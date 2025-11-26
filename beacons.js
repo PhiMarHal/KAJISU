@@ -310,16 +310,18 @@ const BeaconConfigs = {
         symbol: '猛',
         fontSize: '20px',
         color: '#FF4500', // Orange-red for power
-        baseCooldown: 60000, // Removed fixed cooldown
+        baseCooldown: 80000,
         maxBeacons: null, // Use playerLuck
         onCollect: function (beacon) {
             // Apply power boost effect
             const scene = this;
-            const boostDuration = playerLuck * 1000; // Convert to milliseconds
+            const boostDuration = Math.sqrt(playerLuck) * 2000; // sqrt scaling
 
-            // Increase both multipliers by 1
-            berserkMultiplier += 1.0;
-            archerMultiplier += 1.0;
+            const statBonus = 0.8;
+
+            // Increase both multipliers by 0.8
+            berserkMultiplier += statBonus;
+            archerMultiplier += statBonus;
 
             console.log(`Augmentation boost activated! Duration: ${boostDuration}ms`);
 
@@ -331,8 +333,8 @@ const BeaconConfigs = {
                 delay: boostDuration,
                 callback: function () {
                     // Remove the boost
-                    berserkMultiplier -= 1.0;
-                    archerMultiplier -= 1.0;
+                    berserkMultiplier -= statBonus;
+                    archerMultiplier -= statBonus;
 
                     // Ensure multipliers don't go below 1.0
                     if (berserkMultiplier < 1.0) {

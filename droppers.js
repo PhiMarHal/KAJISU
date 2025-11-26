@@ -8,12 +8,20 @@ const drops = [];
 const DropBehaviors = {
     // projectile behavior - detonates on enemy contact
     projectile: function (scene, drop, enemy) {
+        // Calculate current damage
+        let currentDamage;
+        if (drop.damageMultiplier !== undefined) {
+            currentDamage = (getEffectiveDamage() + playerLuck) * drop.damageMultiplier;
+        } else {
+            currentDamage = drop.entity.damage;
+        }
+
         // Apply damage to the enemy using the contact damage system
         applyContactDamage.call(
             scene,
             drop.entity,
             enemy,
-            drop.entity.damage,
+            currentDamage,  // Use calculated damage
             drop.damageInterval
         );
 
@@ -50,12 +58,20 @@ const DropBehaviors = {
 
     // Persistent behavior - deals continuous damage while enemies overlap
     persistent: function (scene, drop, enemy) {
-        // Apply contact damage with the specified cooldown
+        // Calculate current damage
+        let currentDamage;
+        if (drop.damageMultiplier !== undefined) {
+            currentDamage = (getEffectiveDamage() + playerLuck) * drop.damageMultiplier;
+        } else {
+            currentDamage = drop.entity.damage;
+        }
+
+        // Apply damage to the enemy using the contact damage system
         applyContactDamage.call(
             scene,
             drop.entity,
             enemy,
-            drop.entity.damage,
+            currentDamage,  // Use calculated damage
             drop.damageInterval
         );
     },
@@ -76,23 +92,27 @@ const DropBehaviors = {
 
     // Player pushable behavior - entities that can be pushed by player
     playerPushable: function (scene, drop, enemy) {
-        // Check if the pushable object is actually moving
         const body = drop.entity.body;
-        if (!body) return; // Safety check
+        if (!body) return;
 
-        // Calculate velocity magnitude (very low compute)
         const velocityMagnitude = Math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y);
-
-        // Only apply damage if moving faster than threshold
-        const velocityThreshold = drop.options?.velocityThreshold ?? 1; // Default 1px/second
+        const velocityThreshold = drop.options?.velocityThreshold ?? 1;
 
         if (velocityMagnitude > velocityThreshold) {
+            // Calculate current damage
+            let currentDamage;
+            if (drop.damageMultiplier !== undefined) {
+                currentDamage = (getEffectiveDamage() + playerLuck) * drop.damageMultiplier;
+            } else {
+                currentDamage = drop.entity.damage;
+            }
+
             // Apply damage to the enemy using the contact damage system
             applyContactDamage.call(
                 scene,
                 drop.entity,
                 enemy,
-                drop.entity.damage,
+                currentDamage,  // Use calculated damage
                 drop.damageInterval
             );
         }
@@ -118,7 +138,7 @@ const DropperSystem = {
             x: player.x,                 // X position (default to player position)
             y: player.y,                 // Y position (default to player position)
             behaviorType: 'projectile',  // Behavior type ('projectile', 'persistent', 'areaEffect')
-            damage: playerDamage,        // Damage dealt to enemies
+            damage: (getEffectiveDamage() + playerLuck),        // Damage dealt to enemies
             damageInterval: 500,         // Minimum time between damage instances in ms
             colliderSize: 0.8,           // Size multiplier for collision detection
             lifespan: null,              // Time in ms before auto-destruction (null for permanent)
@@ -211,6 +231,7 @@ const DropperSystem = {
             entity: entity,
             behaviorType: dropConfig.behaviorType,
             damageInterval: dropConfig.damageInterval,
+            damageMultiplier: dropConfig.damageMultiplier,
             createdAt: scene.time.now,
             lifespan: dropConfig.lifespan,
             areaEffectInterval: dropConfig.options.areaEffectInterval ?? 1000,
@@ -228,10 +249,14 @@ const DropperSystem = {
 
         // If this is an area effect, set up its timer using CooldownManager
         if (drop.behaviorType === 'areaEffect') {
+            // UPDATED: Use options for stat scaling of area effect interval if provided
             drop.areaEffectTimer = CooldownManager.createTimer({
-                statName: 'luck', // Assuming area effect radius/frequency scales with luck
+                statName: drop.options.areaEffectStatName ?? 'luck',
+                statFunction: drop.options.areaEffectStatFunction,
+                statDependencies: drop.options.areaEffectStatDependencies,
+                baseStatFunction: drop.options.areaEffectBaseStatFunction,
                 baseCooldown: drop.areaEffectInterval,
-                formula: 'sqrt',
+                formula: drop.options.areaEffectFormula ?? 'sqrt',
                 component: drop, // Reference for cleanup
                 callback: function () {
                     if (gameOver || gamePaused || drop.destroyed ||
@@ -276,6 +301,16 @@ const DropperSystem = {
 
             // Register the timer for cleanup
             window.registerEffect('timer', timer);
+        }
+
+        if (drop.options && drop.options.hasPeriodicEffect) {
+            DropperSystem.createDropEffectTimer(scene, drop);
+
+            // Fire immediately if requested
+            if (drop.options.fireImmediately && !drop.hasInitiallyFired) {
+                drop.hasInitiallyFired = true;
+                DropperSystem.processDropEffect(scene, drop);
+            }
         }
 
         return drop;
@@ -331,8 +366,15 @@ const DropperSystem = {
             // If within effect radius, apply effect
             if (distance <= radius) {
                 // Always apply regular damage
-                const damageAmount = drop.entity.damage;
+                let damageAmount;
+                if (drop.damageMultiplier !== undefined) {
+                    damageAmount = (getEffectiveDamage() + playerLuck) * drop.damageMultiplier;
+                } else {
+                    damageAmount = drop.entity.damage;
+                }
                 const areaSourceId = `${drop.entity.damageSourceId}_area_${enemy.id ?? Math.random()}`;
+
+
 
                 applyContactDamage.call(
                     scene,
@@ -414,6 +456,9 @@ const DropperSystem = {
             cooldown: 4000,                        // Base Cooldown in ms
             cooldownStat: null,                    // Stat that affects cooldown
             cooldownFormula: null,                 // Formula for stat scaling
+            statFunction: null,                    // Custom function for calculating current stat value
+            statDependencies: null,                // Array of stat names this depends on
+            baseStatFunction: null,                // Function for calculating base stat value
             positionMode: 'player',                // 'player', 'random', or 'trail'
             trailInterval: 32,                    // For 'trail' mode, min distance to place new drop
             lastDropPos: { x: 0, y: 0 },           // For 'trail' mode, last position where we dropped
@@ -433,6 +478,9 @@ const DropperSystem = {
         const timer = CooldownManager.createTimer({
             baseCooldown: dropperConfig.cooldown,
             statName: dropperConfig.cooldownStat,
+            statFunction: dropperConfig.statFunction,        // Pass custom stat function
+            statDependencies: dropperConfig.statDependencies, // Pass dependencies
+            baseStatFunction: dropperConfig.baseStatFunction, // Pass base stat function
             formula: dropperConfig.cooldownFormula,
             component: dropperConfig, // Pass the config object as component for potential future reference
             callback: function () {
@@ -529,8 +577,11 @@ const DropperSystem = {
                         {
                             timer: this.timer,
                             baseCooldown: newCooldown,
-                            statName: this.timer.statName, // Preserve existing statName
-                            formula: this.timer.formula,   // Preserve existing formula
+                            statName: this.timer.statName,
+                            statFunction: this.timer.statFunction,
+                            statDependencies: this.timer.statDependencies,
+                            baseStatFunction: this.timer.baseStatFunction,
+                            formula: this.timer.formula,
                             callback: this.timer.callback,
                             callbackScope: this.timer.callbackScope,
                             loop: this.timer.loop
@@ -629,6 +680,25 @@ const DropperSystem = {
                 visualEffect: true
             });
         }
+
+        // Generic firing behavior for droppers
+        else if (drop.options && drop.options.firingBehavior) {
+            // Use the generalized entity firing system
+            const behaviorName = drop.options.firingBehavior;
+            const firingRange = drop.options.firingRange || 400;
+
+            if (EntityFiringSystem.behaviors[behaviorName]) {
+                EntityFiringSystem.behaviors[behaviorName](
+                    scene,
+                    drop.entity,
+                    scene.time.now,
+                    firingRange
+                );
+            } else {
+                console.warn(`Unknown firing behavior: ${behaviorName}`);
+            }
+        }
+
         // Can add more effect types here as needed
     },
 
@@ -637,20 +707,15 @@ const DropperSystem = {
         // Get cooldown from options or use default
         const baseCooldown = drop.options.periodicEffectCooldown ?? 10000;
 
-        // If drop should fire immediately, process effect now
-        if (drop.options.fireImmediately && !drop.hasInitiallyFired) {
-            // Mark as having fired to prevent duplicates
-            drop.hasInitiallyFially = true;
-
-            // Process effect immediately
-            this.processDropEffect(scene, drop);
-        }
-
         // Create timer using CooldownManager
+        // UPDATED: Use options for stat scaling if provided, default to 'luck'/'sqrt' for backward compat
         drop.effectTimer = CooldownManager.createTimer({
-            statName: 'luck',
+            statName: drop.options.periodicEffectStatName ?? 'luck',
+            statFunction: drop.options.periodicEffectStatFunction,
+            statDependencies: drop.options.periodicEffectStatDependencies,
+            baseStatFunction: drop.options.periodicEffectBaseStatFunction,
             baseCooldown: baseCooldown,
-            formula: 'sqrt',
+            formula: drop.options.periodicEffectFormula ?? 'sqrt',
             component: drop, // Store reference for easier cleanup
             callback: function () {
                 if (gameOver || gamePaused) return;
@@ -673,9 +738,9 @@ const DropperSystem = {
     setupPeriodicEffectsSystem: function (scene) {
         // Create a timer to periodically check all drops with effects
         const checkTimer = CooldownManager.createTimer({
-            statName: 'luck',
+            statName: null,
             baseCooldown: 1000, // Check every second
-            formula: 'divide',
+            formula: 'fixed',
             callback: function () {
                 if (gameOver || gamePaused) return;
 

@@ -11,6 +11,11 @@ const BeamPerkRegistry = {
         this.perkBeamConfigs[perkId] = {
             getConfig: config.getConfig ?? function () { return {}; }, // Function that returns beam config
             cooldown: config.cooldown ?? 60000,                      // Cooldown between beam uses
+            cooldownStat: config.cooldownStat ?? null,               // Stat that affects cooldown (e.g., 'luck', 'fireRate')
+            cooldownFormula: config.cooldownFormula ?? null,         // Formula for stat scaling ('sqrt', 'divide', 'multiply')
+            statFunction: config.statFunction ?? null,               // Custom stat calculation function
+            statDependencies: config.statDependencies ?? null,       // Dependencies for the custom function
+            baseStatFunction: config.baseStatFunction ?? null,       // Base stat calculation
             activationMethod: config.activationMethod ?? 'timer'     // How the beam is activated
         };
     },
@@ -50,15 +55,16 @@ const BeamPerkRegistry = {
     setupBeamTimer: function (scene, perkConfig) {
         if (!perkConfig.cooldown) return;
 
-        // Calculate cooldown based on player stats if needed
-        let cooldown = perkConfig.cooldown;
-        if (typeof cooldown === 'function') {
-            cooldown = cooldown();
-        }
-
-        // Create timer to spawn beams - use the EXACT same pattern as droppers/orbitals
-        const timer = scene.time.addEvent({
-            delay: cooldown,
+        // Create timer to spawn beams using CooldownManager
+        // Now properly passes all the new cooldown options
+        const timer = CooldownManager.createTimer({
+            baseCooldown: perkConfig.cooldown,
+            statName: perkConfig.cooldownStat,
+            formula: perkConfig.cooldownFormula,
+            statFunction: perkConfig.statFunction,
+            statDependencies: perkConfig.statDependencies,
+            baseStatFunction: perkConfig.baseStatFunction,
+            component: perkConfig,
             callback: function () {
                 // Get fresh configuration each time
                 const beamConfig = perkConfig.getConfig();
@@ -68,7 +74,7 @@ const BeamPerkRegistry = {
             loop: true
         });
 
-        // Register timer for cleanup - EXACT same as other perk systems
+        // Register timer for cleanup
         window.registerEffect('timer', timer);
     }
 };
@@ -80,7 +86,8 @@ BeamPerkRegistry.registerPerkBeam('LASER_CANNON', {
             symbol: '光線',           // "Light beam" in kanji
             color: '#FF00FF',
             fontSize: 32,             // Medium size for visibility
-            damage: playerDamage, // 
+            // Damage: (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 100,       // Very fast damage ticks (10 per second)
             duration: 2000,           // 2 second beam duration
             beamWidth: 32,            // 32px beam width as requested
@@ -98,10 +105,11 @@ BeamPerkRegistry.registerPerkBeam('LASER_CANNON', {
             }
         };
     },
-    cooldown: function () {
-        // 60 second base cooldown that scales with luck
-        return 60000;
-    },
+    // Cooldown: 60000ms * 8 = 480000
+    cooldown: 480000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer'
 });
 
@@ -125,7 +133,8 @@ BeamPerkRegistry.registerPerkBeam('EYE_BEAM', {
             symbol: '眼光',           // "Eye light" in kanji
             color: '#FF0000',         // Bright red color
             fontSize: 16,             // Thin beam - smaller font size
-            damage: playerDamage * 6, // 6x player damage
+            // Damage: (Effective + Luck) * 3.0 (was 6x playerDamage)
+            damage: (getEffectiveDamage() + playerLuck) * 3.0,
             damageInterval: 201,     // Single damage tick (slightly over 1s to avoid double-tick)
             duration: 200,           // 1 second beam duration
             beamWidth: 16,            // 16px beam width (thin)
@@ -144,10 +153,11 @@ BeamPerkRegistry.registerPerkBeam('EYE_BEAM', {
             }
         };
     },
-    cooldown: function () {
-        // 12 second base cooldown
-        return 12000;
-    },
+    // Cooldown: 12000ms * 8 = 96000
+    cooldown: 96000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer'
 });
 
@@ -171,7 +181,8 @@ BeamPerkRegistry.registerPerkBeam('CAUSTIC_RAY', {
             symbol: '線線',             // Line/beam kanji
             color: '#2aad27',         // Green color to match poison theme
             fontSize: 24,             // Medium beam thickness
-            damage: playerDamage * 0.2, // 60% damage per laser tick in total due to poison
+            // Damage: (Effective + Luck) * 0.1 (was 0.2x playerDamage)
+            damage: (getEffectiveDamage() + playerLuck) * 0.1,
             damageInterval: 200,      // Damage every 200ms
             duration: 4000,
             beamWidth: 24,            // 32px beam width
@@ -193,9 +204,11 @@ BeamPerkRegistry.registerPerkBeam('CAUSTIC_RAY', {
             }
         };
     },
-    cooldown: function () {
-        return 36000;
-    },
+    // Cooldown: 36000ms * 8 = 288000
+    cooldown: 288000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
     activationMethod: 'timer'
 });
 
@@ -210,6 +223,58 @@ window.activateCausticRay = function () {
 
     // Set up the timer system for future beams
     BeamPerkRegistry.applyPerkBeam(scene, 'CAUSTIC_RAY');
+};
+
+// Add this to beamPerks.js after the CAUSTIC_RAY registration
+
+// Register the FLAME_THROWER perk
+BeamPerkRegistry.registerPerkBeam('FLAME_THROWING', {
+    getConfig: function () {
+        return {
+            symbol: '火炎',             // "Flame" in kanji
+            color: '#FF4500',         // Orange-red color to match fire theme
+            fontSize: 24,             // Medium beam thickness
+            // Damage: (Effective + Luck) * 0.25 (was 0.5x playerDamage)
+            damage: (getEffectiveDamage() + playerLuck) * 0.25,
+            damageInterval: 500,      // Damage every 500ms
+            duration: 4000,           // 4 second beam duration
+            beamWidth: 24,            // 24px beam width
+            followPlayer: true,       // Beam follows player movement
+            chargeTime: 2000,         // 2 second charge time
+            physicsComponents: ['fireEffect'], // Apply fire effect to hit enemies
+            onChargeStart: function (scene) {
+                // Orange charging effect to match fire theme
+                VisualEffects.createChargingEffect(scene, {
+                    color: '#FF4500',     // Orange-red to match beam color
+                    duration: 2000        // Match charge time
+                });
+            },
+            onBeamStart: function (scene, beam) {
+            },
+            onBeamEnd: function (scene, beam) {
+                // Optional: Add beam end effect here
+            }
+        };
+    },
+    // Cooldown: 48000ms * 8 = 384000
+    cooldown: 384000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
+    activationMethod: 'timer'
+});
+
+// Function to activate the FLAME_THROWING perk
+window.activateFlamethrower = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Fire the first beam immediately
+    const beamConfig = BeamPerkRegistry.perkBeamConfigs['FLAME_THROWING'].getConfig();
+    BeamSystem.create(scene, beamConfig);
+
+    // Set up the timer system for future beams
+    BeamPerkRegistry.applyPerkBeam(scene, 'FLAME_THROWING');
 };
 
 // Export the registry for use in other files

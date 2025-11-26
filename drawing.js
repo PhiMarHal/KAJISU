@@ -1,0 +1,670 @@
+// drawing.js - Kanji Drawing Challenge System
+
+const KanjiDrawingSystem = {
+    // UI elements
+    elements: {
+        container: null,
+        background: null,
+        borderRect: null,
+        graphics: null,
+        infoText: null,
+        titleText: null,
+        concentricCircles: null,
+        greenDotIndicator: null
+    },
+
+    // Challenge state
+    state: {
+        active: false,
+        currentKanji: null,
+        currentStroke: 0,
+        strokeAttempts: 0,
+        totalMistakes: 0,
+        missedStrokes: 0,
+        isDrawing: false,
+        currentPath: [],
+        completedStrokes: [],
+        challengeComplete: false,
+        targetStrokePoints: [],
+        history: [],
+        lastAnimatedStroke: -1,
+        lastPointTime: 0,
+        activePointerId: null
+    },
+
+    // Configuration
+    config: {
+        challengeInterval: 180000,
+        maxAttemptsPerStroke: 2,
+        strokeMatchTolerance: 20,
+        kanjiSize: 109,
+        minPointDistance: 3, // Minimum pixels between recorded points
+        minPointInterval: 8  // Minimum ms between recorded points
+    },
+
+    challengeTimer: null,
+
+    init: function (scene) {
+        if (!scene || !scene.add) return;
+        this.startChallengeTimer(scene);
+        console.log("Kanji Drawing System initialized");
+    },
+
+    startChallengeTimer: function (scene) {
+        if (this.challengeTimer) {
+            this.challengeTimer.remove();
+        }
+        this.challengeTimer = scene.time.addEvent({
+            delay: this.config.challengeInterval,
+            callback: () => {
+                if (!gameOver && !gamePaused && !window.levelUpInProgress && !this.state.active) {
+                    this.startChallenge(scene);
+                }
+            },
+            callbackScope: this,
+            loop: true
+        });
+        registerTimer(this.challengeTimer);
+    },
+
+    selectNextKanji: function () {
+        const time = (typeof elapsedTime !== 'undefined') ? elapsedTime : 0;
+        const configs = window.rankConfigs || {};
+        const maxRank = (window.BOSS_CONFIG && window.BOSS_CONFIG.max_rank) ? window.BOSS_CONFIG.max_rank : 6;
+
+        let calculatedRank = 1;
+        let isBossMode = false;
+
+        Object.keys(configs).forEach(rankStr => {
+            const r = parseInt(rankStr);
+            if (configs[r] && time >= configs[r].startTime) {
+                if (r > calculatedRank) calculatedRank = r;
+            }
+        });
+
+        if (calculatedRank >= maxRank) {
+            isBossMode = true;
+        }
+
+        let eligibleRanks = [];
+        if (isBossMode) {
+            for (let i = 1; i <= calculatedRank; i++) {
+                eligibleRanks.push(i);
+            }
+        } else {
+            eligibleRanks.push(calculatedRank);
+        }
+
+        if (typeof window.getRandomEnemyTypeByRank !== 'function') {
+            return getRandomKanji();
+        }
+
+        let selectedChar = null;
+        let foundNew = false;
+        const maxTries = 20;
+
+        for (let i = 0; i < maxTries; i++) {
+            const r = eligibleRanks[Math.floor(Math.random() * eligibleRanks.length)];
+            const char = window.getRandomEnemyTypeByRank(r);
+
+            if (!this.state.history.includes(char)) {
+                selectedChar = char;
+                foundNew = true;
+                break;
+            }
+            selectedChar = char;
+        }
+
+        if (foundNew) {
+            this.state.history.push(selectedChar);
+        } else {
+            this.state.history = [selectedChar];
+            console.log(`Kanji pool for Rank ${calculatedRank} exhausted, resetting history.`);
+        }
+
+        return getKanji(selectedChar) || getRandomKanji();
+    },
+
+    startChallenge: function (scene) {
+        if (this.state.active || gameOver || window.levelUpInProgress) return;
+
+        if (window.PauseSystem) {
+            PauseSystem.pauseGame();
+        } else {
+            gamePaused = true;
+            if (scene.physics) scene.physics.pause();
+        }
+
+        this.state.currentKanji = this.selectNextKanji();
+
+        this.state.active = true;
+        this.state.currentStroke = 0;
+        this.state.strokeAttempts = 0;
+        this.state.totalMistakes = 0;
+        this.state.missedStrokes = 0;
+        this.state.isDrawing = false;
+        this.state.currentPath = [];
+        this.state.completedStrokes = [];
+        this.state.challengeComplete = false;
+        this.state.lastAnimatedStroke = -1;
+        this.state.lastPointTime = 0;
+        this.state.activePointerId = null;
+
+        this.state.targetStrokePoints = this.state.currentKanji.strokes.map(strokePath =>
+            this.extractSVGPoints(strokePath)
+        );
+
+        this.createChallengeUI(scene);
+        console.log(`Started drawing challenge for: ${this.state.currentKanji.character}`);
+    },
+
+    createChallengeUI: function (scene) {
+        const centerX = game.config.width / 2;
+        const centerY = game.config.height / 2;
+
+        // Calculate Box Size (Square) - this is now just the drawing area
+        const boxSize = Math.min(game.config.width * 0.95, game.config.height * 0.72, 600);
+
+        // --- Concentric Circles Animation ---
+        const screenSize = Math.max(game.config.width, game.config.height);
+        const baseRadiusMultiplier = 0.08;
+        const incrementMultiplier = 0.04;
+
+        if (window.VisualEffects && window.VisualEffects.createConcentricCircles) {
+            this.elements.concentricCircles = VisualEffects.createConcentricCircles(scene, {
+                x: centerX,
+                y: centerY,
+                circleCount: 8,
+                baseRadius: screenSize * baseRadiusMultiplier,
+                radiusIncrement: screenSize * incrementMultiplier,
+                gapRatio: 0.4,
+                rotationSpeed: 24,
+                color: 0xFFD700,
+                strokeWidth: 4,
+                segmentCount: 4,
+                depth: 1499
+            });
+
+            if (this.elements.concentricCircles.setVisible) {
+                this.elements.concentricCircles.setVisible(true);
+            }
+        }
+
+        this.elements.container = scene.add.container(0, 0).setDepth(1500);
+
+        const fullscreenBg = scene.add.rectangle(centerX, centerY, game.config.width, game.config.height, 0x000000, 0.8);
+        this.elements.container.add(fullscreenBg);
+
+        // Title OUTSIDE popup, on top
+        const titleY = centerY - boxSize / 2 - 60;
+        this.elements.titleText = scene.add.text(centerX, titleY, 'DRAW', {
+            fontFamily: 'Arial',
+            fontSize: '58px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.elements.container.add(this.elements.titleText);
+
+        // Drawing box (the popup) - now IS the drawing area
+        this.elements.background = scene.add.rectangle(centerX, centerY, boxSize, boxSize, 0x000000);
+        this.elements.container.add(this.elements.background);
+
+        this.elements.borderRect = scene.add.rectangle(centerX, centerY, boxSize, boxSize).setStrokeStyle(4, 0xFFD700);
+        this.elements.container.add(this.elements.borderRect);
+
+        this.elements.graphics = scene.add.graphics().setDepth(1501);
+        this.elements.container.add(this.elements.graphics);
+
+        // Store drawing area bounds for later use
+        this.drawAreaBounds = {
+            centerX: centerX,
+            centerY: centerY,
+            size: boxSize
+        };
+
+        this.renderScene(scene);
+
+        // Info text OUTSIDE popup, on bottom
+        const infoY = centerY + boxSize / 2 + 60;
+        const kanji = this.state.currentKanji;
+        this.elements.infoText = scene.add.text(centerX, infoY,
+            `${kanji.kana} (${kanji.romaji}) - ${kanji.english}`,
+            {
+                fontFamily: 'Arial',
+                fontSize: '38px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+        this.elements.container.add(this.elements.infoText);
+
+        this.setupInputHandlers(scene, centerX, centerY, boxSize);
+    },
+
+    setupInputHandlers: function (scene, centerX, centerY, drawAreaSize) {
+        const halfSize = drawAreaSize / 2;
+        const minX = centerX - halfSize;
+        const maxX = centerX + halfSize;
+        const minY = centerY - halfSize;
+        const maxY = centerY + halfSize;
+
+        const isInBounds = (x, y) => x >= minX && x <= maxX && y >= minY && y <= maxY;
+
+        const getDistance = (p1, p2) => {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+
+        scene.input.on('pointerdown', (pointer) => {
+            if (!this.state.active) return;
+            if (this.state.activePointerId !== null) return; // Already tracking a pointer
+
+            if (isInBounds(pointer.x, pointer.y)) {
+                this.state.activePointerId = pointer.id;
+                this.state.isDrawing = true;
+                this.state.currentPath = [{ x: pointer.x, y: pointer.y }];
+                this.state.lastPointTime = Date.now();
+            }
+        });
+
+        scene.input.on('pointermove', (pointer) => {
+            if (!this.state.active || !this.state.isDrawing) return;
+            if (pointer.id !== this.state.activePointerId) return; // Ignore other pointers
+
+            const now = Date.now();
+            const lastPoint = this.state.currentPath[this.state.currentPath.length - 1];
+            const newPoint = { x: pointer.x, y: pointer.y };
+
+            // Filter out points that are too close or too rapid
+            const distance = getDistance(lastPoint, newPoint);
+            const timeDelta = now - this.state.lastPointTime;
+
+            if (distance >= this.config.minPointDistance && timeDelta >= this.config.minPointInterval) {
+                this.state.currentPath.push(newPoint);
+                this.state.lastPointTime = now;
+                this.renderScene(scene);
+            }
+        });
+
+        scene.input.on('pointerup', (pointer) => {
+            if (!this.state.active || !this.state.isDrawing || this.state.challengeComplete) return;
+            if (pointer.id !== this.state.activePointerId) return; // Ignore other pointers
+
+            this.state.isDrawing = false;
+            this.state.activePointerId = null;
+            this.validateStroke(scene);
+        });
+
+        // Handle pointer leaving the game area
+        scene.input.on('pointerupoutside', (pointer) => {
+            if (!this.state.active || !this.state.isDrawing || this.state.challengeComplete) return;
+            if (pointer.id !== this.state.activePointerId) return;
+
+            this.state.isDrawing = false;
+            this.state.activePointerId = null;
+            this.validateStroke(scene);
+        });
+    },
+
+    renderScene: function (scene) {
+        if (!this.elements.graphics || !this.elements.graphics.scene) return;
+
+        const g = this.elements.graphics;
+        g.clear();
+
+        // 1. Draw Guides
+        if (this.state.targetStrokePoints && this.state.targetStrokePoints[this.state.currentStroke]) {
+            const guidePoints = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
+
+            if (guidePoints && guidePoints.length > 0) {
+                if (this.state.strokeAttempts >= 1) {
+                    g.lineStyle(16, 0x666666, 0.6);
+                    g.beginPath();
+                    g.moveTo(guidePoints[0].x, guidePoints[0].y);
+                    for (let i = 1; i < guidePoints.length; i++) {
+                        g.lineTo(guidePoints[i].x, guidePoints[i].y);
+                    }
+                    g.strokePath();
+                }
+
+                // Animate green dot when stroke changes
+                this.updateGreenDotIndicator(scene, guidePoints[0].x, guidePoints[0].y);
+            }
+        }
+
+        // 2. Completed Strokes
+        g.lineStyle(12, 0xffffff, 1);
+        this.state.completedStrokes.forEach(stroke => {
+            if (stroke.length < 2) return;
+            g.beginPath();
+            g.moveTo(stroke[0].x, stroke[0].y);
+            for (let i = 1; i < stroke.length; i++) {
+                g.lineTo(stroke[i].x, stroke[i].y);
+            }
+            g.strokePath();
+        });
+
+        // 3. Current Input
+        if (this.state.currentPath.length > 1) {
+            g.lineStyle(12, 0xFFD700, 1);
+            g.beginPath();
+            g.moveTo(this.state.currentPath[0].x, this.state.currentPath[0].y);
+            for (let i = 1; i < this.state.currentPath.length; i++) {
+                g.lineTo(this.state.currentPath[i].x, this.state.currentPath[i].y);
+            }
+            g.strokePath();
+        }
+    },
+
+    // Animate the green dot indicator when stroke changes
+    updateGreenDotIndicator: function (scene, x, y) {
+        const shouldAnimate = this.state.lastAnimatedStroke !== this.state.currentStroke;
+
+        // Create or update the green dot
+        if (!this.elements.greenDotIndicator) {
+            this.elements.greenDotIndicator = scene.add.circle(x, y, 8, 0x00ff00, 0.8);
+            this.elements.greenDotIndicator.setDepth(1502);
+            this.elements.container.add(this.elements.greenDotIndicator);
+        }
+
+        // Update position
+        this.elements.greenDotIndicator.setPosition(x, y);
+
+        // Animate if this is a new stroke
+        if (shouldAnimate) {
+            this.state.lastAnimatedStroke = this.state.currentStroke;
+
+            // Kill any existing tweens on this object
+            scene.tweens.killTweensOf(this.elements.greenDotIndicator);
+
+            // Grow from tiny to full size
+            this.elements.greenDotIndicator.setScale(0.2);
+            scene.tweens.add({
+                targets: this.elements.greenDotIndicator,
+                scale: 1,
+                duration: 400,
+                ease: 'Back.easeOut'
+            });
+        }
+    },
+
+    validateStroke: function (scene) {
+        if (this.state.currentPath.length < 2) {
+            this.state.currentPath = [];
+            this.renderScene(scene);
+            return;
+        }
+
+        const rawTargetPoints = this.state.targetStrokePoints[this.state.currentStroke];
+        if (!rawTargetPoints) {
+            this.acceptStroke(scene);
+            return;
+        }
+
+        const screenTargetPoints = this.transformToScreen(rawTargetPoints);
+        const isValid = this.compareStrokes(this.state.currentPath, screenTargetPoints);
+
+        if (isValid) {
+            this.acceptStroke(scene);
+        } else {
+            this.rejectStroke(scene);
+        }
+    },
+
+    transformToScreen: function (svgPoints) {
+        if (!svgPoints) return [];
+
+        // Use stored bounds if available, otherwise calculate
+        const bounds = this.drawAreaBounds ?? {
+            centerX: game.config.width / 2,
+            centerY: game.config.height / 2,
+            size: Math.min(game.config.width * 0.95, game.config.height * 0.72, 600)
+        };
+
+        const drawAreaSize = bounds.size;
+        const padding = 40;
+
+        const centerX = bounds.centerX;
+        const centerY = bounds.centerY;
+
+        const scale = (drawAreaSize - padding * 2) / this.config.kanjiSize;
+        const startX = centerX - (this.config.kanjiSize * scale) / 2;
+        const startY = centerY - (this.config.kanjiSize * scale) / 2;
+
+        return svgPoints.map(p => ({
+            x: startX + (p.x * scale),
+            y: startY + (p.y * scale)
+        }));
+    },
+
+    getPathLength: function (path) {
+        let len = 0;
+        for (let i = 1; i < path.length; i++) {
+            len += Phaser.Math.Distance.BetweenPoints(path[i - 1], path[i]);
+        }
+        return len;
+    },
+
+    compareStrokes: function (drawn, target) {
+        if (drawn.length < 2 || target.length < 2) return false;
+
+        const drawnLen = this.getPathLength(drawn);
+        const targetLen = this.getPathLength(target);
+        const lengthRatio = drawnLen / targetLen;
+
+        if (lengthRatio < 0.5 || lengthRatio > 1.5) return false;
+
+        let totalDeviation = 0;
+        let maxDeviation = 0;
+        const sampleRate = Math.max(1, Math.floor(drawn.length / 15));
+        let samples = 0;
+
+        for (let i = 0; i < drawn.length; i += sampleRate) {
+            const result = this.closestPointOnPath(drawn[i], target);
+            totalDeviation += result.distance;
+            maxDeviation = Math.max(maxDeviation, result.distance);
+            samples++;
+        }
+
+        const averageDeviation = totalDeviation / samples;
+
+        const drawnStart = drawn[0];
+        const drawnEnd = drawn[drawn.length - 1];
+        const targetStart = target[0];
+        const targetEnd = target[target.length - 1];
+
+        const startDist = Phaser.Math.Distance.BetweenPoints(drawnStart, targetStart);
+        const endDist = Phaser.Math.Distance.BetweenPoints(drawnEnd, targetEnd);
+        const endpointError = Math.max(startDist, endDist);
+
+        const corridorTolerance = 30;
+        const endpointTolerance = 50;
+        const hardMaxDeviation = 60;
+
+        return (averageDeviation < corridorTolerance &&
+            endpointError < endpointTolerance &&
+            maxDeviation < hardMaxDeviation);
+    },
+
+    closestPointOnPath: function (point, path) {
+        let minDist = Infinity;
+        let closestPoint = path[0];
+
+        for (let i = 0; i < path.length; i++) {
+            const dist = Phaser.Math.Distance.BetweenPoints(point, path[i]);
+            if (dist < minDist) {
+                minDist = dist;
+                closestPoint = path[i];
+            }
+        }
+        return { point: closestPoint, distance: minDist };
+    },
+
+    acceptStroke: function (scene) {
+        VisualEffects.createKanjiStrokeEffect(scene, this.state.currentPath, 'success');
+
+        const perfectStroke = this.transformToScreen(this.state.targetStrokePoints[this.state.currentStroke]);
+        this.state.completedStrokes.push(perfectStroke);
+
+        this.state.currentPath = [];
+        this.state.currentStroke++;
+        this.state.strokeAttempts = 0;
+
+        this.renderScene(scene);
+
+        const totalStrokes = this.state.currentKanji.strokes.length;
+
+        if (this.state.currentStroke >= totalStrokes) {
+            this.state.challengeComplete = true;
+            setTimeout(() => {
+                this.completeChallenge(scene);
+            }, 500);
+        }
+    },
+
+    rejectStroke: function (scene) {
+        if (!this.elements.container) return;
+
+        const tempG = scene.add.graphics();
+        tempG.setDepth(1502);
+        this.elements.container.add(tempG);
+
+        tempG.lineStyle(8, 0xff0000, 1);
+        tempG.beginPath();
+        if (this.state.currentPath.length > 0) {
+            tempG.moveTo(this.state.currentPath[0].x, this.state.currentPath[0].y);
+            for (let i = 1; i < this.state.currentPath.length; i++) {
+                tempG.lineTo(this.state.currentPath[i].x, this.state.currentPath[i].y);
+            }
+        }
+        tempG.strokePath();
+
+        scene.tweens.add({
+            targets: tempG,
+            x: { from: -2, to: 2 },
+            duration: 60,
+            yoyo: true,
+            repeat: 2,
+            onComplete: () => {
+                tempG.destroy();
+            }
+        });
+
+        this.state.currentPath = [];
+        this.state.strokeAttempts++;
+        this.state.totalMistakes++;
+
+        setTimeout(() => {
+            this.renderScene(scene);
+        }, 300);
+
+        if (this.state.strokeAttempts === 2) {
+            this.state.missedStrokes++;
+        }
+    },
+
+    extractSVGPoints: function (pathString) {
+        if (!pathString) return [];
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathString);
+
+        const totalLength = path.getTotalLength();
+        const points = [];
+        const step = 5;
+
+        for (let i = 0; i <= totalLength; i += step) {
+            const pt = path.getPointAtLength(i);
+            points.push({ x: pt.x, y: pt.y });
+        }
+
+        const endPt = path.getPointAtLength(totalLength);
+        points.push({ x: endPt.x, y: endPt.y });
+
+        return points;
+    },
+
+    completeChallenge: function (scene) {
+        const totalStrokes = this.state.currentKanji.strokes.length;
+
+        const totalAttempts = totalStrokes + this.state.totalMistakes;
+        const accuracy = totalAttempts > 0 ? (totalStrokes / totalAttempts) : 0;
+
+        const fullLevelXP = xpForNextLevel(playerLevel);
+        const xpReward = Math.ceil(fullLevelXP * accuracy);
+
+        heroExp += xpReward;
+        GameUI.updateExpBar(scene);
+        this.showCompletionMessage(scene, xpReward, accuracy);
+
+        setTimeout(() => {
+            this.cleanup(scene);
+        }, 2500);
+    },
+
+    showCompletionMessage: function (scene, xpReward, accuracy) {
+        const centerX = game.config.width / 2;
+        const centerY = game.config.height / 2;
+        const accPct = Math.round(accuracy * 100);
+
+        const msg = scene.add.text(centerX, centerY,
+            `Accuracy: ${accPct}%\n+${xpReward} XP`,
+            { fontFamily: 'Arial', fontSize: '40px', color: '#00ff00', fontStyle: 'bold', align: 'center', stroke: '#000000', strokeThickness: 4 }
+        ).setOrigin(0.5).setDepth(1502);
+
+        scene.tweens.add({
+            targets: msg,
+            scale: { from: 0.5, to: 1.2 },
+            duration: 400,
+            yoyo: true,
+            hold: 1000,
+            onComplete: () => msg.destroy()
+        });
+    },
+
+    cleanup: function (scene) {
+        if (this.elements.concentricCircles) {
+            this.elements.concentricCircles.destroy();
+            this.elements.concentricCircles = null;
+        }
+
+        if (this.elements.graphics) {
+            this.elements.graphics.destroy();
+            this.elements.graphics = null;
+        }
+
+        if (this.elements.greenDotIndicator) {
+            this.elements.greenDotIndicator.destroy();
+            this.elements.greenDotIndicator = null;
+        }
+
+        if (this.elements.container) {
+            this.elements.container.destroy();
+            this.elements.container = null;
+        }
+
+        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null, titleText: null, concentricCircles: null, greenDotIndicator: null };
+        this.drawAreaBounds = null;
+
+        this.state.active = false;
+        this.state.challengeComplete = false;
+        this.state.lastAnimatedStroke = -1;
+        this.state.activePointerId = null;
+
+        if (window.PauseSystem) {
+            PauseSystem.resumeGame();
+        } else {
+            gamePaused = false;
+            if (scene && scene.physics) {
+                scene.physics.resume();
+            }
+        }
+    },
+
+    destroy: function () {
+        if (this.challengeTimer) this.challengeTimer.remove();
+        this.cleanup(null);
+    }
+};
+
+window.KanjiDrawingSystem = KanjiDrawingSystem;

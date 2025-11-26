@@ -530,6 +530,49 @@ const VisualEffects = {
         return kanjis;
     },
 
+    // Particle effect for Kanji Drawing (Success Only)
+    createKanjiStrokeEffect: function (scene, pathPoints, type) {
+        // Only handle success effects now
+        if (!scene || !pathPoints || pathPoints.length < 2 || type !== 'success') return;
+
+        // Ensure soft glow texture exists
+        const textureKey = 'kanji_particle_soft';
+        if (!scene.textures.exists(textureKey)) {
+            const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
+            graphics.fillStyle(0xffffff, 1);
+            graphics.fillCircle(4, 4, 4); // 8x8 texture
+            graphics.generateTexture(textureKey, 8, 8);
+        }
+
+        const particles = scene.add.particles(textureKey);
+        particles.setDepth(2000); // Very high depth
+
+        // Success: Feisty White Pop
+        const emitter = particles.createEmitter({
+            speed: { min: 60, max: 140 }, // Tighter range
+            scale: { start: 1, end: 0 }, // Standard pop size
+            alpha: { start: 1, end: 0 },
+            lifespan: 400, // Short life for "pop" feeling
+            blendMode: 'ADD',
+            tint: 0xffffff, // Pure White
+            on: false
+        });
+
+        // Emit particles along the path
+        // Step = 8 means 50% fewer particles than before
+        const step = 8;
+
+        for (let i = 0; i < pathPoints.length; i += step) {
+            const pt = pathPoints[i];
+            emitter.emitParticle(1, pt.x, pt.y);
+        }
+
+        // Auto cleanup
+        scene.time.delayedCall(1000, () => {
+            if (particles) particles.destroy();
+        });
+    },
+
     // Create animated concentric circles for Phaser scenes (pause screen)
     createConcentricCircles: function (scene, options = {}) {
         const config = {

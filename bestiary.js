@@ -1,6 +1,10 @@
+// bestiary.js - Enemy Configuration
+// Defines which kanji from the dictionary are used as enemies and their gameplay properties
+// Requires: dictionary.js
+
 // Get current difficulty level (1-4)
 function getCurrentDifficulty() {
-    return window.DIFFICULTY_LEVEL ?? 3; // Default to difficulty 3
+    return window.DIFFICULTY_LEVEL ?? 2; // Default to difficulty 2
 }
 
 // Calculate speed ranges based on difficulty
@@ -19,7 +23,7 @@ function getDifficultyBossConfig(difficulty) {
     };
 }
 
-// Updated default values for different ranks of enemies with difficulty scaling
+// Rank-based defaults for enemies
 const ENEMY_RANK_DEFAULTS = {
     1: {
         healthMultiplier: 1.0,
@@ -94,405 +98,25 @@ const ENEMY_RANK_NAMES = {
     6: "陸"  // Formal number 6 (roku)
 };
 
-// The enemy definitions - using kanji characters with readings and translations
-// All kanji have been verified for accuracy as single-character words
-const ENEMY_TYPES = {
-    '鬼': {
-        kana: 'おに',
-        romaji: 'oni',
-        english: 'Demon'
-    },
-    '龍': {
-        kana: 'りゅう',
-        romaji: 'ryuu',
-        english: 'Dragon'
-    },
-    '蛇': {
-        kana: 'へび',
-        romaji: 'hebi',
-        english: 'Snake'
-    },
-    '魔': {
-        kana: 'ま',
-        romaji: 'ma',
-        english: 'Demon'
-    },
-    '死': {
-        kana: 'し',
-        romaji: 'shi',
-        english: 'Death'
-    },
-    '獣': {
-        kana: 'けもの',
-        romaji: 'kemono',
-        english: 'Beast'
-    },
-    '骨': {
-        kana: 'ほね',
-        romaji: 'hone',
-        english: 'Bone'
-    },
-    '影': {
-        kana: 'かげ',
-        romaji: 'kage',
-        english: 'Shadow'
-    },
-    '鮫': {
-        kana: 'さめ',
-        romaji: 'same',
-        english: 'Shark'
-    },
-    '妖': {
-        kana: 'よう',
-        romaji: 'you',
-        english: 'Bewitching'
-    },
-    '霊': {
-        kana: 'れい',
-        romaji: 'rei',
-        english: 'Spirit'
-    },
-    '怨': {
-        kana: 'うらみ',
-        romaji: 'urami',
-        english: 'Grudge'
-    },
-    '邪': {
-        kana: 'じゃ',
-        romaji: 'ja',
-        english: 'Evil'
-    },
-    '呪': {
-        kana: 'のろい',
-        romaji: 'noroi',
-        english: 'Curse'
-    },
-    '魂': {
-        kana: 'たましい',
-        romaji: 'tamashii',
-        english: 'Soul'
-    },
-    '闇': {
-        kana: 'やみ',
-        romaji: 'yami',
-        english: 'Darkness'
-    },
-    '煉': {
-        kana: 'れん',
-        romaji: 'ren',
-        english: 'Refine'
-    },
-    '殺': {
-        kana: 'さつ',
-        romaji: 'satsu',
-        english: 'Kill'
-    },
-    '禍': {
-        kana: 'わざわい',
-        romaji: 'wazawai',
-        english: 'Calamity'
-    },
-    '悪': {
-        kana: 'あく',
-        romaji: 'aku',
-        english: 'Evil'
-    },
-    '屍': {
-        kana: 'しかばね',
-        romaji: 'shikabane',
-        english: 'Corpse'
-    },
-    '凶': {
-        kana: 'きょう',
-        romaji: 'kyou',
-        english: 'Misfortune'
-    },
-    '餓': {
-        kana: 'が',
-        romaji: 'ga',
-        english: 'Hunger'
-    },
-    '狂': {
-        kana: 'きょう',
-        romaji: 'kyou',
-        english: 'Madness'
-    },
-    '災': {
-        kana: 'わざわい',
-        romaji: 'wazawai',
-        english: 'Disaster'
-    },
-    '亡': {
-        kana: 'ぼう',
-        romaji: 'bou',
-        english: 'Death'
-    },
-    '滅': {
-        kana: 'めつ',
-        romaji: 'metsu',
-        english: 'Destruction'
-    },
-    '崩': {
-        kana: 'ほう',
-        romaji: 'hou',
-        english: 'Collapse'
-    },
-    '破': {
-        kana: 'は',
-        romaji: 'ha',
-        english: 'Break'
-    },
-    '裂': {
-        kana: 'れつ',
-        romaji: 'retsu',
-        english: 'Tear'
-    },
-    '灰': {
-        kana: 'はい',
-        romaji: 'hai',
-        english: 'Ash'
-    },
-    '焦': {
-        kana: 'しょう',
-        romaji: 'shou',
-        english: 'Scorch'
-    },
-    '血': {
-        kana: 'ち',
-        romaji: 'chi',
-        english: 'Blood'
-    },
-    '斬': {
-        kana: 'ざん',
-        romaji: 'zan',
-        english: 'Slash'
-    },
-    '刺': {
-        kana: 'し',
-        romaji: 'shi',
-        english: 'Stab'
-    },
-    '砕': {
-        kana: 'さい',
-        romaji: 'sai',
-        english: 'Crush'
-    },
-    '毒': {
-        kana: 'どく',
-        romaji: 'doku',
-        english: 'Poison'
-    },
-    '疫': {
-        kana: 'えき',
-        romaji: 'eki',
-        english: 'Plague'
-    },
-    '病': {
-        kana: 'びょう',
-        romaji: 'byou',
-        english: 'Disease'
-    },
-    '腐': {
-        kana: 'ふ',
-        romaji: 'fu',
-        english: 'Rot'
-    },
-    '蝕': {
-        kana: 'しょく',
-        romaji: 'shoku',
-        english: 'Eclipse'
-    },
-    '墓': {
-        kana: 'はか',
-        romaji: 'haka',
-        english: 'Tomb'
-    },
-    '棺': {
-        kana: 'かん',
-        romaji: 'kan',
-        english: 'Coffin'
-    },
-    '葬': {
-        kana: 'そう',
-        romaji: 'sou',
-        english: 'Burial'
-    },
-    '鎖': {
-        kana: 'くさり',
-        romaji: 'kusari',
-        english: 'Chain'
-    },
-    '縛': {
-        kana: 'ばく',
-        romaji: 'baku',
-        english: 'Bind'
-    },
-    '罠': {
-        kana: 'わな',
-        romaji: 'wana',
-        english: 'Trap'
-    },
-    '恐': {
-        kana: 'きょう',
-        romaji: 'kyou',
-        english: 'Fear'
-    },
-    '脅': {
-        kana: 'きょう',
-        romaji: 'kyou',
-        english: 'Threaten'
-    },
-    '絶': {
-        kana: 'ぜつ',
-        romaji: 'zetsu',
-        english: 'Sever'
-    },
-    '終': {
-        kana: 'しゅう',
-        romaji: 'shuu',
-        english: 'End'
-    },
-    '喪': {
-        kana: 'そう',
-        romaji: 'sou',
-        english: 'Mourning'
-    },
-    '虚': {
-        kana: 'きょ',
-        romaji: 'kyo',
-        english: 'Void'
-    },
-    '空': {
-        kana: 'くう',
-        romaji: 'kuu',
-        english: 'Empty'
-    },
-    '虫': {
-        kana: 'むし',
-        romaji: 'mushi',
-        english: 'Insect'
-    },
-    '蜘': {
-        kana: 'くも',
-        romaji: 'kumo',
-        english: 'Spider'
-    },
-    '蛛': {
-        kana: 'くも',
-        romaji: 'kumo',
-        english: 'Spider'
-    },
-    '蠍': {
-        kana: 'さそり',
-        romaji: 'sasori',
-        english: 'Scorpion'
-    },
-    '蟹': {
-        kana: 'かに',
-        romaji: 'kani',
-        english: 'Crab'
-    },
-    '蛾': {
-        kana: 'が',
-        romaji: 'ga',
-        english: 'Moth'
-    },
-    '蝶': {
-        kana: 'ちょう',
-        romaji: 'chou',
-        english: 'Butterfly'
-    },
-    '蜂': {
-        kana: 'はち',
-        romaji: 'hachi',
-        english: 'Bee'
-    },
-    '蟻': {
-        kana: 'あり',
-        romaji: 'ari',
-        english: 'Ant'
-    },
-    '蛭': {
-        kana: 'ひる',
-        romaji: 'hiru',
-        english: 'Leech'
-    },
-    '蚊': {
-        kana: 'か',
-        romaji: 'ka',
-        english: 'Mosquito'
-    },
-    '蠅': {
-        kana: 'はえ',
-        romaji: 'hae',
-        english: 'Fly'
-    },
-    '蝙': {
-        kana: 'へん',
-        romaji: 'hen',
-        english: 'Bat'
-    },
-    '蟲': {
-        kana: 'むし',
-        romaji: 'mushi',
-        english: 'Bug'
-    },
-    '髑': {
-        kana: 'どく',
-        romaji: 'doku',
-        english: 'Skull'
-    },
-    '髏': {
-        kana: 'ろ',
-        romaji: 'ro',
-        english: 'Skeleton'
-    },
-    '怪': {
-        kana: 'かい',
-        romaji: 'kai',
-        english: 'Monster'
-    },
-    '妄': {
-        kana: 'もう',
-        romaji: 'mou',
-        english: 'Delusion'
-    },
-    '憑': {
-        kana: 'ひょう',
-        romaji: 'hyou',
-        english: 'Possession'
-    },
-    '鵺': {
-        kana: 'ぬえ',
-        romaji: 'nue',
-        english: 'Nue'
-    },
-    '魘': {
-        kana: 'えん',
-        romaji: 'en',
-        english: 'Nightmare'
-    }
-};
-
 // Dynamic tier assignments - will store enemy types for each rank
 let ENEMY_TIER_ASSIGNMENTS = {
-    1: [], // Will hold enemy types assigned to rank 1
-    2: [], // Will hold enemy types assigned to rank 2
-    3: [], // Will hold enemy types assigned to rank 3
-    4: [], // Will hold enemy types assigned to rank 4
-    5: [], // Will hold enemy types assigned to rank 5
-    6: []  // Will hold enemy types assigned to rank 6
+    1: [], // Will hold enemy kanji characters assigned to rank 1
+    2: [], // Will hold enemy kanji characters assigned to rank 2
+    3: [], // Will hold enemy kanji characters assigned to rank 3
+    4: [], // Will hold enemy kanji characters assigned to rank 4
+    5: [], // Will hold enemy kanji characters assigned to rank 5
+    6: []  // Will hold enemy kanji characters assigned to rank 6
 };
 
 // Initialize enemy tier assignments
-function initializeEnemyTiers(tierCounts = { 1: 8, 2: 4, 3: 2, 4: 2, 5: 2, 6: 2 }) {
+function initializeEnemyTiers(tierCounts = { 1: 4, 2: 4, 3: 4, 4: 1, 5: 1, 6: 1 }) {
     // Reset assignments
     ENEMY_TIER_ASSIGNMENTS = {
         1: [], 2: [], 3: [], 4: [], 5: [], 6: []
     };
 
-    // Get all enemy types
-    const allEnemyTypes = Object.keys(ENEMY_TYPES);
+    // Get all kanji characters from dictionary
+    const allEnemyTypes = getAllKanjiCharacters();
 
     // Shuffle array to randomize assignments
     const shuffledEnemies = [...allEnemyTypes];
@@ -531,48 +155,54 @@ function initializeEnemyTiers(tierCounts = { 1: 8, 2: 4, 3: 2, 4: 2, 5: 2, 6: 2 
 }
 
 // Helper function to get complete enemy data with defaults applied
-function getEnemyData(enemyType) {
-    // If enemy type doesn't exist, use a random one
-    if (!ENEMY_TYPES[enemyType]) {
-        const availableTypes = Object.keys(ENEMY_TYPES);
-        enemyType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+function getEnemyData(enemyCharacter) {
+    // Get kanji data from dictionary
+    const kanjiData = getKanji(enemyCharacter);
+
+    // If kanji doesn't exist in dictionary, use a random one
+    if (!kanjiData) {
+        const randomKanji = getRandomKanji();
+        enemyCharacter = randomKanji.character;
     }
+
+    // Re-fetch in case we had to use random
+    const finalKanjiData = getKanji(enemyCharacter);
 
     // Find which rank this enemy is assigned to
     let enemyRank = 1; // Default to rank 1 if not found
     for (let rank = 1; rank <= 6; rank++) {
-        if (ENEMY_TIER_ASSIGNMENTS[rank].includes(enemyType)) {
+        if (ENEMY_TIER_ASSIGNMENTS[rank].includes(enemyCharacter)) {
             enemyRank = rank;
             break;
         }
     }
 
     // Get the defaults for this rank
-    const rankDefaults = ENEMY_RANK_DEFAULTS[enemyRank] || ENEMY_RANK_DEFAULTS[1];
+    const rankDefaults = ENEMY_RANK_DEFAULTS[enemyRank] ?? ENEMY_RANK_DEFAULTS[1];
 
-    // Merge rank defaults with specific enemy data
+    // Merge rank defaults with kanji dictionary data
     return {
         ...rankDefaults,
-        ...ENEMY_TYPES[enemyType],
-        type: enemyType,
+        ...finalKanjiData,
+        type: enemyCharacter,
         rank: enemyRank // Include the assigned rank
     };
 }
 
 // Get all enemy types as an array
 function getAllEnemyTypes() {
-    return Object.keys(ENEMY_TYPES);
+    return getAllKanjiCharacters();
 }
 
 // Get enemy types by rank (from dynamic assignments)
 function getEnemyTypesByRank(rank) {
-    return ENEMY_TIER_ASSIGNMENTS[rank] || [];
+    return ENEMY_TIER_ASSIGNMENTS[rank] ?? [];
 }
 
 // Choose a random enemy type
 function getRandomEnemyType() {
-    const types = getAllEnemyTypes();
-    return types[Math.floor(Math.random() * types.length)];
+    const randomKanji = getRandomKanji();
+    return randomKanji.character;
 }
 
 // Choose a random enemy type of a specific rank

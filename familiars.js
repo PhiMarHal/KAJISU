@@ -1,262 +1,243 @@
-// Enhanced Familiar System for KAJISU
-// Manages orbital entities that have firing behavior
+// Unified Entity Firing System for KAJISU
+// Works with orbitals, droppers, or any entity that needs to fire projectiles
 
-// Registry for different familiar behaviors
-const FamiliarBehaviors = {
-    // Sniper behavior - fires high-damage shots at random enemies
-    sniper: function (scene, orbital, time) {
-        // Calculate shot properties (can be moved to config)
-        const damage = playerDamage * 2;
-        const speed = 800; // 2x normal speed
+// Unified firing behaviors - work with any entity that has x/y coordinates
+const EntityFiringBehaviors = {
+    sniper: function (scene, entity, time, maxDistance = 400) {
+        // Damage was playerDamage * 2 -> (Effective + Luck) * 1.0
+        const damage = (getEffectiveDamage() + playerLuck) * 1.0;
+        const speed = 800;
         const projectileColor = '#FF55AA';
 
-        // Find a random enemy to target
-        const target = findRandomVisibleEnemy(scene);
-
-        // If a target was found, fire at it
+        const target = findRandomVisibleEnemy(scene, maxDistance);
         if (target) {
-            fireFamiliarProjectile(scene, orbital, target, {
+            fireProjectileFromEntity(scene, entity, target, {
                 damage: damage,
                 speed: speed,
                 color: projectileColor
             });
-
-            return true; // Shot fired successfully
+            return true;
         }
-
-        return false; // No shot fired
+        return false;
     },
 
-    // Copy behavior - fires weaker shots at the closest enemy
-    copy: function (scene, orbital, time) {
-        // Calculate shot properties
-        const damage = playerDamage * 0.5; // Half player damage
+    copy: function (scene, entity, time, maxDistance = 400) {
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
+        const target = findClosestVisibleEnemy(scene, maxDistance);
 
-        // Find the closest enemy to the player
-        const target = findClosestVisibleEnemy(scene);
-
-        // If a target was found, fire at it
         if (target) {
-            fireFamiliarProjectile(scene, orbital, target, {
+            fireProjectileFromEntity(scene, entity, target, {
                 damage: damage
             });
-
-            return true; // Shot fired successfully
+            return true;
         }
-
-        return false; // No shot fired
+        return false;
     },
 
-    cold: function (scene, orbital, time) {
-        // Calculate shot properties
-        const damage = playerDamage * 0.5; // Half player damage
-        const projectileColor = '#00FFFF'; // Cyan color for cold theme
+    cold: function (scene, entity, time, maxDistance = 400) {
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
+        const projectileColor = '#00FFFF';
+        const target = findClosestVisibleEnemy(scene, maxDistance);
 
-        // Find the closest enemy to the player
-        const target = findClosestVisibleEnemy(scene);
-
-        // If a target was found, fire at it
         if (target) {
-            const projectile = fireFamiliarProjectile(scene, orbital, target, {
+            const projectile = fireProjectileFromEntity(scene, entity, target, {
                 damage: damage,
                 color: projectileColor
             });
 
-            // Add slow effect component to the projectile
             if (projectile) {
                 ProjectileComponentSystem.addComponent(projectile, 'slowEffect');
             }
-
-            return true; // Shot fired successfully
+            return true;
         }
-
-        return false; // No shot fired
+        return false;
     },
 
-    // fun behavior - fires random effect projectiles
-    fun: function (scene, orbital, time) {
-        // Calculate shot properties
-        const damage = playerDamage * 0.5; // Half player damage
-        const speed = 400; // Normal speed
-
-        // Available effect components with their colors and symbols
+    fun: function (scene, entity, time, maxDistance = 400) {
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
         const availableEffects = [
-            { component: 'slowEffect', color: '#00FFFF', symbol: '❄' },         // Snowflake for slow
-            { component: 'poisonEffect', color: '#2AAD27', symbol: '☠' },       // Skull for poison
-            { component: 'fireEffect', color: '#FF4500', symbol: '🔥' },         // Fire for fire
-            { component: 'explosionEffect', color: '#FF9500', symbol: '💥' },    // Explosion for explosion
-            { component: 'splitEffect', color: '#1E90FF', symbol: '✧' }          // Star for split
+            { component: 'slowEffect', color: '#00FFFF', symbol: '❄' },
+            { component: 'poisonEffect', color: '#2AAD27', symbol: '☠' },
+            { component: 'fireEffect', color: '#FF4500', symbol: '🔥' },
+            { component: 'explosionEffect', color: '#FF9500', symbol: '💥' },
+            { component: 'splitEffect', color: '#1E90FF', symbol: '✧' }
         ];
 
-        // Select a random effect
         const randomEffect = availableEffects[Math.floor(Math.random() * availableEffects.length)];
+        const target = findRandomVisibleEnemy(scene, maxDistance);
 
-        // Find a random enemy to target
-        const target = findRandomVisibleEnemy(scene);
-
-        // If a target was found, fire at it
         if (target) {
-            const projectile = fireFamiliarProjectile(scene, orbital, target, {
+            const projectile = fireProjectileFromEntity(scene, entity, target, {
                 damage: damage,
-                color: randomEffect.color, // Color based on effect
-                symbol: randomEffect.symbol // Symbol based on effect
+                color: randomEffect.color,
+                symbol: randomEffect.symbol
             });
 
-            // Add the selected effect component to the projectile
             if (projectile) {
                 ProjectileComponentSystem.addComponent(projectile, randomEffect.component);
             }
-
-            return true; // Shot fired successfully
+            return true;
         }
-
-        return false; // No shot fired
+        return false;
     },
 
-    // Berserk behavior - fires at random enemies at higher rate
-    berserk: function (scene, orbital, time) {
-        // Calculate shot properties
-        const damage = playerDamage * 0.5; // Half player damage
-        const speed = 400; // Faster than normal
+    berserk: function (scene, entity, time, maxDistance = 400) {
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
+        const target = findRandomVisibleEnemy(scene, maxDistance);
 
-        // Find a random enemy to target
-        const target = findRandomVisibleEnemy(scene);
-
-        // If a target was found, fire at it
         if (target) {
-            fireFamiliarProjectile(scene, orbital, target, {
+            fireProjectileFromEntity(scene, entity, target, {
                 damage: damage
             });
-
-            return true; // Shot fired successfully
+            return true;
         }
-
-        return false; // No shot fired
+        return false;
     },
 
-    healer: function (scene, orbital, time) {
-        // Calculate shot properties
-        const damage = playerDamage * 0.5; // Half player damage
-        const projectileColor = '#00ff00'; // Light green color
-        const projectileSymbol = '癒'; // Healing kanji
-        const speed = 100; // very slow speed for a projectile, to let the player try to catch the heal
+    healer: function (scene, entity, time, maxDistance = 400) {
+        // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+        const damage = (getEffectiveDamage() + playerLuck) * 0.25;
+        const projectileColor = '#00ff00';
+        const projectileSymbol = '癒';
+        const speed = 100;
+        const target = findRandomVisibleEnemy(scene, maxDistance);
 
-        // Find the closest enemy
-        const target = findRandomVisibleEnemy(scene);
-
-        // If a target was found, fire at it
         if (target) {
-            // Create projectile with custom properties
-            const projectile = fireFamiliarProjectile(scene, orbital, target, {
+            const projectile = fireProjectileFromEntity(scene, entity, target, {
                 damage: damage,
                 color: projectileColor,
                 symbol: projectileSymbol,
                 speed: speed
             });
 
-            // Add healing effect component to the projectile
             if (projectile) {
                 ProjectileComponentSystem.addComponent(projectile, 'healingAuraEffect');
             }
-
-            return true; // Shot fired successfully
+            return true;
         }
-
-        return false; // No shot fired
+        return false;
     },
 
-    finger: function (scene, orbital, time, options = {}) {
-        // Default options
+    finger: function (scene, entity, time, maxDistance = Infinity, options = {}) {
         const defaults = {
-            damage: playerDamage,    // Default to full damage
-            speed: 1000,             // Very fast speed
-            color: '#FFFF00',        // Default to yellow
-            symbol: '　',            // Use invisible character as intended
-            componentName: null      // No component by default
+            damage: (getEffectiveDamage() + playerLuck) * 0.5, // Default to 0.5x scale
+            speed: 1000,
+            color: '#FFFF00',
+            symbol: '　',
+            componentName: null
         };
 
-        // Merge with provided options
         const config = { ...defaults, ...options };
+        const angle = entity.angle || 0;
 
-        // We don't need a target since we fire in the direction the orbital is facing
-        // Use the standard firing method but with an angle instead of a target
-
-        // Calculate the angle from the orbital's angle property (set by directionFollowing)
-        const angle = orbital.angle;
-
-        // Create the projectile using the standard function
-        const projectile = fireFamiliarProjectile(scene, orbital, null, {
+        const projectile = fireProjectileFromEntity(scene, entity, null, {
             damage: config.damage,
             color: config.color,
             symbol: config.symbol,
             piercing: true,
             speed: config.speed,
-            // Override the angle calculation since we're not targeting an enemy
             overrideAngle: angle
         });
 
-        // Add piercing component
         if (projectile) {
             ProjectileComponentSystem.addComponent(projectile, 'piercingEffect');
-        }
 
-        // Add any additional component that was specified
-        if (projectile && config.componentName &&
-            ProjectileComponentSystem.componentTypes[config.componentName]) {
-            ProjectileComponentSystem.addComponent(projectile, config.componentName);
+            if (config.componentName && ProjectileComponentSystem.componentTypes[config.componentName]) {
+                ProjectileComponentSystem.addComponent(projectile, config.componentName);
+            }
         }
-
-        return true; // Shot fired successfully
+        return true;
     },
 
-    deathFinger: function (scene, orbital, time) {
-        return FamiliarBehaviors.finger(scene, orbital, time, {
-            damage: playerDamage / 2,
+    deathFinger: function (scene, entity, time, maxDistance = Infinity) {
+        return EntityFiringBehaviors.finger(scene, entity, time, maxDistance, {
+            // Damage was playerDamage / 2 (0.5 scale) -> (Effective + Luck) * 0.25
+            damage: (getEffectiveDamage() + playerLuck) * 0.25,
             speed: 1000,
             color: '#FFFF00',
-            symbol: '　',            // Invisible character as intended
+            symbol: '　',
             componentName: null
         });
     },
 
-    // Add a new decayFinger behavior that uses the generic finger
-    decayFinger: function (scene, orbital, time) {
-        return FamiliarBehaviors.finger(scene, orbital, time, {
-            damage: playerDamage * 0.2,
+    decayFinger: function (scene, entity, time, maxDistance = Infinity) {
+        return EntityFiringBehaviors.finger(scene, entity, time, maxDistance, {
+            // Damage was playerDamage * 0.2 (0.2 scale) -> (Effective + Luck) * 0.1
+            damage: (getEffectiveDamage() + playerLuck) * 0.1,
             speed: 1000,
             color: '#88AA22',
-            symbol: '　',            // Invisible character as intended
+            symbol: '　',
             componentName: 'poisonEffect'
         });
     },
-};
 
-// Helper function to find a random visible enemy within a maximum distance
-function findRandomVisibleEnemy(scene, maxDistance = 400) {
-    // Get all active enemies 
-    const activeEnemies = EnemySystem.enemiesGroup.getChildren().filter(enemy => {
-        if (!enemy || !enemy.active) return false;
+    heroStatue: function (scene, entity, time, maxDistance = 400) {
+        const target = findClosestVisibleEnemy(scene, maxDistance, entity);
 
-        // If maxDistance is specified, check distance from player
-        if (maxDistance !== Infinity) {
-            const dx = player.x - enemy.x;
-            const dy = player.y - enemy.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            return distance <= maxDistance;
+        if (target) {
+            fireProjectileFromEntity(scene, entity, target, {
+                // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
+                damage: (getEffectiveDamage() + playerLuck) * 0.25,
+                speed: 400,
+                color: '#FFFF00',
+                symbol: '★'
+            });
+            return true;
+        }
+        return false;
+    },
+
+    burningTotem: function (scene, entity, time, maxDistance = 400) {
+        // Always fire (no enemy targeting needed)
+        // Generate random angle (0 to 2π radians for full 360° coverage)
+        const randomAngle = Math.random() * Math.PI * 2;
+
+        const projectile = fireProjectileFromEntity(scene, entity, null, {
+            // Damage was playerDamage (1.0 scale) -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
+            speed: 400, // Initial speed before deceleration  
+            color: '#FF4500', // Orange-red fire color
+            symbol: '火', // Fire symbol
+            overrideAngle: randomAngle // Use random direction instead of targeting
+        });
+
+        if (projectile) {
+            ProjectileComponentSystem.addComponent(projectile, 'fireEffect');
+            // Add enhanced stasisEffect with custom parameters
+            ProjectileComponentSystem.addComponent(projectile, 'stasisEffect', {
+                damageMultiplier: 1.0, // No damage bonus (instead of default 1.5x)
+                onZeroSpeed: function (projectile, scene) {
+                    // Add fireEffect component to the projectile and trigger it manually
+                    ProjectileComponentSystem.addComponent(projectile, 'fireEffect');
+
+                    // Create a fake "enemy" position object at the projectile's location
+                    const fakeHitTarget = {
+                        x: projectile.x,
+                        y: projectile.y,
+                        active: true
+                    };
+
+                    // Manually trigger the fireEffect's onHit method
+                    const fireComponent = projectile.components.fireEffect;
+                    if (fireComponent && fireComponent.onHit) {
+                        fireComponent.onHit(projectile, fakeHitTarget, scene);
+                    }
+
+                    // Destroy the projectile now that it's become fire
+                    projectile.destroy();
+                }
+            });
         }
 
-        return true;
-    });
+        return true; // Always return true since we always fire
+    }
+};
 
-    // Return a random enemy from the list, or null if none found
-    if (activeEnemies.length === 0) return null;
-
-    return Phaser.Utils.Array.GetRandom(activeEnemies);
-}
-
-// Helper function to find the closest visible enemy to the player within a maximum distance
-function findClosestVisibleEnemy(scene, maxDistance = 400) {
-    // Get all active enemies
+function findClosestVisibleEnemy(scene, maxDistance = 400, sourceEntity = player) {
     const activeEnemies = EnemySystem.enemiesGroup.getChildren().filter(enemy => {
         return enemy && enemy.active;
     });
@@ -266,10 +247,9 @@ function findClosestVisibleEnemy(scene, maxDistance = 400) {
     let closestEnemy = null;
     let closestDistance = maxDistance;
 
-    // Find the closest enemy to the player
     activeEnemies.forEach(enemy => {
-        const dx = player.x - enemy.x;
-        const dy = player.y - enemy.y;
+        const dx = sourceEntity.x - enemy.x;
+        const dy = sourceEntity.y - enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < closestDistance) {
@@ -281,76 +261,77 @@ function findClosestVisibleEnemy(scene, maxDistance = 400) {
     return closestEnemy;
 }
 
-// Helper function to fire a projectile from a familiar
-function fireFamiliarProjectile(scene, orbital, target, options = {}) {
-    // Default options with explicit symbol
+function findRandomVisibleEnemy(scene, maxDistance = 400, sourceEntity = player) {
+    const activeEnemies = EnemySystem.enemiesGroup.getChildren().filter(enemy => {
+        if (!enemy || !enemy.active) return false;
+
+        if (maxDistance !== Infinity) {
+            const dx = sourceEntity.x - enemy.x;
+            const dy = sourceEntity.y - enemy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance <= maxDistance;
+        }
+        return true;
+    });
+
+    if (activeEnemies.length === 0) return null;
+    return Phaser.Utils.Array.GetRandom(activeEnemies);
+}
+
+// Unified projectile firing function
+function fireProjectileFromEntity(scene, entity, target, options = {}) {
     const config = {
-        damage: playerDamage * 0.5, // Default to half player damage for familiars
+        // Default: (Effective + Luck) * 0.25 (approx half player damage with standard stats)
+        damage: (getEffectiveDamage() + playerLuck) * 0.25,
         speed: 400,
         color: '#ffff00',
-        symbol: '★',           // Default star symbol
-        piercing: false,       // Add piercing option with default false
+        symbol: '★',
+        piercing: false,
         ...options
     };
 
-    // Ensure we have a valid symbol - handle undefined/null cases
     if (config.symbol === undefined || config.symbol === null) {
         config.symbol = '★';
     }
 
-    // Calculate direction to the target or use overrideAngle if provided
     const angle = target ? Phaser.Math.Angle.Between(
-        orbital.entity.x, orbital.entity.y,
+        entity.x, entity.y,
         target.x, target.y
-    ) : config.overrideAngle ?? 0; // Use overrideAngle or default to 0
+    ) : config.overrideAngle ?? 0;
 
-    // Calculate the appropriate size based on the actual damage
-    const familiarProjectileSize = getEffectiveSize(projectileSizeFactor, config.damage);
+    const projectileSize = getEffectiveSize(projectileSizeFactor, config.damage);
+    const finalSize = Math.max(12, projectileSize);
 
-    // Ensure we have a reasonable minimum size
-    const minSize = 12;
-    const finalSize = Math.max(minSize, familiarProjectileSize);
-
-    // Create the projectile using WeaponSystem with validated config
     const projectile = WeaponSystem.createProjectile(scene, {
-        x: orbital.entity.x,
-        y: orbital.entity.y,
+        x: entity.x,
+        y: entity.y,
         angle: angle,
-        symbol: config.symbol,      // Use validated symbol
+        symbol: config.symbol,
         color: config.color,
         speed: config.speed,
         damage: config.damage,
-        fontSize: finalSize,        // Use validated size
-        skipComponents: true        // Skip components for familiar projectiles, apply them manually if needed
+        fontSize: finalSize,
+        skipComponents: true
     });
 
-    // Validate that projectile was created successfully
     if (!projectile) {
-        console.warn('Failed to create familiar projectile:', config);
+        console.warn('Failed to create entity projectile:', config);
         return null;
     }
 
-    // Store the original velocity before any group changes
     const originalVelocityX = projectile.body.velocity.x;
     const originalVelocityY = projectile.body.velocity.y;
 
-    // If piercing is requested, add piercing component and fix physics group
     if (config.piercing) {
         ProjectileComponentSystem.addComponent(projectile, 'piercingEffect');
 
-        // Move to piercing group since it's now piercing
         if (projectile.piercing) {
-            // Remove from regular group
             WeaponSystem.projectilesGroup.remove(projectile);
-            // Add to piercing group  
             WeaponSystem.piercingProjectilesGroup.add(projectile);
-
-            // Restore velocity after group change
             projectile.body.setVelocity(originalVelocityX, originalVelocityY);
         }
     }
 
-    // Add visual effect for the shot
     scene.tweens.add({
         targets: projectile,
         alpha: { from: 0.7, to: 1 },
@@ -361,52 +342,68 @@ function fireFamiliarProjectile(scene, orbital, target, options = {}) {
     return projectile;
 }
 
-// Generic function to setup a familiar firing timer
-function setupFamiliarFiringTimer(scene, orbital, behaviorType, baseCooldown = 4000) {
-    // Skip if familiar is invalid
-    if (!orbital || !orbital.entity || !orbital.entity.active) return null;
+// UNIFIED setup function - works for both orbitals and droppers
+function setupEntityFiringTimer(scene, entityWrapper, behaviorType, baseCooldown = 4000, options = {}) {
+    // entityWrapper could be:
+    // - orbital (has orbital.entity)
+    // - drop (has drop.entity) 
+    // - any object with .entity property
 
-    // Get the behavior function
-    const behaviorFn = FamiliarBehaviors[behaviorType];
+    if (!entityWrapper || !entityWrapper.entity || !entityWrapper.entity.active) return null;
+
+    const behaviorFn = EntityFiringBehaviors[behaviorType];
     if (!behaviorFn) {
-        console.warn(`Unknown familiar behavior type: ${behaviorType}`);
+        console.warn(`Unknown firing behavior type: ${behaviorType}`);
         return null;
     }
 
-    // Set up orbital properties needed for proper cooldown management
-    orbital.baseCooldown = baseCooldown;
-    orbital.behaviorType = behaviorType;
+    // Default to multi-stat configuration
+    const config = {
+        statName: 'luck', // Fallback stat name
+        statFunction: options.statFunction,
+        statDependencies: options.statDependencies,
+        baseStatFunction: options.baseStatFunction,
+        formula: options.formula || 'sqrt',
+        maxDistance: 400,
+        rangeModifier: 1.0,
+        rangeScaling: true, // Whether to scale range with fire rate
+        ...options
+    };
 
-    // Create firing timer using CooldownManager - keeping this LUK-based as before
+    // If using divide formula and no baseCooldown is calculated externally (passed as raw ms),
+    // we assume the baseCooldown passed in is the TARGET time at default stats (8),
+    // so we multiply by 8 to get the actual mathematical base.
+    // HOWEVER, in nexus.js we are already passing in the pre-calculated base (e.g., 32000).
+    // So we use baseCooldown as is.
+
     const firingTimer = CooldownManager.createTimer({
-        statName: 'luck', // LUK-based timing
+        statName: config.statName,
+        statFunction: config.statFunction,
+        statDependencies: config.statDependencies,
+        baseStatFunction: config.baseStatFunction,
         baseCooldown: baseCooldown,
-        formula: 'sqrt',
-        component: orbital,  // Store reference to the orbital
+        formula: config.formula,
+        component: entityWrapper,
         callback: function () {
-            // Skip if game is over/paused or orbital is destroyed
             if (gameOver || gamePaused ||
-                !orbital || orbital.destroyed ||
-                !orbital.entity || !orbital.entity.active) {
+                !entityWrapper || entityWrapper.destroyed ||
+                !entityWrapper.entity || !entityWrapper.entity.active) {
                 return;
             }
 
-            // Calculate max distance based on player's AGI (fire rate)
-            const baseDistance = 400; // Base distance
-            let maxDistance = baseDistance * (Math.sqrt(playerFireRate / BASE_STATS.AGI));
+            // Calculate max distance
+            let maxDistance = config.maxDistance;
 
-            // Apply range modifier from options if available
-            const rangeModifier = orbital.options?.rangeModifier ?? 1.0;
-            maxDistance *= rangeModifier;
-
-            // Add time-based variation if specified in options
-            if (orbital.options?.useRangeVariation) {
-                const variation = Math.sin(scene.time.now * 0.001) * 0.2; // ±20% variation
-                maxDistance *= (1.0 + variation);
+            // Apply fire rate scaling if enabled
+            if (config.rangeScaling && config.statName !== 'fireRate') {
+                maxDistance = 400 * Math.sqrt(playerFireRate / BASE_STATS.AGI);
             }
 
-            // Execute the behavior with the calculated max distance
-            behaviorFn(scene, orbital, scene.time.now, maxDistance);
+            // Apply range modifier
+            maxDistance *= config.rangeModifier;
+
+            // Execute the behavior - pass the entity directly
+            behaviorFn(scene, entityWrapper.entity, scene.time.now, maxDistance);
         },
         callbackScope: scene,
         loop: true
@@ -415,23 +412,13 @@ function setupFamiliarFiringTimer(scene, orbital, behaviorType, baseCooldown = 4
     return firingTimer;
 }
 
-// Helper function to set up color-changing for a fairy
+// Color changing function for fun fairy
 function setupFairyColorChanger(scene, orbital) {
     if (!orbital || !orbital.entity || !scene) return;
 
-    // Array of vibrant colors for the fun fairy
-    const colors = [
-        '#FF55FF', // Pink
-        '#55FFFF', // Cyan
-        '#FFFF55', // Yellow
-        '#55FF55', // Green
-        '#FF5555', // Red
-        '#5555FF'  // Blue
-    ];
-
+    const colors = ['#FF55FF', '#55FFFF', '#FFFF55', '#55FF55', '#FF5555', '#5555FF'];
     let colorIndex = 0;
 
-    // Create the color change timer (every 2 seconds as requested)
     const colorTimer = scene.time.addEvent({
         delay: 2000,
         callback: function () {
@@ -440,10 +427,7 @@ function setupFairyColorChanger(scene, orbital) {
                 return;
             }
 
-            // Move to next color
             colorIndex = (colorIndex + 1) % colors.length;
-
-            // Apply new color directly - much simpler and more reliable
             try {
                 orbital.entity.setColor(colors[colorIndex]);
             } catch (error) {
@@ -454,17 +438,50 @@ function setupFairyColorChanger(scene, orbital) {
         loop: true
     });
 
-    // Register the timer for cleanup
     window.registerEffect('timer', colorTimer);
-
-    // Store reference to timer on orbital for cleanup
     orbital.colorTimer = colorTimer;
-
     return colorTimer;
 }
 
+// BACKWARD COMPATIBILITY for existing orbital code
+function fireFamiliarProjectile(scene, orbital, target, options = {}) {
+    return fireProjectileFromEntity(scene, orbital.entity, target, options);
+}
+
+function setupFamiliarFiringTimer(scene, orbital, behaviorType, baseCooldown = 4000) {
+    // Convert baseCooldown to new system if using 'divide' logic
+    // If baseCooldown is small (e.g. 4000ms), multiply by 8
+    // But since we call this from nexus.js which might pass raw values, we handle it there or here.
+    // For now, we assume nexus.js is passing the "target" time (e.g., 4000) and we need to scale it up
+    // if we switch to 'divide'.
+
+    // UPDATED: Switch to new stat formula: (FireRate + Luck)
+    // Base Cooldown calculation: Target * 8 (since 4+4=8)
+    const scaledBaseCooldown = baseCooldown * 8;
+
+    const options = {
+        statFunction: () => getEffectiveFireRate() + playerLuck,
+        statDependencies: ['fireRate', 'luck'],
+        formula: 'divide',
+        rangeModifier: orbital.options?.rangeModifier ?? 1.0,
+        rangeScaling: true
+    };
+
+    return setupEntityFiringTimer(scene, orbital, behaviorType, scaledBaseCooldown, options);
+}
+
+// Export unified system
+window.EntityFiringSystem = {
+    behaviors: EntityFiringBehaviors,
+    findRandomVisibleEnemy: findRandomVisibleEnemy,
+    findClosestVisibleEnemy: findClosestVisibleEnemy,
+    fireProjectileFromEntity: fireProjectileFromEntity,
+    setupEntityFiringTimer: setupEntityFiringTimer
+};
+
+// Export backward compatibility
 window.FamiliarSystem = {
-    behaviors: FamiliarBehaviors,
+    behaviors: EntityFiringBehaviors, // Same behaviors now
     findRandomVisibleEnemy: findRandomVisibleEnemy,
     findClosestVisibleEnemy: findClosestVisibleEnemy,
     fireFamiliarProjectile: fireFamiliarProjectile,

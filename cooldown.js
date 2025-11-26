@@ -1,9 +1,8 @@
 // CooldownManager - a system to track and update timers based on stat changes
+// Now supports: single stats, multiple stats, and custom stat functions
 const CooldownManager = {
-    // Store registered timers with their configuration
     registeredTimers: [],
 
-    // Last known player stats
     lastStats: {
         luck: null,
         fireRate: null,
@@ -11,52 +10,90 @@ const CooldownManager = {
         health: null
     },
 
-    // Initialize the system
     initialize: function () {
-        // Reset registered timers array
         this.registeredTimers = [];
-
-        // Store initial stats
         this.lastStats.luck = playerLuck;
         this.lastStats.fireRate = playerFireRate;
         this.lastStats.damage = playerDamage;
         this.lastStats.health = maxPlayerHealth;
-
         console.log("CooldownManager initialized with stats:", this.lastStats);
     },
 
-    // Create and register a timer
+    getStatValue: function (statName) {
+        switch (statName) {
+            case 'luck': return playerLuck;
+            case 'fireRate': return playerFireRate;
+            case 'damage': return playerDamage;
+            case 'health': return maxPlayerHealth;
+            default: return 1;
+        }
+    },
+
+    getBaseStatValue: function (statName) {
+        switch (statName) {
+            case 'luck': return BASE_STATS.LUK;
+            case 'fireRate': return BASE_STATS.AGI;
+            case 'damage': return BASE_STATS.POW;
+            case 'health': return BASE_STATS.END;
+            default: return 4;
+        }
+    },
+
+    getCurrentStatValue: function (config) {
+        if (config.statFunction) {
+            return config.statFunction();
+        }
+
+        if (config.statName) {
+            return this.getStatValue(config.statName);
+        }
+
+        if (config.statDependencies && config.statDependencies.length > 0) {
+            console.warn('Timer has statDependencies but no statFunction');
+            return this.getStatValue(config.statDependencies[0]);
+        }
+
+        return 1;
+    },
+
+    getBaseStatValueForConfig: function (config) {
+        if (config.baseStatFunction) {
+            return config.baseStatFunction();
+        }
+
+        if (config.statName) {
+            return this.getBaseStatValue(config.statName);
+        }
+
+        if (config.statDependencies && config.statDependencies.length > 0) {
+            return config.statDependencies.reduce((sum, statName) => {
+                return sum + this.getBaseStatValue(statName);
+            }, 0);
+        }
+
+        return 4;
+    },
+
     createTimer: function (options) {
         const scene = game.scene.scenes[0];
         if (!scene) return null;
 
-        // Get current stat value
-        const currentStatValue = options.statName === 'luck' ? playerLuck :
-            options.statName === 'fireRate' ? playerFireRate :
-                options.statName === 'damage' ? playerDamage :
-                    options.statName === 'health' ? maxPlayerHealth : 1;
+        const currentStatValue = this.getCurrentStatValue(options);
 
-        // Calculate initial cooldown
         let initialCooldown;
-        if (options.formula === 'fixed') {
-            initialCooldown = options.baseCooldown; // Fixed cooldown ignores stats
+        if (options.formula === 'fixed' || !options.formula) {
+            initialCooldown = options.baseCooldown ?? 30000;
         } else if (options.formula === 'multiply') {
             initialCooldown = options.baseCooldown * currentStatValue;
         } else if (options.formula === 'sqrt') {
-            // Use BASE_STATS reference for better code maintenance
-            const baseStatValue = options.statName === 'luck' ? BASE_STATS.LUK :
-                options.statName === 'fireRate' ? BASE_STATS.AGI :
-                    options.statName === 'damage' ? BASE_STATS.POW :
-                        options.statName === 'health' ? BASE_STATS.END : 4;
+            const baseStatValue = this.getBaseStatValueForConfig(options);
             initialCooldown = options.baseCooldown / (Math.sqrt(currentStatValue / baseStatValue));
         } else if (options.formula === 'divide') {
             initialCooldown = options.baseCooldown / currentStatValue;
         } else {
-            // No formula specified - use fixed cooldown
-            initialCooldown = options.baseCooldown;
+            initialCooldown = options.baseCooldown ?? 30000;
         }
 
-        // Create the timer
         const timer = scene.time.addEvent({
             delay: initialCooldown,
             callback: options.callback,
@@ -64,125 +101,115 @@ const CooldownManager = {
             loop: options.loop ?? true
         });
 
-        // Register with effect system
         window.registerEffect('timer', timer);
 
-        // Store configuration - DO NOT use defaults for statName/formula when null
         const config = {
             timer: timer,
-            statName: options.statName, // Keep original null value
+            statName: options.statName ?? null,
+            statDependencies: options.statDependencies ?? null,
+            statFunction: options.statFunction ?? null,
+            baseStatFunction: options.baseStatFunction ?? null,
             baseCooldown: options.baseCooldown ?? 30000,
-            formula: options.formula, // Keep original null value
+            formula: options.formula ?? null,
             component: options.component ?? null,
             callback: options.callback,
             callbackScope: options.callbackScope,
             loop: options.loop ?? true
         };
 
-        // Add to registered timers
         this.registeredTimers.push(config);
 
         return timer;
     },
 
-    // Remove a timer
     removeTimer: function (timer) {
         if (!timer) return;
-
-        // Find and remove the timer from registry
         this.registeredTimers = this.registeredTimers.filter(config => config.timer !== timer);
-
-        // Stop the timer
         if (timer && !timer.hasOwnProperty('removed')) {
             timer.remove();
         }
     },
 
-    // Check for stat changes and update timers accordingly
+    getTimerDependencies: function (config) {
+        if (config.statDependencies) {
+            return config.statDependencies;
+        }
+        if (config.statName) {
+            return [config.statName];
+        }
+        return [];
+    },
+
     update: function () {
         let statsChanged = false;
         const changedStats = {};
 
-        // Check each stat for significant changes (10% or more)
-        if (Math.abs(this.lastStats.luck - playerLuck) >= this.lastStats.luck * 0.1) {
+        if (this.lastStats.luck !== playerLuck) {
             changedStats.luck = playerLuck;
             statsChanged = true;
         }
 
-        if (Math.abs(this.lastStats.fireRate - playerFireRate) >= this.lastStats.fireRate * 0.1) {
+        if (this.lastStats.fireRate !== playerFireRate) {
             changedStats.fireRate = playerFireRate;
             statsChanged = true;
         }
 
-        if (Math.abs(this.lastStats.damage - playerDamage) >= this.lastStats.damage * 0.1) {
+        if (this.lastStats.damage !== playerDamage) {
             changedStats.damage = playerDamage;
             statsChanged = true;
         }
 
-        if (Math.abs(this.lastStats.health - maxPlayerHealth) >= this.lastStats.health * 0.1) {
+        if (this.lastStats.health !== maxPlayerHealth) {
             changedStats.health = maxPlayerHealth;
             statsChanged = true;
         }
 
-        // If no significant changes, exit early
         if (!statsChanged) return;
 
-        console.log("Significant stat changes detected:", changedStats);
+        console.log("Stat changes detected:", changedStats);
 
-        // Update each affected timer
         this.registeredTimers.forEach(config => {
-            // Check if this timer depends on a changed stat
-            if (config.statName && changedStats.hasOwnProperty(config.statName)) {
-                this.updateTimer(config, changedStats[config.statName]);
+            const dependencies = this.getTimerDependencies(config);
+            const shouldUpdate = dependencies.some(dep => changedStats.hasOwnProperty(dep));
+
+            if (shouldUpdate) {
+                this.updateTimer(config);
             }
         });
 
-        // Update stored stats
         Object.assign(this.lastStats, changedStats);
     },
 
-    // Update a specific timer with new stat value
-    updateTimer: function (config, newStatValue) {
-        // Skip if timer was removed
+    updateTimer: function (config) {
         if (!config.timer || config.timer.hasOwnProperty('removed')) return;
+        if (!config.formula) return;
 
-        // Skip if no statName or formula specified (fixed cooldown)
-        if (!config.statName || !config.formula) return;
+        const currentStatValue = this.getCurrentStatValue(config);
 
-        // Calculate new cooldown based on formula
         let newCooldown;
         if (config.formula === 'fixed') {
-            newCooldown = config.baseCooldown; // Fixed cooldown ignores stat changes
+            newCooldown = config.baseCooldown;
         } else if (config.formula === 'multiply') {
-            newCooldown = config.baseCooldown * newStatValue;
+            newCooldown = config.baseCooldown * currentStatValue;
         } else if (config.formula === 'sqrt') {
-            // Use BASE_STATS reference for better code maintenance
-            const baseStatValue = config.statName === 'luck' ? BASE_STATS.LUK :
-                config.statName === 'fireRate' ? BASE_STATS.AGI :
-                    config.statName === 'damage' ? BASE_STATS.POW :
-                        config.statName === 'health' ? BASE_STATS.END : 4;
-            newCooldown = config.baseCooldown / (Math.sqrt(newStatValue / baseStatValue));
+            const baseStatValue = this.getBaseStatValueForConfig(config);
+            newCooldown = config.baseCooldown / (Math.sqrt(currentStatValue / baseStatValue));
         } else if (config.formula === 'divide') {
-            newCooldown = config.baseCooldown / newStatValue;
+            newCooldown = config.baseCooldown / currentStatValue;
         } else {
-            // Unknown formula - don't update
             return;
         }
 
-        // Store elapsed time and progress
         const elapsed = config.timer.elapsed;
         const progress = elapsed / config.timer.delay;
 
         console.log(`Updating timer: old delay=${config.timer.delay}ms, new delay=${newCooldown}ms, progress=${progress.toFixed(2)}`);
 
-        // Get the scene
         const scene = game.scene.scenes[0];
         if (!scene) return;
 
-        // Remove old timer
         config.timer.remove();
 
-        // Create new timer with updated cooldown
         const newTimer = scene.time.addEvent({
             delay: newCooldown,
             callback: config.callback,
@@ -190,23 +217,16 @@ const CooldownManager = {
             loop: config.loop
         });
 
-        // Preserve progress in the cooldown cycle
         newTimer.elapsed = progress * newCooldown;
 
-        // Register with effect system
         window.registerEffect('timer', newTimer);
 
-        // Update reference in config
         config.timer = newTimer;
 
-        // If component exists, update its reference too
         if (config.component && typeof config.component === 'object') {
-            // For familiar timers, store reference directly
             if (config.component.firingTimer === config.timer) {
                 config.component.firingTimer = newTimer;
-            }
-            // Find timer property in component for other types
-            else {
+            } else {
                 for (const key in config.component) {
                     if (config.component[key] === config.timer) {
                         config.component[key] = newTimer;
@@ -218,5 +238,4 @@ const CooldownManager = {
     }
 };
 
-// Export the manager for use in other files
 window.CooldownManager = CooldownManager;

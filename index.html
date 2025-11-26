@@ -22,7 +22,9 @@
     <script src="shrines.js"></script>
     <script src="hero.js"></script>
     <script src="artillery.js"></script>
+    <script src="dictionary.js"></script>
     <script src="bestiary.js"></script>
+    <script src="drawing.js"></script>
     <script src="entrapments.js"></script>
     <script src="beamLogic.js"></script>
     <script src="beamPerks.js"></script>
@@ -202,7 +204,8 @@
         let activeEffects = {
             timers: [],         // Store all active timers
             entities: [],       // Store all entities created by perks 
-            activePerks: []     // Store all acquired perks
+            activePerks: [],     // Store all acquired perks
+            fireTracking: []
         };
 
         // Initial player stats
@@ -350,6 +353,7 @@
             activeEffects.timers = [];
             activeEffects.entities = [];
             activeEffects.activePerks = [];
+            activeEffects.fireTracking = [];
 
             // Make sure time flows
             window.TimeDilationSystem.cleanup();
@@ -460,6 +464,11 @@
             player.kana = HERO_KANA;
             player.romaji = HERO_ROMAJI;
             player.english = HERO_ENGLISH;
+
+            // Initialize drawing system
+            if (window.KanjiDrawingSystem) {
+                KanjiDrawingSystem.init(this);
+            }
 
             // Add physics to player
             this.physics.world.enable(player);
@@ -730,6 +739,11 @@
                 RomajiChallengeSystem.resetState();
             }
 
+            if (window.KanjiDrawingSystem) {
+                KanjiDrawingSystem.destroy();
+                KanjiDrawingSystem.init(this);
+            }
+
             // Hide pause screen if it was visible
             if (pauseScreen) pauseScreen.setVisible(false);
             if (pauseMessage) pauseMessage.setVisible(false);
@@ -800,7 +814,7 @@
             // If Boss Rush mode, set elapsed time to boss spawn time
             if (window.BOSS_RUSH_MODE) {
                 const bossSpawnTime = rankConfigs[BOSS_CONFIG.max_rank]?.startTime || 1200;
-                elapsedTime = bossSpawnTime - 120;
+                elapsedTime = bossSpawnTime - 60;
                 console.log(`Boss Rush mode: Time set to ${elapsedTime} seconds`);
             }
 

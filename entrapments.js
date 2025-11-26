@@ -6,15 +6,19 @@ const DropperPerkRegistry = {
     perkDropperConfigs: {},
 
     // Register a perk that creates drops
-    // Updated to accept cooldownStat and cooldownFormula
+    // Updated to accept cooldownStat and cooldownFormula and advanced stat functions
     registerDropperPerk: function (perkId, config) {
         this.perkDropperConfigs[perkId] = {
             getConfig: config.getConfig ?? function () { return {}; }, // Function that returns drop config
             cooldown: config.cooldown ?? 4000,                        // Base Cooldown in ms (now a number)
             cooldownStat: config.cooldownStat ?? null,                // Stat that affects cooldown (e.g., 'luck', 'fireRate')
             cooldownFormula: config.cooldownFormula ?? null,          // Formula for stat scaling ('sqrt', 'divide', 'multiply')
+            statFunction: config.statFunction ?? null,                // Custom stat calculation function
+            statDependencies: config.statDependencies ?? null,        // Dependencies for the custom function
+            baseStatFunction: config.baseStatFunction ?? null,        // Base stat calculation (optional for 'divide' but good for completeness)
             positionMode: config.positionMode ?? 'player',            // How drops are positioned
-            activationMethod: config.activationMethod ?? 'periodic'   // How drops are created
+            activationMethod: config.activationMethod ?? 'periodic',  // How drops are created
+            trailInterval: config.trailInterval ?? 32                 // Distance for trail mode
         };
     },
 
@@ -43,7 +47,11 @@ const DropperPerkRegistry = {
                     cooldown: perkConfig.cooldown,             // Pass base cooldown
                     cooldownStat: perkConfig.cooldownStat,     // Pass stat name
                     cooldownFormula: perkConfig.cooldownFormula, // Pass formula
+                    statFunction: perkConfig.statFunction,       // Pass custom stat function
+                    statDependencies: perkConfig.statDependencies, // Pass dependencies
+                    baseStatFunction: perkConfig.baseStatFunction, // Pass base stat function
                     positionMode: perkConfig.positionMode,
+                    trailInterval: perkConfig.trailInterval // Pass trail interval for trail mode
                 });
 
             default:
@@ -61,20 +69,24 @@ DropperPerkRegistry.registerDropperPerk('AMBER_BEETLE', {
         return {
             symbol: '★',
             color: '#ffbf00', // Amber color
-            fontSize: getEffectiveSize(projectileSizeFactor, playerDamage),
+            fontSize: getEffectiveSize(),
             behaviorType: 'projectile',
-            damage: playerDamage,
-            lifespan: 60000,
+            // Damage: (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
+            // Lifespan: sqrt(playerLuck), target 20s at 4 LUK -> sqrt(4)*X=20000 -> 2*X=20000 -> X=10000
+            lifespan: Math.sqrt(playerLuck) * 10000,
             options: {
                 visualEffect: 'createPulsing',
                 effectComponent: 'explosionEffect'
             }
         };
     },
-    // Updated cooldown to be a base number, with stat and formula
-    cooldown: 4000, // Base cooldown for Amber Beetle
-    cooldownStat: 'fireRate',
-    cooldownFormula: 'sqrt',
+    // Cooldown: (FR+Luck), target 4s at 4 LUK + 4 AGI -> Base/8 = 4000 -> Base = 32000
+    cooldown: 32000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
+
     positionMode: 'player',
     activationMethod: 'periodic'
 });
@@ -97,19 +109,22 @@ DropperPerkRegistry.registerDropperPerk('MAGMA_FLOOR', {
             color: '#FF4400', // Orange-red color for magma
             fontSize: 64, // Very large size as requested
             behaviorType: 'persistent', // Persistent type to stay and deal damage
-            damage: playerDamage, // Full player damage
+            // Damage: (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 1000, // 1 second between damage applications
-            lifespan: playerLuck * 1000, // Lasts for playerLuck seconds
+            // Lifespan: sqrt(playerLuck), target 4s at 4 LUK -> sqrt(4)*X=4000 -> 2*X=4000 -> X=2000
+            lifespan: Math.sqrt(playerLuck) * 2000,
             options: {
                 visualEffect: 'createPulsing', // Add pulsing animation for better visibility
                 opacity: 0.8 // Slightly transparent
             }
         };
     },
-    // Updated cooldown to be a base number, with stat and formula
-    cooldown: 8000, // Base cooldown for Magma Floor
-    cooldownStat: 'luck',
-    cooldownFormula: 'sqrt',
+    cooldown: 8000 * 8,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
+
     positionMode: 'player', // Drop at player position
     activationMethod: 'periodic' // Periodically create magma floors
 });
@@ -141,18 +156,25 @@ DropperPerkRegistry.registerDropperPerk('GREEN_DREAM', {
             fontSize: 32, // Same size as player
             initialScale: 1, // Start at full size (no grow animation)
             behaviorType: 'persistent', // Deals continuous damage on overlap
-            damage: playerDamage,
+
+            // Updated Damage Formula: (Effective Damage + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 500, // Half second between damage applications
-            lifespan: playerLuck * 1000, // Last for playerLuck seconds
+
+            // Lifespan: sqrt(playerLuck), target 4s at 4 LUK -> sqrt(4)*X=4000 -> 2*X=4000 -> X=2000
+            lifespan: Math.sqrt(playerLuck) * 2000,
+
             options: {
                 opacity: 0.5 // Half opacity
             }
         };
     },
-    // Cooldown is a fixed number, so no stat/formula needed
-    cooldown: 2000, // Drop a new afterimage every 2 seconds
-    cooldownStat: null, // No stat scaling
-    cooldownFormula: null, // No formula
+
+    cooldown: 2000 * 8,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
+
     positionMode: 'player', // Drop at player position
     activationMethod: 'periodic'
 });
@@ -176,18 +198,23 @@ DropperPerkRegistry.registerDropperPerk('BLOOMING_FLOWER', {
             color: '#FF66AA', // Pink color for flower
             fontSize: 24, // Smaller size as requested
             behaviorType: 'projectile', // Dies on enemy contact
-            damage: playerDamage, // Full player damage on contact
-            lifespan: 240000, // more of a sanity check than anything
+            // Damage was playerDamage (1.0 scale) -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
+            lifespan: 60000,
             options: {
                 hasPeriodicEffect: true, // Generic flag for drops with periodic effects
-                periodicEffectCooldown: 6000, // Base cooldown for the effect
+                periodicEffectCooldown: 4600 * 8,
+                periodicEffectFormula: 'divide',
+                periodicEffectStatFunction: () => getEffectiveFireRate() + playerLuck,
+                periodicEffectStatDependencies: ['fireRate', 'luck'],
+
                 fireImmediately: true, // Flag to indicate it should fire immediately on spawn
                 visualEffect: 'createPulsing' // Flag for visual pulsing effect
             }
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 31000, // Base 31 second cooldown
+    cooldown: 10000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -201,7 +228,7 @@ window.activateBloomingFlower = function () {
     if (!scene) return;
 
     // Setup periodic effects for drops (only needs to be done once)
-    setupPeriodicEffectsSystem(scene);
+    //setupPeriodicEffectsSystem(scene);
 
     // Create a flower configuration
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['BLOOMING_FLOWER'].getConfig();
@@ -226,19 +253,25 @@ DropperPerkRegistry.registerDropperPerk('LASER_FLOWER', {
             color: '#FF00FF',
             fontSize: 24, // Medium size like other flowers
             behaviorType: 'projectile', // Stays around to keep firing
-            damage: playerDamage, // Base damage
+            // Damage was playerDamage (1.0 scale) -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 1000, // Not really used for laser flowers
-            lifespan: 240000, // Long lifespan like other flowers
+            lifespan: 60000,
             options: {
                 hasPeriodicEffect: true, // Uses the periodic effect system
-                periodicEffectCooldown: 13000,
+                // Periodic Effect Cooldown: (FR+Luck), target 11800ms at 4 LUK + 4 AGI -> Base/8 = 11800 -> Base = 94400
+                periodicEffectCooldown: 94400,
+                periodicEffectFormula: 'divide',
+                periodicEffectStatFunction: () => getEffectiveFireRate() + playerLuck,
+                periodicEffectStatDependencies: ['fireRate', 'luck'],
+
                 fireImmediately: true, // Fire immediately when spawned
                 visualEffect: 'createPulsing', // Pulsing animation
                 isLaserFlower: true // Flag to identify this as a laser flower
             }
         };
     },
-    cooldown: 35000, // Base 33 second cooldown for spawning new flowers
+    cooldown: 18000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -252,7 +285,7 @@ window.activateLaserFlower = function () {
     if (!scene) return;
 
     // Setup periodic effects for drops (only needs to be done once)
-    setupPeriodicEffectsSystem(scene);
+    //setupPeriodicEffectsSystem(scene);
 
     // Create a laser flower configuration
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['LASER_FLOWER'].getConfig();
@@ -278,12 +311,18 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
             color: '#2aad27', // Green color for poison
             fontSize: 28, // Medium size
             behaviorType: 'areaEffect', // Use area effect behavior
-            damage: playerDamage * 1,
+            // Damage was playerDamage (1.0 scale) -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 0, // Not used for area effects
-            lifespan: 240000, // sanity check
+            lifespan: 60000,
             options: {
-                areaEffectInterval: 9000, //
-                areaEffectRadius: 320, // Base radius
+                // Area Effect Interval: (FR+Luck), target 9200ms at 4 LUK + 4 AGI -> Base/8 = 9200 -> Base = 73600
+                areaEffectInterval: 73600,
+                areaEffectFormula: 'divide',
+                areaEffectStatFunction: () => getEffectiveFireRate() + playerLuck,
+                areaEffectStatDependencies: ['fireRate', 'luck'],
+
+                areaEffectRadius: 260, // Base radius
                 pulseColor: 0x2aad27, // Green color for the pulse effect
                 visualEffect: 'createPulsing', // Add pulsing animation
                 effectComponent: 'poisonEffect' // Use the poisonEffect component
@@ -291,7 +330,7 @@ DropperPerkRegistry.registerDropperPerk('POISON_FLOWER', {
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 15000, // Base 15 second cooldown
+    cooldown: 12000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -325,12 +364,18 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
             color: '#00ffff', // Cyan color for frost
             fontSize: 28, // Medium size
             behaviorType: 'areaEffect', // Use area effect behavior
-            damage: playerDamage,
+            // Damage was playerDamage (1.0 scale) -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 0, // Not used for area effects
-            lifespan: 240000, // sanity check
+            lifespan: 60000,
             options: {
-                areaEffectInterval: 7000, //
-                areaEffectRadius: 240, //
+                // Area Effect Interval: (FR+Luck), target 7100ms at 4 LUK + 4 AGI -> Base/8 = 7100 -> Base = 56800
+                areaEffectInterval: 56800,
+                areaEffectFormula: 'divide',
+                areaEffectStatFunction: () => getEffectiveFireRate() + playerLuck,
+                areaEffectStatDependencies: ['fireRate', 'luck'],
+
+                areaEffectRadius: 220, //
                 pulseColor: 0x00ffff, // Cyan color for the pulse effect
                 visualEffect: 'createPulsing', // Add pulsing animation
                 effectComponent: 'slowEffect' // Use the slowEffect component
@@ -338,7 +383,7 @@ DropperPerkRegistry.registerDropperPerk('COLD_FLOWER', {
         };
     },
     // Updated cooldown to be a base number, with stat and formula
-    cooldown: 20000, // Base 20 second cooldown
+    cooldown: 12000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random', // Random position on screen
@@ -372,18 +417,22 @@ DropperPerkRegistry.registerDropperPerk('FROST_SHRAPNEL', {
             color: '#00FFFF', // Cyan color for frost
             fontSize: 16, // Medium size for visibility
             behaviorType: 'projectile', // Projectile type as requested
-            damage: playerDamage * 0.2, // 1/5th of player damage
+            // Damage was playerDamage * 0.2 (0.2 scale) -> (Effective + Luck) * 0.1
+            damage: (getEffectiveDamage() + playerLuck) * 0.1,
             damageInterval: 1000, // 1 second between damage applications
-            lifespan: 60000, //
+            // Lifespan: sqrt(playerLuck), target 20s at 4 LUK -> sqrt(4)*X=20000 -> 2*X=20000 -> X=10000
+            lifespan: Math.sqrt(playerLuck) * 10000,
             options: {
                 effectComponent: 'slowEffect' // Apply slow effect like Azure Frost
             }
         };
     },
-    // Updated cooldown to be a base number, with stat and formula
-    cooldown: 4000, // Base cooldown is 4 seconds
-    cooldownStat: 'fireRate',
-    cooldownFormula: 'sqrt',
+    // Cooldown: (FR+Luck), target 4s at 4 LUK + 4 AGI -> Base/8 = 4000 -> Base = 32000
+    cooldown: 32000,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
+
     positionMode: 'player', // Drop at player position
     activationMethod: 'periodic' // Periodically create shrapnel
 });
@@ -414,21 +463,24 @@ DropperPerkRegistry.registerDropperPerk('TOXIC_TRAIL', {
             color: '#33cc33', // Green color for poison theme
             fontSize: 16, // Small size for trail elements
             behaviorType: 'projectile', // Dies on enemy contact
-            damage: playerDamage * 0.5,
-            lifespan: Math.ceil(4000 * Math.sqrt(playerLuck / BASE_STATS.LUK)), // This lifespan is still dynamically calculated
+            // Damage was playerDamage * 0.5 (0.5 scale) -> (Effective + Luck) * 0.25
+            damage: (getEffectiveDamage() + playerLuck) * 0.25,
+            // Existing lifespan formula uses sqrt(luck), kept as requested
+            lifespan: Math.ceil(4000 * Math.sqrt(playerLuck / BASE_STATS.LUK)),
             options: {
                 effectComponent: 'poisonEffect', // Apply poison effect component
                 visualEffect: 'createPulsing' // Add pulsing visual effect
             }
         };
     },
-    // This perk has a fixed cooldown, so no stat/formula needed for the cooldown itself.
-    // Lifespan is scaled by luck, but the droplet creation cooldown is fixed.
-    cooldown: 200, // Fixed 200ms cooldown (very fast)
-    cooldownStat: null, // No stat scaling for the cooldown
-    cooldownFormula: null, // No formula for the cooldown
+    // Cooldown: (FR+Luck), target 200ms at 4 LUK + 4 AGI -> Base/8 = 200 -> Base = 1600
+    cooldown: 1600,
+    cooldownFormula: 'divide',
+    statFunction: () => getEffectiveFireRate() + playerLuck,
+    statDependencies: ['fireRate', 'luck'],
+
     positionMode: 'trail', // Follow player's movement
-    trailInterval: 32, // Minimum 32px distance between drops
+    trailInterval: 16, // Updated to 16 as requested
     activationMethod: 'periodic' // Periodically create drops
 });
 
@@ -459,7 +511,9 @@ DropperPerkRegistry.registerDropperPerk('GOLDEN_AGE', {
             color: '#ffd700', // Gold/yellow color
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: playerDamage,
+            // Damage was playerDamage (1.0 scale) -> (Effective + Luck) * 0.5
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
+            damageMultiplier: 1.0, // Dynamic scaling
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
@@ -491,7 +545,9 @@ DropperPerkRegistry.registerDropperPerk('CLOUD_KING', {
             color: '#00DDFF', // Blue color like Storm Beacon
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: playerDamage * 0.4, // Very low damage
+            // Damage was playerDamage * 0.4 (0.4 scale) -> (Effective + Luck) * 0.2
+            damage: (getEffectiveDamage() + playerLuck) * 0.2,
+            damageMultiplier: 0.4, // Dynamic scaling
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
@@ -523,9 +579,6 @@ window.activateCloudKing = function () {
     const scene = game.scene.scenes[0];
     if (!scene) return;
 
-    // Setup periodic effects for drops (only needs to be done once)
-    setupPeriodicEffectsSystem(scene);
-
     // Apply the dropper perk (will create one crown immediately)
     DropperPerkRegistry.applyDropperPerk(scene, 'CLOUD_KING');
 };
@@ -538,16 +591,18 @@ DropperPerkRegistry.registerDropperPerk('HAMMER_QUEEN', {
             color: '#FFD700', // Gold color like God Hammer
             fontSize: 32, // Same size as player
             behaviorType: 'playerPushable',
-            damage: playerDamage * 0.4, // Very low damage (same as CLOUD_KING)
+            // Damage was playerDamage * 0.4 (0.4 scale) -> (Effective + Luck) * 0.2
+            damage: (getEffectiveDamage() + playerLuck) * 0.2,
+            damageMultiplier: 0.4, // Dynamic scaling
             damageInterval: 400,
             colliderSize: 1.0, // Full size collision
             lifespan: null, // Permanent
             health: 999999999, // Effectively indestructible
             options: {
                 hasPeriodicEffect: true, // Enable periodic hammers
-                periodicEffectCooldown: 20000, // Base 20 second cooldown
+                periodicEffectCooldown: 20000,
                 fireImmediately: false, // Don't fire immediately on spawn
-                isHammerQueen: true, // Flag to identify this as a hammer queen
+                isHammerQueen: true,
                 // Same physics configuration as CLOUD_KING
                 physics: {
                     bounce: 0.5, // Lower bounce than GOLDEN_AGE
@@ -570,12 +625,154 @@ window.activateHammerQueen = function () {
     const scene = game.scene.scenes[0];
     if (!scene) return;
 
-    // Setup periodic effects for drops (only needs to be done once)
-    setupPeriodicEffectsSystem(scene);
-
     // Apply the dropper perk (will create one crown immediately)
     DropperPerkRegistry.applyDropperPerk(scene, 'HAMMER_QUEEN');
 };
+
+// HERO_STATUE
+DropperPerkRegistry.registerDropperPerk('HERO_STATUE', {
+    getConfig: function () {
+        return {
+            symbol: HERO_CHARACTER,
+            color: '#A08831',
+            fontSize: 32,
+            behaviorType: 'playerPushable',
+            // Damage was playerDamage * 0.4 (0.4 scale) -> (Effective + Luck) * 0.2
+            damage: (getEffectiveDamage() + playerLuck) * 0.2,
+            damageMultiplier: 0.4, // Dynamic scaling
+            damageInterval: 400,
+            colliderSize: 1.0,
+            lifespan: null, // Permanent
+            health: 999999999, // Effectively indestructible
+            options: {
+                // Physics configuration
+                physics: {
+                    bounce: 0.5,
+                    drag: 100,
+                    mass: 0.1,
+                    maxVelocity: 200
+                },
+                // Unified firing configuration - same as any familiar!
+                isFiring: true,
+                firingBehavior: 'heroStatue',
+                firingCooldown: 1000, // Base cooldown
+                firingCooldownStat: null, // Using custom stat function instead
+                firingRange: 400,
+            }
+        };
+    },
+    cooldown: null,
+    cooldownStat: null,
+    cooldownFormula: null,
+    positionMode: 'player',
+    activationMethod: 'immediate'
+});
+
+window.activateHeroStatue = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create the statue
+    DropperPerkRegistry.applyDropperPerk(scene, 'HERO_STATUE');
+
+    // Find the created statue and set up firing - same as any familiar!
+    scene.time.delayedCall(100, function () {
+        const heroStatue = DropperSystem.getAll().find(drop =>
+            drop.options && drop.options.isFiring && drop.options.firingBehavior === 'heroStatue'
+        );
+
+        if (heroStatue) {
+            // UPDATED: Using custom stat function for Hero Statue firing cooldown
+            // Target: 1000ms at base?? 
+            // Assuming the user wants the SAME logic as others: (FR+Luck)
+            // Formula: Base / Stat = Target.
+            // If target is 1000ms (original): Base = 1000 * 8 = 8000.
+            heroStatue.firingTimer = EntityFiringSystem.setupEntityFiringTimer(
+                scene,
+                heroStatue, // Pass the drop object (has drop.entity)
+                heroStatue.options.firingBehavior,
+                8000, // Base cooldown adjusted for divide formula
+                {
+                    statFunction: () => getEffectiveFireRate() + playerLuck,
+                    statDependencies: ['fireRate', 'luck'],
+                    formula: 'divide',
+                    maxDistance: heroStatue.options.firingRange,
+                    rangeModifier: 1.0,
+                    rangeScaling: false // Don't apply additional range scaling
+                }
+            );
+        }
+    });
+};
+
+DropperPerkRegistry.registerDropperPerk('FLAME_PILLAR', {
+    getConfig: function () {
+        return {
+            symbol: '炎', // Fire symbol for the totem
+            color: '#FF4500', // Orange-red fire color
+            fontSize: 32,
+            behaviorType: 'playerPushable',
+            // Damage was playerDamage * 0.4 (0.4 scale) -> (Effective + Luck) * 0.2
+            damage: (getEffectiveDamage() + playerLuck) * 0.2,
+            damageMultiplier: 0.4, // Dynamic scaling
+            damageInterval: 400,
+            colliderSize: 1.0,
+            lifespan: null, // Permanent
+            health: 999999999, // Effectively indestructible
+            options: {
+                // Physics configuration similar to other totems
+                physics: {
+                    bounce: 0.5,
+                    drag: 100,
+                    mass: 0.1,
+                    maxVelocity: 200
+                },
+                // Firing configuration
+                firingBehavior: 'burningTotem',
+                firingCooldown: 1000, // Base cooldown
+                firingRange: 400
+            }
+        };
+    },
+    cooldown: null,
+    cooldownStat: null,
+    cooldownFormula: null,
+    positionMode: 'player',
+    activationMethod: 'immediate'
+});
+
+window.activateBurningTotem = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create the burning totem
+    DropperPerkRegistry.applyDropperPerk(scene, 'FLAME_PILLAR');
+
+    const burningTotem = DropperSystem.getAll().find(drop =>
+        drop.options && drop.options.firingBehavior === 'burningTotem'
+    );
+
+    if (burningTotem) {
+        // UPDATED: Using custom stat function for Flame Pillar firing cooldown
+        // Assuming target 1000ms: Base = 1000 * 8 = 8000
+        burningTotem.firingTimer = EntityFiringSystem.setupEntityFiringTimer(
+            scene,
+            burningTotem,
+            burningTotem.options.firingBehavior,
+            8000,
+            {
+                // NEW: Use custom function and dependencies
+                statFunction: () => getEffectiveFireRate() + playerLuck,
+                statDependencies: ['fireRate', 'luck'],
+                formula: 'divide',
+                maxDistance: burningTotem.options.firingRange,
+                rangeModifier: 1.0,
+                rangeScaling: false
+            }
+        );
+    }
+};
+
 
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

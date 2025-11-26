@@ -562,7 +562,7 @@ const PERKS = {
         kana: "こうばな",
         romaji: "koubana",
         english: "Laser Flower",
-        description: "Flower rotates through directions, firing laser beams",
+        description: "Flower fires laser beams",
         color: "#FF00FF",
         hoverColor: 0xBA55D3,
         onAcquire: function () {
@@ -646,12 +646,11 @@ const PERKS = {
         kana: "どくあと",
         romaji: "dokuato",
         english: "Toxic Trail",
-        description: "A path of shared sickness. -1 END",
+        description: "A path of sickness",
         color: "#33cc33", // Green color for poison
         hoverColor: 0x22aa22, // Darker green for hover effect
         onAcquire: function () {
             window.activateToxicTrail();
-            window.modifyStat('health', -1);
         }
     },
     "FINGER_OF_DECAY": {
@@ -695,7 +694,7 @@ const PERKS = {
         kana: "らくらい",
         romaji: "rakurai",
         english: "Lightning Struck",
-        description: "Lightning never strikes twice. It strikes four times",
+        description: "Lightning never strikes twice, but four times",
         color: "#00DDFF", // Bright yellow for lightning
         hoverColor: 0x00BBDD,
         onAcquire: function () {
@@ -748,7 +747,7 @@ const PERKS = {
         kana: "ぞうきょう",
         romaji: "zoukyou",
         english: "Augmentation",
-        description: "Beacons grant +1 damage/fire rate for LUK seconds",
+        description: "Beacons grant +0.8 damage/fire rate for a moment",
         color: "#FF4500",
         hoverColor: 0xDD3300,
         onAcquire: function () {
@@ -760,7 +759,7 @@ const PERKS = {
         kana: "いかりじんじゃ",
         romaji: "ikarijinja",
         english: "Berserk Shrine",
-        description: "Spawns shrines that boost damage while standing in them",
+        description: "Boosts damage while in the shrine",
         color: "#FF0000",
         hoverColor: 0xCC0000,
         onAcquire: function () {
@@ -773,7 +772,7 @@ const PERKS = {
         kana: "ゆみじんじゃ",
         romaji: "yumijinja",
         english: "Archer Shrine",
-        description: "Spawns shrines that boost fire rate while standing in them",
+        description: "Boosts fire rate while in the shrine",
         color: "#00FFFF",
         hoverColor: 0x00CCCC,
         onAcquire: function () {
@@ -786,7 +785,7 @@ const PERKS = {
         kana: "いやしじんじゃ",
         romaji: "iyashijinja",
         english: "Healing Shrine",
-        description: "Spawns shrines that heal you while standing in them",
+        description: "Heals you while in the shrine",
         color: "#00FF00",
         hoverColor: 0x00CC00,
         onAcquire: function () {
@@ -799,7 +798,7 @@ const PERKS = {
         kana: "らいじんじゃ",
         romaji: "raijinja",
         english: "Storm Shrine",
-        description: "Spawns shrines that rain lightning while standing in them",
+        description: "Rain storms while in the shrine",
         color: "#9966FF",
         hoverColor: 0x7744CC,
         onAcquire: function () {
@@ -812,7 +811,7 @@ const PERKS = {
         kana: "つちじんじゃ",
         romaji: "tsuchijinja",
         english: "Godhammer Shrine",
-        description: "Spawns shrines that drop divine hammers while standing in them",
+        description: "Drop divine hammers while in the shrine",
         color: "#FFD700",
         hoverColor: 0xDAA520,
         onAcquire: function () {
@@ -1235,7 +1234,7 @@ const PERKS = {
         kana: "ばくとびょうけん",
         romaji: "bakutobyuuken",
         english: "Gambler Fallacy",
-        description: "When hit, (60% / LUK) chance to gain +1 LUK",
+        description: "Get lucky when hit... maybe",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {
@@ -1282,7 +1281,7 @@ const PERKS = {
         kana: "いかりじょうしょう",
         romaji: "ikarijoushou",
         english: "Anger Rising",
-        description: "Get hit, deal more damage (+4%, up to +40%)",
+        description: "Get hit, deal more damage (+10%, up to +80%)",
         color: "#FF4500", // Orange-red
         hoverColor: 0xDD3300,
         onAcquire: function () {
@@ -1465,7 +1464,7 @@ const PERKS = {
         kana: "かんぺき",
         romaji: "kanpeki",
         english: "Flawless Fight",
-        description: "+POW/+AGI while not hit (+2%, up to +20%)",
+        description: "+POW/+AGI while not hit (+4%, up to +40%)",
         color: "#00FFFF", // Cyan color
         hoverColor: 0x00DDDD,
         onAcquire: function () {
@@ -1550,7 +1549,7 @@ const PERKS = {
         kana: "ぜんせいき",
         romaji: "zenseiki",
         english: "Golden Age",
-        description: "Let's go bowling",
+        description: "Let's go bowling!",
         color: "#ffff00", // Gold/yellow color
         hoverColor: 0xdddd00,
         onAcquire: function () {
@@ -1586,7 +1585,7 @@ const PERKS = {
         kana: "じゅうどうか",
         romaji: "juudouka",
         english: "Judoka",
-        description: "+5% damage per current HP",
+        description: "+4% damage per current HP (max +40%)",
         color: "#4169E1",
         hoverColor: 0x2E59C1,
         onAcquire: function () {
@@ -1598,7 +1597,7 @@ const PERKS = {
         kana: "からてか",
         romaji: "karateka",
         english: "Karateka",
-        description: "+5% fire speed per current HP",
+        description: "+4% fire speed per current HP (max +40%)",
         color: "#DC143C",
         hoverColor: 0xBC042C,
         onAcquire: function () {

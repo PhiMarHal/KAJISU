@@ -49,25 +49,25 @@ const baseRankConfigs = {
         startTime: 0,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1],
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1],
-        scaleMinutes: 24
+        scaleMinutes: 16
     },
     2: {
-        startTime: 8 * 60,
+        startTime: 7 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 2,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 2,
-        scaleMinutes: 24
+        scaleMinutes: 16
     },
     3: {
-        startTime: 14 * 60,
+        startTime: 11 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 4,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 4,
-        scaleMinutes: 24
+        scaleMinutes: 16
     },
     4: {
-        startTime: 20 * 60,
+        startTime: 14 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 4,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 5,
-        scaleMinutes: 8
+        scaleMinutes: 16
     },
     5: {
         startTime: 30 * 60,

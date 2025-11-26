@@ -8,6 +8,7 @@ const KanjiDrawingSystem = {
         borderRect: null,
         graphics: null,
         infoText: null,
+        titleText: null,
         concentricCircles: null,
         greenDotIndicator: null
     },
@@ -26,15 +27,19 @@ const KanjiDrawingSystem = {
         challengeComplete: false,
         targetStrokePoints: [],
         history: [],
-        lastAnimatedStroke: -1
+        lastAnimatedStroke: -1,
+        lastPointTime: 0,
+        activePointerId: null
     },
 
     // Configuration
     config: {
-        challengeInterval: 180000, // 3 minutes
+        challengeInterval: 180000,
         maxAttemptsPerStroke: 2,
         strokeMatchTolerance: 20,
-        kanjiSize: 109
+        kanjiSize: 109,
+        minPointDistance: 3, // Minimum pixels between recorded points
+        minPointInterval: 8  // Minimum ms between recorded points
     },
 
     challengeTimer: null,
@@ -142,6 +147,8 @@ const KanjiDrawingSystem = {
         this.state.completedStrokes = [];
         this.state.challengeComplete = false;
         this.state.lastAnimatedStroke = -1;
+        this.state.lastPointTime = 0;
+        this.state.activePointerId = null;
 
         this.state.targetStrokePoints = this.state.currentKanji.strokes.map(strokePath =>
             this.extractSVGPoints(strokePath)
@@ -155,12 +162,10 @@ const KanjiDrawingSystem = {
         const centerX = game.config.width / 2;
         const centerY = game.config.height / 2;
 
-        // Calculate Box Size (Square)
-        const boxSize = Math.min(game.config.width * 0.9, game.config.height * 0.9, 600);
+        // Calculate Box Size (Square) - this is now just the drawing area
+        const boxSize = Math.min(game.config.width * 0.95, game.config.height * 0.72, 600);
 
         // --- Concentric Circles Animation ---
-        // Using params inspired by pause.js (0.08/0.04) 
-        // but applying to MAX screen dimension so they peek out from behind the box
         const screenSize = Math.max(game.config.width, game.config.height);
         const baseRadiusMultiplier = 0.08;
         const incrementMultiplier = 0.04;
@@ -190,61 +195,50 @@ const KanjiDrawingSystem = {
         const fullscreenBg = scene.add.rectangle(centerX, centerY, game.config.width, game.config.height, 0x000000, 0.8);
         this.elements.container.add(fullscreenBg);
 
+        // Title OUTSIDE popup, on top
+        const titleY = centerY - boxSize / 2 - 60;
+        this.elements.titleText = scene.add.text(centerX, titleY, 'DRAW', {
+            fontFamily: 'Arial',
+            fontSize: '58px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.elements.container.add(this.elements.titleText);
+
+        // Drawing box (the popup) - now IS the drawing area
         this.elements.background = scene.add.rectangle(centerX, centerY, boxSize, boxSize, 0x000000);
         this.elements.container.add(this.elements.background);
 
         this.elements.borderRect = scene.add.rectangle(centerX, centerY, boxSize, boxSize).setStrokeStyle(4, 0xFFD700);
         this.elements.container.add(this.elements.borderRect);
 
-        // --- Layout Calculation ---
-        const drawAreaSize = Math.min(boxSize - 80, 400);
-        const drawAreaTopOffset = 0;
-
-        const panelTopY = centerY - boxSize / 2;
-        const panelBottomY = centerY + boxSize / 2;
-
-        const drawAreaTopY = centerY - drawAreaSize / 2 - drawAreaTopOffset;
-        const drawAreaBottomY = drawAreaTopY + drawAreaSize;
-
-        // 1. Title
-        const titleY = (panelTopY + drawAreaTopY) / 2;
-        const title = scene.add.text(centerX, titleY, 'DRAW THE KANJI', {
-            fontFamily: 'Arial',
-            fontSize: '42px',
-            color: '#FFD700',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        this.elements.container.add(title);
-
         this.elements.graphics = scene.add.graphics().setDepth(1501);
         this.elements.container.add(this.elements.graphics);
 
+        // Store drawing area bounds for later use
+        this.drawAreaBounds = {
+            centerX: centerX,
+            centerY: centerY,
+            size: boxSize
+        };
+
         this.renderScene(scene);
 
-        // 2. Info Text
-        const infoY = (panelBottomY + drawAreaBottomY) / 2;
+        // Info text OUTSIDE popup, on bottom
+        const infoY = centerY + boxSize / 2 + 60;
         const kanji = this.state.currentKanji;
         this.elements.infoText = scene.add.text(centerX, infoY,
             `${kanji.kana} (${kanji.romaji}) - ${kanji.english}`,
             {
                 fontFamily: 'Arial',
-                fontSize: '34px',
+                fontSize: '38px',
                 color: '#ffffff',
                 fontStyle: 'bold'
             }
         ).setOrigin(0.5);
         this.elements.container.add(this.elements.infoText);
 
-        // 3. Drawing Area Border
-        const drawAreaBorder = scene.add.rectangle(
-            centerX,
-            drawAreaTopY + drawAreaSize / 2,
-            drawAreaSize,
-            drawAreaSize
-        ).setStrokeStyle(4, 0xffffff);
-        this.elements.container.add(drawAreaBorder);
-
-        this.setupInputHandlers(scene, centerX, drawAreaTopY + drawAreaSize / 2, drawAreaSize);
+        this.setupInputHandlers(scene, centerX, centerY, boxSize);
     },
 
     setupInputHandlers: function (scene, centerX, centerY, drawAreaSize) {
@@ -254,23 +248,61 @@ const KanjiDrawingSystem = {
         const minY = centerY - halfSize;
         const maxY = centerY + halfSize;
 
+        const isInBounds = (x, y) => x >= minX && x <= maxX && y >= minY && y <= maxY;
+
+        const getDistance = (p1, p2) => {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+
         scene.input.on('pointerdown', (pointer) => {
             if (!this.state.active) return;
-            if (pointer.x >= minX && pointer.x <= maxX && pointer.y >= minY && pointer.y <= maxY) {
+            if (this.state.activePointerId !== null) return; // Already tracking a pointer
+
+            if (isInBounds(pointer.x, pointer.y)) {
+                this.state.activePointerId = pointer.id;
                 this.state.isDrawing = true;
                 this.state.currentPath = [{ x: pointer.x, y: pointer.y }];
+                this.state.lastPointTime = Date.now();
             }
         });
 
         scene.input.on('pointermove', (pointer) => {
             if (!this.state.active || !this.state.isDrawing) return;
-            this.state.currentPath.push({ x: pointer.x, y: pointer.y });
-            this.renderScene(scene);
+            if (pointer.id !== this.state.activePointerId) return; // Ignore other pointers
+
+            const now = Date.now();
+            const lastPoint = this.state.currentPath[this.state.currentPath.length - 1];
+            const newPoint = { x: pointer.x, y: pointer.y };
+
+            // Filter out points that are too close or too rapid
+            const distance = getDistance(lastPoint, newPoint);
+            const timeDelta = now - this.state.lastPointTime;
+
+            if (distance >= this.config.minPointDistance && timeDelta >= this.config.minPointInterval) {
+                this.state.currentPath.push(newPoint);
+                this.state.lastPointTime = now;
+                this.renderScene(scene);
+            }
         });
 
-        scene.input.on('pointerup', () => {
+        scene.input.on('pointerup', (pointer) => {
             if (!this.state.active || !this.state.isDrawing || this.state.challengeComplete) return;
+            if (pointer.id !== this.state.activePointerId) return; // Ignore other pointers
+
             this.state.isDrawing = false;
+            this.state.activePointerId = null;
+            this.validateStroke(scene);
+        });
+
+        // Handle pointer leaving the game area
+        scene.input.on('pointerupoutside', (pointer) => {
+            if (!this.state.active || !this.state.isDrawing || this.state.challengeComplete) return;
+            if (pointer.id !== this.state.activePointerId) return;
+
+            this.state.isDrawing = false;
+            this.state.activePointerId = null;
             this.validateStroke(scene);
         });
     },
@@ -287,7 +319,7 @@ const KanjiDrawingSystem = {
 
             if (guidePoints && guidePoints.length > 0) {
                 if (this.state.strokeAttempts >= 1) {
-                    g.lineStyle(12, 0x666666, 0.6);
+                    g.lineStyle(16, 0x666666, 0.6);
                     g.beginPath();
                     g.moveTo(guidePoints[0].x, guidePoints[0].y);
                     for (let i = 1; i < guidePoints.length; i++) {
@@ -302,7 +334,7 @@ const KanjiDrawingSystem = {
         }
 
         // 2. Completed Strokes
-        g.lineStyle(8, 0xffffff, 1);
+        g.lineStyle(12, 0xffffff, 1);
         this.state.completedStrokes.forEach(stroke => {
             if (stroke.length < 2) return;
             g.beginPath();
@@ -315,7 +347,7 @@ const KanjiDrawingSystem = {
 
         // 3. Current Input
         if (this.state.currentPath.length > 1) {
-            g.lineStyle(8, 0xFFD700, 1);
+            g.lineStyle(12, 0xFFD700, 1);
             g.beginPath();
             g.moveTo(this.state.currentPath[0].x, this.state.currentPath[0].y);
             for (let i = 1; i < this.state.currentPath.length; i++) {
@@ -383,12 +415,18 @@ const KanjiDrawingSystem = {
     transformToScreen: function (svgPoints) {
         if (!svgPoints) return [];
 
-        const panelWidth = Math.min(game.config.width * 0.9, 600);
-        const drawAreaSize = Math.min(panelWidth - 80, 400);
+        // Use stored bounds if available, otherwise calculate
+        const bounds = this.drawAreaBounds ?? {
+            centerX: game.config.width / 2,
+            centerY: game.config.height / 2,
+            size: Math.min(game.config.width * 0.95, game.config.height * 0.72, 600)
+        };
+
+        const drawAreaSize = bounds.size;
         const padding = 40;
 
-        const centerX = game.config.width / 2;
-        const centerY = game.config.height / 2 - 30;
+        const centerX = bounds.centerX;
+        const centerY = bounds.centerY;
 
         const scale = (drawAreaSize - padding * 2) / this.config.kanjiSize;
         const startX = centerX - (this.config.kanjiSize * scale) / 2;
@@ -605,11 +643,13 @@ const KanjiDrawingSystem = {
             this.elements.container = null;
         }
 
-        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null, concentricCircles: null, greenDotIndicator: null };
+        this.elements = { container: null, background: null, borderRect: null, graphics: null, infoText: null, titleText: null, concentricCircles: null, greenDotIndicator: null };
+        this.drawAreaBounds = null;
 
         this.state.active = false;
         this.state.challengeComplete = false;
         this.state.lastAnimatedStroke = -1;
+        this.state.activePointerId = null;
 
         if (window.PauseSystem) {
             PauseSystem.resumeGame();

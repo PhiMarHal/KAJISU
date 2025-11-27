@@ -865,6 +865,193 @@ window.activateBurningTotem = function () {
     }
 };
 
+// TWIN_STRIKE - Two statues that zap enemies between them
+DropperPerkRegistry.registerDropperPerk('TWIN_STRIKE', {
+    getConfig: function () {
+        return {
+            symbol: '柱',
+            color: '#FFFFAA', // Light yellow
+            fontSize: 24,
+            behaviorType: 'playerPushable',
+            damage: (getEffectiveDamage() + playerLuck) * 0.2,
+            damageMultiplier: 0.4,
+            damageInterval: 400,
+            colliderSize: 1.0,
+            lifespan: null,
+            health: 999999999,
+            options: {
+                physics: {
+                    bounce: 0.5,
+                    drag: 100,
+                    mass: 0.1,
+                    maxVelocity: 200
+                }
+            }
+        };
+    },
+    cooldown: null,
+    cooldownStat: null,
+    cooldownFormula: null,
+    positionMode: 'player',
+    activationMethod: 'immediate'
+});
+
+// Register Twin Strike component with PlayerComponentSystem
+PlayerComponentSystem.registerComponent('twinStrikeAbility', {
+    arcTimer: null,
+    statues: [],
+
+    initialize: function (player) {
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        this.statues = [];
+
+        // Spawn 2 statues with slight offset
+        for (let i = 0; i < 2; i++) {
+            const offsetX = (i === 0 ? -30 : 30);
+            const config = DropperPerkRegistry.perkDropperConfigs['TWIN_STRIKE'].getConfig();
+            config.x = player.x + offsetX;
+            config.y = player.y;
+
+            const drop = DropperSystem.create(scene, config);
+            if (drop) {
+                drop.isTwinStrikeStatue = true;
+                this.statues.push(drop);
+            }
+        }
+
+        // Set up arc timer: 32000 / (FR + Luck) = 4s at base stats (8)
+        const component = this;
+        this.arcTimer = CooldownManager.createTimer({
+            baseCooldown: 32000,
+            statFunction: () => getEffectiveFireRate() + playerLuck,
+            statDependencies: ['fireRate', 'luck'],
+            formula: 'divide',
+            callback: function () {
+                component.fireArc(scene);
+            },
+            callbackScope: this,
+            loop: true
+        });
+    },
+
+    fireArc: function (scene) {
+        if (gameOver || gamePaused) return;
+
+        // Get active statues
+        const activeStatues = this.statues.filter(s => s && s.entity && s.entity.active);
+        if (activeStatues.length < 2) return;
+
+        const statue1 = activeStatues[0].entity;
+        const statue2 = activeStatues[1].entity;
+
+        console.log(`Twin Strike arc firing from (${statue1.x}, ${statue1.y}) to (${statue2.x}, ${statue2.y})`);
+
+        // Create visual arc
+        VisualEffects.createLightningArc(scene, statue1.x, statue1.y, statue2.x, statue2.y, {
+            color: 0xFFFF00,
+            particleCount: 64,
+            duration: 200,
+            jitter: 16,
+            particleSize: 2
+        });
+
+        // Deal damage to enemies along the arc
+        const damage = getEffectiveDamage() + playerLuck;
+
+        // Get all enemies and check if they're near the line
+        const enemies = EnemySystem.enemiesGroup.getChildren();
+        let hitCount = 0;
+
+        enemies.forEach(enemy => {
+            if (!enemy || !enemy.active) return;
+
+            // Calculate distance from enemy to line segment
+            const dist = this.pointToLineDistance(
+                enemy.x, enemy.y,
+                statue1.x, statue1.y,
+                statue2.x, statue2.y
+            );
+
+            // If enemy is within 32px of the arc line, deal damage
+            if (dist < 32) {
+                hitCount++;
+
+                // Use statue1's drop/entity as the "source" of the damage
+                // (or other statue, or a custom object — anything with .active is fine)
+                const damageSource = this.statues[0]?.entity ?? statue1;
+
+                // Use the official enemy damage system
+                EnemySystem.applyDamage(damageSource, enemy, damage, 1000);
+            }
+        });
+
+        if (hitCount > 0) {
+            console.log(`Twin Strike hit ${hitCount} enemies for ${damage} damage each`);
+        }
+    },
+
+    // Calculate distance from point to line segment
+    pointToLineDistance: function (px, py, x1, y1, x2, y2) {
+        const A = px - x1;
+        const B = py - y1;
+        const C = x2 - x1;
+        const D = y2 - y1;
+
+        const dot = A * C + B * D;
+        const lenSq = C * C + D * D;
+        let param = -1;
+
+        if (lenSq !== 0) {
+            param = dot / lenSq;
+        }
+
+        let xx, yy;
+
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
+        } else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        } else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+
+        const dx = px - xx;
+        const dy = py - yy;
+        return Math.sqrt(dx * dx + dy * dy);
+    },
+
+    cleanup: function (player) {
+        if (this.arcTimer) {
+            CooldownManager.removeTimer(this.arcTimer);
+            this.arcTimer = null;
+        }
+
+        // Destroy all twin strike statues
+        DropperSystem.getAll()
+            .filter(drop => drop.isTwinStrikeStatue)
+            .forEach(drop => DropperSystem.destroyDrop(drop));
+
+        this.statues = [];
+    }
+});
+
+// Register with PlayerPerkRegistry
+PlayerPerkRegistry.registerPerkEffect('TWIN_STRIKE', {
+    componentName: 'twinStrikeAbility',
+    condition: function () {
+        return true;
+    }
+});
+
+window.activateTwinStrike = function () {
+    PlayerComponentSystem.addComponent('twinStrikeAbility');
+};
+
 
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

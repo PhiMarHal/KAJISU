@@ -1993,6 +1993,18 @@ const PERKS = {
         onAcquire: function () {
             // The component is added through PlayerPerkRegistry
         }
+    },
+    "TWIN_STRIKE": {
+        kanji: "双撃",
+        kana: "そうげき",
+        romaji: "sougeki",
+        english: "Twin Strike",
+        description: "Two statues zap enemies between them",
+        color: "#FFFFAA",
+        hoverColor: 0xDDDD88,
+        onAcquire: function () {
+            window.activateTwinStrike();
+        }
     }
 };
 

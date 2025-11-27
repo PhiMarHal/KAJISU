@@ -771,7 +771,70 @@ const VisualEffects = {
                 config.y = y;
             }
         };
-    }
+    },
+
+    // Create a lightning arc effect between two points with particles
+    createLightningArc: function (scene, x1, y1, x2, y2, options = {}) {
+        const color = options.color ?? 0xFFFF00;
+        const particleCount = options.particleCount ?? 20;
+        const duration = options.duration ?? 400;
+        const jitter = options.jitter ?? 15;
+        const particleSize = options.particleSize ?? 2;
+
+        const particles = [];
+
+        for (let i = 0; i <= particleCount; i++) {
+            const t = i / particleCount;
+
+            // Base position along the line
+            const baseX = x1 + (x2 - x1) * t;
+            const baseY = y1 + (y2 - y1) * t;
+
+            // Add perpendicular jitter (less at endpoints, more in middle)
+            const jitterAmount = Math.sin(t * Math.PI) * jitter;
+            const angle = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
+            const offsetX = Math.cos(angle) * (Math.random() - 0.5) * 2 * jitterAmount;
+            const offsetY = Math.sin(angle) * (Math.random() - 0.5) * 2 * jitterAmount;
+
+            const x = baseX + offsetX;
+            const y = baseY + offsetY;
+
+            // Create particle
+            const particle = scene.add.circle(x, y, particleSize, color, 1);
+            particle.setDepth(100);
+            particles.push(particle);
+
+            // Animate particle
+            scene.tweens.add({
+                targets: particle,
+                alpha: 0,
+                scale: { from: 1, to: 0.3 },
+                duration: duration,
+                delay: i * 10, // Stagger slightly for wave effect
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        // Create bright flash at both endpoints
+        const flash1 = scene.add.circle(x1, y1, particleSize * 1.5, 0xFFFFFF, 0.8);
+        const flash2 = scene.add.circle(x2, y2, particleSize * 1.5, 0xFFFFFF, 0.8);
+        flash1.setDepth(101);
+        flash2.setDepth(101);
+
+        scene.tweens.add({
+            targets: [flash1, flash2],
+            alpha: 0,
+            scale: 2,
+            duration: duration * 0.5,
+            onComplete: () => {
+                flash1.destroy();
+                flash2.destroy();
+            }
+        });
+
+        return particles;
+    },
 
     // Additional visual effects can be added here
 };

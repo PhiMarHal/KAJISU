@@ -814,7 +814,7 @@
             // If Boss Rush mode, set elapsed time to boss spawn time
             if (window.BOSS_RUSH_MODE) {
                 const bossSpawnTime = rankConfigs[BOSS_CONFIG.max_rank]?.startTime || 1200;
-                elapsedTime = bossSpawnTime - 60;
+                elapsedTime = bossSpawnTime - 120;
                 console.log(`Boss Rush mode: Time set to ${elapsedTime} seconds`);
             }
 

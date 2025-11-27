@@ -1877,7 +1877,7 @@ const PERKS = {
         kana: "くれないのいかり",
         romaji: "kurenainoikari",
         english: "Crimson Fury",
-        description: "+40% damage when below 50% health",
+        description: "+80% damage when below 30% health",
         color: "#FF0000",
         hoverColor: 0xCC0000,
         onAcquire: function () {

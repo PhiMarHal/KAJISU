@@ -62,6 +62,8 @@ const config = {
         'challenge.js',
         'cooldown.js',
         'debug.js',
+        'dictionary.js',
+        'drawing.js',
         'droppers.js',
         'enemy.js',
         'entrapments.js',

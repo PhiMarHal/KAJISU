@@ -520,21 +520,113 @@ DropperPerkRegistry.registerDropperPerk('GOLDEN_AGE', {
             health: 999999999, // Effectively indestructible
         };
     },
-    cooldown: null, // No periodic spawning
+    cooldown: null,
     cooldownStat: null,
     cooldownFormula: null,
-    positionMode: 'player', // Spawn near player
-    activationMethod: 'immediate' // Create once immediately
+    positionMode: 'player',
+    activationMethod: 'immediate'
 });
 
-// Add this to entrapments.js - activation function
-window.activateGoldenAge = function () {
-    // Get the current active scene
-    const scene = game.scene.scenes[0];
-    if (!scene) return;
+// Register Golden Age component with PlayerComponentSystem
+PlayerComponentSystem.registerComponent('goldenAgeAbility', {
+    checkTimer: null,
 
-    // Apply the dropper perk (will create one ball immediately)
-    DropperPerkRegistry.applyDropperPerk(scene, 'GOLDEN_AGE');
+    // Calculate how many balls should exist based on current stats
+    getTargetBallCount: function () {
+        return Math.max(1, Math.floor((getEffectiveFireRate() + playerLuck) / 8));
+    },
+
+    // Count existing golden balls using DropperSystem
+    getCurrentBallCount: function () {
+        return DropperSystem.getAll().filter(drop => drop.isGoldenAgeBall).length;
+    },
+
+    // Spawn a single golden ball
+    spawnBall: function (scene) {
+        const config = DropperPerkRegistry.perkDropperConfigs['GOLDEN_AGE'].getConfig();
+        config.x = player.x;
+        config.y = player.y;
+
+        const drop = DropperSystem.create(scene, config);
+        if (drop) {
+            drop.isGoldenAgeBall = true;
+        }
+        return drop;
+    },
+
+    // Check and spawn new balls if needed
+    checkAndSpawn: function () {
+        if (gameOver || gamePaused) return;
+
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        const targetCount = this.getTargetBallCount();
+        let currentCount = this.getCurrentBallCount();
+
+        // Spawn new balls if below target
+        for (let i = currentCount; i < targetCount; i++) {
+            this.spawnBall(scene);
+        }
+
+        // Remove oldest balls if over target
+        while (currentCount > targetCount) {
+            const goldenBalls = DropperSystem.getAll()
+                .filter(drop => drop.isGoldenAgeBall)
+                .sort((a, b) => a.createdAt - b.createdAt);
+
+            if (goldenBalls.length > 0) {
+                DropperSystem.destroyDrop(goldenBalls[0]);
+                currentCount--;
+            } else {
+                break;
+            }
+        }
+    },
+
+    initialize: function (player) {
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        // Spawn initial ball(s)
+        this.checkAndSpawn();
+
+        // Set up periodic check timer (every 1 second)
+        this.checkTimer = scene.time.addEvent({
+            delay: 1000,
+            callback: this.checkAndSpawn,
+            callbackScope: this,
+            loop: true
+        });
+
+        window.registerEffect('timer', this.checkTimer);
+    },
+
+    cleanup: function (player) {
+        if (this.checkTimer) {
+            this.checkTimer.remove();
+            this.checkTimer = null;
+        }
+
+        // Destroy all golden balls
+        DropperSystem.getAll()
+            .filter(drop => drop.isGoldenAgeBall)
+            .forEach(drop => DropperSystem.destroyDrop(drop));
+    }
+});
+
+// Register with PlayerPerkRegistry for automatic activation/deactivation
+PlayerPerkRegistry.registerPerkEffect('GOLDEN_AGE', {
+    componentName: 'goldenAgeAbility',
+    condition: function () {
+        return true; // Always active when perk is acquired
+    }
+});
+
+// Activation function for GOLDEN_AGE
+window.activateGoldenAge = function () {
+    // Explicitly add the component (PlayerPerkRegistry also handles this on update)
+    PlayerComponentSystem.addComponent('goldenAgeAbility');
 };
 
 // Update CLOUD_KING config in entrapments.js to include physics options

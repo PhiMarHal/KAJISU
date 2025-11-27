@@ -2,7 +2,7 @@
 
 // global variables
 let scoreUpdateTimer = null;
-let versionBonus = 4;
+let versionBonus = 8;
 let victoryBonus = 3;
 
 // Get current difficulty level (1-4)
@@ -38,9 +38,9 @@ const ScoreSystem = {
             baseScore = Math.floor(totalBonus * cappedTime);
         }
 
-        // Apply Boss Rush mode score zeroing at 18 minutes (keep this logic)
+        // Apply Boss Rush mode score zeroing at 12 minutes
         if (window.BOSS_RUSH_MODE) {
-            // Zero out the score at boss spawn time minus 2 minutes (18 minutes)
+            // Zero out the score at boss spawn time minus 1 minute (12 minutes)
             baseScore -= Math.floor(totalBonus * (bossSpawnTime - 120));
         }
 

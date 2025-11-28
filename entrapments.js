@@ -410,6 +410,50 @@ window.activateColdFlower = function () {
     return DropperPerkRegistry.applyDropperPerk(scene, 'COLD_FLOWER');
 };
 
+// EXPLODING_FLOWER - Grows for 4 seconds then explodes into projectiles
+DropperPerkRegistry.registerDropperPerk('EXPLODING_FLOWER', {
+    getConfig: function () {
+        return {
+            symbol: '爆',
+            color: '#FF6600',
+            fontSize: 16,
+            behaviorType: 'projectile',
+            damage: (getEffectiveDamage() + playerLuck),
+            lifespan: 4010,
+            health: 1,
+            options: {
+                hasPeriodicEffect: true,
+                fireImmediately: false,
+                periodicEffectCooldown: 4000,
+                periodicEffectFormula: 'fixed',
+                isExplodingFlower: true,
+                visualEffect: {
+                    type: 'createGrowing',
+                    config: { targetScale: 2, duration: 4000 }
+                }
+            }
+        };
+    },
+    cooldown: 8000,
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
+    positionMode: 'random',
+    activationMethod: 'periodic'
+});
+
+window.activateExplodingFlower = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    const config = DropperPerkRegistry.perkDropperConfigs['EXPLODING_FLOWER'].getConfig();
+    config.x = Phaser.Math.Between(50, game.config.width - 50);
+    config.y = Phaser.Math.Between(50, game.config.height - 50);
+
+    DropperSystem.create(scene, config);
+
+    return DropperPerkRegistry.applyDropperPerk(scene, 'EXPLODING_FLOWER');
+};
+
 DropperPerkRegistry.registerDropperPerk('FROST_SHRAPNEL', {
     getConfig: function () {
         return {

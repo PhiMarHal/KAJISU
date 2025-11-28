@@ -814,6 +814,40 @@ const VisualEffects = {
         return { arc, glow };
     },
 
+    createGrowing: function (scene, entity, options = {}) {
+        const targetScale = options.targetScale ?? 2;
+        const duration = options.duration ?? 4000;
+        const steps = options.steps ?? 4;
+        const popDuration = options.popDuration ?? 150;
+
+        const stepInterval = duration / steps;
+        const scalePerStep = (targetScale - 1) / steps;
+        let currentStep = 0;
+
+        function doStep() {
+            if (!entity.active || currentStep >= steps) return;
+
+            if (gamePaused || gameOver) {
+                scene.time.delayedCall(16, doStep);
+                return;
+            }
+
+            currentStep++;
+            scene.tweens.add({
+                targets: entity,
+                scale: 1 + (scalePerStep * currentStep),
+                duration: popDuration,
+                ease: 'Back.easeOut'
+            });
+
+            if (currentStep < steps) {
+                scene.time.delayedCall(stepInterval, doStep);
+            }
+        }
+
+        scene.time.delayedCall(stepInterval, doStep);
+    },
+
 
 
     // Additional visual effects can be added here

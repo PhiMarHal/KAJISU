@@ -699,6 +699,27 @@ const DropperSystem = {
             }
         }
 
+        else if (drop.options && drop.options.isExplodingFlower) {
+            const x = drop.entity.x;
+            const y = drop.entity.y;
+            const projectileCount = Math.floor(getEffectiveFireRate() + playerLuck) * 2;
+            const damage = (getEffectiveDamage() + playerLuck) * 0.5;
+
+            for (let i = 0; i < projectileCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 200 + Math.random() * 400;
+
+                WeaponSystem.createProjectile(scene, {
+                    x, y, angle,
+                    symbol: '★',
+                    color: '#ffff00',
+                    speed: speed,
+                    damage: damage,
+                    fontSize: getEffectiveSize(projectileSizeFactor, damage)
+                });
+            }
+        }
+
         // Can add more effect types here as needed
     },
 
@@ -797,42 +818,22 @@ const DropperSystem = {
 function applyVisualEffects(scene, entity, options) {
     if (!options || !window.VisualEffects) return;
 
-    // Check for standard pulsing effect (for backward compatibility)
     if (options.needsPulsing) {
         VisualEffects.createPulsing(scene, entity);
     }
 
-    // Process any effects specified in visualEffect object
     if (options.visualEffect) {
-        // If it's a string, assume it's the name of a VisualEffects function
         if (typeof options.visualEffect === 'string') {
             const effectName = options.visualEffect;
-
-            // Check if the effect exists in VisualEffects
             if (typeof VisualEffects[effectName] === 'function') {
-                // Handle special case for createPulsing which takes entity directly
-                if (effectName === 'createPulsing') {
-                    VisualEffects[effectName](scene, entity);
-                } else {
-                    // Call the effect function with position
-                    VisualEffects[effectName](scene, entity.x, entity.y);
-                }
+                VisualEffects[effectName](scene, entity);
             }
         }
-        // If it's an object, it should have a type and optionally config
         else if (typeof options.visualEffect === 'object') {
             const effectName = options.visualEffect.type;
             const effectConfig = options.visualEffect.config || {};
-
-            // Check if the effect exists
             if (typeof VisualEffects[effectName] === 'function') {
-                // Handle special case for createPulsing which takes entity directly
-                if (effectName === 'createPulsing') {
-                    VisualEffects[effectName](scene, entity, effectConfig);
-                } else {
-                    // Call the effect function with position and config
-                    VisualEffects[effectName](scene, entity.x, entity.y, effectConfig);
-                }
+                VisualEffects[effectName](scene, entity, effectConfig);
             }
         }
     }

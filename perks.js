@@ -78,6 +78,18 @@ const PERKS = {
             window.activateBloomingFlower();
         }
     },
+    "EXPLODING_FLOWER": {
+        kanji: "爆花",
+        kana: "ばくか",
+        romaji: "bakuka",
+        english: "Exploding Flower",
+        description: "Flowers grow and explode into projectiles",
+        color: "#FF6600",
+        hoverColor: 0xDD4400,
+        onAcquire: function () {
+            window.activateExplodingFlower();
+        }
+    },
     "TEAL_OCTOPUS": {
         kanji: "青緑蛸",
         kana: "あおみどりたこ",

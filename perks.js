@@ -1999,9 +1999,9 @@ const PERKS = {
         kana: "そうげき",
         romaji: "sougeki",
         english: "Twin Strike",
-        description: "Two statues zap enemies between them",
-        color: "#FFFFAA",
-        hoverColor: 0xDDDD88,
+        description: "Keep them close",
+        color: "#FFD700",
+        hoverColor: 0xDEB887,
         onAcquire: function () {
             window.activateTwinStrike();
         }

@@ -38,9 +38,9 @@ const ScoreSystem = {
             baseScore = Math.floor(totalBonus * cappedTime);
         }
 
-        // Apply Boss Rush mode score zeroing at 12 minutes
-        if (window.BOSS_RUSH_MODE) {
-            // Zero out the score at boss spawn time minus 1 minute (12 minutes)
+        // Apply Boss Rush mode score zeroing at 12 minutes for defeats
+        if (window.BOSS_RUSH_MODE && !isVictory) {
+            // Zero out the score at boss spawn time minus 2 minutes (12 minutes)
             baseScore -= Math.floor(totalBonus * (bossSpawnTime - 120));
         }
 

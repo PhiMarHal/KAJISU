@@ -53,7 +53,8 @@ const ScoreSystem = {
         const totalBonus = getTotalBonus(); // versionBonus × difficulty
 
         // Use the original victory calculation logic with totalBonus
-        const timeDeduction = Math.min(currentTime - bossSpawnTime, maximumScoreTime);
+        const maxTimeDeduction = maximumScoreTime / 3;
+        const timeDeduction = Math.min(currentTime - bossSpawnTime, maxTimeDeduction);
         let victoryScore = Math.floor(totalBonus * victoryBonus * (maximumScoreTime - timeDeduction));
 
         // Apply 50% reduction for Boss Rush mode

@@ -66,9 +66,11 @@ const config = {
         'drawing.js',
         'droppers.js',
         'enemy.js',
+        'hero.js',
+        'visuals.js',
         'entrapments.js',
         'familiars.js',
-        'hero.js',
+
         'input.js',
         'life.js',
         'menu.js',
@@ -82,7 +84,7 @@ const config = {
         'playerhit.js',
         'score.js',
         'statdefs.js',
-        'visuals.js',
+
         'weapons.js',
         'help.js',
     ],

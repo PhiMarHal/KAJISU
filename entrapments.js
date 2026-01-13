@@ -673,6 +673,53 @@ window.activateGoldenAge = function () {
     PlayerComponentSystem.addComponent('goldenAgeAbility');
 };
 
+// Register the Cannonball dropper perk
+DropperPerkRegistry.registerDropperPerk('CANNONBALL', {
+    getConfig: function () {
+        return {
+            symbol: '砲',
+            color: '#ffd700', // Gold color (same as GOLDEN_AGE)
+            fontSize: 64,
+            fontStyle: 'normal', // Not bold to avoid blur at large size
+            behaviorType: 'playerPushable',
+            damage: (getEffectiveDamage() + playerLuck) * 4.0,
+            damageMultiplier: 8.0,
+            damageInterval: 400,
+            colliderSize: 1.0,
+            lifespan: 8000,
+            health: 999999999, // Indestructible during lifespan
+            options: {
+                physics: {
+                    bounce: 0.6,
+                    drag: 100,
+                    mass: 0.1,
+                    maxVelocity: 400
+                }
+            }
+        };
+    },
+    cooldown: 40000,
+    cooldownStat: 'luck',
+    cooldownFormula: 'sqrt',
+    positionMode: 'random',
+    activationMethod: 'periodic'
+});
+
+// Activation function for CANNONBALL
+window.activateCannonball = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+
+    // Create the first cannonball at random screen position
+    const cannonballConfig = DropperPerkRegistry.perkDropperConfigs['CANNONBALL'].getConfig();
+    cannonballConfig.x = Math.random() * game.config.width;
+    cannonballConfig.y = Math.random() * game.config.height;
+    DropperSystem.create(scene, cannonballConfig);
+
+    // Apply the dropper perk for future cannonballs
+    return DropperPerkRegistry.applyDropperPerk(scene, 'CANNONBALL');
+};
+
 // Update CLOUD_KING config in entrapments.js to include physics options
 DropperPerkRegistry.registerDropperPerk('CLOUD_KING', {
     getConfig: function () {

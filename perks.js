@@ -1568,6 +1568,18 @@ const PERKS = {
             window.activateGoldenAge();
         }
     },
+    "CANNONBALL": {
+        kanji: "砲弾",
+        kana: "ほうだん",
+        romaji: "houdan",
+        english: "Cannonball",
+        description: "Massive rolling sphere with devastating contact damage",
+        color: "#ffd700", // Gold (same as GOLDEN_AGE)
+        hoverColor: 0xdaa520,
+        onAcquire: function () {
+            window.activateCannonball();
+        }
+    },
     "CLOUD_KING": {
         kanji: '雲王',
         kana: 'くもおう',

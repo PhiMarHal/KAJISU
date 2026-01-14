@@ -1532,6 +1532,18 @@ const PERKS = {
             window.activateMeteor();
         }
     },
+    "EXPLODING_BELLY": {
+        kanji: "爆腹",
+        kana: "ばくはら",
+        romaji: "bakuhara",
+        english: "Exploding Belly",
+        description: "Periodically burst projectiles in all directions",
+        color: "#ffff00", // Yellow (matches projectiles)
+        hoverColor: 0xdddd00,
+        onAcquire: function () {
+            window.activateExplodingBelly();
+        }
+    },
     "DECELERATING_BULLET": {
         kanji: "減速弾",
         kana: "げんそくだん",

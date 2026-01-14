@@ -1214,7 +1214,7 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
                 angle: randomAngle,
                 symbol: this.symbol,
                 color: this.color,
-                speed: this.speed,
+                speed: typeof this.speed === 'function' ? this.speed() : this.speed,
                 damage: actualDamage,
                 fontSize: getEffectiveSize(projectileSizeFactor, actualDamage)
             });
@@ -1272,6 +1272,28 @@ window.activateShootingStar = function () {
 // Function to activate meteor
 window.activateMeteor = function () {
     PlayerComponentSystem.addComponent('meteorAbility');
+};
+
+// EXPLODING_BELLY: Burst of projectiles from player with varied speeds
+// Fires ~16 projectiles (same as EXPLODING_FLOWER base)
+// Base 8000ms * 8 = 64000. Uses defaults (FR+Luck, divide)
+PlayerComponentSystem.registerComponent('explodingBellyAbility', createRandomShotsComponent(64000, 0.8, {
+    burstDuration: 160,      // 160ms burst window
+    burstInterval: 10,       // Shot every 10ms (16 shots total)
+    speed: () => 200 + Math.random() * 400,  // Varied speed like EXPLODING_FLOWER
+    color: '#ffff00'         // Standard yellow
+    // Using defaults for cooldownStat (null), formula (divide), and statFunction (FR+Luck)
+}));
+
+// Register the perk
+PlayerPerkRegistry.registerPerkEffect('EXPLODING_BELLY', {
+    componentName: 'explodingBellyAbility',
+    condition: function () { return true; }
+});
+
+// Activation function
+window.activateExplodingBelly = function () {
+    PlayerComponentSystem.addComponent('explodingBellyAbility');
 };
 
 // Register the volcano component with burst mode

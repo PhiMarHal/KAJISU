@@ -688,14 +688,6 @@ DropperPerkRegistry.registerDropperPerk('CANNONBALL', {
             colliderSize: 1.0,
             lifespan: 8000,
             health: 999999999, // Indestructible during lifespan
-            options: {
-                physics: {
-                    bounce: 0.6,
-                    drag: 100,
-                    mass: 0.1,
-                    maxVelocity: 400
-                }
-            }
         };
     },
     cooldown: 40000,

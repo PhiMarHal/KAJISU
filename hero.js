@@ -1477,6 +1477,17 @@ PlayerPerkRegistry.registerPerkEffect('AUGMENTATION', {
     }
 });
 
+PlayerComponentSystem.registerComponent('explodingBeaconAbility',
+    BeaconSystem.createBeaconComponent(BeaconConfigs.EXPLODING_BEACON)
+);
+
+PlayerPerkRegistry.registerPerkEffect('EXPLODING_BEACON', {
+    componentName: 'explodingBeaconAbility',
+    condition: function () {
+        return true;
+    }
+});
+
 // SHRINES.JS
 
 // Register shrine components using ShrineSystem.createShrineComponent

@@ -1544,6 +1544,17 @@ const PERKS = {
             window.activateExplodingBelly();
         }
     },
+    "EXPLODING_BEACON": {
+        kanji: "爆標",
+        kana: "ばくひょう",
+        romaji: "bakuhyou",
+        english: "Exploding Beacon",
+        description: "Beacons spawn and burst with projectiles on collection",
+        color: "#FF8800", // Orange
+        hoverColor: 0xDD6600,
+        onAcquire: function () {
+        }
+    },
     "DECELERATING_BULLET": {
         kanji: "減速弾",
         kana: "げんそくだん",

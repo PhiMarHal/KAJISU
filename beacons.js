@@ -358,7 +358,40 @@ const BeaconConfigs = {
             // Update stat display immediately
             GameUI.updateStatCircles(scene);
         },
-    }
+    },
+
+    EXPLODING_BEACON: {
+        beaconType: 'explosion',
+        symbol: '爆',
+        fontSize: '20px',
+        color: '#FF8800',
+        baseCooldown: 8000,
+        cooldownStat: 'fireRate',
+        cooldownFormula: 'sqrt',
+        maxBeacons: null, // Use playerLuck
+        onCollect: function (beacon) {
+            // Fire burst of projectiles from beacon position
+            const scene = this;
+            const projectileCount = Math.floor(getEffectiveFireRate() + playerLuck) * 2;
+            const actualDamage = (getEffectiveDamage() + playerLuck) * 0.5;
+
+            for (let i = 0; i < projectileCount; i++) {
+                const randomAngle = Math.random() * Math.PI * 2;
+                const speed = 200 + Math.random() * 400; // Varied speed like EXPLODING_FLOWER
+
+                WeaponSystem.createProjectile.call(WeaponSystem, scene, {
+                    x: beacon.x,
+                    y: beacon.y,
+                    angle: randomAngle,
+                    symbol: '★',
+                    color: '#ffff00',
+                    speed: speed,
+                    damage: actualDamage,
+                    fontSize: getEffectiveSize(projectileSizeFactor, actualDamage)
+                });
+            }
+        }
+    },
 };
 
 // Export the system and configs

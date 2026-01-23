@@ -47,6 +47,7 @@ const config = {
         }
     },
     jsFiles: [
+        'rng.js',
         'unifiedCards.js',
         'shrines.js',
         'startMenu.js',

@@ -39,13 +39,15 @@ const BeaconSystem = {
 
         // Use provided position or calculate random spawn position
         if (x === null || y === null) {
-            x = Phaser.Math.Between(
-                game.config.width * config.paddingX,
-                game.config.width * (1 - config.paddingX)
+            x = SeededRNG.between(
+                Math.floor(game.config.width * config.paddingX),
+                Math.floor(game.config.width * (1 - config.paddingX)),
+                'drop'
             );
-            y = Phaser.Math.Between(
-                game.config.height * config.paddingY,
-                game.config.height * (1 - config.paddingY)
+            y = SeededRNG.between(
+                Math.floor(game.config.height * config.paddingY),
+                Math.floor(game.config.height * (1 - config.paddingY)),
+                'drop'
             );
         }
 

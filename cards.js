@@ -543,11 +543,8 @@ function generateRandomPerkCards(count, excludeIds = []) {
             ...PERKS[key]
         }));
 
-    // Shuffle the array
-    for (let i = availablePerks.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [availablePerks[i], availablePerks[j]] = [availablePerks[j], availablePerks[i]];
-    }
+    // Use seeded shuffle
+    SeededRNG.shuffle(availablePerks, 'perk');
 
     return availablePerks.slice(0, count);
 }

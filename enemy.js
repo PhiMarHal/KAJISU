@@ -212,14 +212,14 @@ const EnemySystem = {
 
         // Choose a random spawn position outside the screen
         let x, y;
-        if (Math.random() < 0.5) {
+        if (SeededRNG.random('enemy') < 0.5) {
             // Spawn on left or right side
-            x = Math.random() < 0.5 ? -50 : game.config.width + 50;
-            y = Phaser.Math.Between(50, game.config.height - 50);
+            x = SeededRNG.random('enemy') < 0.5 ? -50 : game.config.width + 50;
+            y = SeededRNG.between(50, game.config.height - 50, 'enemy');
         } else {
             // Spawn on top or bottom
-            x = Phaser.Math.Between(50, game.config.width - 50);
-            y = Math.random() < 0.5 ? -50 : game.config.height + 50;
+            x = SeededRNG.between(50, game.config.width - 50, 'enemy');
+            y = SeededRNG.random('enemy') < 0.5 ? -50 : game.config.height + 50;
         }
 
         // Create enemy using optimized sprite system
@@ -427,14 +427,14 @@ const EnemySystem = {
         // Create multiple kanji at different positions
         for (let i = 0; i < kanjiCount; i++) {
             // Calculate random position weighted toward the center
-            const randomAngle = Math.random() * Math.PI * 2;
-            const randomDistance = Math.random() * 300 + 100;
+            const randomAngle = SeededRNG.angle('visual');
+            const randomDistance = SeededRNG.random('visual') * 300 + 100;
 
             const x = game.config.width / 2 + Math.cos(randomAngle) * randomDistance;
             const y = game.config.height / 2 + Math.sin(randomAngle) * randomDistance;
 
             // Randomize appearance time within the duration
-            const delay = Math.random() * 3000; // Random delay up to 3 seconds
+            const delay = SeededRNG.random('visual') * 3000;
 
             // Create the kanji text with varying properties
             const kanji = this.scene.add.text(x, y, threatKanji, {

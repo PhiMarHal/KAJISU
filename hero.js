@@ -838,7 +838,7 @@ function dropGodHammer(options = {}) {
     if (activeEnemies.length === 0) return;
 
     // Select a random enemy to target from the filtered list
-    const targetEnemy = Phaser.Utils.Array.GetRandom(activeEnemies);
+    const targetEnemy = SeededRNG.pick(activeEnemies, 'effect');
 
     // Create the hammer at a position above the enemy
     const hammerX = targetEnemy.x;

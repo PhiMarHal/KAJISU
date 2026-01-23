@@ -624,7 +624,7 @@ function getKanjiCount() {
 
 // Get random kanji
 function getRandomKanji() {
-    return KANJI_DICTIONARY[Math.floor(Math.random() * KANJI_DICTIONARY.length)];
+    return SeededRNG.pick(KANJI_DICTIONARY, 'enemy');
 }
 
 // Get all characters as array (useful for enemy system)

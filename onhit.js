@@ -239,8 +239,8 @@ OnHitEffectSystem.registerComponent('stormVengeanceEffect', {
         // Create lightning strikes at random positions within the circle
         for (let i = 0; i < count; i++) {
             // Calculate random angle and distance within the circle
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * radius;
+            const angle = SeededRNG.angle('effect');
+            const distance = SeededRNG.random('effect') * radius;
 
             // Calculate position
             const x = player.x + Math.cos(angle) * distance;

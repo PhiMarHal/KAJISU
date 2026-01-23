@@ -194,7 +194,7 @@ const EntityFiringBehaviors = {
     burningTotem: function (scene, entity, time, maxDistance = 400) {
         // Always fire (no enemy targeting needed)
         // Generate random angle (0 to 2π radians for full 360° coverage)
-        const randomAngle = Math.random() * Math.PI * 2;
+        const randomAngle = SeededRNG.angle('effect');
 
         const projectile = fireProjectileFromEntity(scene, entity, null, {
             // Damage was playerDamage (1.0 scale) -> (Effective + Luck) * 0.5

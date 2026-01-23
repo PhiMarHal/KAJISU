@@ -16,6 +16,7 @@
     </script>
 
     <script src="startMenu.js"></script>
+    <script src="rng.js"></script>
     <script src="droppers.js"></script>
     <script src="cooldown.js"></script>
     <script src="beacons.js"></script>
@@ -294,12 +295,8 @@
             return baseChance * Math.sqrt(luck / BASE_STATS.LUK);
         }
 
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
+        function shuffleArray(array, stream = 'effect') {
+            return SeededRNG.shuffle([...array], stream);
         }
 
         // Add this helper function to register effects
@@ -685,6 +682,8 @@
         window.createPauseAwareDelay = createPauseAwareDelay;
 
         function startGame() {
+            SeededRNG.init(window.GAME_SEED);
+
             // Reset game state variables
             gameOver = false;
             gamePaused = false;

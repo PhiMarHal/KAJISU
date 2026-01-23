@@ -27,7 +27,9 @@ const StartMenuSystem = {
         learningChallengeEnabled: false,
         difficultyLevel: 2,
         bossRushMode: false,
-        strangedMusicEnabled: false,
+        strangeMusicEnabled: false,
+        sharedSeedEnabled: false,
+        sharedSeed: null,
         initialized: false
     },
 
@@ -35,6 +37,7 @@ const StartMenuSystem = {
     elements: {
         menuContainer: null,
         learningToggle: null,
+        seedToggle: null,
         infoMessage: null,
         backgroundCanvas: null,
         circlesAnimation: null
@@ -42,6 +45,10 @@ const StartMenuSystem = {
 
     // Info messages for each toggle state
     infoMessages: {
+        sharedSeed: {
+            on: "Fixed seed run. Share seeds for identical challenges",
+            off: "Random seed each run"
+        },
         portraitScreen: {
             on: "Better for phones",
             off: "Better for desktops"
@@ -200,17 +207,17 @@ const StartMenuSystem = {
 
         this.elements.menuContainer.appendChild(this.titleElement);
 
-        // === 3. Toggles Container: Positioned at 55vh ===
+        // === 3. Toggles Container: Positioned at 50vh (moved up to fit seed toggle) ===
         const containerWidth = Math.min(600, screenWidth * 0.9);
         const togglesContainer = document.createElement('div');
         togglesContainer.style.cssText = `
         position: absolute;
-        top: 55vh;
+        top: 50vh;
         left: 50%;
         transform: translateX(-50%);
         display: flex;
         flex-direction: column;
-        gap: ${sizes.lineSpacing * 1.5}px;
+        gap: ${sizes.lineSpacing * 1.25}px;
         width: ${containerWidth}px;
         max-width: 95%;
         z-index: 1001;
@@ -284,6 +291,124 @@ const StartMenuSystem = {
 
             return container;
         };
+
+        // Helper to create seed toggle with input field
+        const createSeedToggle = (label, isEnabled, onToggle, onSeedChange) => {
+            const container = document.createElement('div');
+            container.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        `;
+
+            const toggleLabel = document.createElement('div');
+            toggleLabel.textContent = label;
+            toggleLabel.dataset.toggleLabel = '';
+            toggleLabel.style.cssText = `
+            font-size: ${sizes.toggleSize}px;
+            color: ${isEnabled ? '#FFD700' : '#FFFFFF'};
+            transition: all 0.3s ease;
+        `;
+
+            const rightSide = document.createElement('div');
+            rightSide.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: ${sizes.toggleSize * 0.5}px;
+        `;
+
+            // Seed input field (hidden via visibility to preserve layout)
+            const seedInput = document.createElement('input');
+            seedInput.type = 'text';
+            seedInput.placeholder = 'seed';
+            seedInput.style.cssText = `
+            width: ${sizes.toggleSize * 4}px;
+            height: ${sizes.toggleSize * 1.2}px;
+            font-size: ${sizes.toggleSize * 0.7}px;
+            padding: 0 ${sizes.toggleSize * 0.3}px;
+            border: 2px solid #FFD700;
+            border-radius: ${sizes.toggleSize * 0.3}px;
+            background-color: #333;
+            color: #FFF;
+            outline: none;
+            visibility: ${isEnabled ? 'visible' : 'hidden'};
+            text-align: center;
+            font-family: monospace;
+        `;
+            seedInput.addEventListener('click', (e) => e.stopPropagation());
+            seedInput.addEventListener('input', (e) => onSeedChange(e.target.value));
+
+            const toggleBg = document.createElement('div');
+            toggleBg.style.cssText = `
+            width: ${sizes.toggleSize * 2.5}px;
+            height: ${sizes.toggleSize * 1.2}px;
+            background-color: ${isEnabled ? '#FFD700' : '#666666'};
+            border-radius: ${sizes.toggleSize}px;
+            position: relative;
+            transition: all 0.3s ease;
+        `;
+
+            const toggleCircle = document.createElement('div');
+            toggleCircle.style.cssText = `
+            width: ${sizes.toggleSize * 0.8}px;
+            height: ${sizes.toggleSize * 0.8}px;
+            background-color: #FFFFFF;
+            border-radius: 50%;
+            position: absolute;
+            top: ${sizes.toggleSize * 0.2}px;
+            left: ${isEnabled ? sizes.toggleSize * 1.5 : sizes.toggleSize * 0.2}px;
+            transition: all 0.3s ease;
+        `;
+
+            toggleBg.appendChild(toggleCircle);
+            rightSide.appendChild(seedInput);
+            rightSide.appendChild(toggleBg);
+            container.appendChild(toggleLabel);
+            container.appendChild(rightSide);
+
+            // Store references
+            container.toggleBg = toggleBg;
+            container.toggleCircle = toggleCircle;
+            container.toggleLabel = toggleLabel;
+            container.seedInput = seedInput;
+            container.isEnabled = isEnabled;
+
+            container.addEventListener('click', (e) => {
+                if (e.target === seedInput) return;
+                const newState = !container.isEnabled;
+                this.updateToggleState(container, newState, sizes);
+                seedInput.style.visibility = newState ? 'visible' : 'hidden';
+                if (newState) setTimeout(() => seedInput.focus(), 50);
+                onToggle(newState);
+            });
+
+            return container;
+        };
+
+        // Add seed toggle first
+        const seedToggle = createSeedToggle(
+            'Shared Seed',
+            this.state.sharedSeedEnabled,
+            (enabled) => {
+                this.state.sharedSeedEnabled = enabled;
+                if (!enabled) this.state.sharedSeed = null;
+                this.showInfoMessage(this.infoMessages.sharedSeed[enabled ? 'on' : 'off']);
+            },
+            (value) => {
+                if (value.trim() === '') {
+                    this.state.sharedSeed = null;
+                } else {
+                    const num = parseInt(value, 10);
+                    this.state.sharedSeed = !isNaN(num) ? num :
+                        value.split('').reduce((h, c) => ((h << 5) - h) + c.charCodeAt(0), 0) >>> 0;
+                }
+            }
+        );
+        this.elements.seedToggle = seedToggle;
+        togglesContainer.appendChild(seedToggle);
 
         // Add toggles
         if (!this.isFarcadeMode()) {
@@ -601,10 +726,18 @@ const StartMenuSystem = {
             this.elements.infoMessage.style.fontSize = `${sizes.infoSize}px`;
         }
 
-        // Step 5: Force layout flush – critical!
+        // Step 5: Update seed input if it exists
+        if (this.elements.seedToggle?.seedInput) {
+            const input = this.elements.seedToggle.seedInput;
+            input.style.width = `${sizes.toggleSize * 4}px`;
+            input.style.height = `${sizes.toggleSize * 1.2}px`;
+            input.style.fontSize = `${sizes.toggleSize * 0.7}px`;
+        }
+
+        // Step 6: Force layout flush – critical!
         this.titleElement?.offsetHeight;
 
-        // Step 6: Use setTimeout + rAF to wait for full layout
+        // Step 7: Use setTimeout + rAF to wait for full layout
         // This ensures even complex reflows (like mobile/desktop switch) settle
         setTimeout(() => {
             requestAnimationFrame(() => {
@@ -770,6 +903,14 @@ const StartMenuSystem = {
         window.BOSS_RUSH_MODE = this.state.bossRushMode;
         window.STRANGE_MUSIC_ENABLED = this.state.strangeMusicEnabled;
 
+        // Set and initialize the game seed
+        if (this.state.sharedSeedEnabled && this.state.sharedSeed !== null) {
+            window.GAME_SEED = this.state.sharedSeed;
+        } else {
+            window.GAME_SEED = Date.now();
+        }
+        SeededRNG.init(window.GAME_SEED);
+
         const config = {
             type: Phaser.AUTO,
             width: this.state.kajisuliMode ? 800 : 1200,
@@ -800,6 +941,10 @@ const StartMenuSystem = {
     setupKeyboardHandler: function () {
         // Store the handler so we can remove it during cleanup
         this.keyHandler = (event) => {
+            // Don't trigger if typing in seed input
+            if (document.activeElement === this.elements.seedToggle?.seedInput) {
+                return;
+            }
             if (event.key === 'Enter' || event.key === ' ') {
                 this.startGame();
                 // Remove the handler after use

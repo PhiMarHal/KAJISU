@@ -118,35 +118,27 @@ function initializeEnemyTiers(tierCounts = { 1: 4, 2: 4, 3: 4, 4: 1, 5: 1, 6: 1 
     // Get all kanji characters from dictionary
     const allEnemyTypes = getAllKanjiCharacters();
 
-    // Shuffle array to randomize assignments
+    // Shuffle array using seeded RNG (enemy stream)
     const shuffledEnemies = [...allEnemyTypes];
-    for (let i = shuffledEnemies.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffledEnemies[i], shuffledEnemies[j]] = [shuffledEnemies[j], shuffledEnemies[i]];
-    }
+    SeededRNG.shuffle(shuffledEnemies, 'enemy');
 
     // Assign enemies to tiers based on specified counts
     let usedCount = 0;
 
     // Start assigning from tier 1 to 6
     for (let tier = 1; tier <= 6; tier++) {
-        // Get the count for this tier (or default to 0)
         const tierCount = tierCounts[tier] ?? 0;
 
-        // Check if we have enough enemies left
         if (usedCount + tierCount <= shuffledEnemies.length) {
-            // Assign enemies to this tier
             ENEMY_TIER_ASSIGNMENTS[tier] = shuffledEnemies.slice(usedCount, usedCount + tierCount);
             usedCount += tierCount;
         } else {
-            // Not enough enemies left, assign remaining ones
             ENEMY_TIER_ASSIGNMENTS[tier] = shuffledEnemies.slice(usedCount);
             console.log(`Warning: Not enough enemy types for tier ${tier}. Requested ${tierCount}, assigned ${shuffledEnemies.length - usedCount}`);
             break;
         }
     }
 
-    // Log the assignments for debugging
     console.log("Enemy tier assignments initialized:",
         Object.entries(ENEMY_TIER_ASSIGNMENTS).map(([tier, enemies]) =>
             `Tier ${tier}: ${enemies.length} enemies`).join(', '));
@@ -201,13 +193,13 @@ function getEnemyTypesByRank(rank) {
 
 // Choose a random enemy type
 function getRandomEnemyType() {
-    const randomKanji = getRandomKanji();
-    return randomKanji.character;
+    const allChars = getAllKanjiCharacters();
+    return SeededRNG.pick(allChars, 'enemy');
 }
 
 // Choose a random enemy type of a specific rank
 function getRandomEnemyTypeByRank(rank) {
     const types = getEnemyTypesByRank(rank);
-    if (types.length === 0) return getRandomEnemyType(); // Fallback if no enemies of this rank
-    return types[Math.floor(Math.random() * types.length)];
+    if (types.length === 0) return getRandomEnemyType();
+    return SeededRNG.pick(types, 'enemy');
 }

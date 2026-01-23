@@ -234,8 +234,8 @@ window.activateBloomingFlower = function () {
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['BLOOMING_FLOWER'].getConfig();
 
     // Explicitly set random position for the first flower
-    flowerConfig.x = Phaser.Math.Between(0, game.config.width);
-    flowerConfig.y = Phaser.Math.Between(0, game.config.height);
+    flowerConfig.x = SeededRNG.between(0, game.config.width, 'drop');
+    flowerConfig.y = SeededRNG.between(0, game.config.height, 'drop');
 
     // Create the first flower immediately
     DropperSystem.create(scene, flowerConfig);

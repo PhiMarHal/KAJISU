@@ -1313,7 +1313,8 @@ const PERKS = {
             const allStats = ['damage', 'fireRate', 'luck', 'health'];
 
             // Randomly shuffle and select 2 stats
-            const shuffledStats = shuffleArray([...allStats]);
+            const shuffledStats = [...allStats];
+            SeededRNG.shuffle(shuffledStats, 'perk');
             const selectedStats = shuffledStats.slice(0, 2);
 
             // Apply +1 to each selected stat
@@ -2093,11 +2094,8 @@ const PerkSystem = {
                 ...PERKS[key]
             }));
 
-        // Shuffle the array
-        for (let i = availablePerks.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [availablePerks[i], availablePerks[j]] = [availablePerks[j], availablePerks[i]];
-        }
+        // Use seeded shuffle (perk stream)
+        SeededRNG.shuffle(availablePerks, 'perk');
 
         return availablePerks.slice(0, count);
     },

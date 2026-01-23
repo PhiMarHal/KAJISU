@@ -77,13 +77,15 @@ const ShrineSystem = {
                 const actualAuraRadius = config.baseAuraRadius * Math.sqrt(playerLuck / BASE_STATS.LUK);
 
                 // Calculate spawn position with padding
-                const x = Phaser.Math.Between(
-                    game.config.width * config.paddingX,
-                    game.config.width * (1 - config.paddingX)
+                const x = SeededRNG.between(
+                    Math.floor(game.config.width * config.paddingX),
+                    Math.floor(game.config.width * (1 - config.paddingX)),
+                    'drop'
                 );
-                const y = Phaser.Math.Between(
-                    game.config.height * config.paddingY,
-                    game.config.height * (1 - config.paddingY)
+                const y = SeededRNG.between(
+                    Math.floor(game.config.height * config.paddingY),
+                    Math.floor(game.config.height * (1 - config.paddingY)),
+                    'drop'
                 );
 
                 // Create the shrine

@@ -797,6 +797,9 @@
                 acquiredPerks = [];
             }
 
+            // Set up deterministic perk order
+            PerkSystem.initializePerkOrder();
+
             // Update player stats text
             GameUI.updateStatCircles(this);
 

@@ -104,8 +104,11 @@ const KanjiDrawingSystem = {
         const maxTries = 20;
 
         for (let i = 0; i < maxTries; i++) {
-            const r = eligibleRanks[Math.floor(Math.random() * eligibleRanks.length)];
-            const char = window.getRandomEnemyTypeByRank(r);
+            const r = SeededRNG.pick(eligibleRanks, 'drawing');
+            const rankTypes = (typeof getEnemyTypesByRank === 'function') ? getEnemyTypesByRank(r) : [];
+            const char = rankTypes.length > 0 ? SeededRNG.pick(rankTypes, 'drawing') : null;
+
+            if (!char) continue;
 
             if (!this.state.history.includes(char)) {
                 selectedChar = char;

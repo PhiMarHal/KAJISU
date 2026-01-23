@@ -2085,19 +2085,32 @@ const PerkSystem = {
         };
     },
 
-    // Get random perks (avoiding duplicates)
+    perkOrder: [],
+    perkIndex: 0,
+
+    initializePerkOrder: function () {
+        this.perkOrder = Object.keys(PERKS);
+        SeededRNG.shuffle(this.perkOrder, 'perk');
+        this.perkIndex = 0;
+    },
+
     getRandomPerks: function (count, excludeIds = []) {
-        const availablePerks = Object.keys(PERKS)
-            .filter(key => !excludeIds.includes(key))
-            .map(key => ({
-                id: key,
-                ...PERKS[key]
-            }));
+        const result = [];
+        let searchIndex = this.perkIndex;
 
-        // Use seeded shuffle (perk stream)
-        SeededRNG.shuffle(availablePerks, 'perk');
+        // Collect 'count' perks starting from perkIndex, skipping excluded ones
+        while (result.length < count && searchIndex < this.perkOrder.length) {
+            const id = this.perkOrder[searchIndex];
+            if (!excludeIds.includes(id)) {
+                result.push({ id, ...PERKS[id] });
+            }
+            searchIndex++;
+        }
 
-        return availablePerks.slice(0, count);
+        // Advance the base index by count (the chunk size)
+        this.perkIndex += count;
+
+        return result;
     },
 
     // Apply a perk to the game
@@ -2111,5 +2124,5 @@ const PerkSystem = {
         perk.onAcquire();
 
         return true;
-    }
+    },
 };

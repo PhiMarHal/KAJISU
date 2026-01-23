@@ -13,7 +13,8 @@ const SeededRNG = {
         perk: null,       // Perk/upgrade offerings
         drop: null,       // Drop positions (beacons, shrines, droppers)
         effect: null,     // Combat effects (lightning positions, familiar angles)
-        visual: null      // Visual-only effects (debris, particles)
+        visual: null,     // Visual-only effects (debris, particles)
+        drawing: null     // Drawing challenge kanji selection
     },
 
     // Stream counters for debugging/replay
@@ -22,7 +23,8 @@ const SeededRNG = {
         perk: 0,
         drop: 0,
         effect: 0,
-        visual: 0
+        visual: 0,
+        drawing: 0
     },
 
     // Initialize the RNG system with a master seed
@@ -39,6 +41,7 @@ const SeededRNG = {
         this.streams.drop = this.createGenerator(this.masterSeed * 3);
         this.streams.effect = this.createGenerator(this.masterSeed * 4);
         this.streams.visual = this.createGenerator(this.masterSeed * 5);
+        this.streams.drawing = this.createGenerator(this.masterSeed * 6);
 
         // Reset counters
         Object.keys(this.counters).forEach(key => this.counters[key] = 0);
@@ -135,7 +138,7 @@ const SeededRNG = {
             console.warn(`SeededRNG: Cannot reset unknown stream '${stream}'`);
             return;
         }
-        const multipliers = { enemy: 1, perk: 2, drop: 3, effect: 4, visual: 5 };
+        const multipliers = { enemy: 1, perk: 2, drop: 3, effect: 4, visual: 5, drawing: 6 };
         this.streams[stream] = this.createGenerator(this.masterSeed * multipliers[stream]);
         this.counters[stream] = 0;
     }

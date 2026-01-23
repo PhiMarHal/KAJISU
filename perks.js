@@ -2096,19 +2096,23 @@ const PerkSystem = {
 
     getRandomPerks: function (count, excludeIds = []) {
         const result = [];
+        const totalPerks = this.perkOrder.length;
         let searchIndex = this.perkIndex;
+        let searched = 0;
 
-        // Collect 'count' perks starting from perkIndex, skipping excluded ones
-        while (result.length < count && searchIndex < this.perkOrder.length) {
-            const id = this.perkOrder[searchIndex];
+        // Collect 'count' perks, wrapping around if needed
+        // Stop if we've searched the entire array (prevent infinite loop)
+        while (result.length < count && searched < totalPerks) {
+            const id = this.perkOrder[searchIndex % totalPerks];
             if (!excludeIds.includes(id)) {
                 result.push({ id, ...PERKS[id] });
             }
             searchIndex++;
+            searched++;
         }
 
-        // Advance the base index by count (the chunk size)
-        this.perkIndex += count;
+        // Advance the base index by count (the chunk size), wrapping around
+        this.perkIndex = (this.perkIndex + count) % totalPerks;
 
         return result;
     },

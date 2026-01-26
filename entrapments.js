@@ -291,8 +291,8 @@ window.activateLaserFlower = function () {
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['LASER_FLOWER'].getConfig();
 
     // Explicitly set random position for the first flower
-    flowerConfig.x = Phaser.Math.Between(0, game.config.width);
-    flowerConfig.y = Phaser.Math.Between(0, game.config.height);
+    flowerConfig.x = SeededRNG.between(0, game.config.width, 'drop');
+    flowerConfig.y = SeededRNG.between(0, game.config.height, 'drop');
 
     // Create the first flower immediately
     DropperSystem.create(scene, flowerConfig);
@@ -347,8 +347,8 @@ window.activatePoisonFlower = function () {
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['POISON_FLOWER'].getConfig();
 
     // Explicitly set random position for the first flower
-    flowerConfig.x = Phaser.Math.Between(0, game.config.width);
-    flowerConfig.y = Phaser.Math.Between(0, game.config.height);
+    flowerConfig.x = SeededRNG.between(0, game.config.width, 'drop');
+    flowerConfig.y = SeededRNG.between(0, game.config.height, 'drop');
 
     // Create the first flower immediately
     DropperSystem.create(scene, flowerConfig);
@@ -400,8 +400,8 @@ window.activateColdFlower = function () {
     const flowerConfig = DropperPerkRegistry.perkDropperConfigs['COLD_FLOWER'].getConfig();
 
     // Explicitly set random position for the first flower
-    flowerConfig.x = Phaser.Math.Between(0, game.config.width);
-    flowerConfig.y = Phaser.Math.Between(0, game.config.height);
+    flowerConfig.x = SeededRNG.between(0, game.config.width, 'drop');
+    flowerConfig.y = SeededRNG.between(0, game.config.height, 'drop');
 
     // Create the first flower immediately
     DropperSystem.create(scene, flowerConfig);
@@ -446,8 +446,8 @@ window.activateExplodingFlower = function () {
     if (!scene) return;
 
     const config = DropperPerkRegistry.perkDropperConfigs['EXPLODING_FLOWER'].getConfig();
-    config.x = Phaser.Math.Between(50, game.config.width - 50);
-    config.y = Phaser.Math.Between(50, game.config.height - 50);
+    config.x = SeededRNG.between(0, game.config.width, 'drop');
+    config.y = SeededRNG.between(0, game.config.height, 'drop');
 
     DropperSystem.create(scene, config);
 

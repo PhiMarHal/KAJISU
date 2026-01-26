@@ -399,13 +399,15 @@ const ShrineConfigs = {
         },
         onEffectTrigger: function (shrine) {
             // Create lightning at random position on screen
-            const x = Phaser.Math.Between(
-                game.config.width * 0.1,
-                game.config.width * 0.9
+            const x = SeededRNG.between(
+                Math.floor(game.config.width * 0.1),
+                Math.floor(game.config.width * 0.9),
+                'effect'
             );
-            const y = Phaser.Math.Between(
-                game.config.height * 0.1,
-                game.config.height * 0.9
+            const y = SeededRNG.between(
+                Math.floor(game.config.height * 0.1),
+                Math.floor(game.config.height * 0.9),
+                'effect'
             );
 
             createLightningStrike(shrine.scene, x, y);

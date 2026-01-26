@@ -187,7 +187,7 @@ const KanjiTextureSystem = {
 
         // Store enemy data
         enemy.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier);
-        enemy.speed = Phaser.Math.Between(enemyData.speedMin, enemyData.speedMax);
+        enemy.speed = SeededRNG.between(enemyData.speedMin, enemyData.speedMax, 'enemy');
         enemy.damage = enemyData.damage;
         enemy.rank = enemyData.rank;
         enemy.expValue = enemyData.expValue || 1;

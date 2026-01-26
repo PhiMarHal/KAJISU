@@ -500,8 +500,8 @@ const DropperSystem = {
                 switch (dropperConfig.positionMode) {
                     case 'random':
                         // Random position on screen without padding
-                        x = Phaser.Math.Between(0, game.config.width);
-                        y = Phaser.Math.Between(0, game.config.height);
+                        x = SeededRNG.between(0, game.config.width, 'drop');
+                        y = SeededRNG.between(0, game.config.height, 'drop');
                         break;
 
                     case 'trail':

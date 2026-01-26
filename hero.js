@@ -1022,8 +1022,8 @@ PlayerComponentSystem.registerComponent('stormCallerAbility', {
                 if (gameOver || gamePaused) return;
 
                 // Get a random target position on screen
-                const targetX = Phaser.Math.Between(game.config.width * 0.083, game.config.width * 0.917); // 100/1200 to 1100/1200
-                const targetY = Phaser.Math.Between(game.config.height * 0.125, game.config.height * 0.875); // 100/800 to 700/800
+                const targetX = SeededRNG.between(Math.floor(game.config.width * 0.083), Math.floor(game.config.width * 0.917), 'effect');
+                const targetY = SeededRNG.between(Math.floor(game.config.height * 0.125), Math.floor(game.config.height * 0.875), 'effect');
 
                 // Call the lightning strike function
                 createLightningStrike(scene, targetX, targetY);
@@ -1033,8 +1033,8 @@ PlayerComponentSystem.registerComponent('stormCallerAbility', {
         });
 
         // Create initial lightning immediately
-        const targetX = Phaser.Math.Between(game.config.width * 0.083, game.config.width * 0.917); // 100/1200 to 1100/1200
-        const targetY = Phaser.Math.Between(game.config.height * 0.125, game.config.height * 0.875); // 100/800 to 700/800
+        const targetX = SeededRNG.between(Math.floor(game.config.width * 0.083), Math.floor(game.config.width * 0.917), 'effect');
+        const targetY = SeededRNG.between(Math.floor(game.config.height * 0.125), Math.floor(game.config.height * 0.875), 'effect');
         createLightningStrike(scene, targetX, targetY);
     },
 

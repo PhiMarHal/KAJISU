@@ -230,7 +230,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TENTACLE_GRASP', {
             color: '#8800AA', // Purple color
             fontSize: 24,
             radius: 80, // Medium orbit radius
-            angle: Math.random() * Math.PI * 2, // Random starting angle
+            angle: SeededRNG.angle('effect'), // Random starting angle
             speed: 1, // Moderate speed
             pattern: 'oscillating', // Use oscillating pattern for organic movement
             collisionType: 'projectile', // Destroyed on hit with enemies
@@ -285,7 +285,7 @@ function launchTentacles(scene) {
         radii.forEach((radius, index) => {
             // Add a small random variation to the angle for organic feel
             // More variation for outer segments
-            const angleVariation = (Math.random() * 0.2 - 0.1) * (index * 0.5 + 1);
+            const angleVariation = (SeededRNG.random('effect') * 0.2 - 0.1) * (index * 0.5 + 1);
             const segmentAngle = baseAngle + angleVariation;
 
             // Customize wobble parameters for each segment
@@ -328,7 +328,7 @@ function launchTentacles(scene) {
 }
 
 // Track the current angle of immortal body parts
-let immortalBodyAngle = Math.random() * Math.PI * 2; // Initial random angle
+let immortalBodyAngle = SeededRNG.angle('effect'); // Initial random angle
 
 // IMMORTAL_ARM
 OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
@@ -772,7 +772,7 @@ OrbitalPerkRegistry.registerPerkOrbital('BRIGHT_LANCE', {
             color: '#ffff00',
             fontSize: 32, // Standard size
             radius: 96,
-            angle: Math.random() * Math.PI * 2, // Random starting angle
+            angle: SeededRNG.angle('effect'), // Random starting angle
             speed: 10, // Use this value as rotation speed factor for direction following
             direction: 'clockwise', // Not really used due to custom movement
             pattern: 'directionFollowing', // Use our custom pattern
@@ -806,7 +806,7 @@ OrbitalPerkRegistry.registerPerkOrbital('TORCHLIGHT', {
             color: '#FF4500', // Orange-red color
             fontSize: 32, // Standard size
             radius: 96,
-            angle: Math.random() * Math.PI * 2, // Random starting angle
+            angle: SeededRNG.angle('effect'), // Random starting angle
             speed: 10, // Rotation speed factor for direction following
             direction: 'clockwise',
             pattern: 'directionFollowing', // Follow player movement direction

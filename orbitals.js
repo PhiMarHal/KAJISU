@@ -369,7 +369,7 @@ const OrbitalSystem = {
             color: '#ffff00',            // Color of the orbital
             fontSize: 32,                // Size of the font
             radius: 80,                  // Distance from player
-            angle: Math.random() * Math.PI * 2, // Starting angle (random by default)
+            angle: SeededRNG.angle('effect'), // Starting angle (random by default)
             speed: 0.02,                 // Rotation speed (radians per second)
             direction: 'clockwise',      // Direction of rotation ('clockwise' or 'counterclockwise')
             pattern: 'standard',         // Movement pattern
@@ -631,7 +631,7 @@ const OrbitalSystem = {
                         isClockwise = !isClockwise;
                         break;
                     case 'random':
-                        orbitalConfig.direction = Math.random() < 0.5 ? 'clockwise' : 'counterclockwise';
+                        orbitalConfig.direction = SeededRNG.bool(0.5, 'effect') ? 'clockwise' : 'counterclockwise';
                         break;
                     // 'fixed' uses whatever is in baseConfig
                 }
@@ -643,7 +643,7 @@ const OrbitalSystem = {
                         currentAngle += (staggerConfig.angleIncrement * Math.PI / 180); // Convert degrees to radians
                         break;
                     case 'random':
-                        orbitalConfig.angle = Math.random() * Math.PI * 2;
+                        orbitalConfig.angle = SeededRNG.angle('effect');
                         break;
                     // 'fixed' uses whatever is in baseConfig
                 }

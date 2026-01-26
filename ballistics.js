@@ -28,7 +28,7 @@ const ProjectilePerkRegistry = {
                 if (effectInfo.applyChance) {
                     // Calculate chance based on luck and any multiplier
                     const chance = calculateProcChance(playerLuck, baseProcChance) * effectInfo.chanceMultiplier;
-                    shouldApply = Math.random() < chance;
+                    shouldApply = SeededRNG.random('effect') < chance;
                 }
 
                 // Apply the component if conditions are met

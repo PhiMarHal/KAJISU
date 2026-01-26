@@ -190,10 +190,7 @@ const OneTimeEffects = {
         const statValues = Object.values(stats).map(s => s.value);
 
         // Shuffle the values
-        for (let i = statValues.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [statValues[i], statValues[j]] = [statValues[j], statValues[i]];
-        }
+        SeededRNG.shuffle(statValues, 'perk');
 
         // Create change map
         const changes = {};
@@ -272,7 +269,7 @@ const OneTimeEffects = {
 
         // Distribute points randomly among all stats
         for (let i = 0; i < totalStatPoints; i++) {
-            const statChoice = Math.floor(Math.random() * 4);
+            const statChoice = SeededRNG.between(0, 3, 'perk');
             switch (statChoice) {
                 case 0:
                     window.modifyStat('damage', 1);

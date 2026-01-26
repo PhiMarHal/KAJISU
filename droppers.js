@@ -206,7 +206,7 @@ const DropperSystem = {
                         const baseAngle = Math.atan2(dy, dx);
 
                         // Add random deflection
-                        const randomDeflection = (Math.random() - 0.5) * (Math.PI * 8 / 180); // ±8 degrees total range
+                        const randomDeflection = (SeededRNG.random('effect') - 0.5) * (Math.PI * 8 / 180); // ±8 degrees total range
                         const finalAngle = baseAngle + randomDeflection;
 
                         // Apply push force with the randomized angle
@@ -649,8 +649,8 @@ const DropperSystem = {
         else if (drop.options && drop.options.isCloudKing) {
             // Create lightning strike at random position within radius
             const radius = 192;
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * radius;
+            const angle = SeededRNG.angle('effect');
+            const distance = SeededRNG.random('effect') * radius;
             const x = drop.entity.x + Math.cos(angle) * distance;
             const y = drop.entity.y + Math.sin(angle) * distance;
 
@@ -706,8 +706,8 @@ const DropperSystem = {
             const damage = (getEffectiveDamage() + playerLuck) * 0.5;
 
             for (let i = 0; i < projectileCount; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 200 + Math.random() * 400;
+                const angle = SeededRNG.angle('effect');
+                const speed = 200 + SeededRNG.random('effect') * 400;
 
                 WeaponSystem.createProjectile(scene, {
                     x, y, angle,

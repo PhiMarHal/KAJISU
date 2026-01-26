@@ -280,8 +280,8 @@ const BeaconConfigs = {
 
             // Create remaining lightning strikes with delays
             for (let i = 1; i < lightningCount; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * radius;
+                const angle = SeededRNG.angle('effect');
+                const distance = SeededRNG.random('effect') * radius;
                 const x = centerX + Math.cos(angle) * distance;
                 const y = centerY + Math.sin(angle) * distance;
 
@@ -378,8 +378,8 @@ const BeaconConfigs = {
             const actualDamage = (getEffectiveDamage() + playerLuck) * 0.5;
 
             for (let i = 0; i < projectileCount; i++) {
-                const randomAngle = Math.random() * Math.PI * 2;
-                const speed = 200 + Math.random() * 400; // Varied speed like EXPLODING_FLOWER
+                const randomAngle = SeededRNG.angle('effect');
+                const speed = 200 + SeededRNG.random('effect') * 400;
 
                 WeaponSystem.createProjectile.call(WeaponSystem, scene, {
                     x: beacon.x,

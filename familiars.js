@@ -66,7 +66,7 @@ const EntityFiringBehaviors = {
             { component: 'splitEffect', color: '#1E90FF', symbol: '✧' }
         ];
 
-        const randomEffect = availableEffects[Math.floor(Math.random() * availableEffects.length)];
+        const randomEffect = SeededRNG.pick(availableEffects, 'effect');
         const target = findRandomVisibleEnemy(scene, maxDistance);
 
         if (target) {

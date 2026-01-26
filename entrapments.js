@@ -704,8 +704,8 @@ window.activateCannonball = function () {
 
     // Create the first cannonball at random screen position
     const cannonballConfig = DropperPerkRegistry.perkDropperConfigs['CANNONBALL'].getConfig();
-    cannonballConfig.x = Math.random() * game.config.width;
-    cannonballConfig.y = Math.random() * game.config.height;
+    cannonballConfig.x = SeededRNG.random('drop') * game.config.width;
+    cannonballConfig.y = SeededRNG.random('drop') * game.config.height;
     DropperSystem.create(scene, cannonballConfig);
 
     // Apply the dropper perk for future cannonballs

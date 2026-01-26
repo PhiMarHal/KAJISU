@@ -1204,7 +1204,7 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
             const scene = game.scene.scenes[0];
             if (!scene) return;
 
-            const randomAngle = Math.random() * Math.PI * 2;
+            const randomAngle = SeededRNG.angle('effect');
             // New damage formula applied here: (Eff + Luck) * 0.5 * Multiplier
             const actualDamage = (getEffectiveDamage() + playerLuck) * 0.5 * this.damageMultiplier;
 
@@ -1280,7 +1280,7 @@ window.activateMeteor = function () {
 PlayerComponentSystem.registerComponent('explodingBellyAbility', createRandomShotsComponent(64000, 0.8, {
     burstDuration: 160,      // 160ms burst window
     burstInterval: 10,       // Shot every 10ms (16 shots total)
-    speed: () => 200 + Math.random() * 400,  // Varied speed like EXPLODING_FLOWER
+    speed: () => 200 + SeededRNG.random('effect') * 400,  // Varied speed like EXPLODING_FLOWER
     color: '#ffff00'         // Standard yellow
     // Using defaults for cooldownStat (null), formula (divide), and statFunction (FR+Luck)
 }));

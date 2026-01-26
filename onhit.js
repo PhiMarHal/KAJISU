@@ -944,7 +944,7 @@ OnHitEffectSystem.registerComponent('gamblerFallacyEffect', {
         const triggerChance = 0.5 / (1 + this.triggerCount);
 
         // Check if the dynamic chance triggers
-        if (Math.random() < triggerChance) {
+        if (SeededRNG.random('effect') < triggerChance) {
             // Increment trigger count
             this.triggerCount++;
 

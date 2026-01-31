@@ -30,6 +30,7 @@ const StartMenuSystem = {
         strangeMusicEnabled: false,
         sharedSeedEnabled: false,
         sharedSeed: null,
+        selectedDemo: null,  // Demo timestamp to play back
         initialized: false
     },
 
@@ -38,6 +39,7 @@ const StartMenuSystem = {
         menuContainer: null,
         learningToggle: null,
         seedToggle: null,
+        demoSelector: null,
         infoMessage: null,
         backgroundCanvas: null,
         circlesAnimation: null
@@ -70,6 +72,10 @@ const StartMenuSystem = {
         strangeMusic: {
             on: "Early suno.ai experiments. Only for the strongest ears",
             off: "Back to our regular soundtrack"
+        },
+        watchDemo: {
+            on: "Watching a recorded run",
+            off: "Play the game yourself"
         }
     },
 
@@ -207,7 +213,7 @@ const StartMenuSystem = {
 
         this.elements.menuContainer.appendChild(this.titleElement);
 
-        // === 3. Toggles Container: Positioned at 50vh (moved up to fit seed toggle) ===
+        // === 3. Toggles Container: Positioned at 50vh ===
         const containerWidth = Math.min(600, screenWidth * 0.9);
         const togglesContainer = document.createElement('div');
         togglesContainer.style.cssText = `
@@ -237,7 +243,7 @@ const StartMenuSystem = {
 
             const toggleLabel = document.createElement('div');
             toggleLabel.textContent = label;
-            toggleLabel.dataset.toggleLabel = ''; // Mark for resize updates
+            toggleLabel.dataset.toggleLabel = '';
             toggleLabel.style.cssText = `
             font-size: ${sizes.toggleSize}px;
             color: ${isEnabled ? '#FFD700' : '#FFFFFF'};
@@ -277,7 +283,6 @@ const StartMenuSystem = {
             container.appendChild(toggleLabel);
             container.appendChild(toggleContainer);
 
-            // Store references
             container.toggleBg = toggleBg;
             container.toggleCircle = toggleCircle;
             container.toggleLabel = toggleLabel;
@@ -320,7 +325,6 @@ const StartMenuSystem = {
             gap: ${sizes.toggleSize * 0.5}px;
         `;
 
-            // Seed input field (hidden via visibility to preserve layout)
             const seedInput = document.createElement('input');
             seedInput.type = 'text';
             seedInput.placeholder = 'seed';
@@ -369,7 +373,6 @@ const StartMenuSystem = {
             container.appendChild(toggleLabel);
             container.appendChild(rightSide);
 
-            // Store references
             container.toggleBg = toggleBg;
             container.toggleCircle = toggleCircle;
             container.toggleLabel = toggleLabel;
@@ -438,9 +441,18 @@ const StartMenuSystem = {
         });
         togglesContainer.appendChild(strangeMusicToggle);
 
-        // Add difficulty selector at the bottom
+        // Add difficulty selector
         const difficultySelector = this.createDifficultySelector(sizes);
         togglesContainer.appendChild(difficultySelector);
+
+        // Add demo selector (only if DemoSystem exists and has saved demos)
+        if (window.DemoSystem) {
+            const demoSelector = this.createDemoSelector(sizes);
+            if (demoSelector) {
+                togglesContainer.appendChild(demoSelector);
+                this.elements.demoSelector = demoSelector;
+            }
+        }
 
         this.elements.menuContainer.appendChild(togglesContainer);
 
@@ -488,6 +500,101 @@ const StartMenuSystem = {
         }, 1000);
     },
 
+    // Create demo selector dropdown
+    createDemoSelector: function (sizes) {
+        const demos = DemoSystem.listSavedDemos();
+
+        // Don't show selector if no demos available
+        if (demos.length === 0) {
+            return null;
+        }
+
+        const container = document.createElement('div');
+        container.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            width: 100%;
+        `;
+
+        const label = document.createElement('div');
+        label.textContent = 'Watch Demo';
+        label.dataset.toggleLabel = '';
+        label.style.cssText = `
+            font-size: ${sizes.toggleSize}px;
+            color: ${this.state.selectedDemo ? '#FFD700' : '#FFFFFF'};
+            transition: all 0.3s ease;
+        `;
+
+        const selectContainer = document.createElement('div');
+        selectContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+        `;
+
+        // Create dropdown select
+        const select = document.createElement('select');
+        select.style.cssText = `
+            width: ${sizes.toggleSize * 6}px;
+            height: ${sizes.toggleSize * 1.4}px;
+            font-size: ${sizes.toggleSize * 0.65}px;
+            padding: 0 ${sizes.toggleSize * 0.3}px;
+            border: 2px solid #666;
+            border-radius: ${sizes.toggleSize * 0.3}px;
+            background-color: #333;
+            color: #FFF;
+            outline: none;
+            cursor: pointer;
+            font-family: monospace;
+        `;
+
+        // Add "None" option
+        const noneOption = document.createElement('option');
+        noneOption.value = '';
+        noneOption.textContent = '— None —';
+        select.appendChild(noneOption);
+
+        // Add demo options
+        demos.forEach(timestamp => {
+            const option = document.createElement('option');
+            option.value = timestamp;
+            // Format: "01/31 18:30" for readability
+            const formatted = DemoSystem.formatTimestamp(timestamp);
+            const info = DemoSystem.getDemoInfo(timestamp);
+            const duration = info ? `${Math.floor(info.duration / 60)}:${String(info.duration % 60).padStart(2, '0')}` : '??';
+            option.textContent = `${formatted} (${duration})`;
+            select.appendChild(option);
+        });
+
+        select.addEventListener('change', (e) => {
+            const value = e.target.value;
+            this.state.selectedDemo = value || null;
+
+            // Update label color
+            label.style.color = value ? '#FFD700' : '#FFFFFF';
+            select.style.borderColor = value ? '#FFD700' : '#666';
+
+            if (value) {
+                const info = DemoSystem.getDemoInfo(value);
+                if (info) {
+                    this.showInfoMessage(`Demo from ${info.formatted} - ${info.duration}s run`);
+                }
+            } else {
+                this.showInfoMessage(this.infoMessages.watchDemo.off);
+            }
+        });
+
+        selectContainer.appendChild(select);
+        container.appendChild(label);
+        container.appendChild(selectContainer);
+
+        container.label = label;
+        container.select = select;
+
+        return container;
+    },
+
     // Create a 4-level difficulty selector with sliding dot and background
     createDifficultySelector: function (sizes) {
         const container = document.createElement('div');
@@ -514,7 +621,6 @@ const StartMenuSystem = {
         align-items: center;
     `;
 
-        // Create the main selector background (gray)
         const selectorBg = document.createElement('div');
         selectorBg.style.cssText = `
         width: ${sizes.toggleSize * 8}px;
@@ -526,15 +632,13 @@ const StartMenuSystem = {
         cursor: pointer;
     `;
 
-        // Calculate positions for the 4 difficulty levels
         const positions = [
-            sizes.toggleSize * 1,    // Position 1
-            sizes.toggleSize * 3,    // Position 2
-            sizes.toggleSize * 5,    // Position 3
-            sizes.toggleSize * 7     // Position 4
+            sizes.toggleSize * 1,
+            sizes.toggleSize * 3,
+            sizes.toggleSize * 5,
+            sizes.toggleSize * 7
         ];
 
-        // Add roman numerals at fixed positions
         const romanNumerals = ['I', 'II', 'III', 'IV'];
         romanNumerals.forEach((numeral, index) => {
             const numeralElement = document.createElement('div');
@@ -544,7 +648,7 @@ const StartMenuSystem = {
             top: 50%;
             transform: translate(-50%, -50%);
             color: #FFFFFF;
-            font-size: ${sizes.toggleSize * 0.7}px; // Slightly bigger numerals
+            font-size: ${sizes.toggleSize * 0.7}px;
             font-weight: bold;
             pointer-events: none;
             transition: all 0.3s ease;
@@ -553,9 +657,8 @@ const StartMenuSystem = {
             selectorBg.appendChild(numeralElement);
         });
 
-        // Create sliding gold background that follows the dot
         const slidingBackground = document.createElement('div');
-        const backgroundWidth = sizes.toggleSize * 2.2; // Wider to fill gray space at extremes
+        const backgroundWidth = sizes.toggleSize * 2.2;
         slidingBackground.style.cssText = `
         position: absolute;
         width: ${backgroundWidth}px;
@@ -569,7 +672,6 @@ const StartMenuSystem = {
     `;
         selectorBg.appendChild(slidingBackground);
 
-        // Create the sliding white dot
         const slidingDot = document.createElement('div');
         slidingDot.style.cssText = `
         position: absolute;
@@ -585,12 +687,10 @@ const StartMenuSystem = {
     `;
         selectorBg.appendChild(slidingDot);
 
-        // Add click handler to the main background
         selectorBg.addEventListener('click', (e) => {
             const rect = selectorBg.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
 
-            // Determine which section was clicked
             let newDifficulty = 1;
             const sectionWidth = (sizes.toggleSize * 8) / 4;
 
@@ -601,7 +701,6 @@ const StartMenuSystem = {
                 }
             }
 
-            // Update difficulty and animate
             this.setDifficulty(newDifficulty);
             this.updateDifficultySlider(slidingDot, slidingBackground, newDifficulty, positions, sizes);
             this.showInfoMessage(this.infoMessages.difficulty[newDifficulty]);
@@ -611,7 +710,6 @@ const StartMenuSystem = {
         container.appendChild(difficultyLabel);
         container.appendChild(selectorContainer);
 
-        // Store references for resize updates
         container.selectorBg = selectorBg;
         container.difficultyLabel = difficultyLabel;
         container.slidingDot = slidingDot;
@@ -621,19 +719,14 @@ const StartMenuSystem = {
         return container;
     },
 
-    // Add this new helper function to update the slider position
     updateDifficultySlider: function (slidingDot, slidingBackground, difficulty, positions, sizes) {
         const position = positions[difficulty - 1];
-        const backgroundWidth = sizes.toggleSize * 2.2; // Match the wider background
+        const backgroundWidth = sizes.toggleSize * 2.2;
 
-        // Move the dot
         slidingDot.style.left = `${position - (sizes.toggleSize * 0.4)}px`;
-
-        // Move the gold background
         slidingBackground.style.left = `${position - backgroundWidth / 2}px`;
     },
 
-    // Update difficulty selector sizes during resize
     updateDifficultySelectorSizes: function (container, sizes) {
         if (!container.selectorBg || !container.slidingDot || !container.slidingBackground) return;
 
@@ -641,7 +734,6 @@ const StartMenuSystem = {
         const slidingDot = container.slidingDot;
         const slidingBackground = container.slidingBackground;
 
-        // Recalculate positions
         const newPositions = [
             sizes.toggleSize * 1,
             sizes.toggleSize * 3,
@@ -649,128 +741,108 @@ const StartMenuSystem = {
             sizes.toggleSize * 7
         ];
 
-        // Update main background size
         selectorBg.style.width = `${sizes.toggleSize * 8}px`;
         selectorBg.style.height = `${sizes.toggleSize * 1.2}px`;
         selectorBg.style.borderRadius = `${sizes.toggleSize * 0.6}px`;
 
-        // Update roman numerals positions and sizes
         const numeralElements = selectorBg.querySelectorAll('div');
         let numeralIndex = 0;
         numeralElements.forEach(element => {
             if (element !== slidingBackground && element !== slidingDot && numeralIndex < 4) {
                 element.style.left = `${newPositions[numeralIndex]}px`;
-                element.style.fontSize = `${sizes.toggleSize * 0.7}px`; // Match the bigger font size
+                element.style.fontSize = `${sizes.toggleSize * 0.7}px`;
                 numeralIndex++;
             }
         });
 
-        // Update sliding background size and position
-        const backgroundWidth = sizes.toggleSize * 2.2; // Match the wider background
+        const backgroundWidth = sizes.toggleSize * 2.2;
         slidingBackground.style.width = `${backgroundWidth}px`;
         slidingBackground.style.height = `${sizes.toggleSize * 1.2}px`;
         slidingBackground.style.borderRadius = `${sizes.toggleSize * 0.6}px`;
 
-        // Update sliding dot size
         slidingDot.style.width = `${sizes.toggleSize * 0.8}px`;
         slidingDot.style.height = `${sizes.toggleSize * 0.8}px`;
         slidingDot.style.top = `${sizes.toggleSize * 0.2}px`;
 
-        // Update positions for current difficulty
         this.updateDifficultySlider(slidingDot, slidingBackground, this.state.difficultyLevel, newPositions, sizes);
 
-        // Store updated positions
         container.positions = newPositions;
     },
 
-    // Update difficulty display with dots - keep dots white always
     updateDifficultyDisplay: function (selectorBg, selectedDifficulty, sizes) {
         const segments = selectorBg.querySelectorAll('[data-difficulty]');
         segments.forEach((segment, index) => {
             const difficulty = index + 1;
             const isSelected = difficulty === selectedDifficulty;
-
-            // Only change the background, keep dots white
             segment.style.backgroundColor = isSelected ? '#FFD700' : 'transparent';
         });
     },
 
-    // Set difficulty level
     setDifficulty: function (level) {
         this.state.difficultyLevel = level;
         window.DIFFICULTY_LEVEL = level;
         console.log(`Difficulty set to level ${level}`);
     },
 
-    // Handle window resize: update sizes and re-center circles
     handleResize: function () {
-        // Step 1: Recalculate responsive sizes
         const sizes = this.getResponsiveSizes();
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
 
-        // Step 2: Update title styles
         if (this.titleElement) {
             this.titleElement.style.fontSize = `${sizes.titleSize}px`;
             this.titleElement.style.padding = `${sizes.padding}px ${sizes.padding * 2}px`;
         }
 
-        // Step 3: Update toggle labels
-        const toggleLabels = this.elements.menuContainer?.querySelectorAll('[data-toggle-label]');
-        if (toggleLabels) {
-            toggleLabels.forEach(label => {
-                label.style.fontSize = `${sizes.toggleSize}px`;
-            });
-        }
+        const toggleLabels = document.querySelectorAll('[data-toggle-label]');
+        toggleLabels.forEach(label => {
+            label.style.fontSize = `${sizes.toggleSize}px`;
+        });
 
-        // Step 4: Update info message
         if (this.elements.infoMessage) {
+            const infoContainerWidth = Math.min(600, screenWidth * 0.9);
             this.elements.infoMessage.style.fontSize = `${sizes.infoSize}px`;
+            this.elements.infoMessage.style.width = `${infoContainerWidth}px`;
+            this.elements.infoMessage.style.bottom = `${sizes.padding * 2}px`;
+            this.elements.infoMessage.style.padding = `${sizes.padding / 2}px ${sizes.padding}px`;
         }
 
-        // Step 5: Update seed input if it exists
-        if (this.elements.seedToggle?.seedInput) {
-            const input = this.elements.seedToggle.seedInput;
-            input.style.width = `${sizes.toggleSize * 4}px`;
-            input.style.height = `${sizes.toggleSize * 1.2}px`;
-            input.style.fontSize = `${sizes.toggleSize * 0.7}px`;
+        if (this.elements.backgroundCanvas) {
+            this.elements.backgroundCanvas.width = screenWidth;
+            this.elements.backgroundCanvas.height = screenHeight;
         }
 
-        // Step 6: Force layout flush – critical!
-        this.titleElement?.offsetHeight;
+        if (this.elements.circlesAnimation) {
+            const screenSize = Math.min(screenWidth, screenHeight);
+            const aspectRatio = screenHeight / screenWidth;
 
-        // Step 7: Use setTimeout + rAF to wait for full layout
-        // This ensures even complex reflows (like mobile/desktop switch) settle
-        setTimeout(() => {
-            requestAnimationFrame(() => {
-                if (!this.titleElement || !this.elements.circlesAnimation) return;
+            const baseRadiusMultiplier = Math.max(0.08, Math.min(0.18, 0.08 + (aspectRatio - 1) * 0.05));
+            const incrementMultiplier = Math.max(0.02, Math.min(0.05, 0.02 + (aspectRatio - 1) * 0.015));
 
-                // Re-measure after layout is *truly* done
+            let center = { x: screenWidth / 2, y: screenHeight * 0.25 };
+            if (this.titleElement) {
                 const rect = this.titleElement.getBoundingClientRect();
-                if (rect.width === 0 || rect.height === 0) return; // Skip if not visible
+                if (rect.width > 0) {
+                    center = {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2
+                    };
+                }
+            }
 
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-
-                // Also resize canvas to match current viewport
-                this.elements.backgroundCanvas.width = window.innerWidth;
-                this.elements.backgroundCanvas.height = window.innerHeight;
-
-                // Reposition animation
-                this.elements.circlesAnimation.setPosition(centerX, centerY);
+            this.elements.circlesAnimation.updateOptions({
+                x: center.x,
+                y: center.y,
+                baseRadius: screenSize * baseRadiusMultiplier,
+                radiusIncrement: screenSize * incrementMultiplier
             });
-        }, 10); // Tiny delay to allow mobile layout engines to catch up
+        }
     },
 
-    // Create background canvas with dynamic centering
     createBackgroundCanvas: function () {
-        // Remove old canvas if exists
-        if (this.elements.backgroundCanvas) {
-            this.elements.backgroundCanvas.remove();
-        }
-
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
 
-        // Create new canvas
         this.elements.backgroundCanvas = document.createElement('canvas');
         this.elements.backgroundCanvas.style.cssText = `
         position: absolute;
@@ -784,14 +856,12 @@ const StartMenuSystem = {
         this.elements.backgroundCanvas.width = screenWidth;
         this.elements.backgroundCanvas.height = screenHeight;
 
-        // Insert behind all UI
         if (this.elements.menuContainer.firstChild) {
             this.elements.menuContainer.insertBefore(this.elements.backgroundCanvas, this.elements.menuContainer.firstChild);
         } else {
             this.elements.menuContainer.appendChild(this.elements.backgroundCanvas);
         }
 
-        // Get initial center after layout
         const getCenter = () => {
             if (this.titleElement) {
                 const rect = this.titleElement.getBoundingClientRect();
@@ -805,7 +875,6 @@ const StartMenuSystem = {
             return { x: screenWidth / 2, y: screenHeight * 0.25 };
         };
 
-        // Use current sizes
         const sizes = this.getResponsiveSizes();
         const screenSize = Math.min(screenWidth, screenHeight);
         const aspectRatio = screenHeight / screenWidth;
@@ -815,7 +884,6 @@ const StartMenuSystem = {
 
         const center = getCenter();
 
-        // Create animation
         this.elements.circlesAnimation = VisualEffects.createConcentricCirclesCanvas(
             this.elements.backgroundCanvas,
             {
@@ -834,26 +902,21 @@ const StartMenuSystem = {
 
         this.elements.circlesAnimation.start();
 
-        // Clean up old resize handler
         if (this.resizeHandler) {
             window.removeEventListener('resize', this.resizeHandler);
         }
 
-        // Debounced resize using setTimeout + rAF
         this.resizeHandler = () => {
-            // Immediately update sizes and styles
             this.handleResize();
         };
 
         window.addEventListener('resize', this.resizeHandler);
 
-        // One-time post-init check in case layout wasn't ready
         setTimeout(() => {
             this.handleResize();
         }, 100);
     },
 
-    // Update toggle visual state
     updateToggleState: function (toggle, isEnabled, sizes) {
         toggle.isEnabled = isEnabled;
         toggle.toggleBg.style.backgroundColor = isEnabled ? '#FFD700' : '#666666';
@@ -862,28 +925,24 @@ const StartMenuSystem = {
         toggle.toggleLabel.style.color = isEnabled ? '#FFD700' : '#FFFFFF';
     },
 
-    // Toggle learning challenge setting
     toggleLearningChallenge: function (enabled) {
         this.state.learningChallengeEnabled = enabled;
         window.LEARNING_CHALLENGE_ENABLED = enabled;
         console.log(`Learning Challenge: ${enabled ? 'ENABLED' : 'DISABLED'}`);
     },
 
-    // Toggle boss rush setting
     toggleBossRush: function (enabled) {
         this.state.bossRushMode = enabled;
         window.BOSS_RUSH_MODE = enabled;
         console.log(`Boss Rush Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
     },
 
-    // Toggle stranger music setting
     toggleStrangeMusic: function (enabled) {
         this.state.strangeMusicEnabled = enabled;
         window.STRANGE_MUSIC_ENABLED = enabled;
         console.log(`Stranger Music: ${enabled ? 'ENABLED' : 'DISABLED'}`);
     },
 
-    // Select a mode
     selectMode: function (isKajisuliMode) {
         if (this.state.kajisuliMode === isKajisuliMode) return;
 
@@ -897,24 +956,53 @@ const StartMenuSystem = {
     // Start the game
     startGame: function () {
         this.cleanup();
-        window.KAJISULI_MODE = this.state.kajisuliMode;
-        window.LEARNING_CHALLENGE_ENABLED = this.state.learningChallengeEnabled;
-        window.DIFFICULTY_LEVEL = this.state.difficultyLevel;
-        window.BOSS_RUSH_MODE = this.state.bossRushMode;
-        window.STRANGE_MUSIC_ENABLED = this.state.strangeMusicEnabled;
 
-        // Set and initialize the game seed
-        if (this.state.sharedSeedEnabled && this.state.sharedSeed !== null) {
-            window.GAME_SEED = this.state.sharedSeed;
-        } else {
-            window.GAME_SEED = Date.now();
+        // Check if we're playing back a demo
+        if (this.state.selectedDemo) {
+            const demo = DemoSystem.loadFromLocalStorage(this.state.selectedDemo);
+            if (demo) {
+                // Start playback - this returns seed and settings
+                const playbackInfo = DemoSystem.startPlayback(demo);
+
+                // Use demo's seed and settings
+                window.GAME_SEED = playbackInfo.seed;
+                window.KAJISULI_MODE = playbackInfo.settings.portrait || false;
+                window.BOSS_RUSH_MODE = playbackInfo.settings.bossRush || false;
+                window.DIFFICULTY_LEVEL = playbackInfo.settings.difficulty || 2;
+
+                // Disable learning challenge during playback
+                window.LEARNING_CHALLENGE_ENABLED = false;
+                window.STRANGE_MUSIC_ENABLED = this.state.strangeMusicEnabled;
+
+                console.log(`Starting demo playback - Seed: ${window.GAME_SEED}`);
+            } else {
+                console.error('Failed to load demo');
+                this.state.selectedDemo = null;
+            }
         }
+
+        // Normal game start (or if demo load failed)
+        if (!this.state.selectedDemo) {
+            window.KAJISULI_MODE = this.state.kajisuliMode;
+            window.LEARNING_CHALLENGE_ENABLED = this.state.learningChallengeEnabled;
+            window.DIFFICULTY_LEVEL = this.state.difficultyLevel;
+            window.BOSS_RUSH_MODE = this.state.bossRushMode;
+            window.STRANGE_MUSIC_ENABLED = this.state.strangeMusicEnabled;
+
+            // Set and initialize the game seed
+            if (this.state.sharedSeedEnabled && this.state.sharedSeed !== null) {
+                window.GAME_SEED = this.state.sharedSeed;
+            } else {
+                window.GAME_SEED = Date.now();
+            }
+        }
+
         SeededRNG.init(window.GAME_SEED);
 
         const config = {
             type: Phaser.AUTO,
-            width: this.state.kajisuliMode ? 800 : 1200,
-            height: this.state.kajisuliMode ? 1200 : 800,
+            width: window.KAJISULI_MODE ? 800 : 1200,
+            height: window.KAJISULI_MODE ? 1200 : 800,
             parent: 'game-container',
             physics: {
                 default: 'arcade',
@@ -937,17 +1025,13 @@ const StartMenuSystem = {
         window.game = new Phaser.Game(config);
     },
 
-    // Setup keyboard handler
     setupKeyboardHandler: function () {
-        // Store the handler so we can remove it during cleanup
         this.keyHandler = (event) => {
-            // Don't trigger if typing in seed input
             if (document.activeElement === this.elements.seedToggle?.seedInput) {
                 return;
             }
             if (event.key === 'Enter' || event.key === ' ') {
                 this.startGame();
-                // Remove the handler after use
                 document.removeEventListener('keydown', this.keyHandler);
                 this.keyHandler = null;
             }
@@ -955,7 +1039,6 @@ const StartMenuSystem = {
         document.addEventListener('keydown', this.keyHandler);
     },
 
-    // Start CSS animations
     startAnimations: function () {
         const style = document.createElement('style');
         style.textContent = `
@@ -967,33 +1050,27 @@ const StartMenuSystem = {
         document.head.appendChild(style);
     },
 
-    // Clean up the HTML menu
     cleanup: function () {
-        // Remove the keyboard event listener first
         if (this.keyHandler) {
             document.removeEventListener('keydown', this.keyHandler);
             this.keyHandler = null;
         }
 
-        // Remove the resize handler
         if (this.resizeHandler) {
             window.removeEventListener('resize', this.resizeHandler);
             this.resizeHandler = null;
         }
 
-        // Stop and destroy concentric circles animation
         if (this.elements.circlesAnimation) {
             this.elements.circlesAnimation.destroy();
             this.elements.circlesAnimation = null;
         }
 
-        // Remove the HTML menu container
         if (this.elements.menuContainer) {
             document.body.removeChild(this.elements.menuContainer);
             this.elements.menuContainer = null;
         }
 
-        // Reset all element references
         Object.keys(this.elements).forEach(key => {
             this.elements[key] = null;
         });

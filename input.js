@@ -146,6 +146,11 @@ const InputSystem = {
             return;
         }
 
+        // === DEMO PLAYBACK: Position is set directly in simulateTick, skip input ===
+        if (window.DemoSystem && DemoSystem.isPlaying) {
+            return;
+        }
+
         // Reset keyboard velocity
         this.keyboard.velocity.x = 0;
         this.keyboard.velocity.y = 0;
@@ -221,6 +226,7 @@ const InputSystem = {
     // Handle single-tap to move (only called for confirmed taps)
     handleSingleTap: function (x, y) {
         if (gamePaused || gameOver) return;
+
         console.log(`Setting tap-to-move target at (${x}, ${y})`);
 
         // Clear directional history to prevent old movement from affecting new tap

@@ -17,6 +17,8 @@
 
     <script src="startMenu.js"></script>
     <script src="rng.js"></script>
+    <script src="interpolation.js"></script>
+    <script src="demo.js"></script>
     <script src="droppers.js"></script>
     <script src="cooldown.js"></script>
     <script src="beacons.js"></script>
@@ -471,6 +473,9 @@
             this.physics.world.enable(player);
             player.body.setCollideWorldBounds(true);
 
+            // Initialize fixed timestep system for deterministic game logic
+            FixedTimestepSystem.init();
+
             GameUI.createUI(this);
             // Switch from help to pause button now that UI is created
             if (window.ButtonStateManager) {
@@ -514,63 +519,41 @@
         }
 
         function update(time, delta) {
-            if (!gameStarted) return; // Exit early if game hasn't started yet
+            if (!gameStarted) return;
             if (gameOver) return;
-            if (gamePaused) return; // Skip updates when game is paused for level up
+            if (gamePaused) return;
 
+            // Background runs at render rate (visual only, not gameplay)
             if (window.BackgroundAnimationSystem && BackgroundAnimationSystem.isInitialized) {
                 BackgroundAnimationSystem.update(time, delta);
             }
 
+            // Debug stats run at render rate
             DebugSystem.updatePerformanceStats(this, time, delta);
-            updatePlayerStatus();
-            updateOnHitEffects();
 
-            // Increment elapsed time
-            elapsedTime += (delta / 1000) * this.time.timeScale;
+            // Player movement - runs at render rate for smooth feel
+            // During playback, position is set in simulateTick instead
+            if (!DemoSystem.isPlaying) {
+                InputSystem.updateMovement(player, delta);
+            }
 
-            // Update weapon firing rate if needed
-            WeaponSystem.updateFiringRate(this);
-            WeaponSystem.updateProjectiles(this);
+            // Fixed timestep for game logic (deterministic timing)
+            const scene = this;
+            FixedTimestepSystem.update(delta, function (fixedDelta) {
+                simulateTick.call(scene, fixedDelta);
+            });
 
-            // Update the level display to show time survived and score
-            GameUI.updateStatusDisplay(this, elapsedTime, 0);
-
-            // Player movement
-            InputSystem.updateMovement(player, delta);
-
-            // Update enemies
-            EnemySystem.updateEnemies();
-
-            // Update enemy spawners
-            EnemySystem.updateEnemySpawners();
-
-            // Keep shield visual positioned on player
+            // Keep shield visual positioned on player (render rate)
             if (shieldVisual) {
                 shieldVisual.x = player.x;
                 shieldVisual.y = player.y;
             }
 
-            // Updated projectile processing
-            projectiles.getChildren().forEach(projectile => {
-                // Check if out of bounds
-                if (projectile.y < -50 || projectile.y > game.config.height + 50 ||
-                    projectile.x < -50 || projectile.x > game.config.width + 50) {
-                    projectile.destroy();
-                    return;
-                }
-
-                // Process component updates
-                if (projectile.components && Object.keys(projectile.components).length > 0) {
-                    ProjectileComponentSystem.processEvent(projectile, 'update');
-                }
-            });
-
-            // Update health bar
+            // Update health bar (render rate for smooth visuals)
             GameUI.updateHealthBar(this);
             GameUI.updateExpBar(this);
 
-            // Update orbitals, droppers, beams
+            // Update orbitals, droppers, beams (render rate for smooth movement)
             OrbitalSystem.update(this, time, delta);
             DropperSystem.update(this, time);
             BeamSystem.update(this, time);
@@ -579,9 +562,6 @@
                 MusicSystem.update(time, delta);
             }
 
-            // Calculate difficulty scaling based on elapsed time instead of raw time
-            const minutesElapsed = elapsedTime / 60;
-
             // Update player stats text
             GameUI.updateStatCircles(this);
 
@@ -589,6 +569,60 @@
             if (heroExp >= xpForNextLevel(playerLevel)) {
                 levelUp.call(this);
             }
+        }
+
+        // Game logic that needs deterministic timing runs here
+        function simulateTick(fixedDelta) {
+            // Advance demo tick counter
+            if (DemoSystem.isRecording) {
+                DemoSystem.tickRecording();
+                // Record player position after movement has been applied
+                DemoSystem.recordPosition(player.x, player.y);
+            } else if (DemoSystem.isPlaying) {
+                DemoSystem.tickPlayback();
+                // Set player position from recording
+                const pos = DemoSystem.getPlaybackPosition();
+                if (pos) {
+                    player.x = pos.x;
+                    player.y = pos.y;
+                    // Update physics body to match
+                    if (player.body) {
+                        player.body.reset(pos.x, pos.y);
+                    }
+                }
+            }
+
+            updatePlayerStatus();
+            updateOnHitEffects();
+
+            // Increment elapsed time (deterministic!)
+            elapsedTime += (fixedDelta / 1000) * this.time.timeScale;
+
+            // Update weapon firing rate if needed
+            WeaponSystem.updateFiringRate(this);
+            WeaponSystem.updateProjectiles(this);
+
+            // Update the level display
+            GameUI.updateStatusDisplay(this, elapsedTime, 0);
+
+            // Update enemies (spawning/AI decisions are deterministic)
+            EnemySystem.updateEnemies();
+
+            // Update enemy spawners (deterministic timing)
+            EnemySystem.updateEnemySpawners();
+
+            // Projectile bounds checking
+            projectiles.getChildren().forEach(projectile => {
+                if (projectile.y < -50 || projectile.y > game.config.height + 50 ||
+                    projectile.x < -50 || projectile.x > game.config.width + 50) {
+                    projectile.destroy();
+                    return;
+                }
+
+                if (projectile.components && Object.keys(projectile.components).length > 0) {
+                    ProjectileComponentSystem.processEvent(projectile, 'update');
+                }
+            });
         }
 
         function levelUp() {
@@ -683,6 +717,16 @@
 
         function startGame() {
             SeededRNG.init(window.GAME_SEED);
+
+            // Initialize demo system
+            FixedTimestepSystem.reset();
+            if (!DemoSystem.isPlaying) {
+                DemoSystem.startRecording(window.GAME_SEED, {
+                    portrait: window.KAJISULI_MODE || false,
+                    bossRush: window.BOSS_RUSH_MODE || false,
+                    difficulty: window.DIFFICULTY_LEVEL || 2
+                });
+            }
 
             // Reset game state variables
             gameOver = false;

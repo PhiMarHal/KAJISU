@@ -221,6 +221,15 @@ function playerDeath(killerEnemy) {
     // Set game over state
     gameOver = true;
 
+    // Save demo recording
+    if (window.DemoSystem && DemoSystem.isRecording) {
+        const demo = DemoSystem.stopRecording();
+        if (demo) {
+            DemoSystem.saveToLocalStorage(demo);
+            console.log(`Demo saved: ${demo.timestamp}`);
+        }
+    }
+
     // Pause the game physics to stop all movement
     PauseSystem.pauseGame();
 

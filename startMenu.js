@@ -421,12 +421,16 @@ const StartMenuSystem = {
             });
             togglesContainer.appendChild(portraitToggle);
 
+            // Learning Challenge toggle intentionally disabled - legacy mode no longer used
+            // Keeping code for potential future use
+            /*
             const learningToggle = createToggleWithLabel('Learning Challenge', this.state.learningChallengeEnabled, (enabled) => {
                 this.toggleLearningChallenge(enabled);
                 this.showInfoMessage(this.infoMessages.learningChallenge[enabled ? 'on' : 'off']);
             });
             this.elements.learningToggle = learningToggle;
             togglesContainer.appendChild(learningToggle);
+            */
         }
 
         const bossRushToggle = createToggleWithLabel('Boss Rush', this.state.bossRushMode, (enabled) => {
@@ -830,12 +834,15 @@ const StartMenuSystem = {
                 }
             }
 
-            this.elements.circlesAnimation.updateOptions({
-                x: center.x,
-                y: center.y,
-                baseRadius: screenSize * baseRadiusMultiplier,
-                radiusIncrement: screenSize * incrementMultiplier
-            });
+            // Only call updateOptions if the method exists
+            if (typeof this.elements.circlesAnimation.updateOptions === 'function') {
+                this.elements.circlesAnimation.updateOptions({
+                    x: center.x,
+                    y: center.y,
+                    baseRadius: screenSize * baseRadiusMultiplier,
+                    radiusIncrement: screenSize * incrementMultiplier
+                });
+            }
         }
     },
 
@@ -969,6 +976,13 @@ const StartMenuSystem = {
                 window.KAJISULI_MODE = playbackInfo.settings.portrait || false;
                 window.BOSS_RUSH_MODE = playbackInfo.settings.bossRush || false;
                 window.DIFFICULTY_LEVEL = playbackInfo.settings.difficulty || 2;
+
+                // Apply CSS mode from demo settings
+                if (window.KAJISULI_MODE) {
+                    document.body.classList.add('kajisuli-mode');
+                } else {
+                    document.body.classList.remove('kajisuli-mode');
+                }
 
                 // Disable learning challenge during playback
                 window.LEARNING_CHALLENGE_ENABLED = false;

@@ -328,11 +328,14 @@ function launchTentacles(scene) {
 }
 
 // Track the current angle of immortal body parts
-let immortalBodyAngle = SeededRNG.angle('effect'); // Initial random angle
+let immortalBodyAngle = null; // Initialized lazily to avoid calling RNG before init
 
 // IMMORTAL_ARM
 OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
     getConfig: function () {
+        if (immortalBodyAngle === null) {
+            immortalBodyAngle = SeededRNG.angle('effect');
+        }
         return {
             symbol: '腕', // Kanji for "arm"
             color: '#9932CC', // Deep purple color
@@ -355,6 +358,9 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_ARM', {
 // IMMORTAL_HEAD
 OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_HEAD', {
     getConfig: function () {
+        if (immortalBodyAngle === null) {
+            immortalBodyAngle = SeededRNG.angle('effect');
+        }
         return {
             symbol: '頭', // Kanji for "head"
             color: '#9932CC', // Deep purple color
@@ -377,6 +383,9 @@ OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_HEAD', {
 // IMMORTAL_LEG
 OrbitalPerkRegistry.registerPerkOrbital('IMMORTAL_LEG', {
     getConfig: function () {
+        if (immortalBodyAngle === null) {
+            immortalBodyAngle = SeededRNG.angle('effect');
+        }
         return {
             symbol: '脚', // Kanji for "leg"
             color: '#9932CC', // Deep purple color

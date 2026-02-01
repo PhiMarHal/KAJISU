@@ -986,7 +986,9 @@ const StartMenuSystem = {
 
                 // Disable learning challenge during playback
                 window.LEARNING_CHALLENGE_ENABLED = false;
-                window.STRANGE_MUSIC_ENABLED = this.state.strangeMusicEnabled;
+
+                // Always use alt music during demo playback
+                window.STRANGE_MUSIC_ENABLED = true;
 
                 console.log(`Starting demo playback - Seed: ${window.GAME_SEED}`);
             } else {

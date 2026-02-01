@@ -896,8 +896,14 @@ function showMobileLevelUpScreen(scene) {
     }
 
     function confirmSelection(perkId) {
+        // Record perk selection for demo playback
+        if (window.DemoSystem && DemoSystem.isRecording) {
+            DemoSystem.recordPerkSelection(selectedCardIndex);
+        }
+
         // Acquire the selected perk
         acquirePerk(scene, perkId);
+
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
 
@@ -958,6 +964,21 @@ function showMobileLevelUpScreen(scene) {
 
     // Store reference for cleanup
     levelUpCards = [levelUpContainer];
+
+    // Demo playback: auto-select perk after 2 second delay
+    if (window.DemoSystem && DemoSystem.isPlaying) {
+        const playbackPerkIndex = DemoSystem.getPlaybackPerkSelection();
+        if (playbackPerkIndex !== null && playbackPerkIndex >= 0 && playbackPerkIndex < availablePerks.length) {
+            const perkToSelect = availablePerks[playbackPerkIndex];
+
+            setTimeout(() => {
+                selectCard(playbackPerkIndex, perkToSelect.id);
+                setTimeout(() => {
+                    confirmSelection(perkToSelect.id);
+                }, 300);
+            }, 2000);
+        }
+    }
 }
 
 /**

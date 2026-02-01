@@ -22,7 +22,7 @@ const DemoSystem = {
         },
         positions: [],   // [[tick, x, y], ...] - player positions (only when changed)
         events: [],      // [[tick, type, ...data], ...]
-        strokes: []      // [[tick, [[x,y], [x,y], ...]], ...] - drawing challenge strokes
+        strokes: [],     // [[tick, mistakes], ...] - drawing challenge mistake counts
     },
 
     // Playback data
@@ -98,12 +98,10 @@ const DemoSystem = {
         this.recording.events.push([this.currentTick, 'perk', perkIndex]);
     },
 
-    // Record drawing stroke
-    recordStroke: function (points) {
+    // Record drawing challenge completion with mistake count
+    recordDrawingMistakes: function (mistakes) {
         if (!this.isRecording) return;
-        // Reduce precision and compress points
-        const compressedPoints = points.map(p => [Math.round(p.x), Math.round(p.y)]);
-        this.recording.strokes.push([this.currentTick, compressedPoints]);
+        this.recording.strokes.push([this.currentTick, mistakes]);
     },
 
     // Called each tick during recording
@@ -188,37 +186,35 @@ const DemoSystem = {
         };
     },
 
-    // Get perk selection for current tick (returns perk index or null)
+    // Get next perk selection for playback (consumes in order, ignores tick)
     getPlaybackPerkSelection: function () {
         if (!this.isPlaying || !this.playback.demo) return null;
 
         const demo = this.playback.demo;
 
-        // Look through events for perk selection at current tick
-        for (let i = this.playback.eventIndex; i < demo.events.length; i++) {
+        // Find the next perk event (consume in order, regardless of tick)
+        for (let i = 0; i < demo.events.length; i++) {
             const event = demo.events[i];
-            if (event[0] === this.currentTick && event[1] === 'perk') {
-                return event[2]; // perk index
+            if (event[1] === 'perk') {
+                // Remove from array and return the perk index
+                demo.events.splice(i, 1);
+                return event[2];
             }
-            if (event[0] > this.currentTick) break;
         }
 
         return null;
     },
 
-    // Get stroke for current tick during playback
-    getPlaybackStroke: function () {
+    // Get next drawing challenge mistake count for playback (consumes in order)
+    getPlaybackDrawingMistakes: function () {
         if (!this.isPlaying || !this.playback.demo) return null;
 
         const demo = this.playback.demo;
 
-        // Check if there's a stroke at current tick
-        if (this.playback.strokeIndex < demo.strokes.length) {
-            const stroke = demo.strokes[this.playback.strokeIndex];
-            if (stroke[0] === this.currentTick) {
-                this.playback.strokeIndex++;
-                return stroke[1].map(p => ({ x: p[0], y: p[1] }));
-            }
+        // Consume the next stroke event in order
+        if (demo.strokes.length > 0) {
+            const stroke = demo.strokes.shift();
+            return stroke[1]; // mistake count
         }
 
         return null;

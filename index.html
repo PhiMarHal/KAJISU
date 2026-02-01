@@ -721,17 +721,19 @@
             // Initialize demo system
             FixedTimestepSystem.reset();
 
-            // If we were playing back a demo, stop it and start fresh
-            if (DemoSystem.isPlaying) {
+            // If restarting after watching a demo, stop playback and give control back
+            if (gameOver && DemoSystem.isPlaying) {
                 DemoSystem.stopPlayback();
             }
 
-            // Start recording for this new run
-            DemoSystem.startRecording(window.GAME_SEED, {
-                portrait: window.KAJISULI_MODE || false,
-                bossRush: window.BOSS_RUSH_MODE || false,
-                difficulty: window.DIFFICULTY_LEVEL || 2
-            });
+            // Only start recording if not playing back a demo
+            if (!DemoSystem.isPlaying) {
+                DemoSystem.startRecording(window.GAME_SEED, {
+                    portrait: window.KAJISULI_MODE || false,
+                    bossRush: window.BOSS_RUSH_MODE || false,
+                    difficulty: window.DIFFICULTY_LEVEL || 2
+                });
+            }
 
             // Reset game state variables
             gameOver = false;

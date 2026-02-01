@@ -787,6 +787,11 @@ function showMobileLevelUpScreen(scene) {
     });
 
     function handleCardSelection(cardIndex, perkId) {
+        // Ignore player clicks during demo playback
+        if (window.DemoSystem && DemoSystem.isPlaying) {
+            return;
+        }
+
         if (selectedCardIndex === cardIndex) {
             // Second click on same card - confirm selection
             confirmSelection(perkId);

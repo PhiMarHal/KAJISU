@@ -159,6 +159,12 @@ const KanjiDrawingSystem = {
 
         this.createChallengeUI(scene);
         console.log(`Started drawing challenge for: ${this.state.currentKanji.character}`);
+
+        // Demo playback: auto-draw strokes with recorded mistakes
+        if (window.DemoSystem && DemoSystem.isPlaying) {
+            const mistakes = DemoSystem.getPlaybackDrawingMistakes() ?? 0;
+            this.autoDrawForPlayback(scene, mistakes);
+        }
     },
 
     createChallengeUI: function (scene) {
@@ -260,8 +266,9 @@ const KanjiDrawingSystem = {
         };
 
         scene.input.on('pointerdown', (pointer) => {
-            if (!this.state.active) return;
-            if (this.state.activePointerId !== null) return; // Already tracking a pointer
+            if (!this.state.active || this.state.challengeComplete) return;
+            // Ignore player input during demo playback
+            if (window.DemoSystem && DemoSystem.isPlaying) return;
 
             if (isInBounds(pointer.x, pointer.y)) {
                 this.state.activePointerId = pointer.id;
@@ -588,6 +595,11 @@ const KanjiDrawingSystem = {
     },
 
     completeChallenge: function (scene) {
+        // Record mistake count for demo playback
+        if (window.DemoSystem && DemoSystem.isRecording) {
+            DemoSystem.recordDrawingMistakes(this.state.totalMistakes);
+        }
+
         const totalStrokes = this.state.currentKanji.strokes.length;
 
         const totalAttempts = totalStrokes + this.state.totalMistakes;
@@ -623,6 +635,88 @@ const KanjiDrawingSystem = {
             hold: 1000,
             onComplete: () => msg.destroy()
         });
+    },
+
+    autoDrawForPlayback: function (scene, mistakeCount) {
+        const totalStrokes = this.state.currentKanji.strokes.length;
+        let currentAction = 0;
+        const totalActions = mistakeCount + totalStrokes;
+
+        const performNextAction = () => {
+            if (!this.state.active) return; // Challenge was cancelled
+
+            if (currentAction < mistakeCount) {
+                // Draw a wrong stroke (simple diagonal that will fail)
+                this.state.currentPath = [
+                    { x: 100, y: 100 },
+                    { x: 150, y: 150 }
+                ];
+                this.validateStroke(scene);
+                currentAction++;
+                setTimeout(performNextAction, 400);
+            } else if (currentAction < totalActions) {
+                // Draw the correct stroke
+                const strokeIndex = currentAction - mistakeCount;
+                const targetPoints = this.state.targetStrokePoints[strokeIndex];
+                if (targetPoints) {
+                    const screenPoints = this.transformToScreen(targetPoints);
+                    this.animateStrokeDrawing(scene, screenPoints, () => {
+                        this.state.currentPath = screenPoints;
+                        this.validateStroke(scene);
+                        currentAction++;
+                        setTimeout(performNextAction, 300);
+                    });
+                } else {
+                    currentAction++;
+                    setTimeout(performNextAction, 100);
+                }
+            }
+        };
+
+        // Start after a brief delay so UI is visible
+        setTimeout(performNextAction, 800);
+    },
+
+    animateStrokeDrawing: function (scene, points, onComplete) {
+        if (!points || points.length < 2) {
+            if (onComplete) onComplete();
+            return;
+        }
+
+        // Create a temporary graphics object for the animation
+        const tempGraphics = scene.add.graphics();
+        tempGraphics.setDepth(1502);
+        if (this.elements.container) {
+            this.elements.container.add(tempGraphics);
+        }
+
+        tempGraphics.lineStyle(8, 0x00ff00, 1);
+
+        let pointIndex = 0;
+        const drawSpeed = 20; // ms between points
+
+        const drawNextSegment = () => {
+            if (pointIndex >= points.length - 1) {
+                tempGraphics.destroy();
+                if (onComplete) onComplete();
+                return;
+            }
+
+            tempGraphics.clear();
+            tempGraphics.lineStyle(8, 0x00ff00, 1);
+            tempGraphics.beginPath();
+            tempGraphics.moveTo(points[0].x, points[0].y);
+
+            for (let i = 1; i <= pointIndex + 1; i++) {
+                tempGraphics.lineTo(points[i].x, points[i].y);
+            }
+            tempGraphics.strokePath();
+
+            pointIndex++;
+            setTimeout(drawNextSegment, drawSpeed);
+        };
+
+        drawNextSegment();
     },
 
     cleanup: function (scene) {

@@ -10,6 +10,9 @@ const InputSystem = {
     isInitialized: false,
     isTabActive: true,
 
+    // Sampled input for deterministic movement (used by simulateTick)
+    sampledInput: { x: 0, y: 0 },
+
     // Movement scheme configuration
     movementSchemes: {
         keyboard: true,
@@ -215,6 +218,107 @@ const InputSystem = {
             // No input
             player.body.setVelocity(0, 0);
         }
+    },
+
+    // Sample input at render rate - captures current input direction without applying movement
+    // Called from update() at render rate for responsiveness
+    sampleInput: function (player, delta) {
+        if (!player || gamePaused || gameOver) {
+            this.sampledInput.x = 0;
+            this.sampledInput.y = 0;
+            return;
+        }
+
+        // Reset keyboard velocity
+        this.keyboard.velocity.x = 0;
+        this.keyboard.velocity.y = 0;
+
+        // Handle keyboard movement
+        if (this.movementSchemes.keyboard) {
+            this.updateKeyboardMovement();
+        }
+
+        // Check what input we have
+        const hasKeyboardInput = this.keyboard.velocity.x !== 0 || this.keyboard.velocity.y !== 0;
+        const hasDirectionalInput = this.touch.isActive &&
+            (Math.abs(this.touch.directionX) > 0.1 || Math.abs(this.touch.directionY) > 0.1) &&
+            this.touch.positionHistory.length >= 2;
+
+        // Priority: Keyboard > Directional Touch > Tap-to-Move
+        if (hasKeyboardInput) {
+            // Cancel tap-to-move if keyboard is used
+            if (this.tapToMove.isMoving) {
+                this.tapToMove.isMoving = false;
+                this.tapToMove.targetX = null;
+                this.tapToMove.targetY = null;
+                this.tapToMove.moveStartTime = 0;
+            }
+
+            this.sampledInput.x = this.keyboard.velocity.x;
+            this.sampledInput.y = this.keyboard.velocity.y;
+        } else if (hasDirectionalInput) {
+            // Check grace period
+            const currentTime = this.scene?.time?.now ?? Date.now();
+            const timeSinceMoveStart = currentTime - this.tapToMove.moveStartTime;
+            const isInGracePeriod = this.tapToMove.isMoving &&
+                timeSinceMoveStart < this.tapToMove.cancelGracePeriod;
+
+            if (isInGracePeriod && this.tapToMove.targetX !== null) {
+                // During grace period, use tap-to-move direction
+                const deltaX = this.tapToMove.targetX - player.x;
+                const deltaY = this.tapToMove.targetY - player.y;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                if (distance > this.tapToMove.arrivalThreshold) {
+                    this.sampledInput.x = deltaX / distance;
+                    this.sampledInput.y = deltaY / distance;
+                } else {
+                    this.sampledInput.x = 0;
+                    this.sampledInput.y = 0;
+                }
+            } else {
+                // Cancel tap-to-move after grace period
+                if (this.tapToMove.isMoving) {
+                    this.tapToMove.isMoving = false;
+                    this.tapToMove.targetX = null;
+                    this.tapToMove.targetY = null;
+                    this.tapToMove.moveStartTime = 0;
+                }
+
+                this.sampledInput.x = this.touch.directionX;
+                this.sampledInput.y = this.touch.directionY;
+            }
+        } else if (this.tapToMove.isMoving && this.tapToMove.targetX !== null) {
+            // Tap-to-move direction
+            const deltaX = this.tapToMove.targetX - player.x;
+            const deltaY = this.tapToMove.targetY - player.y;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            if (distance > this.tapToMove.arrivalThreshold) {
+                this.sampledInput.x = deltaX / distance;
+                this.sampledInput.y = deltaY / distance;
+            } else {
+                // Arrived at target
+                this.tapToMove.isMoving = false;
+                this.tapToMove.targetX = null;
+                this.tapToMove.targetY = null;
+                this.tapToMove.moveStartTime = 0;
+                this.sampledInput.x = 0;
+                this.sampledInput.y = 0;
+            }
+        } else {
+            // No input
+            this.sampledInput.x = 0;
+            this.sampledInput.y = 0;
+        }
+    },
+
+    // Get the last sampled input direction (called from simulateTick)
+    getSampledInput: function () {
+        return {
+            x: this.sampledInput.x,
+            y: this.sampledInput.y
+        };
     },
 
     // Initialize directional touch control
@@ -671,6 +775,7 @@ const InputSystem = {
         this.tapToMove.targetX = null;
         this.tapToMove.targetY = null;
         this.tapToMove.moveStartTime = 0;
+        this.sampledInput = { x: 0, y: 0 };
 
         this.isInitialized = false;
         this.scene = null;

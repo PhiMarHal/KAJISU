@@ -1,9 +1,9 @@
 // demo.js - Demo Recording and Playback System for KAJISU
-// Records player positions and game events for deterministic replay
+// Records player input and game events for deterministic replay
 
 const DemoSystem = {
     // Version for compatibility checking
-    VERSION: 2,  // Bumped for position-based format
+    VERSION: 3,  // Bumped for input-based deterministic format
 
     // State
     isRecording: false,
@@ -12,7 +12,7 @@ const DemoSystem = {
 
     // Demo data during recording
     recording: {
-        version: 2,
+        version: 3,
         timestamp: '',
         seed: 0,
         settings: {
@@ -20,25 +20,20 @@ const DemoSystem = {
             bossRush: false,
             difficulty: 1
         },
-        positions: [],   // [[tick, x, y], ...] - player positions (only when changed)
+        inputs: [],      // [[tick, dirX, dirY], ...] - only when input changes
         events: [],      // [[tick, type, ...data], ...]
-        strokes: [],     // [[tick, mistakes], ...] - drawing challenge mistake counts
+        drawings: []     // [[tick, mistakes], ...] - drawing challenge mistake counts
     },
 
     // Playback data
     playback: {
         demo: null,
-        positionIndex: 0,
-        eventIndex: 0,
-        strokeIndex: 0,
-        currentPosition: { x: 0, y: 0 },
-        lastPosition: { x: 0, y: 0 }
+        inputIndex: 0,
+        currentInput: { x: 0, y: 0 }
     },
 
-    // Last recorded position (for change detection)
-    lastRecordedX: 0,
-    lastRecordedY: 0,
-    positionThreshold: 0.5,  // Only record if moved more than this many pixels
+    // Last recorded input (for change detection)
+    lastInput: { x: 0, y: 0 },
 
     // =====================
     // RECORDING FUNCTIONS
@@ -61,34 +56,29 @@ const DemoSystem = {
             timestamp: timestamp,
             seed: seed,
             settings: { ...settings },
-            positions: [],
+            inputs: [],
             events: [],
-            strokes: []
+            drawings: []
         };
 
-        this.lastRecordedX = 0;
-        this.lastRecordedY = 0;
+        this.lastInput = { x: 0, y: 0 };
 
         console.log(`Demo recording started - Seed: ${seed}, Timestamp: ${timestamp}`);
     },
 
-    // Record player position (only when it changes significantly)
-    recordPosition: function (x, y) {
+    // Record directional input (only when it changes)
+    recordInput: function (dirX, dirY) {
         if (!this.isRecording) return;
 
-        // Check if position changed enough to record
-        const dx = x - this.lastRecordedX;
-        const dy = y - this.lastRecordedY;
-        const distSq = dx * dx + dy * dy;
+        // Quantize to signed bytes (-127 to 127) for compression
+        const qX = Math.round(dirX * 127);
+        const qY = Math.round(dirY * 127);
 
-        if (distSq >= this.positionThreshold * this.positionThreshold) {
-            // Quantize to 1 decimal place for compression
-            const qX = Math.round(x * 10) / 10;
-            const qY = Math.round(y * 10) / 10;
-
-            this.recording.positions.push([this.currentTick, qX, qY]);
-            this.lastRecordedX = x;
-            this.lastRecordedY = y;
+        // Only record if input changed
+        if (qX !== this.lastInput.x || qY !== this.lastInput.y) {
+            this.recording.inputs.push([this.currentTick, qX, qY]);
+            this.lastInput.x = qX;
+            this.lastInput.y = qY;
         }
     },
 
@@ -101,7 +91,7 @@ const DemoSystem = {
     // Record drawing challenge completion with mistake count
     recordDrawingMistakes: function (mistakes) {
         if (!this.isRecording) return;
-        this.recording.strokes.push([this.currentTick, mistakes]);
+        this.recording.drawings.push([this.currentTick, mistakes]);
     },
 
     // Called each tick during recording
@@ -118,7 +108,7 @@ const DemoSystem = {
 
         const demo = { ...this.recording };
 
-        console.log(`Demo recording stopped - ${this.currentTick} ticks, ${demo.positions.length} position changes, ${demo.events.length} events`);
+        console.log(`Demo recording stopped - ${this.currentTick} ticks, ${demo.inputs.length} input changes, ${demo.events.length} events`);
 
         return demo;
     },
@@ -137,21 +127,13 @@ const DemoSystem = {
         this.isRecording = false;
         this.currentTick = 0;
 
-        // Get initial position from first position record or default to center
-        const initialPos = demo.positions.length > 0 ?
-            { x: demo.positions[0][1], y: demo.positions[0][2] } :
-            { x: 600, y: 400 };
-
         this.playback = {
             demo: demo,
-            positionIndex: 0,
-            eventIndex: 0,
-            strokeIndex: 0,
-            currentPosition: { ...initialPos },
-            lastPosition: { ...initialPos }
+            inputIndex: 0,
+            currentInput: { x: 0, y: 0 }
         };
 
-        console.log(`Demo playback started - Seed: ${demo.seed}, ${demo.positions.length} position records`);
+        console.log(`Demo playback started - Seed: ${demo.seed}, ${demo.inputs.length} input changes`);
 
         return {
             seed: demo.seed,
@@ -159,44 +141,42 @@ const DemoSystem = {
         };
     },
 
-    // Get player position for current tick during playback
-    getPlaybackPosition: function () {
+    // Get input for current tick during playback
+    getPlaybackInput: function () {
         if (!this.isPlaying || !this.playback.demo) {
-            return null;
+            return { x: 0, y: 0 };
         }
 
         const demo = this.playback.demo;
 
-        // Process all position records up to current tick
-        while (this.playback.positionIndex < demo.positions.length) {
-            const pos = demo.positions[this.playback.positionIndex];
-            if (pos[0] <= this.currentTick) {
-                this.playback.lastPosition = { ...this.playback.currentPosition };
-                this.playback.currentPosition.x = pos[1];
-                this.playback.currentPosition.y = pos[2];
-                this.playback.positionIndex++;
+        // Process all input changes up to current tick
+        while (this.playback.inputIndex < demo.inputs.length) {
+            const input = demo.inputs[this.playback.inputIndex];
+            if (input[0] <= this.currentTick) {
+                this.playback.currentInput.x = input[1] / 127;
+                this.playback.currentInput.y = input[2] / 127;
+                this.playback.inputIndex++;
             } else {
                 break;
             }
         }
 
         return {
-            x: this.playback.currentPosition.x,
-            y: this.playback.currentPosition.y
+            x: this.playback.currentInput.x,
+            y: this.playback.currentInput.y
         };
     },
 
-    // Get next perk selection for playback (consumes in order, ignores tick)
+    // Get next perk selection for playback (consumes in order)
     getPlaybackPerkSelection: function () {
         if (!this.isPlaying || !this.playback.demo) return null;
 
         const demo = this.playback.demo;
 
-        // Find the next perk event (consume in order, regardless of tick)
+        // Find the next perk event (consume in order)
         for (let i = 0; i < demo.events.length; i++) {
             const event = demo.events[i];
             if (event[1] === 'perk') {
-                // Remove from array and return the perk index
                 demo.events.splice(i, 1);
                 return event[2];
             }
@@ -211,10 +191,9 @@ const DemoSystem = {
 
         const demo = this.playback.demo;
 
-        // Consume the next stroke event in order
-        if (demo.strokes.length > 0) {
-            const stroke = demo.strokes.shift();
-            return stroke[1]; // mistake count
+        if (demo.drawings && demo.drawings.length > 0) {
+            const drawing = demo.drawings.shift();
+            return drawing[1];
         }
 
         return null;
@@ -241,7 +220,6 @@ const DemoSystem = {
     // STORAGE FUNCTIONS
     // =====================
 
-    // Get list of saved demos from localStorage
     listSavedDemos: function () {
         const demos = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -251,12 +229,10 @@ const DemoSystem = {
                 demos.push(timestamp);
             }
         }
-        // Sort newest first
         demos.sort((a, b) => b.localeCompare(a));
         return demos;
     },
 
-    // Save demo to localStorage
     saveToLocalStorage: function (demo) {
         if (!demo || !demo.timestamp) return false;
 
@@ -272,7 +248,6 @@ const DemoSystem = {
         }
     },
 
-    // Load demo from localStorage
     loadFromLocalStorage: function (timestamp) {
         try {
             const key = `kajisu_demo_${timestamp}`;
@@ -285,18 +260,15 @@ const DemoSystem = {
         }
     },
 
-    // Delete demo from localStorage
     deleteFromLocalStorage: function (timestamp) {
         const key = `kajisu_demo_${timestamp}`;
         localStorage.removeItem(key);
     },
 
-    // Export demo as shareable text
     exportAsText: function (demo) {
         return this.compressDemo(demo);
     },
 
-    // Import demo from text
     importFromText: function (text) {
         try {
             return this.decompressDemo(text);
@@ -310,14 +282,11 @@ const DemoSystem = {
     // COMPRESSION
     // =====================
 
-    // Compress demo to Base64 string
     compressDemo: function (demo) {
-        // Convert to JSON and then to Base64
         const json = JSON.stringify(demo);
         return btoa(unescape(encodeURIComponent(json)));
     },
 
-    // Decompress demo from Base64 string
     decompressDemo: function (data) {
         const json = decodeURIComponent(escape(atob(data)));
         return JSON.parse(json);
@@ -327,7 +296,6 @@ const DemoSystem = {
     // UTILITY
     // =====================
 
-    // Format timestamp for display
     formatTimestamp: function (timestamp) {
         if (timestamp.length !== 12) return timestamp;
 
@@ -340,7 +308,6 @@ const DemoSystem = {
         return `${year}-${month}-${day} ${hour}:${minute}`;
     },
 
-    // Get demo info without loading full data
     getDemoInfo: function (timestamp) {
         const demo = this.loadFromLocalStorage(timestamp);
         if (!demo) return null;
@@ -350,14 +317,12 @@ const DemoSystem = {
             formatted: this.formatTimestamp(timestamp),
             seed: demo.seed,
             settings: demo.settings,
-            tickCount: demo.positions.length > 0 ?
-                demo.positions[demo.positions.length - 1][0] : 0,
-            duration: demo.positions.length > 0 ?
-                Math.round(demo.positions[demo.positions.length - 1][0] / 60) : 0 // seconds
+            inputCount: demo.inputs ? demo.inputs.length : 0,
+            duration: demo.inputs && demo.inputs.length > 0 ?
+                Math.round(demo.inputs[demo.inputs.length - 1][0] / 60) : 0
         };
     },
 
-    // Reset system state
     reset: function () {
         this.isRecording = false;
         this.isPlaying = false;
@@ -367,22 +332,17 @@ const DemoSystem = {
             timestamp: '',
             seed: 0,
             settings: {},
-            positions: [],
+            inputs: [],
             events: [],
-            strokes: []
+            drawings: []
         };
         this.playback = {
             demo: null,
-            positionIndex: 0,
-            eventIndex: 0,
-            strokeIndex: 0,
-            currentPosition: { x: 0, y: 0 },
-            lastPosition: { x: 0, y: 0 }
+            inputIndex: 0,
+            currentInput: { x: 0, y: 0 }
         };
-        this.lastRecordedX = 0;
-        this.lastRecordedY = 0;
+        this.lastInput = { x: 0, y: 0 };
     }
 };
 
-// Export
 window.DemoSystem = DemoSystem;

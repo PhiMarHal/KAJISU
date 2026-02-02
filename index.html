@@ -531,10 +531,10 @@
             // Debug stats run at render rate
             DebugSystem.updatePerformanceStats(this, time, delta);
 
-            // Player movement - runs at render rate for smooth feel
-            // During playback, position is set in simulateTick instead
+            // Sample input at render rate (for responsiveness)
+            // But don't apply movement here - that happens in simulateTick
             if (!DemoSystem.isPlaying) {
-                InputSystem.updateMovement(player, delta);
+                InputSystem.sampleInput(player, delta);
             }
 
             // Fixed timestep for game logic (deterministic timing)
@@ -576,20 +576,44 @@
             // Advance demo tick counter
             if (DemoSystem.isRecording) {
                 DemoSystem.tickRecording();
-                // Record player position after movement has been applied
-                DemoSystem.recordPosition(player.x, player.y);
             } else if (DemoSystem.isPlaying) {
                 DemoSystem.tickPlayback();
-                // Set player position from recording
-                const pos = DemoSystem.getPlaybackPosition();
-                if (pos) {
-                    player.x = pos.x;
-                    player.y = pos.y;
-                    // Update physics body to match
-                    if (player.body) {
-                        player.body.reset(pos.x, pos.y);
-                    }
+            }
+
+            // === DETERMINISTIC PLAYER MOVEMENT ===
+            let inputX = 0;
+            let inputY = 0;
+
+            if (DemoSystem.isPlaying) {
+                // Get input from recording
+                const input = DemoSystem.getPlaybackInput();
+                inputX = input.x;
+                inputY = input.y;
+            } else {
+                // Get input from InputSystem's sampled direction
+                const input = InputSystem.getSampledInput();
+                inputX = input.x;
+                inputY = input.y;
+
+                // Record input if recording
+                if (DemoSystem.isRecording) {
+                    DemoSystem.recordInput(inputX, inputY);
                 }
+            }
+
+            // Apply movement manually (deterministic)
+            if (player && player.body) {
+                const moveSpeed = playerSpeed * 50 * (fixedDelta / 1000);
+
+                player.x += inputX * moveSpeed;
+                player.y += inputY * moveSpeed;
+
+                // Clamp to world bounds
+                player.x = Phaser.Math.Clamp(player.x, 20, game.config.width - 20);
+                player.y = Phaser.Math.Clamp(player.y, 20, game.config.height - 20);
+
+                // Sync physics body for collision detection
+                player.body.reset(player.x, player.y);
             }
 
             updatePlayerStatus();

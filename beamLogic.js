@@ -14,24 +14,24 @@ const BEAM_DIRECTIONS = {
 
 // Helper function to determine beam direction from player movement
 function getBeamDirectionFromMovement() {
-    if (!player || !player.body) return BEAM_DIRECTIONS.EAST; // Default to east
+    if (!player) return BEAM_DIRECTIONS.EAST; // Default to east
 
-    const velocity = player.body.velocity;
-    const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+    // Use InputSystem for movement info (works with deterministic movement)
+    const movement = InputSystem.getCurrentMovement();
 
     // If player isn't moving much, default to east
-    if (speed < 10) return BEAM_DIRECTIONS.EAST;
+    if (!movement.isMoving) return BEAM_DIRECTIONS.EAST;
 
-    // Determine the dominant direction
-    const absX = Math.abs(velocity.x);
-    const absY = Math.abs(velocity.y);
+    // Determine the dominant direction from movement
+    const absX = Math.abs(movement.x);
+    const absY = Math.abs(movement.y);
 
     if (absX > absY) {
         // Horizontal movement dominates
-        return velocity.x > 0 ? BEAM_DIRECTIONS.EAST : BEAM_DIRECTIONS.WEST;
+        return movement.x > 0 ? BEAM_DIRECTIONS.EAST : BEAM_DIRECTIONS.WEST;
     } else {
         // Vertical movement dominates
-        return velocity.y > 0 ? BEAM_DIRECTIONS.SOUTH : BEAM_DIRECTIONS.NORTH;
+        return movement.y > 0 ? BEAM_DIRECTIONS.SOUTH : BEAM_DIRECTIONS.NORTH;
     }
 }
 
@@ -126,13 +126,13 @@ const BeamSystem = {
         const directionTracker = registerTimer(scene.time.addEvent({
             delay: 100, // Check every 100ms
             callback: function () {
-                if (!player?.body?.velocity) return;
+                if (!player) return;
 
-                const velocity = player.body.velocity;
-                const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+                // Use InputSystem for movement info (works with deterministic movement)
+                const movement = InputSystem.getCurrentMovement();
 
                 // Only update direction if player is moving significantly
-                if (speed > 10) {
+                if (movement.isMoving) {
                     trackedDirection = getBeamDirectionFromMovement();
                 }
             },

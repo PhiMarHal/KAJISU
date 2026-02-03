@@ -287,7 +287,6 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
     isActive: false,
     accumulator: 0,
     lastUpdateTime: 0,
-    velocityThreshold: 10, // Minimum velocity to consider player moving
     particles: [],
     particleTimer: null,
 
@@ -378,12 +377,9 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
         // Skip if delta time is unreasonably large (e.g., after tab switching)
         if (deltaTime > 0.5) return;
 
-        // Check player velocity directly
-        const velocity = player.body.velocity;
-        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-
-        // Determine if player is moving based on velocity
-        const isPlayerMoving = speed > this.velocityThreshold;
+        // Check player movement via InputSystem (works with deterministic movement)
+        const movement = InputSystem.getCurrentMovement();
+        const isPlayerMoving = movement.isMoving;
 
         // Calculate the rate of change
         const maxTimeSeconds = 160 / playerLuck;

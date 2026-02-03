@@ -239,11 +239,25 @@ const DemoSystem = {
         try {
             const key = `kajisu_demo_${demo.timestamp}`;
             const data = this.compressDemo(demo);
+            const sizeKB = (data.length / 1024).toFixed(1);
+
+            // Check approximate size before trying to save
+            if (data.length > 4 * 1024 * 1024) {
+                console.error(`Demo too large to save: ${sizeKB}KB (max ~4MB)`);
+                return false;
+            }
+
             localStorage.setItem(key, data);
-            console.log(`Demo saved: ${key} (${data.length} chars)`);
+            console.log(`Demo saved: ${key} (${sizeKB}KB, ${demo.inputs.length} inputs)`);
             return true;
         } catch (e) {
-            console.error('Failed to save demo:', e);
+            // Handle quota exceeded error
+            if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
+                console.error(`localStorage quota exceeded. Demo size: ${(this.compressDemo(demo).length / 1024).toFixed(1)}KB`);
+                console.error('Try deleting old demos to free up space.');
+            } else {
+                console.error('Failed to save demo:', e);
+            }
             return false;
         }
     },

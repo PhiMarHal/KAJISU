@@ -13,6 +13,15 @@ const InputSystem = {
     // Sampled input for deterministic movement (used by simulateTick)
     sampledInput: { x: 0, y: 0 },
 
+    // Current movement direction (for perks that need velocity-like info)
+    // This is updated in simulateTick after movement is applied
+    currentMovement: {
+        x: 0,           // Direction X (-1 to 1)
+        y: 0,           // Direction Y (-1 to 1)
+        speed: 0,       // Current speed magnitude
+        isMoving: false // Whether player is actively moving
+    },
+
     // Movement scheme configuration
     movementSchemes: {
         keyboard: true,
@@ -318,6 +327,26 @@ const InputSystem = {
         return {
             x: this.sampledInput.x,
             y: this.sampledInput.y
+        };
+    },
+
+    // Update current movement state (called from simulateTick after movement applied)
+    // This replaces the need for player.body.velocity checks
+    setCurrentMovement: function (dirX, dirY, speed) {
+        this.currentMovement.x = dirX;
+        this.currentMovement.y = dirY;
+        this.currentMovement.speed = speed;
+        this.currentMovement.isMoving = speed > 10; // Match velocity threshold from perks
+    },
+
+    // Get current movement (for perks like Eternal Rhythm and beam direction)
+    // Returns object similar to what player.body.velocity provided
+    getCurrentMovement: function () {
+        return {
+            x: this.currentMovement.x * this.currentMovement.speed,
+            y: this.currentMovement.y * this.currentMovement.speed,
+            speed: this.currentMovement.speed,
+            isMoving: this.currentMovement.isMoving
         };
     },
 
@@ -776,6 +805,7 @@ const InputSystem = {
         this.tapToMove.targetY = null;
         this.tapToMove.moveStartTime = 0;
         this.sampledInput = { x: 0, y: 0 };
+        this.currentMovement = { x: 0, y: 0, speed: 0, isMoving: false };
 
         this.isInitialized = false;
         this.scene = null;

@@ -225,8 +225,12 @@ function playerDeath(killerEnemy) {
     if (window.DemoSystem && DemoSystem.isRecording) {
         const demo = DemoSystem.stopRecording();
         if (demo) {
-            DemoSystem.saveToLocalStorage(demo);
-            console.log(`Demo saved: ${demo.timestamp}`);
+            const saved = DemoSystem.saveToLocalStorage(demo);
+            if (saved) {
+                console.log(`Demo saved: ${demo.timestamp}`);
+            } else {
+                console.error(`Failed to save demo: ${demo.timestamp} - check console for details`);
+            }
         }
     }
 

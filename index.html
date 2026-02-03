@@ -614,6 +614,11 @@
 
                 // Sync physics body for collision detection
                 player.body.reset(player.x, player.y);
+
+                // Update movement tracking for perks that need velocity-like info
+                // (Eternal Rhythm, beam direction, etc.)
+                const actualSpeed = (inputX !== 0 || inputY !== 0) ? playerSpeed * 50 : 0;
+                InputSystem.setCurrentMovement(inputX, inputY, actualSpeed);
             }
 
             updatePlayerStatus();

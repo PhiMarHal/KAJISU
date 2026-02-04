@@ -218,6 +218,9 @@ const DropperSystem = {
                     }
                 }
             }, null, scene);
+
+            // Mark this entity for manual collision checking in update()
+            entity.isPlayerPushable = true;
         }
 
         // Store unique ID for damage source (used for cooldown tracking)
@@ -321,8 +324,58 @@ const DropperSystem = {
         // Skip if no drops or game state prevents updates
         if (gameOver || gamePaused || drops.length === 0) return;
 
+        // Manual collision detection for playerPushable entities
+        // This supplements Phaser's collider which can miss with manual player positioning
+        this.checkPushableCollisions(scene, time);
+
         // Clean up destroyed drops
         this.cleanupInactive();
+    },
+
+    // Manual collision checking for playerPushable entities
+    checkPushableCollisions: function (scene, time) {
+        if (!player || !player.body) return;
+
+        const currentTime = scene.time.now;
+        const playerRadius = player.body.halfWidth || 20;
+
+        for (const drop of drops) {
+            if (!drop.entity || !drop.entity.active || !drop.entity.isPlayerPushable) continue;
+
+            const entity = drop.entity;
+            const entityRadius = (entity.body?.halfWidth || entity.width / 2 || 16);
+
+            // Calculate distance between player and entity centers
+            const dx = entity.x - player.x;
+            const dy = entity.y - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Check if colliding (with small buffer for reliability)
+            const collisionThreshold = playerRadius + entityRadius + 2;
+
+            if (distance < collisionThreshold) {
+                // Cooldown check (250ms between pushes)
+                if (!entity.lastPushTime || (currentTime - entity.lastPushTime > 250)) {
+                    entity.lastPushTime = currentTime;
+
+                    if (distance > 0) {
+                        // Calculate base angle (away from player)
+                        const baseAngle = Math.atan2(dy, dx);
+
+                        // Add random deflection (±4 degrees)
+                        const randomDeflection = (SeededRNG.random('effect') - 0.5) * (Math.PI * 8 / 180);
+                        const finalAngle = baseAngle + randomDeflection;
+
+                        // Apply push force
+                        const pushForce = 800;
+                        const pushX = Math.cos(finalAngle) * pushForce;
+                        const pushY = Math.sin(finalAngle) * pushForce;
+
+                        entity.body.setVelocity(pushX, pushY);
+                    }
+                }
+            }
+        }
     },
 
     // Process area effect for a drop

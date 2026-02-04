@@ -932,6 +932,19 @@ const EnemySystem = {
         // Set game over state
         gameOver = true;
 
+        // Save demo on victory
+        if (window.DemoSystem && DemoSystem.isRecording) {
+            const demo = DemoSystem.stopRecording();
+            if (demo) {
+                const saved = DemoSystem.saveToLocalStorage(demo);
+                if (saved) {
+                    console.log(`Victory demo saved: ${demo.timestamp}`);
+                } else {
+                    console.error(`Failed to save victory demo: ${demo.timestamp}`);
+                }
+            }
+        }
+
         // Pause the game physics to stop all movement
         PauseSystem.pauseGame();
 

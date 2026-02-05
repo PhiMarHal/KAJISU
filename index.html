@@ -564,11 +564,6 @@
 
             // Update player stats text
             GameUI.updateStatCircles(this);
-
-            // Update player level
-            if (heroExp >= xpForNextLevel(playerLevel)) {
-                levelUp.call(this);
-            }
         }
 
         // Game logic that needs deterministic timing runs here
@@ -595,9 +590,15 @@
                 inputX = input.x;
                 inputY = input.y;
 
-                // Record input if recording
+                // Record input if recording — and snap to quantized values so the
+                // player moves with the exact same precision that playback will use.
+                // Without this, raw floats (e.g. 0.70710678 for diagonals) diverge
+                // from their quantized playback values (90/127 = 0.70866) by ~0.006
+                // pixels/tick, accumulating ~210px of drift over a 9-minute game.
                 if (DemoSystem.isRecording) {
                     DemoSystem.recordInput(inputX, inputY);
+                    inputX = Math.round(inputX * 127) / 127;
+                    inputY = Math.round(inputY * 127) / 127;
                 }
             }
 
@@ -652,6 +653,11 @@
                     ProjectileComponentSystem.processEvent(projectile, 'update');
                 }
             });
+
+            // Check for level up (must be inside simulateTick for deterministic pause timing)
+            if (heroExp >= xpForNextLevel(playerLevel)) {
+                levelUp.call(this);
+            }
         }
 
         function levelUp() {

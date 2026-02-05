@@ -42,6 +42,11 @@ const FixedTimestepSystem = {
         // Run as many fixed ticks as needed
         let ticksThisFrame = 0;
         while (this.accumulator >= this.FIXED_TIMESTEP) {
+            // Break if game was paused mid-batch (e.g. by level-up inside simulateTick).
+            // This ensures no extra ticks run after a pause triggers, keeping
+            // recording and playback synchronized at the exact same tick.
+            if (gamePaused) break;
+
             // Run one tick of game logic with fixed delta
             simulateTickFn(this.FIXED_TIMESTEP);
 
@@ -50,6 +55,10 @@ const FixedTimestepSystem = {
             this.accumulator -= this.FIXED_TIMESTEP;
             ticksThisFrame++;
         }
+
+        // Do NOT zero the accumulator when paused. The residual sub-tick time
+        // is legitimate and will be consumed normally when the game resumes.
+        // Zeroing it loses ticks, causing elapsed time to drift.
 
         return {
             ticksSimulated: ticksThisFrame,

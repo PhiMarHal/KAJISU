@@ -143,19 +143,16 @@ const MovementPatterns = {
     },
 
     directionFollowing: function (orbital, time, deltaTime) {
-        // Skip if player is destroyed or has no velocity
+        // Skip if player is destroyed
         if (!player || !player.body || !player.active) return;
 
-        // Get player velocity
-        const velocity = player.body.velocity;
+        // Get player movement from InputSystem (works with demo system)
+        const movement = InputSystem.getCurrentMovement();
 
         // Only update angle if player is actually moving
-        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-        const movementThreshold = 10; // Minimum velocity to consider player moving
-
-        if (speed > movementThreshold) {
-            // Calculate angle from velocity
-            const newAngle = Math.atan2(velocity.y, velocity.x);
+        if (movement.isMoving) {
+            // Calculate angle from movement direction
+            const newAngle = Math.atan2(movement.y, movement.x);
 
             // If we haven't stored a previous angle, initialize it
             if (orbital.lastAngle === undefined) {

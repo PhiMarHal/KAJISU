@@ -103,11 +103,9 @@ const DemoSystem = {
     // Stop recording and return the demo data
     stopRecording: function () {
         if (!this.isRecording) return null;
-
         this.isRecording = false;
-
         const demo = { ...this.recording };
-
+        demo.totalTicks = this.currentTick;
         console.log(`Demo recording stopped - ${this.currentTick} ticks, ${demo.inputs.length} input changes, ${demo.events.length} events`);
 
         return demo;
@@ -332,8 +330,9 @@ const DemoSystem = {
             seed: demo.seed,
             settings: demo.settings,
             inputCount: demo.inputs ? demo.inputs.length : 0,
-            duration: demo.inputs && demo.inputs.length > 0 ?
-                Math.round(demo.inputs[demo.inputs.length - 1][0] / 60) : 0
+            duration: demo.totalTicks ? Math.round(demo.totalTicks / 60) :
+                (demo.inputs && demo.inputs.length > 0 ?
+                    Math.round(demo.inputs[demo.inputs.length - 1][0] / 60) : 0)
         };
     },
 

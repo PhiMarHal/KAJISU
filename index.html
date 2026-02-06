@@ -622,6 +622,16 @@
                 InputSystem.setCurrentMovement(inputX, inputY, actualSpeed);
             }
 
+            // Inside simulateTick, right after the player position clamp + body.reset block:
+            if (DemoSystem.isRecording || DemoSystem.isPlaying) {
+                const tick = DemoSystem.currentTick;
+                // Log every 60 ticks (~1 second) and around level-ups
+                if (tick % 60 === 0) {
+                    const mode = DemoSystem.isRecording ? 'REC' : 'PLAY';
+                    console.log(`[${mode}] tick=${tick} pos=(${player.x.toFixed(2)}, ${player.y.toFixed(2)}) hp=${playerHealth} xp=${heroExp} lvl=${playerLevel}`);
+                }
+            }
+
             updatePlayerStatus();
             updateOnHitEffects();
 

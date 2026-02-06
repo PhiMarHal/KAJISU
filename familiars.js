@@ -132,7 +132,7 @@ const EntityFiringBehaviors = {
         };
 
         const config = { ...defaults, ...options };
-        const angle = entity.angle || 0;
+        const angle = entity.rotation || 0;
 
         const projectile = fireProjectileFromEntity(scene, entity, null, {
             damage: config.damage,

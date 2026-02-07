@@ -17,6 +17,7 @@
 
     <script src="startMenu.js"></script>
     <script src="rng.js"></script>
+    <script src="collision.js"></script>
     <script src="interpolation.js"></script>
     <script src="demo.js"></script>
     <script src="droppers.js"></script>
@@ -475,6 +476,7 @@
 
             // Initialize fixed timestep system for deterministic game logic
             FixedTimestepSystem.init();
+            CollisionRegistry.init(this);
 
             GameUI.createUI(this);
             // Switch from help to pause button now that UI is created
@@ -498,7 +500,12 @@
             projectiles = this.physics.add.group();
 
             // Set up collision between player and EnemySystem.enemiesGroup
-            this.physics.add.overlap(player, EnemySystem.enemiesGroup, PlayerHitSystem.playerIsHit, null, this);
+            CollisionRegistry.register({
+                objectA: player,
+                objectB: EnemySystem.enemiesGroup,
+                callback: PlayerHitSystem.playerIsHit,
+                scope: this
+            });
 
             // Create learning feedback text (initially empty)
             this.learningFeedback = this.add.text(game.config.width / 2, game.config.height * 0.9625, '', {
@@ -663,6 +670,9 @@
                     ProjectileComponentSystem.processEvent(projectile, 'update');
                 }
             });
+
+            // Process all collision checks deterministically inside the tick loop
+            CollisionRegistry.processAll();
 
             // Check for level up (must be inside simulateTick for deterministic pause timing)
             if (heroExp >= xpForNextLevel(playerLevel)) {

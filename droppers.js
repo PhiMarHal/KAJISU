@@ -189,35 +189,41 @@ const DropperSystem = {
             entity.body.setMass(mass);
             entity.body.setMaxVelocity(maxVelocity, maxVelocity);
 
-            // Add physics collider with player (for pushing with random deflection)
-            scene.physics.add.collider(entity, player, function (ballEntity, player) {
+            // Register physics collider with player via CollisionRegistry for deterministic checking
+            entity._playerCollisionId = CollisionRegistry.register({
+                objectA: entity,
+                objectB: player,
+                type: 'collide',
+                callback: function (ballEntity, playerObj) {
 
-                // Cooldown to avoid several pushes in succession
-                const currentTime = scene.time.now;
-                if (!ballEntity.lastPushTime || (currentTime - ballEntity.lastPushTime > 250)) {
-                    ballEntity.lastPushTime = currentTime;
-                    // Calculate base push direction (away from player)
-                    const dx = ballEntity.x - player.x;
-                    const dy = ballEntity.y - player.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    // Cooldown to avoid several pushes in succession
+                    const currentTime = scene.time.now;
+                    if (!ballEntity.lastPushTime || (currentTime - ballEntity.lastPushTime > 250)) {
+                        ballEntity.lastPushTime = currentTime;
+                        // Calculate base push direction (away from player)
+                        const dx = ballEntity.x - player.x;
+                        const dy = ballEntity.y - player.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (distance > 0) {
-                        // Calculate base angle
-                        const baseAngle = Math.atan2(dy, dx);
+                        if (distance > 0) {
+                            // Calculate base angle
+                            const baseAngle = Math.atan2(dy, dx);
 
-                        // Add random deflection
-                        const randomDeflection = (SeededRNG.random('effect') - 0.5) * (Math.PI * 8 / 180); // ±8 degrees total range
-                        const finalAngle = baseAngle + randomDeflection;
+                            // Add random deflection
+                            const randomDeflection = (SeededRNG.random('effect') - 0.5) * (Math.PI * 8 / 180); // ±8 degrees total range
+                            const finalAngle = baseAngle + randomDeflection;
 
-                        // Apply push force with the randomized angle
-                        const pushForce = 800;
-                        const pushX = Math.cos(finalAngle) * pushForce;
-                        const pushY = Math.sin(finalAngle) * pushForce;
+                            // Apply push force with the randomized angle
+                            const pushForce = 800;
+                            const pushX = Math.cos(finalAngle) * pushForce;
+                            const pushY = Math.sin(finalAngle) * pushForce;
 
-                        ballEntity.body.setVelocity(pushX, pushY);
+                            ballEntity.body.setVelocity(pushX, pushY);
+                        }
                     }
-                }
-            }, null, scene);
+                },
+                scope: scene
+            });
 
             // Mark this entity for manual collision checking in update()
             entity.isPlayerPushable = true;
@@ -243,6 +249,11 @@ const DropperSystem = {
             options: dropConfig.options,
             destroyed: false             // Flag to mark for cleanup
         };
+
+        // Transfer collision ID from entity to drop object
+        if (entity._playerCollisionId !== undefined) {
+            drop.playerCollisionId = entity._playerCollisionId;
+        }
 
         // Add to global list
         drops.push(drop);
@@ -276,14 +287,16 @@ const DropperSystem = {
         // Get the appropriate behavior function
         const behavior = DropBehaviors[dropConfig.behaviorType] ?? DropBehaviors.projectile;
 
-        // Add overlap with enemies based on behavior
-        scene.physics.add.overlap(entity, EnemySystem.enemiesGroup, function (dropEntity, enemy) {
-            // Skip if drop is already marked as destroyed
-            if (drop.destroyed) return;
-
-            // Call the appropriate behavior function
-            behavior(scene, drop, enemy);
-        }, null, scene);
+        // Register overlap with enemies via CollisionRegistry for deterministic checking
+        drop.collisionId = CollisionRegistry.register({
+            objectA: entity,
+            objectB: EnemySystem.enemiesGroup,
+            callback: function (dropEntity, enemy) {
+                if (drop.destroyed) return;
+                behavior(scene, drop, enemy);
+            },
+            scope: scene
+        });
 
         // Visual effect when spawning
         scene.tweens.add({
@@ -846,6 +859,14 @@ const DropperSystem = {
 
     // Enhanced destroyDrop function that cleans up timers
     destroyDrop: function (drop) {
+        // Unregister collision pairs
+        if (drop.collisionId !== undefined) {
+            CollisionRegistry.unregister(drop.collisionId);
+        }
+        if (drop.playerCollisionId !== undefined) {
+            CollisionRegistry.unregister(drop.playerCollisionId);
+        }
+
         // Clean up effect timer if it exists
         if (drop.effectTimer) {
             CooldownManager.removeTimer(drop.effectTimer);

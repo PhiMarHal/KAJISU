@@ -861,10 +861,16 @@ function dropGodHammer(options = {}) {
     // Register entity for cleanup
     window.registerEffect('entity', hammer);
 
-    // Add overlap with enemies
-    this.physics.add.overlap(hammer, EnemySystem.enemiesGroup, function (hammer, enemy) {
-        applyContactDamage.call(this, hammer, enemy, hammer.damage);
-    }, null, this);
+    // Register overlap with enemies via CollisionRegistry for deterministic checking
+    const scene = this;
+    CollisionRegistry.register({
+        objectA: hammer,
+        objectB: EnemySystem.enemiesGroup,
+        callback: function (hammerObj, enemy) {
+            applyContactDamage.call(scene, hammerObj, enemy, hammerObj.damage);
+        },
+        scope: scene
+    });
 
     // Add falling animation
     this.tweens.add({

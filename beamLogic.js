@@ -220,16 +220,15 @@ const BeamSystem = {
         window.registerEffect('entity', beamVisual);
         window.registerEffect('entity', beamPhysics); // Register physics body for cleanup too
 
-        // Set up collision with enemies
-        const overlapCollider = scene.physics.add.overlap(beamPhysics, EnemySystem.enemiesGroup, function (beamBody, enemy) {
-            BeamSystem.handleBeamHit(beam, enemy, scene);
-        }, null, scene);
-
-        // Register the overlap collider for cleanup using the same pattern
-        window.registerEffect('entity', overlapCollider);
-
-        // Store reference for manual cleanup too
-        beam.overlapCollider = overlapCollider;
+        // Register collision with enemies via CollisionRegistry for deterministic checking
+        beam.collisionId = CollisionRegistry.register({
+            objectA: beamPhysics,
+            objectB: EnemySystem.enemiesGroup,
+            callback: function (beamBody, enemy) {
+                BeamSystem.handleBeamHit(beam, enemy, scene);
+            },
+            scope: scene
+        });
 
         // Call beam start callback if provided
         if (config.onBeamStart) {
@@ -245,10 +244,9 @@ const BeamSystem = {
 
                 // Destroy physics body immediately (don't wait for fade)
                 if (beam.physics && beam.physics.active) {
-                    // Remove overlap collider first
-                    if (beam.overlapCollider) {
-                        beam.overlapCollider.destroy();
-                        beam.overlapCollider = null;
+                    // Unregister collision pair
+                    if (beam.collisionId !== undefined) {
+                        CollisionRegistry.unregister(beam.collisionId);
                     }
 
                     // Disable and remove physics body immediately
@@ -444,10 +442,9 @@ const BeamSystem = {
         // Mark as destroyed first to prevent multiple calls
         beam.destroyed = true;
 
-        // Remove overlap collider first - check if it exists and is active
-        if (beam.overlapCollider && beam.overlapCollider.active) {
-            beam.overlapCollider.destroy();
-            beam.overlapCollider = null;
+        // Unregister collision pair
+        if (beam.collisionId !== undefined) {
+            CollisionRegistry.unregister(beam.collisionId);
         }
 
         // Clean up all timers

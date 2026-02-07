@@ -328,6 +328,11 @@ const CollisionBehaviors = {
 
 // Helper function to destroy an orbital
 function destroyOrbital(orbital) {
+    // Unregister collision pair
+    if (orbital.collisionId !== undefined) {
+        CollisionRegistry.unregister(orbital.collisionId);
+    }
+
     if (orbital.entity && orbital.entity.active) {
         // Process onDestroy event for components if they exist
         if (orbital.entity.components) {
@@ -449,14 +454,16 @@ const OrbitalSystem = {
         // Get the appropriate collision behavior function
         const collisionBehavior = CollisionBehaviors[orbitalConfig.collisionType] ?? CollisionBehaviors.persistent;
 
-        // Add overlap with enemies
-        scene.physics.add.overlap(entity, EnemySystem.enemiesGroup, function (orbitalEntity, enemy) {
-            // Skip if orbital is already marked as destroyed
-            if (orbital.destroyed) return;
-
-            // Call the appropriate collision behavior function
-            collisionBehavior(scene, orbital, enemy);
-        }, null, scene);
+        // Register overlap with enemies via CollisionRegistry for deterministic checking
+        orbital.collisionId = CollisionRegistry.register({
+            objectA: entity,
+            objectB: EnemySystem.enemiesGroup,
+            callback: function (orbitalEntity, enemy) {
+                if (orbital.destroyed) return;
+                collisionBehavior(scene, orbital, enemy);
+            },
+            scope: scene
+        });
 
         // Visual effect when spawning (optional)
         if (!orbitalConfig.options.disableSpawnTween) {

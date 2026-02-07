@@ -36,23 +36,20 @@ const WeaponSystem = {
         window.projectiles = this.projectilesGroup;
         window.piercingProjectiles = this.piercingProjectilesGroup;
 
-        // Set up collisions for regular projectiles
-        scene.physics.add.collider(
-            this.projectilesGroup,
-            EnemySystem.enemiesGroup,
-            this.projectileHitEnemy,
-            null,
-            scene
-        );
+        // Register collisions via CollisionRegistry for deterministic tick-based checking
+        CollisionRegistry.register({
+            objectA: this.projectilesGroup,
+            objectB: EnemySystem.enemiesGroup,
+            callback: this.projectileHitEnemy,
+            scope: scene
+        });
 
-        // Set up overlap for piercing projectiles
-        scene.physics.add.overlap(
-            this.piercingProjectilesGroup,
-            EnemySystem.enemiesGroup,
-            this.projectileHitEnemy,
-            null,
-            scene
-        );
+        CollisionRegistry.register({
+            objectA: this.piercingProjectilesGroup,
+            objectB: EnemySystem.enemiesGroup,
+            callback: this.projectileHitEnemy,
+            scope: scene
+        });
     },
 
     // Handle projectile collision with enemy

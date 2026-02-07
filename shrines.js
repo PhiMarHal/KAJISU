@@ -131,38 +131,40 @@ const ShrineSystem = {
                 window.registerEffect('entity', shrine);
                 window.registerEffect('entity', aura);
 
-                // Add overlap detection with player for aura
-                const overlapCollider = this.physics.add.overlap(aura, player, function (aura, player) {
-                    const shrine = aura.shrine;
+                // Register overlap detection with player via CollisionRegistry for deterministic checking
+                shrine.collisionId = CollisionRegistry.register({
+                    objectA: aura,
+                    objectB: player,
+                    callback: function (aura, player) {
+                        const shrine = aura.shrine;
 
-                    // Only trigger if player wasn't already in aura
-                    if (!shrine.playerInAura) {
-                        shrine.playerInAura = true;
+                        // Only trigger if player wasn't already in aura
+                        if (!shrine.playerInAura) {
+                            shrine.playerInAura = true;
 
-                        // Call onEnterAura effect
-                        config.onEnterAura.call(this, shrine);
+                            // Call onEnterAura effect
+                            config.onEnterAura.call(this, shrine);
 
-                        // Start effect timer if effectInterval is set
-                        if (config.effectInterval > 0) {
-                            shrine.effectTimer = this.time.addEvent({
-                                delay: config.effectInterval,
-                                callback: function () {
-                                    if (shrine.playerInAura && shrine.active && !gameOver && !gamePaused) {
-                                        config.onEffectTrigger.call(this, shrine);
-                                    }
-                                },
-                                callbackScope: this,
-                                loop: true
-                            });
+                            // Start effect timer if effectInterval is set
+                            if (config.effectInterval > 0) {
+                                shrine.effectTimer = this.time.addEvent({
+                                    delay: config.effectInterval,
+                                    callback: function () {
+                                        if (shrine.playerInAura && shrine.active && !gameOver && !gamePaused) {
+                                            config.onEffectTrigger.call(this, shrine);
+                                        }
+                                    },
+                                    callbackScope: this,
+                                    loop: true
+                                });
 
-                            // Register effect timer
-                            window.registerEffect('timer', shrine.effectTimer);
+                                // Register effect timer
+                                window.registerEffect('timer', shrine.effectTimer);
+                            }
                         }
-                    }
-                }.bind(this), null, this);
-
-                // Store overlap collider reference for cleanup
-                shrine.overlapCollider = overlapCollider;
+                    },
+                    scope: this
+                });
 
                 // Add pulsing animation to shrine
                 VisualEffects.createPulsing(this, shrine, {
@@ -277,8 +279,8 @@ const ShrineSystem = {
         }
 
         // Remove overlap collider
-        if (shrine.overlapCollider) {
-            shrine.overlapCollider.destroy();
+        if (shrine.collisionId !== undefined) {
+            CollisionRegistry.unregister(shrine.collisionId);
         }
 
         // Create destruction effect

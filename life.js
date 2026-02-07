@@ -31,13 +31,15 @@ const LifeSystem = {
             this.healthRegenTimer.remove();
         }
 
-        // Create and register health regeneration timer
-        this.healthRegenTimer = registerTimer(scene.time.addEvent({
-            delay: regenDelay,
+        // Create tick-based health regeneration timer
+        this.healthRegenTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: regenDelay,
+            formula: 'fixed',
             callback: this.regenerateHealth,
             callbackScope: scene,
             loop: true
-        }));
+        });
 
         GameUI.updateHealthBar(scene);
 
@@ -101,7 +103,7 @@ const LifeSystem = {
     reset: function () {
         // Remove health regen timer
         if (this.healthRegenTimer) {
-            this.healthRegenTimer.remove();
+            CooldownManager.removeTimer(this.healthRegenTimer);
             this.healthRegenTimer = null;
         }
 

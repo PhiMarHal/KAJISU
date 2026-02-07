@@ -252,7 +252,7 @@ const EnemySystem = {
         const sourceKey = source.damageSourceId ?? (source.damageSourceId = `damage_${Date.now()}_${Math.random()}`);
 
         // Check if we're still in the cooldown period for this damage source
-        const currentTime = this.scene.time.now;
+        const currentTime = GameClock.now();
         if (!enemy.lastContactDamage[sourceKey] || (currentTime - enemy.lastContactDamage[sourceKey] > cooldownMs)) {
             // Apply damage to enemy
             enemy.health -= damage;

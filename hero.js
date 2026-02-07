@@ -370,7 +370,7 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
     update: function (player) {
         // Get current time and calculate delta time in seconds
         const scene = game.scene.scenes[0];
-        const currentTime = scene.time.now;
+        const currentTime = GameClock.now();
         const deltaTime = (currentTime - this.lastUpdateTime) / 1000; // Convert to seconds
         this.lastUpdateTime = currentTime;
 

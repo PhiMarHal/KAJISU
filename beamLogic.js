@@ -367,7 +367,7 @@ const BeamSystem = {
     handleBeamHit: function (beam, enemy, scene) {
         if (beam.destroyed || !enemy.active) return;
 
-        const currentTime = scene.time.now;
+        const currentTime = GameClock.now();
 
         // Create a unique identifier for this enemy
         // Use Phaser's built-in unique ID system, or create one if it doesn't exist

@@ -84,22 +84,24 @@ const WeaponSystem = {
     createWeaponTimer: function (scene) {
         // Remove existing timer if any
         if (this.weaponTimer) {
-            this.weaponTimer.remove();
+            CooldownManager.removeTimer(this.weaponTimer);
         }
 
         // Calculate firing interval based on current stats
         const firingDelay = this.calculateFiringDelay();
 
-        // Create timer for automatic firing
-        this.weaponTimer = registerTimer(scene.time.addEvent({
-            delay: firingDelay,
+        // Create tick-based timer for deterministic firing
+        this.weaponTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: firingDelay,
+            formula: 'fixed',
             callback: function () {
                 if (gameOver || gamePaused) return;
-                WeaponSystem.fireWeapon(this);
+                WeaponSystem.fireWeapon(scene);
             },
             callbackScope: scene,
             loop: true
-        }));
+        });
 
         console.log(`Weapon timer created with delay: ${firingDelay}ms`);
     },
@@ -119,23 +121,9 @@ const WeaponSystem = {
         // Only update if significant change (>10%)
         const currentDelay = this.weaponTimer.delay;
         if (Math.abs(currentDelay - newDelay) > (currentDelay * 0.1)) {
-            // Remember elapsed time to preserve firing cycle
-            const elapsed = this.weaponTimer.elapsed;
-            const progress = elapsed / currentDelay;
-
-            // Update timer with new delay
+            // Adjust delay in-place preserving progress
+            const progress = this.weaponTimer.elapsed / currentDelay;
             this.weaponTimer.delay = newDelay;
-            this.weaponTimer.reset({
-                delay: newDelay,
-                callback: function () {
-                    if (gameOver || gamePaused) return;
-                    WeaponSystem.fireWeapon(this);
-                },
-                callbackScope: scene,
-                loop: true
-            });
-
-            // Restore progress to avoid reset
             this.weaponTimer.elapsed = progress * newDelay;
 
             console.log(`Firing rate updated: ${currentDelay}ms -> ${newDelay}ms`);
@@ -308,7 +296,7 @@ const WeaponSystem = {
     reset: function (scene) {
         // Remove weapon timer
         if (this.weaponTimer) {
-            this.weaponTimer.remove();
+            CooldownManager.removeTimer(this.weaponTimer);
             this.weaponTimer = null;
         }
 

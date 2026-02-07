@@ -147,8 +147,10 @@ const ShrineSystem = {
 
                             // Start effect timer if effectInterval is set
                             if (config.effectInterval > 0) {
-                                shrine.effectTimer = this.time.addEvent({
-                                    delay: config.effectInterval,
+                                shrine.effectTimer = CooldownManager.createTimer({
+                                    statName: null,
+                                    baseCooldown: config.effectInterval,
+                                    formula: 'fixed',
                                     callback: function () {
                                         if (shrine.playerInAura && shrine.active && !gameOver && !gamePaused) {
                                             config.onEffectTrigger.call(this, shrine);
@@ -181,17 +183,23 @@ const ShrineSystem = {
                 });
 
                 // Set up shrine destruction timer using calculated lifespan
-                const destructionTimer = this.time.delayedCall(actualLifespan, function () {
-                    ShrineSystem.destroyShrine(shrine, component);
+                const destructionTimer = CooldownManager.createTimer({
+                    statName: null,
+                    baseCooldown: actualLifespan,
+                    formula: 'fixed',
+                    callback: function () {
+                        ShrineSystem.destroyShrine(shrine, component);
+                    },
+                    callbackScope: this,
+                    loop: false
                 });
-
-                // Register destruction timer
-                window.registerEffect('timer', destructionTimer);
                 shrine.destructionTimer = destructionTimer;
 
                 // Set up update loop to check if player left aura
-                const updateTimer = this.time.addEvent({
-                    delay: 100, // Check every 100ms
+                const updateTimer = CooldownManager.createTimer({
+                    statName: null,
+                    baseCooldown: 100,
+                    formula: 'fixed',
                     callback: function () {
                         if (!shrine.active || gameOver || gamePaused) return;
 
@@ -207,7 +215,7 @@ const ShrineSystem = {
 
                                 // Stop effect timer
                                 if (shrine.effectTimer) {
-                                    shrine.effectTimer.remove();
+                                    CooldownManager.removeTimer(shrine.effectTimer);
                                     shrine.effectTimer = null;
                                 }
 
@@ -220,8 +228,6 @@ const ShrineSystem = {
                     loop: true
                 });
 
-                // Register update timer
-                window.registerEffect('timer', updateTimer);
                 shrine.updateTimer = updateTimer;
 
                 return shrine;
@@ -264,17 +270,17 @@ const ShrineSystem = {
 
         // Clean up timers
         if (shrine.effectTimer) {
-            shrine.effectTimer.remove();
+            CooldownManager.removeTimer(shrine.effectTimer);
             shrine.effectTimer = null;
         }
 
         if (shrine.updateTimer) {
-            shrine.updateTimer.remove();
+            CooldownManager.removeTimer(shrine.updateTimer);
             shrine.updateTimer = null;
         }
 
         if (shrine.destructionTimer) {
-            shrine.destructionTimer.remove();
+            CooldownManager.removeTimer(shrine.destructionTimer);
             shrine.destructionTimer = null;
         }
 

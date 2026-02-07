@@ -1,7 +1,10 @@
-// CooldownManager - a system to track and update timers based on stat changes
-// Now supports: single stats, multiple stats, and custom stat functions
+// CooldownManager - Tick-based timer system for deterministic gameplay
+// All timers advance inside simulateTick via processTick() for consistent recording/playback
+// Timer objects have a Phaser-compatible interface (.remove(), .delay, .elapsed, .paused)
+
 const CooldownManager = {
     registeredTimers: [],
+    FIXED_TIMESTEP: 1000 / 60,
 
     lastStats: {
         luck: null,
@@ -43,16 +46,13 @@ const CooldownManager = {
         if (config.statFunction) {
             return config.statFunction();
         }
-
         if (config.statName) {
             return this.getStatValue(config.statName);
         }
-
         if (config.statDependencies && config.statDependencies.length > 0) {
             console.warn('Timer has statDependencies but no statFunction');
             return this.getStatValue(config.statDependencies[0]);
         }
-
         return 1;
     },
 
@@ -60,33 +60,27 @@ const CooldownManager = {
         if (config.baseStatFunction) {
             return config.baseStatFunction();
         }
-
         if (config.statName) {
             return this.getBaseStatValue(config.statName);
         }
-
         if (config.statDependencies && config.statDependencies.length > 0) {
-            return config.statDependencies.reduce((sum, statName) => {
-                return sum + this.getBaseStatValue(statName);
+            return config.statDependencies.reduce(function (sum, statName) {
+                return sum + CooldownManager.getBaseStatValue(statName);
             }, 0);
         }
-
         return 4;
     },
 
     createTimer: function (options) {
-        const scene = game.scene.scenes[0];
-        if (!scene) return null;
+        var currentStatValue = this.getCurrentStatValue(options);
 
-        const currentStatValue = this.getCurrentStatValue(options);
-
-        let initialCooldown;
+        var initialCooldown;
         if (options.formula === 'fixed' || !options.formula) {
             initialCooldown = options.baseCooldown ?? 30000;
         } else if (options.formula === 'multiply') {
             initialCooldown = options.baseCooldown * currentStatValue;
         } else if (options.formula === 'sqrt') {
-            const baseStatValue = this.getBaseStatValueForConfig(options);
+            var baseStatValue = this.getBaseStatValueForConfig(options);
             initialCooldown = options.baseCooldown / (Math.sqrt(currentStatValue / baseStatValue));
         } else if (options.formula === 'divide') {
             initialCooldown = options.baseCooldown / currentStatValue;
@@ -94,16 +88,20 @@ const CooldownManager = {
             initialCooldown = options.baseCooldown ?? 30000;
         }
 
-        const timer = scene.time.addEvent({
+        // Create tick-based timer with Phaser-compatible interface
+        // Note: 'removed' property is NOT set initially.
+        // Calling timer.remove() adds it, so hasOwnProperty('removed') returns true.
+        // This matches Phaser.Time.TimerEvent behavior that existing code checks for.
+        var timer = {
             delay: initialCooldown,
-            callback: options.callback,
-            callbackScope: options.callbackScope,
-            loop: options.loop ?? true
-        });
+            elapsed: 0,
+            paused: false,
+            remove: function () {
+                this.removed = true;
+            }
+        };
 
-        window.registerEffect('timer', timer);
-
-        const config = {
+        var config = {
             timer: timer,
             statName: options.statName ?? null,
             statDependencies: options.statDependencies ?? null,
@@ -119,14 +117,53 @@ const CooldownManager = {
 
         this.registeredTimers.push(config);
 
+        // Register with effect system for pause/cleanup compatibility
+        if (window.registerEffect) {
+            window.registerEffect('timer', timer);
+        }
+
         return timer;
     },
 
     removeTimer: function (timer) {
         if (!timer) return;
-        this.registeredTimers = this.registeredTimers.filter(config => config.timer !== timer);
-        if (timer && !timer.hasOwnProperty('removed')) {
-            timer.remove();
+        this.registeredTimers = this.registeredTimers.filter(function (config) {
+            return config.timer !== timer;
+        });
+        if (!timer.hasOwnProperty('removed')) {
+            timer.removed = true;
+        }
+    },
+
+    // Advance all timers by one tick — call once per simulateTick
+    processTick: function () {
+        var dt = this.FIXED_TIMESTEP;
+
+        for (var i = this.registeredTimers.length - 1; i >= 0; i--) {
+            var config = this.registeredTimers[i];
+            var timer = config.timer;
+
+            // Clean up removed timers
+            if (timer.removed) {
+                this.registeredTimers.splice(i, 1);
+                continue;
+            }
+
+            if (timer.paused) continue;
+
+            timer.elapsed += dt;
+
+            if (timer.elapsed >= timer.delay) {
+                config.callback.call(config.callbackScope);
+
+                if (config.loop && !timer.removed) {
+                    timer.elapsed -= timer.delay;
+                    if (timer.elapsed < 0) timer.elapsed = 0;
+                } else if (!timer.removed) {
+                    timer.removed = true;
+                    this.registeredTimers.splice(i, 1);
+                }
+            }
         }
     },
 
@@ -140,25 +177,23 @@ const CooldownManager = {
         return [];
     },
 
+    // Check for stat changes and update timer delays accordingly
     update: function () {
-        let statsChanged = false;
-        const changedStats = {};
+        var statsChanged = false;
+        var changedStats = {};
 
         if (this.lastStats.luck !== playerLuck) {
             changedStats.luck = playerLuck;
             statsChanged = true;
         }
-
         if (this.lastStats.fireRate !== playerFireRate) {
             changedStats.fireRate = playerFireRate;
             statsChanged = true;
         }
-
         if (this.lastStats.damage !== playerDamage) {
             changedStats.damage = playerDamage;
             statsChanged = true;
         }
-
         if (this.lastStats.health !== maxPlayerHealth) {
             changedStats.health = maxPlayerHealth;
             statsChanged = true;
@@ -168,31 +203,34 @@ const CooldownManager = {
 
         console.log("Stat changes detected:", changedStats);
 
-        this.registeredTimers.forEach(config => {
-            const dependencies = this.getTimerDependencies(config);
-            const shouldUpdate = dependencies.some(dep => changedStats.hasOwnProperty(dep));
+        this.registeredTimers.forEach(function (config) {
+            var dependencies = CooldownManager.getTimerDependencies(config);
+            var shouldUpdate = dependencies.some(function (dep) {
+                return changedStats.hasOwnProperty(dep);
+            });
 
             if (shouldUpdate) {
-                this.updateTimer(config);
+                CooldownManager.updateTimer(config);
             }
         });
 
         Object.assign(this.lastStats, changedStats);
     },
 
+    // Update a timer's delay in-place based on current stats (no timer recreation needed)
     updateTimer: function (config) {
-        if (!config.timer || config.timer.hasOwnProperty('removed')) return;
+        if (!config.timer || config.timer.removed) return;
         if (!config.formula) return;
 
-        const currentStatValue = this.getCurrentStatValue(config);
+        var currentStatValue = this.getCurrentStatValue(config);
 
-        let newCooldown;
+        var newCooldown;
         if (config.formula === 'fixed') {
             newCooldown = config.baseCooldown;
         } else if (config.formula === 'multiply') {
             newCooldown = config.baseCooldown * currentStatValue;
         } else if (config.formula === 'sqrt') {
-            const baseStatValue = this.getBaseStatValueForConfig(config);
+            var baseStatValue = this.getBaseStatValueForConfig(config);
             newCooldown = config.baseCooldown / (Math.sqrt(currentStatValue / baseStatValue));
         } else if (config.formula === 'divide') {
             newCooldown = config.baseCooldown / currentStatValue;
@@ -200,41 +238,13 @@ const CooldownManager = {
             return;
         }
 
-        const elapsed = config.timer.elapsed;
-        const progress = elapsed / config.timer.delay;
+        var timer = config.timer;
+        var progress = timer.delay > 0 ? timer.elapsed / timer.delay : 0;
 
-        console.log(`Updating timer: old delay=${config.timer.delay}ms, new delay=${newCooldown}ms, progress=${progress.toFixed(2)}`);
+        console.log('Updating timer: old delay=' + timer.delay + 'ms, new delay=' + newCooldown + 'ms, progress=' + progress.toFixed(2));
 
-        const scene = game.scene.scenes[0];
-        if (!scene) return;
-
-        config.timer.remove();
-
-        const newTimer = scene.time.addEvent({
-            delay: newCooldown,
-            callback: config.callback,
-            callbackScope: config.callbackScope,
-            loop: config.loop
-        });
-
-        newTimer.elapsed = progress * newCooldown;
-
-        window.registerEffect('timer', newTimer);
-
-        config.timer = newTimer;
-
-        if (config.component && typeof config.component === 'object') {
-            if (config.component.firingTimer === config.timer) {
-                config.component.firingTimer = newTimer;
-            } else {
-                for (const key in config.component) {
-                    if (config.component[key] === config.timer) {
-                        config.component[key] = newTimer;
-                        break;
-                    }
-                }
-            }
-        }
+        timer.delay = newCooldown;
+        timer.elapsed = progress * newCooldown;
     }
 };
 

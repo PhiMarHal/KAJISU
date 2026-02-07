@@ -18,6 +18,7 @@
     <script src="startMenu.js"></script>
     <script src="rng.js"></script>
     <script src="collision.js"></script>
+    <script src="gameclock.js"></script>
     <script src="interpolation.js"></script>
     <script src="demo.js"></script>
     <script src="droppers.js"></script>
@@ -575,6 +576,9 @@
 
         // Game logic that needs deterministic timing runs here
         function simulateTick(fixedDelta) {
+            // Advance deterministic clock
+            GameClock.tick();
+
             // Advance demo tick counter
             if (DemoSystem.isRecording) {
                 DemoSystem.tickRecording();
@@ -647,6 +651,10 @@
 
             // Update weapon firing rate if needed
             WeaponSystem.updateFiringRate(this);
+
+            // Advance all tick-based timers (weapons, perks, shrines, regen, etc.)
+            CooldownManager.processTick();
+
             WeaponSystem.updateProjectiles(this);
 
             // Update the level display
@@ -775,6 +783,7 @@
 
             // Initialize demo system
             FixedTimestepSystem.reset();
+            GameClock.reset();
 
             // If restarting after watching a demo, stop playback and give control back
             if (gameOver && DemoSystem.isPlaying) {

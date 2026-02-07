@@ -197,7 +197,7 @@ const DropperSystem = {
                 callback: function (ballEntity, playerObj) {
 
                     // Cooldown to avoid several pushes in succession
-                    const currentTime = scene.time.now;
+                    const currentTime = GameClock.now();
                     if (!ballEntity.lastPushTime || (currentTime - ballEntity.lastPushTime > 250)) {
                         ballEntity.lastPushTime = currentTime;
                         // Calculate base push direction (away from player)
@@ -349,7 +349,7 @@ const DropperSystem = {
     checkPushableCollisions: function (scene, time) {
         if (!player || !player.body) return;
 
-        const currentTime = scene.time.now;
+        const currentTime = GameClock.now();
         const playerRadius = player.body.halfWidth || 20;
 
         for (const drop of drops) {

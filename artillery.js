@@ -567,7 +567,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
             // Just create the fire effect every time we're called
         } else if (this.useCooldown) {
             // Handle cooldown mode (for persistent orbitals)
-            const currentTime = scene.time.now;
+            const currentTime = GameClock.now();
             if (currentTime - this.lastFireTime < this.fireCooldown) return;
             this.lastFireTime = currentTime;
         } else {
@@ -910,7 +910,7 @@ ProjectileComponentSystem.registerComponent('stasisEffect', {
         }
 
         // Check if it's time for deceleration (every 200ms)
-        const currentTime = scene.time.now;
+        const currentTime = GameClock.now();
         if (currentTime - this.lastDecelerationTime >= 200) {
             // Reduce speed by 25% every 200ms
             this.currentSpeedMultiplier -= 0.25;

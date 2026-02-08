@@ -336,21 +336,20 @@ const DropperSystem = {
         return drop;
     },
 
-    // Update all drops
-    update: function (scene, time) {
+    // Update all drops — call from simulateTick for deterministic timing
+    update: function (scene) {
         // Skip if no drops or game state prevents updates
         if (gameOver || gamePaused || drops.length === 0) return;
 
         // Manual collision detection for playerPushable entities
-        // This supplements Phaser's collider which can miss with manual player positioning
-        this.checkPushableCollisions(scene, time);
+        this.checkPushableCollisions(scene);
 
         // Clean up destroyed drops
         this.cleanupInactive();
     },
 
     // Manual collision checking for playerPushable entities
-    checkPushableCollisions: function (scene, time) {
+    checkPushableCollisions: function (scene) {
         if (!player || !player.body) return;
 
         const currentTime = GameClock.now();

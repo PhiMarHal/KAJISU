@@ -500,13 +500,14 @@ const OrbitalSystem = {
         return orbital;
     },
 
-    // Update all orbitals
-    update: function (scene, time, deltaTime) {
+    // Update all orbitals — call from simulateTick for deterministic timing
+    update: function (scene) {
         // Skip if no orbitals or game state prevents updates
         if (gameOver || gamePaused || orbitals.length === 0) return;
 
-        // Provide a reasonable default deltaTime if not provided
-        const effectiveDelta = deltaTime ?? 16.67; // ~60 FPS fallback
+        // Use deterministic game clock instead of Phaser's render-rate time/delta
+        const time = GameClock.now();
+        const fixedDelta = GameClock.FIXED_TIMESTEP;
 
         // Update each orbital
         orbitals.forEach(orbital => {
@@ -516,8 +517,8 @@ const OrbitalSystem = {
             // Get the movement function based on pattern
             const movementFn = MovementPatterns[orbital.pattern] ?? MovementPatterns.standard;
 
-            // Update orbital position with delta time
-            movementFn(orbital, time, effectiveDelta);
+            // Update orbital position with deterministic delta time
+            movementFn(orbital, time, fixedDelta);
 
             // Update the last update time
             orbital.lastUpdate = time;

@@ -562,9 +562,7 @@
             GameUI.updateExpBar(this);
 
             // Update orbitals, droppers, beams (render rate for smooth movement)
-            OrbitalSystem.update(this, time, delta);
-            DropperSystem.update(this, time);
-            BeamSystem.update(this, time);
+
 
             if (window.MusicSystem) {
                 MusicSystem.update(time, delta);
@@ -656,6 +654,9 @@
             CooldownManager.processTick();
 
             WeaponSystem.updateProjectiles(this);
+            OrbitalSystem.update(this);
+            DropperSystem.update(this);
+            BeamSystem.update(this);
 
             // Update the level display
             GameUI.updateStatusDisplay(this, elapsedTime, 0);

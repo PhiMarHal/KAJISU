@@ -647,7 +647,7 @@
             updateOnHitEffects();
 
             // Increment elapsed time (deterministic!)
-            elapsedTime += (fixedDelta / 1000) * this.time.timeScale;
+            elapsedTime += fixedDelta / 1000;
 
             // Update weapon firing rate if needed
             WeaponSystem.updateFiringRate(this);
@@ -830,10 +830,6 @@
             // Initialize enemy tiers with dynamic assignments
             initializeEnemyTiers();
 
-            // Reset and initialize weapon system
-            WeaponSystem.reset(this);
-            WeaponSystem.initialize(this);
-
             // Clean up old timers
             cleanupTimers();
 
@@ -886,6 +882,8 @@
 
             // Reset all perk effects
             clearAllPerkEffects();
+            WeaponSystem.reset(this);
+            WeaponSystem.initialize(this);
             acquiredPerks = [];
 
             // Clear learning feedback

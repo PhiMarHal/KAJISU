@@ -244,10 +244,15 @@ function applyPoisonEffect(scene, enemy, baseDamage) {
 
     const poisonSourceId = `poison_${Date.now()}_${Math.random()}`;
 
-    const poisonTimer = registerTimer(scene.time.addEvent({
-        delay: 1000,
+    const poisonTimer = CooldownManager.createTimer({
+        statName: null,
+        baseCooldown: 1000,
+        formula: 'fixed',
         callback: function () {
-            if (!enemy || !enemy.active) return;
+            if (!enemy || !enemy.active) {
+                CooldownManager.removeTimer(poisonTimer);
+                return;
+            }
 
             // Apply poison damage using EnemySystem
             EnemySystem.applyDamage(
@@ -263,15 +268,16 @@ function applyPoisonEffect(scene, enemy, baseDamage) {
             completedTicks++;
 
             // Reset color after poison ends
-            if (completedTicks === totalTicks && enemy.active) {
-                SpriteEffectHelpers.resetEffectColor(enemy);
+            if (completedTicks >= totalTicks) {
+                if (enemy.active) {
+                    SpriteEffectHelpers.resetEffectColor(enemy);
+                }
+                CooldownManager.removeTimer(poisonTimer);
             }
         },
         callbackScope: scene,
-        repeat: totalTicks - 1
-    }));
-
-    window.registerEffect('timer', poisonTimer);
+        loop: true
+    });
 }
 
 // Make the function globally accessible
@@ -458,8 +464,10 @@ function createPersistentEffect(scene, x, y, config = {}) {
     window.registerEffect('entity', effect);
 
     // Damage tick timer
-    const damageTimer = registerTimer(scene.time.addEvent({
-        delay: effectConfig.tickInterval,
+    const damageTimer = CooldownManager.createTimer({
+        statName: null,
+        baseCooldown: effectConfig.tickInterval,
+        formula: 'fixed',
         callback: function () {
             if (!effect.active) return;
 
@@ -476,7 +484,7 @@ function createPersistentEffect(scene, x, y, config = {}) {
         },
         callbackScope: scene,
         loop: true
-    }));
+    });
 
     // Add visual effects
     let pulseTween = null;
@@ -498,7 +506,7 @@ function createPersistentEffect(scene, x, y, config = {}) {
         delay: 100,
         onComplete: function () {
             // Cleanup when fade completes
-            damageTimer.remove();
+            CooldownManager.removeTimer(damageTimer);
             if (pulseTween) pulseTween.stop();
             effect.destroy();
         }
@@ -606,7 +614,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
         // Add to fire tracking
         const fireTracker = {
             effect: fireEffect,
-            createdAt: scene.time.now
+            createdAt: GameClock.now()
         };
 
         activeEffects.fireTracking.push(fireTracker);
@@ -869,14 +877,18 @@ ProjectileComponentSystem.registerComponent('stasisEffect', {
 
         // Set up a fixed lifespan timer 
         const lifespan = 8000;
-        const timer = projectile.scene.time.delayedCall(lifespan, function () {
-            if (projectile.active) {
-                projectile.destroy();
-            }
+        const timer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: lifespan,
+            formula: 'fixed',
+            callback: function () {
+                if (projectile.active) {
+                    projectile.destroy();
+                }
+            },
+            callbackScope: null,
+            loop: false
         });
-
-        // Register timer for cleanup
-        window.registerEffect('timer', timer);
     },
 
     update: function (projectile, scene) {
@@ -897,10 +909,10 @@ ProjectileComponentSystem.registerComponent('stasisEffect', {
 
                 // Initialize deceleration variables
                 this.currentSpeedMultiplier = 1.0; // Start at 100% speed
-                this.lastDecelerationTime = scene.time.now;
+                this.lastDecelerationTime = GameClock.now();
 
                 this.initialized = true;
-                this.lastUpdate = scene.time.now;
+                this.lastUpdate = GameClock.now();
 
                 // Ensure damage is correctly applied (in case it was reset)
                 const damageMultiplier = this.damageMultiplier ?? 1.5;

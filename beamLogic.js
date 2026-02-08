@@ -123,36 +123,33 @@ const BeamSystem = {
         }
 
         // Track player movement during charge to determine direction
-        const directionTracker = registerTimer(scene.time.addEvent({
-            delay: 100, // Check every 100ms
+        const directionTracker = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: 100,
+            formula: 'fixed',
             callback: function () {
                 if (!player) return;
-
-                // Use InputSystem for movement info (works with deterministic movement)
                 const movement = InputSystem.getCurrentMovement();
-
-                // Only update direction if player is moving significantly
                 if (movement.isMoving) {
                     trackedDirection = getBeamDirectionFromMovement();
                 }
             },
             callbackScope: scene,
             loop: true
-        }));
+        });
 
         // After exact charge time, stop tracking and fire the beam
-        const chargeTimer = registerTimer(scene.time.addEvent({
-            delay: config.chargeTime,
+        const chargeTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: config.chargeTime,
+            formula: 'fixed',
             callback: function () {
-                // Stop direction tracking
-                directionTracker.remove();
-
-                // Fire the beam in the tracked direction
+                CooldownManager.removeTimer(directionTracker);
                 BeamSystem.fireBeam(scene, config, trackedDirection);
             },
             callbackScope: scene,
             loop: false
-        }));
+        });
 
         // Store references for cleanup
         config._directionTracker = directionTracker;
@@ -186,7 +183,7 @@ const BeamSystem = {
             geometry: geometry,
             originX: originX,
             originY: originY,
-            createdAt: scene.time.now,
+            createdAt: GameClock.now(),
             duration: config.duration,
             followPlayer: config.followPlayer,
             lastDamageTime: {},
@@ -236,8 +233,10 @@ const BeamSystem = {
         }
 
         // Set up beam duration timer - beam deals damage for exact duration then fades
-        const durationTimer = registerTimer(scene.time.addEvent({
-            delay: config.duration,
+        const durationTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: config.duration,
+            formula: 'fixed',
             callback: function () {
                 // Stop the beam from dealing damage immediately
                 beam.destroyed = true;
@@ -270,7 +269,7 @@ const BeamSystem = {
             },
             callbackScope: scene,
             loop: false
-        }));
+        });
 
         beam._durationTimer = durationTimer;
 
@@ -448,14 +447,14 @@ const BeamSystem = {
         }
 
         // Clean up all timers
-        if (beam._directionTracker && beam._directionTracker.active) {
-            beam._directionTracker.remove();
+        if (beam._directionTracker) {
+            CooldownManager.removeTimer(beam._directionTracker);
         }
-        if (beam._chargeTimer && beam._chargeTimer.active) {
-            beam._chargeTimer.remove();
+        if (beam._chargeTimer) {
+            CooldownManager.removeTimer(beam._chargeTimer);
         }
-        if (beam._durationTimer && beam._durationTimer.active) {
-            beam._durationTimer.remove();
+        if (beam._durationTimer) {
+            CooldownManager.removeTimer(beam._durationTimer);
         }
 
         // Destroy physics body properly

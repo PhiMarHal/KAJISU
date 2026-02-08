@@ -438,7 +438,7 @@ const OrbitalSystem = {
             collisionType: orbitalConfig.collisionType,
             damageInterval: orbitalConfig.damageInterval,
             damageMultiplier: orbitalConfig.damageMultiplier,
-            createdAt: scene.time.now,
+            createdAt: GameClock.now(),
             lifespan: orbitalConfig.lifespan,
             options: orbitalConfig.options,
             lastUpdate: 0,               // Timestamp of last update
@@ -477,21 +477,24 @@ const OrbitalSystem = {
 
         // Set up auto-destruction timer if lifespan is specified
         if (orbital.lifespan !== null) {
-            const timer = scene.time.delayedCall(orbital.lifespan, function () {
-                // Create a fade-out effect
-                scene.tweens.add({
-                    targets: entity,
-                    alpha: 0,
-                    scale: 0,
-                    duration: 300,
-                    onComplete: function () {
-                        destroyOrbital(orbital);
-                    }
-                });
+            orbital.lifespanTimer = CooldownManager.createTimer({
+                statName: null,
+                baseCooldown: orbital.lifespan,
+                formula: 'fixed',
+                callback: function () {
+                    scene.tweens.add({
+                        targets: entity,
+                        alpha: 0,
+                        scale: 0,
+                        duration: 300,
+                        onComplete: function () {
+                            destroyOrbital(orbital);
+                        }
+                    });
+                },
+                callbackScope: scene,
+                loop: false
             });
-
-            // Register the timer for cleanup
-            window.registerEffect('timer', timer);
         }
 
         return orbital;
@@ -614,21 +617,18 @@ const OrbitalSystem = {
         let currentAngle = staggerConfig.baseConfig.angle ?? 0;
 
         // Create the staggered firing timer
-        const staggerTimer = scene.time.addEvent({
-            delay: staggerConfig.interval,
+        const staggerTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: staggerConfig.interval,
+            formula: 'fixed',
             callback: function () {
-                // Check if game is paused or over
                 if (gamePaused || gameOver || !scene || !scene.scene.isActive()) {
-                    if (staggerTimer && !staggerTimer.hasOwnProperty('removed')) {
-                        staggerTimer.remove();
-                    }
+                    CooldownManager.removeTimer(staggerTimer);
                     return;
                 }
 
-                // Start with base configuration
                 let orbitalConfig = { ...staggerConfig.baseConfig };
 
-                // Apply direction pattern
                 switch (staggerConfig.directionPattern) {
                     case 'alternating':
                         orbitalConfig.direction = isClockwise ? 'clockwise' : 'counterclockwise';
@@ -637,48 +637,37 @@ const OrbitalSystem = {
                     case 'random':
                         orbitalConfig.direction = SeededRNG.bool(0.5, 'effect') ? 'clockwise' : 'counterclockwise';
                         break;
-                    // 'fixed' uses whatever is in baseConfig
                 }
 
-                // Apply angle pattern
                 switch (staggerConfig.anglePattern) {
                     case 'increment':
                         orbitalConfig.angle = currentAngle;
-                        currentAngle += (staggerConfig.angleIncrement * Math.PI / 180); // Convert degrees to radians
+                        currentAngle += (staggerConfig.angleIncrement * Math.PI / 180);
                         break;
                     case 'random':
                         orbitalConfig.angle = SeededRNG.angle('effect');
                         break;
-                    // 'fixed' uses whatever is in baseConfig
                 }
 
-                // Apply custom config modifier if provided
                 if (staggerConfig.configModifier) {
                     orbitalConfig = staggerConfig.configModifier(orbitalConfig, shotCount);
                 }
 
-                // Create the orbital
                 OrbitalSystem.create(scene, orbitalConfig);
 
-                // Increment shot counter
                 shotCount++;
 
-                // Check if we've fired all shots
                 if (shotCount >= totalShots) {
-                    staggerTimer.remove();
+                    CooldownManager.removeTimer(staggerTimer);
 
-                    // Call completion callback if provided
                     if (staggerConfig.onComplete) {
                         staggerConfig.onComplete();
                     }
                 }
             },
             callbackScope: scene,
-            repeat: totalShots - 1
+            loop: true
         });
-
-        // Register timer for cleanup
-        window.registerEffect('timer', staggerTimer);
 
         // Optional initial visual effect
         if (staggerConfig.visualEffect && player) {

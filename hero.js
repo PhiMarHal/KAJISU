@@ -1182,20 +1182,20 @@ function createRandomShotsComponent(baseCooldown, damageMultiplier, options = {}
 
             // Create burst timer if more shots needed
             if (shotsFired < shotsInBurst) {
-                const burstTimer = scene.time.addEvent({
-                    delay: this.burstInterval,
+                const burstTimer = CooldownManager.createTimer({
+                    statName: null,
+                    baseCooldown: this.burstInterval,
+                    formula: 'fixed',
                     callback: () => {
                         this.fireRandomShot();
                         shotsFired++;
                         if (shotsFired >= shotsInBurst) {
-                            burstTimer.remove();
+                            CooldownManager.removeTimer(burstTimer);
                         }
                     },
                     callbackScope: this,
-                    repeat: shotsInBurst - shotsFired - 1
+                    loop: true
                 });
-
-                window.registerEffect('timer', burstTimer);
             }
         },
 

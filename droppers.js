@@ -241,7 +241,7 @@ const DropperSystem = {
             behaviorType: dropConfig.behaviorType,
             damageInterval: dropConfig.damageInterval,
             damageMultiplier: dropConfig.damageMultiplier,
-            createdAt: scene.time.now,
+            createdAt: GameClock.now(),
             lifespan: dropConfig.lifespan,
             areaEffectInterval: dropConfig.options.areaEffectInterval ?? 1000,
             areaEffectRadius: dropConfig.options.areaEffectRadius ?? 100,
@@ -277,7 +277,7 @@ const DropperSystem = {
                         !drop.entity || !drop.entity.active) return;
 
                     // Process the area effect
-                    DropperSystem.processAreaEffect(scene, drop, scene.time.now);
+                    DropperSystem.processAreaEffect(scene, drop, GameClock.now());
                 },
                 callbackScope: scene,
                 loop: true
@@ -311,12 +311,16 @@ const DropperSystem = {
 
         // Set up auto-destruction timer if lifespan is specified
         if (drop.lifespan !== null) {
-            const timer = scene.time.delayedCall(drop.lifespan, function () {
-                DropperSystem.destroyDrop(drop);
+            const timer = CooldownManager.createTimer({
+                statName: null,
+                baseCooldown: drop.lifespan,
+                formula: 'fixed',
+                callback: function () {
+                    DropperSystem.destroyDrop(drop);
+                },
+                callbackScope: scene,
+                loop: false
             });
-
-            // Register the timer for cleanup
-            window.registerEffect('timer', timer);
         }
 
         if (drop.options && drop.options.hasPeriodicEffect) {
@@ -757,7 +761,7 @@ const DropperSystem = {
                 EntityFiringSystem.behaviors[behaviorName](
                     scene,
                     drop.entity,
-                    scene.time.now,
+                    GameClock.now(),
                     firingRange
                 );
             } else {

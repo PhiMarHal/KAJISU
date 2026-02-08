@@ -647,7 +647,7 @@
             updateOnHitEffects();
 
             // Increment elapsed time (deterministic!)
-            elapsedTime += fixedDelta / 1000;
+            elapsedTime += (fixedDelta / 1000) * this.time.timeScale;
 
             // Update weapon firing rate if needed
             WeaponSystem.updateFiringRate(this);

@@ -166,13 +166,15 @@ const EnemySystem = {
 
         const checkInterval = SUPPLEMENTARY_SPAWN_CONFIG.getCheckInterval();
 
-        // Create the periodic check timer
-        this.supplementarySpawner = registerTimer(scene.time.addEvent({
-            delay: checkInterval,
-            callback: () => { this.checkAndSpawnSupplementary(); },
+        // Create the periodic check timer using tick-based CooldownManager
+        this.supplementarySpawner = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: checkInterval,
+            formula: 'fixed',
+            callback: function () { EnemySystem.checkAndSpawnSupplementary(); },
             callbackScope: this,
             loop: true
-        }));
+        });
 
         console.log(`Supplementary spawner initialized with ${checkInterval}ms interval`);
     },
@@ -366,13 +368,15 @@ const EnemySystem = {
             if (elapsedTime >= config.startTime) {
                 // Create a spawner if it doesn't exist
                 if (!this.enemySpawners[rank]) {
-                    // Create the spawner with initial delay
-                    this.enemySpawners[rank] = registerTimer(this.scene.time.addEvent({
-                        delay: config.baseDelay,
-                        callback: () => { this.spawnEnemyOfRank(rank); },
+                    // Create the spawner with initial delay using tick-based CooldownManager
+                    this.enemySpawners[rank] = CooldownManager.createTimer({
+                        statName: null,
+                        baseCooldown: config.baseDelay,
+                        formula: 'fixed',
+                        callback: function () { EnemySystem.spawnEnemyOfRank(rank); },
                         callbackScope: this,
                         loop: true
-                    }));
+                    });
 
                     // If it's not rank 1, show an introduction and update current enemy rank
                     if (rank > 1) {
@@ -393,15 +397,13 @@ const EnemySystem = {
                         config.baseDelay / Math.pow(scaleFactor, scalingMinutes)
                     );
 
-                    // Update the timer if needed (with some threshold to avoid constant updates)
-                    if (Math.abs(this.enemySpawners[rank].delay - newSpawnDelay) > (this.enemySpawners[rank].delay * 0.1)) {
-                        this.enemySpawners[rank].delay = newSpawnDelay;
-                        this.enemySpawners[rank].reset({
-                            delay: newSpawnDelay,
-                            callback: () => { this.spawnEnemyOfRank(rank); },
-                            callbackScope: this,
-                            loop: true
-                        });
+                    // Update the CooldownManager timer delay if changed significantly (>10%)
+                    const timer = this.enemySpawners[rank];
+                    if (Math.abs(timer.delay - newSpawnDelay) > (timer.delay * 0.1)) {
+                        // Preserve proportional progress through current cycle
+                        const progress = timer.delay > 0 ? timer.elapsed / timer.delay : 0;
+                        timer.delay = newSpawnDelay;
+                        timer.elapsed = progress * newSpawnDelay;
                     }
                 }
             }
@@ -971,10 +973,10 @@ const EnemySystem = {
             this.enemiesGroup.clear(true, true);
         }
 
-        // Clean up spawners
+        // Clean up spawners (now CooldownManager timers)
         Object.values(this.enemySpawners).forEach(spawner => {
             if (spawner) {
-                spawner.remove();
+                CooldownManager.removeTimer(spawner);
             }
         });
 
@@ -983,7 +985,7 @@ const EnemySystem = {
 
         // Clean up supplementary spawner
         if (this.supplementarySpawner) {
-            this.supplementarySpawner.remove();
+            CooldownManager.removeTimer(this.supplementarySpawner);
             this.supplementarySpawner = null;
         }
 

@@ -17,6 +17,7 @@
 
     <script src="startMenu.js"></script>
     <script src="rng.js"></script>
+    <script src="demosync.js"></script>
     <script src="collision.js"></script>
     <script src="gameclock.js"></script>
     <script src="interpolation.js"></script>
@@ -632,14 +633,15 @@
             }
 
             // Inside simulateTick, right after the player position clamp + body.reset block:
-            if (DemoSystem.isRecording || DemoSystem.isPlaying) {
+            /*if (DemoSystem.isRecording || DemoSystem.isPlaying) {
                 const tick = DemoSystem.currentTick;
                 // Log every 60 ticks (~1 second) and around level-ups
                 if (tick % 60 === 0) {
                     const mode = DemoSystem.isRecording ? 'REC' : 'PLAY';
                     console.log(`[${mode}] tick=${tick} pos=(${player.x.toFixed(2)}, ${player.y.toFixed(2)}) hp=${playerHealth} xp=${heroExp} lvl=${playerLevel}`);
                 }
-            }
+            }*/
+            DemoSync.checkTick(DemoSystem.currentTick);
 
             updatePlayerStatus();
             updateOnHitEffects();
@@ -785,6 +787,7 @@
             // Initialize demo system
             FixedTimestepSystem.reset();
             GameClock.reset();
+            DemoSync.reset();
 
             // If restarting after watching a demo, stop playback and give control back
             if (gameOver && DemoSystem.isPlaying) {

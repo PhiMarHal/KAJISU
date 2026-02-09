@@ -41,14 +41,16 @@ const WeaponSystem = {
             objectA: this.projectilesGroup,
             objectB: EnemySystem.enemiesGroup,
             callback: this.projectileHitEnemy,
-            scope: scene
+            scope: scene,
+            type: 'collide'
         });
 
         CollisionRegistry.register({
             objectA: this.piercingProjectilesGroup,
             objectB: EnemySystem.enemiesGroup,
             callback: this.projectileHitEnemy,
-            scope: scene
+            scope: scene,
+            type: 'collide'
         });
     },
 

@@ -7,6 +7,8 @@ const DemoSync = {
     enabled: true,
     desyncDetected: false,
     desyncTick: null,
+    desyncCount: 0,
+    POST_DESYNC_INTERVAL: 3600, // Every 3600 ticks (~1 minute) after first desync
 
     // Capture a snapshot of all gameplay-relevant state
     captureSnapshot: function () {
@@ -61,9 +63,12 @@ const DemoSync = {
 
     // Called every tick from simulateTick
     checkTick: function (tick) {
-        if (!this.enabled || this.desyncDetected) return;
-        if (tick % this.SNAPSHOT_INTERVAL !== 0) return;
+        if (!this.enabled) return;
         if (tick === 0) return; // Skip tick 0
+
+        // Use normal interval before desync, reduced frequency after
+        const interval = this.desyncDetected ? this.POST_DESYNC_INTERVAL : this.SNAPSHOT_INTERVAL;
+        if (tick % interval !== 0) return;
 
         const snap = this.captureSnapshot();
 
@@ -88,11 +93,35 @@ const DemoSync = {
             const playHash = this.hashSnapshot(snap);
 
             if (recHash !== playHash) {
-                this.desyncDetected = true;
-                this.desyncTick = tick;
-                this.reportDesync(tick, recSnap, snap);
+                this.desyncCount++;
+                if (!this.desyncDetected) {
+                    this.desyncDetected = true;
+                    this.desyncTick = tick;
+                    this.reportDesync(tick, recSnap, snap);
+                } else {
+                    this.reportDrift(tick, recSnap, snap);
+                }
             }
         }
+    },
+
+    // Compact drift report for ongoing desync tracking
+    reportDrift: function (tick, rec, play) {
+        const timeStr = (tick / 60).toFixed(1);
+        const sinceTick = tick - this.desyncTick;
+        const sinceStr = (sinceTick / 60).toFixed(1);
+
+        const diffs = [];
+        Object.keys(rec).forEach(function (key) {
+            if (rec[key] !== play[key]) {
+                const delta = typeof rec[key] === 'number' ? (play[key] - rec[key]).toFixed(4) : 'changed';
+                diffs.push(key + ':' + delta);
+            }
+        });
+
+        console.warn(
+            `[DRIFT #${this.desyncCount}] tick ${tick} (~${timeStr}s, +${sinceStr}s since first): ${diffs.join(', ')}`
+        );
     },
 
     // Detailed desync report
@@ -194,6 +223,7 @@ const DemoSync = {
     reset: function () {
         this.desyncDetected = false;
         this.desyncTick = null;
+        this.desyncCount = 0;
     }
 };
 

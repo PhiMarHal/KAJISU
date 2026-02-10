@@ -127,8 +127,9 @@ const DemoSync = {
     // Detailed desync report
     reportDesync: function (tick, rec, play) {
         const timeStr = (tick / 60).toFixed(1);
+        const seed = (DemoSystem.isPlaying && DemoSystem.playback.demo) ? DemoSystem.playback.demo.seed : (DemoSystem.recording ? DemoSystem.recording.seed : '?');
 
-        console.error(`%c DESYNC DETECTED at tick ${tick} (~${timeStr}s) `, 'background: #ff0000; color: #fff; font-size: 14px; padding: 4px;');
+        console.error(`%c DESYNC DETECTED at tick ${tick} (~${timeStr}s) | seed: ${seed} `, 'background: #ff0000; color: #fff; font-size: 14px; padding: 4px;');
 
         // Build diff table
         const fields = Object.keys(rec);

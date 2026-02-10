@@ -49,8 +49,7 @@ const WeaponSystem = {
             objectA: this.piercingProjectilesGroup,
             objectB: EnemySystem.enemiesGroup,
             callback: this.projectileHitEnemy,
-            scope: scene,
-            type: 'collide'
+            scope: scene
         });
     },
 

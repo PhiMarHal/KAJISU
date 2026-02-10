@@ -173,7 +173,8 @@ const EnemySystem = {
             formula: 'fixed',
             callback: function () { EnemySystem.checkAndSpawnSupplementary(); },
             callbackScope: this,
-            loop: true
+            loop: true,
+            isPerkEffect: false
         });
 
         console.log(`Supplementary spawner initialized with ${checkInterval}ms interval`);
@@ -375,7 +376,8 @@ const EnemySystem = {
                         formula: 'fixed',
                         callback: function () { EnemySystem.spawnEnemyOfRank(rank); },
                         callbackScope: this,
-                        loop: true
+                        loop: true,
+                        isPerkEffect: false
                     });
 
                     // If it's not rank 1, show an introduction and update current enemy rank

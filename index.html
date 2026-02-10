@@ -830,7 +830,6 @@
 
             // Initialize enemy spawners
             EnemySystem.initializeEnemySpawners();
-            EnemySystem.initializeSupplementarySpawner(this);
 
             // Initialize enemy tiers with dynamic assignments
             initializeEnemyTiers();
@@ -898,6 +897,8 @@
 
             // Restart health regeneration
             LifeSystem.setupHealthRegeneration(this);
+
+            EnemySystem.initializeSupplementarySpawner(this);
 
             // Reset difficulty scaling
             gameStartTime = this.time.now;

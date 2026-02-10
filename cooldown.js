@@ -118,7 +118,8 @@ const CooldownManager = {
         this.registeredTimers.push(config);
 
         // Register with effect system for pause/cleanup compatibility
-        if (window.registerEffect) {
+        // System timers (isPerkEffect: false) skip this to survive clearAllPerkEffects
+        if (window.registerEffect && options.isPerkEffect !== false) {
             window.registerEffect('timer', timer);
         }
 

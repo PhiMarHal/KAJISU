@@ -38,7 +38,8 @@ const LifeSystem = {
             formula: 'fixed',
             callback: this.regenerateHealth,
             callbackScope: scene,
-            loop: true
+            loop: true,
+            isPerkEffect: false
         });
 
         GameUI.updateHealthBar(scene);

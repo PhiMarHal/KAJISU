@@ -101,7 +101,8 @@ const WeaponSystem = {
                 WeaponSystem.fireWeapon(scene);
             },
             callbackScope: scene,
-            loop: true
+            loop: true,
+            isPerkEffect: false
         });
 
         console.log(`Weapon timer created with delay: ${firingDelay}ms`);

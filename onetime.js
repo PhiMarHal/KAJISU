@@ -340,17 +340,18 @@ const OneTimeEffects = {
         window.clearAllPerkEffects();
 
         // Reset component systems
-        CooldownManager.initialize();
         PlayerComponentSystem.resetAll();
         OnHitEffectSystem.resetAll();
         OrbitalSystem.clearAll();
         DropperSystem.clearAll();
         BeamSystem.clearAll();
-        WeaponSystem.reset(scene);
-        WeaponSystem.initialize(scene);
 
         // Reinitialize the player hit system
         PlayerHitSystem.init(scene);
+
+        // Reinitialize weapon system (CooldownManager.initialize wiped it)
+        WeaponSystem.reset(scene);
+        WeaponSystem.initialize(scene);
 
         // Set perk array to just this perk
         acquiredPerks = ['OBLIVION_BLOSSOM'];

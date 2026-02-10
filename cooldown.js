@@ -136,9 +136,8 @@ const CooldownManager = {
     },
 
     // Advance all timers by one tick — call once per simulateTick
-    processTick: function () {
-        var dt = this.FIXED_TIMESTEP;
-
+    processTick: function (timeScale) {
+        var dt = this.FIXED_TIMESTEP * (timeScale ?? 1);
         for (var i = this.registeredTimers.length - 1; i >= 0; i--) {
             var config = this.registeredTimers[i];
             var timer = config.timer;

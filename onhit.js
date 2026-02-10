@@ -276,6 +276,7 @@ window.TimeDilationSystem = {
     // Current state tracking
     isActive: false,
     currentTimeScale: 1.0,
+    gameplayTimeScale: 1.0,  // Deterministic: snaps instantly, used by simulateTick
     playerSpeedFactor: 1.0,
     enemySlowdown: 1.0,
     originalPlayerSpeed: null,
@@ -287,6 +288,7 @@ window.TimeDilationSystem = {
     initialize: function () {
         this.isActive = false;
         this.currentTimeScale = 1.0;
+        this.gameplayTimeScale = 1.0;
         this.playerSpeedFactor = 1.0;
         this.enemySlowdown = 1.0;
     },
@@ -309,7 +311,13 @@ window.TimeDilationSystem = {
         // Reset the exiting flag
         this.isExiting = false;
 
-        // Create tween to gradually slow down time
+        // Snap deterministic gameplay scale immediately (used by simulateTick)
+        this.gameplayTimeScale = 0.5;
+
+        // Snap enemy speed deterministically
+        EnemySystem.setEnemySpeedFactor(0.25);
+
+        // Create tween to gradually slow down visuals
         this.slowMoTween = scene.tweens.add({
             targets: this,
             currentTimeScale: 0.5,    // Slow game to 50% speed
@@ -318,17 +326,11 @@ window.TimeDilationSystem = {
             duration: 500,
             ease: 'Sine.easeOut',
             onUpdate: () => {
-                // Apply time scale to scene for timers and tweens
+                // Apply time scale to scene for Phaser timers and tweens
                 scene.time.timeScale = this.currentTimeScale;
 
                 // Slow music down
                 this.applyMusicDilation(this.currentTimeScale);
-
-                // Update the global enemy speed factor
-                EnemySystem.setEnemySpeedFactor(this.enemySlowdown);
-
-                // Update player speed
-                playerSpeed = basePlayerSpeed * this.playerSpeedFactor;
             },
             onComplete: () => {
                 this.isActive = true;
@@ -351,7 +353,13 @@ window.TimeDilationSystem = {
             this.slowMoTween.stop();
         }
 
-        // Create tween to restore normal time
+        // Snap deterministic gameplay scale immediately (used by simulateTick)
+        this.gameplayTimeScale = 1.0;
+
+        // Snap enemy speed deterministically
+        EnemySystem.setEnemySpeedFactor(1.0);
+
+        // Create tween to restore normal visuals
         this.slowMoTween = scene.tweens.add({
             targets: this,
             currentTimeScale: 1.0,    // Return to normal speed
@@ -365,22 +373,10 @@ window.TimeDilationSystem = {
 
                 // Speed music back up
                 this.applyMusicDilation(this.currentTimeScale);
-
-                // Update the global enemy speed factor
-                EnemySystem.setEnemySpeedFactor(this.enemySlowdown);
-
-                // Update player speed
-                playerSpeed = basePlayerSpeed * this.playerSpeedFactor;
             },
             onComplete: () => {
                 this.isActive = false;
-                this.isExiting = false; // Reset the exiting flag
-
-                // Reset global enemy speed factor (redundant but safe)
-                EnemySystem.setEnemySpeedFactor(this.enemySlowdown);
-
-                // Ensure player speed is fully restored
-                playerSpeed = basePlayerSpeed;
+                this.isExiting = false;
             }
         });
     },
@@ -450,15 +446,11 @@ window.TimeDilationSystem = {
         // Reset enemy speed factor (use 1.0 directly, not this.enemySlowdown which might be mid-tween)
         EnemySystem.setEnemySpeedFactor(1.0);
 
-        // CRITICAL: Reset player speed to base value
-        // This is necessary because the tween's onUpdate was modifying playerSpeed
-        // and stopping the tween mid-progress leaves playerSpeed at an intermediate value
-        playerSpeed = basePlayerSpeed;
-
         // Reset the instance variables
         this.isActive = false;
         this.isExiting = false;
         this.currentTimeScale = 1.0;
+        this.gameplayTimeScale = 1.0;
         this.playerSpeedFactor = 1.0;
         this.enemySlowdown = 1.0;
     }

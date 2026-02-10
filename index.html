@@ -614,7 +614,7 @@
 
             // Apply movement manually (deterministic)
             if (player && player.body) {
-                const moveSpeed = playerSpeed * 50 * (fixedDelta / 1000);
+                const moveSpeed = playerSpeed * 50 * (fixedDelta / 1000) * (window.TimeDilationSystem.gameplayTimeScale ?? 1);
 
                 player.x += inputX * moveSpeed;
                 player.y += inputY * moveSpeed;
@@ -647,13 +647,13 @@
             updateOnHitEffects();
 
             // Increment elapsed time (deterministic!)
-            elapsedTime += (fixedDelta / 1000) * this.time.timeScale;
+            elapsedTime += (fixedDelta / 1000) * (window.TimeDilationSystem.gameplayTimeScale ?? 1);
 
             // Update weapon firing rate if needed
             WeaponSystem.updateFiringRate(this);
 
             // Advance all tick-based timers (weapons, perks, shrines, regen, etc.)
-            CooldownManager.processTick();
+            CooldownManager.processTick(window.TimeDilationSystem.gameplayTimeScale ?? 1);
 
             WeaponSystem.updateProjectiles(this);
             OrbitalSystem.update(this);

@@ -127,12 +127,7 @@ const CooldownManager = {
 
     removeTimer: function (timer) {
         if (!timer) return;
-        this.registeredTimers = this.registeredTimers.filter(function (config) {
-            return config.timer !== timer;
-        });
-        if (!timer.hasOwnProperty('removed')) {
-            timer.removed = true;
-        }
+        timer.removed = true;
     },
 
     // Advance all timers by one tick — call once per simulateTick

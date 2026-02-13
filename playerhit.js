@@ -146,7 +146,9 @@ function cleanupDamageEffects() {
     }
 }
 
-// Make player invincible with visual effects
+// Track the invincibility timer
+let invincibilityTimer = null;
+
 function makePlayerInvincible(scene) {
     // Always grant invincibility, regardless of current state
     playerInvincible = true;
@@ -155,33 +157,60 @@ function makePlayerInvincible(scene) {
     const duration = getInvincibilityDuration();
     const repeats = getFlashRepeats();
 
-    // Flash the player (visual feedback)
+    // Clear any existing invincibility timer
+    if (invincibilityTimer) {
+        CooldownManager.removeTimer(invincibilityTimer);
+        invincibilityTimer = null;
+    }
+
+    // Flash the player (visual feedback - tweens are fine for visuals)
     scene.tweens.add({
         targets: player,
         alpha: 0.5,
         scale: 1.2,
-        // Time per flash is total duration divided by number of flashes
         duration: duration / repeats,
         yoyo: true,
         repeat: repeats,
         onComplete: function () {
             // Ensure alpha and scale are reset properly
-            player.alpha = 1;
-            player.scale = 1;
+            if (player.active) {
+                player.alpha = 1;
+                player.scale = 1;
+            }
         }
     });
 
-    // Remove invincibility after the calculated duration
-    scene.time.delayedCall(duration, function () {
-        playerInvincible = false;
+    // Use CooldownManager for deterministic invincibility timing
+    invincibilityTimer = CooldownManager.createTimer({
+        statName: null,
+        baseCooldown: duration,
+        formula: 'fixed',
+        callback: function () {
+            playerInvincible = false;
+            invincibilityTimer = null;
 
-        // Double-check alpha is reset even if tween was interrupted
-        if (player.active) {
-            player.alpha = 1;
-            player.scale = 1;
-        }
+            // Double-check alpha is reset even if tween was interrupted
+            if (player.active) {
+                player.alpha = 1;
+                player.scale = 1;
+            }
+        },
+        callbackScope: null,
+        loop: false
     });
 }
+
+// Also add cleanup for game restart
+function resetInvincibility() {
+    playerInvincible = false;
+    if (invincibilityTimer) {
+        CooldownManager.removeTimer(invincibilityTimer);
+        invincibilityTimer = null;
+    }
+}
+
+// Export for use in game restart
+window.resetInvincibility = resetInvincibility;
 
 // Main function called when player is hit by an enemy
 function playerIsHit(player, enemy) {

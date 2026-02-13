@@ -332,11 +332,15 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
         const scene = game.scene.scenes[0];
         if (!scene || !player || !player.active) return;
 
-        // Create a particle
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 20 + Math.random() * 10;
+        // Create a particle using SeededRNG for visual stream (deterministic)
+        const angle = SeededRNG.random('visual') * Math.PI * 2;
+        const distance = 20 + SeededRNG.random('visual') * 10;
         const x = player.x + Math.cos(angle) * distance;
         const y = player.y + Math.sin(angle) * distance;
+
+        // Pre-calculate animation offsets before creating tween
+        const offsetX = (SeededRNG.random('visual') - 0.5) * 30;
+        const offsetY = (SeededRNG.random('visual') - 0.5) * 30;
 
         // Create particle as a small text
         const particle = scene.add.text(x, y, '✦', {
@@ -348,16 +352,15 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
         // Add to our tracking array
         this.particles.push(particle);
 
-        // Create animation for particle
+        // Create animation for particle (using pre-calculated offsets)
         scene.tweens.add({
             targets: particle,
             alpha: { from: 0.7, to: 0 },
             scale: { from: 0.5, to: 1.5 },
-            x: particle.x + (Math.random() - 0.5) * 30,
-            y: particle.y + (Math.random() - 0.5) * 30,
+            x: particle.x + offsetX,
+            y: particle.y + offsetY,
             duration: 500,
             onComplete: () => {
-                // Remove from array and destroy
                 const index = this.particles.indexOf(particle);
                 if (index !== -1) {
                     this.particles.splice(index, 1);

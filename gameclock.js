@@ -28,3 +28,36 @@ const GameClock = {
 };
 
 window.GameClock = GameClock;
+
+// Deterministic delay queue
+const DelayQueue = {
+    pending: [],
+
+    schedule: function (delayMs, callback, scope) {
+        const triggerTick = GameClock.getTick() + Math.ceil(delayMs / GameClock.FIXED_TIMESTEP);
+        const entry = { triggerTick, callback, scope, cancelled: false };
+        this.pending.push(entry);
+        return { remove: () => { entry.cancelled = true; } };
+    },
+
+    processTick: function () {
+        const tick = GameClock.getTick();
+        for (let i = this.pending.length - 1; i >= 0; i--) {
+            const e = this.pending[i];
+            if (e.cancelled || tick >= e.triggerTick) {
+                this.pending.splice(i, 1);
+                if (!e.cancelled) {
+                    try {
+                        e.scope ? e.callback.call(e.scope) : e.callback();
+                    } catch (err) {
+                        console.error('DelayQueue callback error:', err);
+                    }
+                }
+            }
+        }
+    },
+
+    reset: function () { this.pending = []; }
+};
+
+window.DelayQueue = DelayQueue;

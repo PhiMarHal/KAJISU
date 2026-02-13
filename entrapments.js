@@ -574,46 +574,32 @@ DropperPerkRegistry.registerDropperPerk('GOLDEN_AGE', {
 // Register Golden Age component with PlayerComponentSystem
 PlayerComponentSystem.registerComponent('goldenAgeAbility', {
     checkTimer: null,
+    maxBalls: 1, // Maximum balls at once
 
-    // Calculate how many balls should exist based on current stats
-    getTargetBallCount: function () {
-        return Math.max(1, Math.floor((getEffectiveFireRate() + playerLuck) / 8));
+    // Calculate how many balls should exist based on luck
+    getMaxBalls: function () {
+        return Math.max(1, Math.floor(playerLuck / BASE_STATS.LUK));
     },
 
-    // Count existing golden balls using DropperSystem
-    getCurrentBallCount: function () {
-        return DropperSystem.getAll().filter(drop => drop.isGoldenAgeBall).length;
-    },
-
-    // Spawn a single golden ball
-    spawnBall: function (scene) {
-        const config = DropperPerkRegistry.perkDropperConfigs['GOLDEN_AGE'].getConfig();
-        config.x = player.x;
-        config.y = player.y;
-
-        const drop = DropperSystem.create(scene, config);
-        if (drop) {
-            drop.isGoldenAgeBall = true;
-        }
-        return drop;
-    },
-
-    // Check and spawn new balls if needed
+    // Check if we need to spawn more balls
     checkAndSpawn: function () {
         if (gameOver || gamePaused) return;
 
         const scene = game.scene.scenes[0];
         if (!scene) return;
 
-        const targetCount = this.getTargetBallCount();
-        let currentCount = this.getCurrentBallCount();
+        // Count current golden age balls
+        const currentCount = DropperSystem.getAll()
+            .filter(drop => drop.isGoldenAgeBall).length;
 
-        // Spawn new balls if below target
-        for (let i = currentCount; i < targetCount; i++) {
-            this.spawnBall(scene);
+        const targetCount = this.getMaxBalls();
+
+        // Spawn if below target
+        if (currentCount < targetCount) {
+            this.spawnGoldenBall(scene);
         }
 
-        // Remove oldest balls if over target
+        // Remove excess balls (if luck decreased)
         while (currentCount > targetCount) {
             const goldenBalls = DropperSystem.getAll()
                 .filter(drop => drop.isGoldenAgeBall)
@@ -628,6 +614,46 @@ PlayerComponentSystem.registerComponent('goldenAgeAbility', {
         }
     },
 
+    // Spawn a golden ball at random position
+    spawnGoldenBall: function (scene) {
+        const x = SeededRNG.between(
+            Math.floor(game.config.width * 0.1),
+            Math.floor(game.config.width * 0.9),
+            'drop'
+        );
+        const y = SeededRNG.between(
+            Math.floor(game.config.height * 0.1),
+            Math.floor(game.config.height * 0.9),
+            'drop'
+        );
+
+        const drop = DropperSystem.createDrop(scene, {
+            x: x,
+            y: y,
+            symbol: '金',
+            color: '#ffd700',
+            fontSize: 48,
+            behaviorType: 'playerPushable',
+            damage: (getEffectiveDamage() + playerLuck) * 2.0,
+            damageMultiplier: 4.0,
+            damageInterval: 500,
+            colliderSize: 1.0,
+            lifespan: null, // Permanent until destroyed
+            options: {
+                physics: {
+                    bounce: 0.9,
+                    drag: 5,
+                    mass: 0.02,
+                    maxVelocity: 1000
+                }
+            }
+        });
+
+        if (drop) {
+            drop.isGoldenAgeBall = true;
+        }
+    },
+
     initialize: function (player) {
         const scene = game.scene.scenes[0];
         if (!scene) return;
@@ -635,20 +661,21 @@ PlayerComponentSystem.registerComponent('goldenAgeAbility', {
         // Spawn initial ball(s)
         this.checkAndSpawn();
 
-        // Set up periodic check timer (every 1 second)
-        this.checkTimer = scene.time.addEvent({
-            delay: 1000,
+        // Set up periodic check timer using CooldownManager (deterministic)
+        this.checkTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: 1000, // Check every 1 second
+            formula: 'fixed',
             callback: this.checkAndSpawn,
             callbackScope: this,
             loop: true
         });
-
-        window.registerEffect('timer', this.checkTimer);
     },
 
     cleanup: function (player) {
+        // Clean up timer using CooldownManager
         if (this.checkTimer) {
-            this.checkTimer.remove();
+            CooldownManager.removeTimer(this.checkTimer);
             this.checkTimer = null;
         }
 
@@ -851,7 +878,7 @@ window.activateHeroStatue = function () {
     DropperPerkRegistry.applyDropperPerk(scene, 'HERO_STATUE');
 
     // Find the created statue and set up firing - same as any familiar!
-    scene.time.delayedCall(100, function () {
+    DelayQueue.schedule(100, function () {
         const heroStatue = DropperSystem.getAll().find(drop =>
             drop.options && drop.options.isFiring && drop.options.firingBehavior === 'heroStatue'
         );

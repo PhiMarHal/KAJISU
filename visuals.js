@@ -200,7 +200,7 @@ const VisualEffects = {
 
             // If paused, reschedule for later without advancing elapsed time
             if (gamePaused) {
-                scene.time.delayedCall(16, spawnChargeKanji); // Check again in 16ms
+                DelayQueue.schedule(16, spawnChargeKanji); // Check again in 16ms
                 return;
             }
 
@@ -248,7 +248,7 @@ const VisualEffects = {
 
             // Schedule next spawn
             if (elapsed < duration) {
-                scene.time.delayedCall(currentInterval, spawnChargeKanji);
+                DelayQueue.schedule(currentInterval, spawnChargeKanji);
             }
         }
 
@@ -364,7 +364,7 @@ const VisualEffects = {
             });
 
             // Safety cleanup
-            scene.time.delayedCall(animationDuration + 100, () => {
+            DelayQueue.schedule(animationDuration + 100, () => {
                 if (piece && piece.active) {
                     piece.destroy();
                 }
@@ -414,7 +414,7 @@ const VisualEffects = {
         window.registerEffect('timer', updateTimer);
 
         // Remove halo when duration expires
-        scene.time.delayedCall(duration, function () {
+        DelayQueue.schedule(duration, function () {
             // Stop pulsing animation
             if (pulseAnimation && !pulseAnimation.isDestroyed) {
                 pulseAnimation.stop();
@@ -568,7 +568,7 @@ const VisualEffects = {
         }
 
         // Auto cleanup
-        scene.time.delayedCall(1000, () => {
+        DelayQueue.schedule(1000, () => {
             if (particles) particles.destroy();
         });
     },
@@ -828,7 +828,7 @@ const VisualEffects = {
             if (!entity.active || currentStep >= steps) return;
 
             if (gamePaused || gameOver) {
-                scene.time.delayedCall(16, doStep);
+                DelayQueue.schedule(16, doStep);
                 return;
             }
 
@@ -841,11 +841,11 @@ const VisualEffects = {
             });
 
             if (currentStep < steps) {
-                scene.time.delayedCall(stepInterval, doStep);
+                DelayQueue.schedule(stepInterval, doStep);
             }
         }
 
-        scene.time.delayedCall(stepInterval, doStep);
+        DelayQueue.schedule(stepInterval, doStep);
     },
 
 

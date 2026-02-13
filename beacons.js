@@ -74,12 +74,24 @@ const BeaconSystem = {
         window.registerEffect('entity', beacon);
 
         // Add overlap with player
-        scene.physics.add.overlap(beacon, player, function (beacon, player) {
-            if (beacon.collected) return;
-            beacon.collected = true;
-            config.onCollect.call(scene, beacon);
-            BeaconSystem.createCollectionEffects.call(scene, beacon);
-        }.bind(scene), null, scene);
+        // Register overlap with player via CollisionRegistry for deterministic checking
+        beacon.collisionId = CollisionRegistry.register({
+            objectA: beacon,
+            objectB: player,
+            callback: function (beaconObj, playerObj) {
+                if (beaconObj.collected) return;
+                beaconObj.collected = true;
+
+                // Unregister immediately to prevent double-collection
+                if (beaconObj.collisionId !== undefined) {
+                    CollisionRegistry.unregister(beaconObj.collisionId);
+                }
+
+                config.onCollect.call(scene, beaconObj);
+                BeaconSystem.createCollectionEffects.call(scene, beaconObj);
+            },
+            scope: scene
+        });
 
         // Add pulsing animation
         VisualEffects.createPulsing(scene, beacon);

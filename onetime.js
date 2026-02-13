@@ -69,13 +69,12 @@ const OneTimeEffects = {
         });
 
         // Apply damage after a slight delay for visual effect
-        scene.time.delayedCall(100, function () {
+        DelayQueue.schedule(100, function () {
             // Get all active enemies on screen
             const allEnemies = EnemySystem.enemiesGroup.getChildren();
             if (!allEnemies || allEnemies.length === 0) return;
 
             // Calculate massive damage
-            // Hardcoded to 1000 damage to ensure a reliable screen wipe regardless of stats
             const megaDamage = 1000;
 
             // Calculate shockwave origin (player position)
@@ -83,12 +82,12 @@ const OneTimeEffects = {
             const originY = player.y;
 
             // Create a unique damage source ID for this catastrophic event
-            const catastropheId = `shuuen_${Date.now()}_${Math.random()}`;
+            const catastropheId = `shuuen_${GameClock.getTick()}_${SeededRNG.random('effect')}`;
 
-            // Create shockwave visual
+            // Create shockwave visual (visual effects can still use scene.tweens)
             const shockwave = scene.add.circle(originX, originY, 10, 0xFF3300, 0.7);
 
-            // Expand shockwave
+            // Expand shockwave (visual only, doesn't affect gameplay)
             scene.tweens.add({
                 targets: shockwave,
                 radius: Math.max(game.config.width, game.config.height) * 1.2,
@@ -99,7 +98,7 @@ const OneTimeEffects = {
                 }
             });
 
-            // Apply damage to all enemies with delay based on distance
+            // Apply damage to all enemies with deterministic delay based on distance
             allEnemies.forEach(enemy => {
                 if (!enemy.active) return;
 
@@ -109,10 +108,10 @@ const OneTimeEffects = {
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 // Create a small delay based on distance for wave effect
+                // Use deterministic delay queue instead of scene.time.delayedCall
                 const delay = distance / 2;
 
-                // Apply damage after delay
-                scene.time.delayedCall(delay, function () {
+                DelayQueue.schedule(delay, function () {
                     if (!enemy.active) return;
 
                     // Create a unique sub-ID for each enemy to ensure they all take damage
@@ -131,7 +130,7 @@ const OneTimeEffects = {
                         0
                     );
 
-                    // Visual effects
+                    // Visual effects (tweens are fine for visuals)
                     scene.tweens.add({
                         targets: enemy,
                         alpha: 0.2,
@@ -141,8 +140,8 @@ const OneTimeEffects = {
                     });
                 });
 
-                // Create small explosion effect at each enemy
-                scene.time.delayedCall(delay, function () {
+                // Create small explosion effect at each enemy (visual only)
+                DelayQueue.schedule(delay, function () {
                     if (!enemy.active) return;
 
                     const explosion = scene.add.circle(enemy.x, enemy.y, 30, 0xFF3300, 0.7);
@@ -150,7 +149,7 @@ const OneTimeEffects = {
                         targets: explosion,
                         radius: 60,
                         alpha: 0,
-                        duration: 300,
+                        duration: 400,
                         onComplete: function () {
                             explosion.destroy();
                         }

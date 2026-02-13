@@ -247,7 +247,7 @@ OnHitEffectSystem.registerComponent('stormVengeanceEffect', {
             const y = player.y + Math.sin(angle) * distance;
 
             // Add a delay based on index to stagger the lightning strikes
-            scene.time.delayedCall(i * 200, function () {
+            DelayQueue.schedule(i * 200, function () {
                 // Create lightning strike using the existing function from hero.js
                 createLightningStrike(scene, x, y, {
                     segmentCount: 4,
@@ -536,7 +536,7 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
     stepTimer: null,
     stepCount: 0,
     maxSteps: 10, // 10 steps of 4% = 40% max boost each
-    stepInterval: 8000, // 8 seconds between steps (2x slower)
+    stepInterval: 8000, // 8 seconds between steps
     stepSize: 0.04, // 4% increase per step
     // Store contribution from this perk
     berserkContribution: 0,
@@ -556,7 +556,7 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
         // Store player's original color
         this.originalColor = player.style ? player.style.color : '#ffffff';
 
-        // Start the step timer
+        // Start the step timer using CooldownManager (deterministic)
         this.startStepTimer();
     },
 
@@ -583,34 +583,33 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
         this.archerContribution = 0;
 
         // Restart the timer after being hit
-        this.restartStepTimer(scene);
+        this.restartStepTimer();
 
         // Update UI to reflect new damage values
-        GameUI.updateStatCircles(scene);
+        const activeScene = game.scene.scenes[0];
+        if (activeScene) {
+            GameUI.updateStatCircles(activeScene);
+        }
     },
 
-    // Start/restart the step timer
+    // Start the step timer using CooldownManager (FIXED: was scene.time.addEvent)
     startStepTimer: function () {
-        const scene = game.scene.scenes[0];
-        if (!scene) return;
-
         // Clear existing timer if any
         this.clearStepTimer();
 
-        // Create new timer
-        this.stepTimer = scene.time.addEvent({
-            delay: this.stepInterval,
+        // Create new timer using CooldownManager for deterministic timing
+        this.stepTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: this.stepInterval,
+            formula: 'fixed',
             callback: this.incrementStep,
             callbackScope: this,
             loop: true
         });
-
-        // Register for cleanup
-        window.registerEffect('timer', this.stepTimer);
     },
 
     // Restart the timer (convenience method)
-    restartStepTimer: function (scene) {
+    restartStepTimer: function () {
         this.clearStepTimer();
         this.startStepTimer();
     },
@@ -618,132 +617,76 @@ OnHitEffectSystem.registerComponent('flawlessFightEffect', {
     // Clear the step timer
     clearStepTimer: function () {
         if (this.stepTimer) {
-            this.stepTimer.remove();
+            CooldownManager.removeTimer(this.stepTimer);
             this.stepTimer = null;
         }
     },
 
-    // Increment the step counter and boost multipliers
+    // Increment step (called by timer)
     incrementStep: function () {
-        // Skip if game is over or paused
-        if (gameOver || gamePaused) return;
+        // Skip if we're at max
+        if (this.stepCount >= this.maxSteps) return;
 
-        // Only increase if below max steps
-        if (this.stepCount < this.maxSteps) {
-            // Increment step count
-            this.stepCount++;
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
 
-            // Remove previous contribution
-            berserkMultiplier -= this.berserkContribution;
-            archerMultiplier -= this.archerContribution;
+        // Increase step count
+        this.stepCount++;
 
-            // Calculate new contributions
-            this.berserkContribution = this.stepCount * this.stepSize;
-            this.archerContribution = this.stepCount * this.stepSize;
+        // Add to our contribution
+        this.berserkContribution += this.stepSize;
+        this.archerContribution += this.stepSize;
 
-            // Apply to global multipliers
-            berserkMultiplier += this.berserkContribution;
-            archerMultiplier += this.archerContribution;
+        // Add to global multipliers
+        berserkMultiplier += this.stepSize;
+        archerMultiplier += this.stepSize;
 
-            // Get scene for visual effects
-            const scene = game.scene.scenes[0];
-            if (scene && player && player.active) {
-                // Use stored original color
-                const originalColor = this.originalColor;
-                const component = this;
+        // Update player color to show power level
+        this.updatePlayerGlow(scene);
 
-                // Stop any existing glow tween
-                if (this.activeGlowTween) {
-                    this.activeGlowTween.stop();
-                }
+        // Update UI
+        GameUI.updateStatCircles(scene);
+    },
 
-                // Create a smooth glowing animation
-                this.activeGlowTween = scene.tweens.add({
-                    targets: { value: 0 },
-                    value: 1,
-                    duration: 2000,
-                    yoyo: true, // Important for smooth pulse
-                    onUpdate: function (tween) {
-                        if (!player || !player.active) return;
+    // Update player glow based on current step
+    updatePlayerGlow: function (scene) {
+        // Calculate glow intensity based on steps (0 to 1)
+        const intensity = this.stepCount / this.maxSteps;
 
-                        // Get the tween progress (0 to 1, then back to 0)
-                        const value = tween.getValue();
+        // Interpolate color from original to gold
+        const r = Math.floor(255 * intensity + 255 * (1 - intensity));
+        const g = Math.floor(215 * intensity + 255 * (1 - intensity));
+        const b = Math.floor(0 * intensity + 255 * (1 - intensity));
 
-                        // Create a blended color that shifts between blue and original
-                        // Convert blue components to RGB
-                        const blueR = 0x00;
-                        const blueG = 0x88;
-                        const blueB = 0xFF;
+        const glowColor = `rgb(${r}, ${g}, ${b})`;
 
-                        // Simple way to get RGB from original color (this works with hex strings)
-                        let origR = 255, origG = 255, origB = 255; // Default to white
-                        if (originalColor.startsWith('#')) {
-                            // Parse hex color
-                            const hex = originalColor.slice(1);
-                            if (hex.length >= 6) {
-                                origR = parseInt(hex.slice(0, 2), 16);
-                                origG = parseInt(hex.slice(2, 4), 16);
-                                origB = parseInt(hex.slice(4, 6), 16);
-                            }
-                        }
-
-                        // Blend colors based on tween value
-                        // Use more blue at the peak of the tween (value=1)
-                        const r = Math.floor(origR * (1 - value) + blueR * value);
-                        const g = Math.floor(origG * (1 - value) + blueG * value);
-                        const b = Math.floor(origB * (1 - value) + blueB * value);
-
-                        // Set the blended color
-                        const blendedColor = `rgb(${r},${g},${b})`;
-                        player.setColor(blendedColor);
-                    },
-                    onComplete: function () {
-                        // Ensure color is reset to original when complete
-                        if (player && player.active) {
-                            player.setColor(originalColor);
-                        }
-                        component.activeGlowTween = null;
-                    }
-                });
-
-                // Update UI to reflect new damage values
-                GameUI.updateStatCircles(scene);
-            }
+        if (player && player.active) {
+            player.setColor(glowColor);
         }
     },
 
-    // Clean up component
+    // Clean up
     cleanup: function () {
-        // Stop any active glow tween
-        if (this.activeGlowTween) {
-            this.activeGlowTween.stop();
-            this.activeGlowTween = null;
-        }
+        this.clearStepTimer();
 
-        // Restore original player color
+        // Remove contributions
+        berserkMultiplier -= this.berserkContribution;
+        archerMultiplier -= this.archerContribution;
+
+        // Reset state
+        this.berserkContribution = 0;
+        this.archerContribution = 0;
+        this.stepCount = 0;
+
+        // Restore original color
         if (player && player.active && this.originalColor) {
             player.setColor(this.originalColor);
         }
 
-        // Remove our contribution from the global multipliers
-        berserkMultiplier -= this.berserkContribution;
-        archerMultiplier -= this.archerContribution;
-
-        // Ensure multipliers don't go below 1.0
-        if (berserkMultiplier < 1.0) {
-            berserkMultiplier = 1.0;
-        }
-        if (archerMultiplier < 1.0) {
-            archerMultiplier = 1.0;
-        }
-
-        // Clear timer
-        this.clearStepTimer();
-
-        // Update the game UI if possible
-        const scene = game.scene.scenes[0];
-        if (scene) {
-            GameUI.updateStatCircles(scene);
+        // Stop glow tween
+        if (this.activeGlowTween) {
+            this.activeGlowTween.stop();
+            this.activeGlowTween = null;
         }
     }
 });
@@ -780,19 +723,21 @@ OnHitEffectSystem.registerComponent('angerRisingEffect', {
 
     // Start the decay timer with fixed interval
     startDecayTimer: function () {
-        const scene = game.scene.scenes[0];
-        if (!scene) return;
+        // Clear existing timer if any
+        if (this.decayTimer) {
+            CooldownManager.removeTimer(this.decayTimer);
+            this.decayTimer = null;
+        }
 
-        // Create a timer that decreases rage over time with fixed interval
-        this.decayTimer = scene.time.addEvent({
-            delay: this.decayInterval,
+        // Create timer using CooldownManager for deterministic timing
+        this.decayTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: this.decayInterval,
+            formula: 'fixed',
             callback: this.decayRage,
             callbackScope: this,
             loop: true
         });
-
-        // Register for cleanup
-        window.registerEffect('timer', this.decayTimer);
     },
 
     // Decrease rage by one step

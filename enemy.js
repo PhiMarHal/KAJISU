@@ -127,9 +127,9 @@ const EnemySystem = {
     // Reference to the active scene
     scene: null,
 
-    // Batching updates
-    updateFrameCounter: 0,
-    enemyUpdateInterval: 4,
+    // Batching updates - now tick-based for determinism
+    updateTickCounter: 0,
+    enemyUpdateInterval: 4, // Update every 4 ticks (~66ms at 60 ticks/sec)
 
     // Initialize the enemy system
     initialize: function (scene) {
@@ -535,12 +535,12 @@ const EnemySystem = {
         // Skip if game is over or paused
         if (gameOver || gamePaused) return;
 
-        // Increment frame counter
-        this.updateFrameCounter++;
+        // Increment tick counter (called from simulateTick, so this is deterministic)
+        this.updateTickCounter++;
 
-        // Only update enemies every N frames
-        if (this.updateFrameCounter % this.enemyUpdateInterval !== 0) {
-            return; // Skip this frame
+        // Only update enemies every N ticks
+        if (this.updateTickCounter % this.enemyUpdateInterval !== 0) {
+            return; // Skip this tick
         }
 
         // Get all active enemies
@@ -999,8 +999,8 @@ const EnemySystem = {
         // Reset backgrounds
         if (window.BackgroundAnimationSystem) BackgroundAnimationSystem.setBossMode(false);
 
-        // Reset frame counter (batching)
-        this.updateFrameCounter = 0;
+        // Reset tick counter (batching)
+        this.updateTickCounter = 0;
 
         // Clean up any boss UI elements
         const scene = this.scene;

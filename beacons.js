@@ -342,9 +342,11 @@ const BeaconConfigs = {
             // Create visual effects using VisualEffects
             VisualEffects.createPowerBoostEffect(scene, beacon.x, beacon.y, boostDuration);
 
-            // Create timer to remove the boost after duration
-            const boostTimer = scene.time.addEvent({
-                delay: boostDuration,
+            // Create timer to remove the boost after duration (deterministic)
+            const boostTimer = CooldownManager.createTimer({
+                statName: null,
+                baseCooldown: boostDuration,
+                formula: 'fixed',
                 callback: function () {
                     // Remove the boost
                     berserkMultiplier -= statBonus;
@@ -363,11 +365,9 @@ const BeaconConfigs = {
                     // Update stat display
                     GameUI.updateStatCircles(scene);
                 },
-                callbackScope: scene
+                callbackScope: scene,
+                loop: false
             });
-
-            // Register the boost timer
-            window.registerEffect('timer', boostTimer);
 
             // Update stat display immediately
             GameUI.updateStatCircles(scene);

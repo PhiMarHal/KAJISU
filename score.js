@@ -272,7 +272,7 @@ const ScoreSystem = {
             // Stage 2: Pause for 1 second, then continue to victory bonus
             console.log("Survival score reached, pausing before victory bonus");
 
-            DelayQueue.schedule(1000, () => {
+            scene.time.delayedCall(1000, () => {
                 console.log("Adding victory bonus");
 
                 // Continue animation from survival score to final victory score (IS final stage)

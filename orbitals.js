@@ -80,8 +80,6 @@ const MovementPatterns = {
     spiralOut: function (orbital, time, deltaTime) {
         // Skip if game is paused
         if (gamePaused || gameOver) {
-            // Update lastUpdateTime to current time to prevent large delta when resuming
-            orbital.lastUpdateTime = time;
             return;
         }
 
@@ -94,22 +92,9 @@ const MovementPatterns = {
             orbital.currentRadius = orbital.options.startRadius ?? 8;
         }
 
-        // Initialize lastUpdate time if not set
-        if (orbital.lastUpdateTime === undefined) {
-            orbital.lastUpdateTime = time;
-            return; // Skip first frame to avoid large delta
-        }
-
-        // Calculate actual delta time since last update
-        const actualDelta = time - orbital.lastUpdateTime;
-        orbital.lastUpdateTime = time;
-
-        // Cap delta time to prevent huge jumps (e.g., after tab switching or long pauses)
-        const cappedDelta = Math.min(actualDelta, 50); // Maximum 50ms delta
-
-        // Expand radius based on actual elapsed time
+        // Expand radius using fixed deltaTime (deterministic)
         const expansionRate = orbital.options.expansionRate ?? 60; // pixels per second
-        const expansionAmount = expansionRate * (cappedDelta / 1000); // Convert ms to seconds
+        const expansionAmount = expansionRate * (deltaTime / 1000);
 
         orbital.currentRadius += expansionAmount;
 

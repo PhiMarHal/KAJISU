@@ -189,11 +189,12 @@ const DropperSystem = {
             entity.body.setMass(mass);
             entity.body.setMaxVelocity(maxVelocity, maxVelocity);
 
-            // Register physics collider with player via CollisionRegistry for deterministic checking
+            // Register overlap with player via CollisionRegistry for deterministic checking
+            // Using 'overlap' instead of 'collide' to prevent Phaser physics from nudging the player
             entity._playerCollisionId = CollisionRegistry.register({
                 objectA: entity,
                 objectB: player,
-                type: 'collide',
+                type: 'overlap',
                 callback: function (ballEntity, playerObj) {
 
                     // Cooldown to avoid several pushes in succession

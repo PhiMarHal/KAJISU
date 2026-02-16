@@ -41,6 +41,7 @@ const DemoSync = {
             // Entity counts
             enemies: enemyCount,
             orbitals: orbitalCount,
+            orbitalDetails: this.getOrbitalDetails(),
             drops: dropCount,
             projectiles: projectileCount,
             beams: beamCount,
@@ -59,6 +60,27 @@ const DemoSync = {
     hashSnapshot: function (snap) {
         // Include all determinism-critical values (skip visual-only counts like projectiles)
         return `${snap.px},${snap.py},${snap.hp},${snap.xp},${snap.lvl},${snap.score},${snap.time},${snap.enemies},${snap.rng_enemy},${snap.rng_perk},${snap.rng_drop},${snap.rng_effect},${snap.rng_drawing}`;
+    },
+
+    // Get detailed info about active orbitals for debugging
+    getOrbitalDetails: function () {
+        if (typeof OrbitalSystem === 'undefined') return [];
+
+        try {
+            const orbitals = OrbitalSystem.getAll();
+            return orbitals.map(orbital => {
+                const entity = orbital.entity;
+                return {
+                    symbol: entity ? entity.text : '?',
+                    pattern: orbital.pattern || 'unknown',
+                    familiarType: orbital.options?.familiarType || null,
+                    collisionType: orbital.collisionType || 'unknown',
+                    lifespan: orbital.lifespan
+                };
+            });
+        } catch (e) {
+            return [];
+        }
     },
 
     // Called every tick from simulateTick
@@ -113,6 +135,7 @@ const DemoSync = {
 
         const diffs = [];
         Object.keys(rec).forEach(function (key) {
+            if (key === 'orbitalDetails') return; // Skip object comparison
             if (rec[key] !== play[key]) {
                 const delta = typeof rec[key] === 'number' ? (play[key] - rec[key]).toFixed(4) : 'changed';
                 diffs.push(key + ':' + delta);
@@ -131,8 +154,12 @@ const DemoSync = {
 
         console.error(`%c DESYNC DETECTED at tick ${tick} (~${timeStr}s) | seed: ${seed} `, 'background: #ff0000; color: #fff; font-size: 14px; padding: 4px;');
 
-        // Build diff table
-        const fields = Object.keys(rec);
+        // Log acquired perks
+        const perks = (typeof acquiredPerks !== 'undefined' && Array.isArray(acquiredPerks)) ? acquiredPerks : [];
+        console.log('%c PERKS AT DESYNC: ', 'font-weight: bold; color: #ff8800;', perks.join(', ') || '(none)');
+
+        // Build diff table (skip orbitalDetails since it's handled separately)
+        const fields = Object.keys(rec).filter(function (key) { return key !== 'orbitalDetails'; });
         const diffs = [];
         const matches = [];
 
@@ -152,6 +179,30 @@ const DemoSync = {
         }
 
         console.log('%c Matching values: ' + matches.join(', '), 'color: #44ff44;');
+
+        // If orbital count diverged, show details
+        const diffFields = diffs.map(function (d) { return d.field; });
+        if (diffFields.indexOf('orbitals') !== -1) {
+            console.log('%c ORBITAL DETAILS: ', 'font-weight: bold; color: #ff00ff;');
+
+            // Show recorded orbitals
+            const recOrbDetails = rec.orbitalDetails || [];
+            const recSymbols = recOrbDetails.map(o => `${o.symbol}(${o.pattern})`).join(', ');
+            console.log('  Recorded orbitals: [' + recSymbols + ']');
+
+            // Show playback orbitals
+            const playOrbDetails = this.getOrbitalDetails();
+            const playSymbols = playOrbDetails.map(o => `${o.symbol}(${o.pattern})`).join(', ');
+            console.log('  Playback orbitals: [' + playSymbols + ']');
+
+            console.log('  Recorded count: ' + rec.orbitals + ', Playback count: ' + play.orbitals);
+
+            if (play.orbitals > rec.orbitals) {
+                console.log('%c  EXTRA orbital in playback - check for duplicate creation', 'color: #ff0000;');
+            } else if (rec.orbitals > play.orbitals) {
+                console.log('%c  MISSING orbital in playback - check for premature destruction', 'color: #ff0000;');
+            }
+        }
 
         // Provide diagnostic hints based on what diverged
         this.diagnose(diffs);

@@ -275,7 +275,7 @@ function findRandomVisibleEnemy(scene, maxDistance = 400, sourceEntity = player)
     });
 
     if (activeEnemies.length === 0) return null;
-    return Phaser.Utils.Array.GetRandom(activeEnemies);
+    return SeededRNG.pick(activeEnemies, 'effect');
 }
 
 // Unified projectile firing function

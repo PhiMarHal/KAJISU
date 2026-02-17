@@ -14,10 +14,11 @@ const DemoSync = {
     captureSnapshot: function () {
         const rngCounters = SeededRNG.getCounters();
         const enemyCount = (window.EnemySystem && EnemySystem.enemiesGroup)
-            ? EnemySystem.enemiesGroup.getChildren().length : 0;
+            ? EnemySystem.enemiesGroup.countActive() : 0;
         const orbitalCount = (window.OrbitalSystem) ? OrbitalSystem.getCount() : 0;
         const dropCount = (window.DropperSystem) ? DropperSystem.getCount() : 0;
-        const projectileCount = (window.projectiles) ? projectiles.getChildren().length : 0;
+        const projectileCount = (window.WeaponSystem && WeaponSystem.projectilesGroup)
+            ? WeaponSystem.projectilesGroup.countActive() : 0;
         const beamCount = (window.activeBeams) ? activeBeams.length : 0;
 
         return {
@@ -34,7 +35,7 @@ const DemoSync = {
             fr: Math.round(playerFireRate * 100) / 100,
 
             // Game state
-            score: score,
+            score: ScoreSystem.calculateCurrentScore(),
             time: Math.round(elapsedTime * 100) / 100,
             perkCount: acquiredPerks ? acquiredPerks.length : 0,
 

@@ -239,6 +239,7 @@ const EnemySystem = {
         enemy.body.setMass(1);
         enemy.body.setDrag(1);
         enemy.body.setBounce(0.5);
+        enemy.body.moves = false;  // Disable Phaser's automatic movement
 
         return enemy;
     },
@@ -597,6 +598,43 @@ const EnemySystem = {
         });
     },
 
+    // Move all enemies deterministically - call from simulateTick
+    moveEnemies: function (dt) {
+        const timeScale = window.TimeDilationSystem?.gameplayTimeScale ?? 1;
+        const delta = dt * timeScale;
+
+        this.enemiesGroup.getChildren().forEach(enemy => {
+            if (!enemy || !enemy.active || !enemy.body) return;
+
+            // Apply acceleration to velocity
+            enemy.body.velocity.x += enemy.body.acceleration.x * (delta / 1000);
+            enemy.body.velocity.y += enemy.body.acceleration.y * (delta / 1000);
+
+            // Cap speed
+            const maxSpeed = enemy.speed * enemySpeedFactor;
+            const currentSpeedSq = enemy.body.velocity.x * enemy.body.velocity.x +
+                enemy.body.velocity.y * enemy.body.velocity.y;
+            if (currentSpeedSq > maxSpeed * maxSpeed) {
+                const scale = maxSpeed / Math.sqrt(currentSpeedSq);
+                enemy.body.velocity.x *= scale;
+                enemy.body.velocity.y *= scale;
+            }
+
+            // Store previous position for collision detection
+            enemy.body.prev.x = enemy.body.position.x;
+            enemy.body.prev.y = enemy.body.position.y;
+
+            // Move enemy
+            enemy.x += enemy.body.velocity.x * (delta / 1000);
+            enemy.y += enemy.body.velocity.y * (delta / 1000);
+
+            // Sync physics body
+            enemy.body.position.x = enemy.x - enemy.body.halfWidth;
+            enemy.body.position.y = enemy.y - enemy.body.halfHeight;
+            enemy.body.updateCenter();
+        });
+    },
+
     // Count enemies by rank
     countEnemiesByRank: function (rank) {
         return this.enemiesGroup.getChildren().filter(enemy =>
@@ -644,6 +682,7 @@ const EnemySystem = {
         boss.body.setMass(20);  // Make boss harder to push
         boss.body.setDrag(1);
         boss.body.setBounce(0.5);
+        boss.body.moves = false;  // Disable Phaser's automatic movement
 
         // Calculate boss health (normal health * boss multiplier)
         boss.health = Math.ceil(currentEnemyHealth * enemyData.healthMultiplier * BOSS_CONFIG.health_multiplier);

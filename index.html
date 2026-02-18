@@ -666,6 +666,9 @@
             // Update enemies (spawning/AI decisions are deterministic)
             EnemySystem.updateEnemies();
 
+            // Update enemy movement, in a deterministic way
+            EnemySystem.moveEnemies(GameClock.FIXED_TIMESTEP);
+
             // Update enemy spawners (deterministic timing)
             EnemySystem.updateEnemySpawners();
 

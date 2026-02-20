@@ -6,8 +6,8 @@ const HERO_ENGLISH = 'Brave';
 
 // Base player stats
 const BASE_STATS = {
-    POW: 4,
-    AGI: 4,
+    POW: 20, // 20 for DEMO TESTING
+    AGI: 20, // 20 for DEMO TESTING
     LUK: 4,
     END: 4,
 };

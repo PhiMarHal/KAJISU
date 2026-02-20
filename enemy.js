@@ -27,14 +27,15 @@ const SUPPLEMENTARY_SPAWN_CONFIG = {
         return this.checkIntervals[difficulty - 1] ?? 16000;
     },
 
+    // DEMO TESTING: /10
     // Get the minimum enemy threshold (based on minutes elapsed)
     getMinEnemyThreshold: function () {
-        return Math.floor(elapsedTime / 60); // Minutes elapsed
+        return Math.floor(elapsedTime / 6); // Minutes elapsed
     },
 
     // Get the number of enemies to spawn when below threshold
     getSpawnCount: function () {
-        return Math.floor(elapsedTime / 60); // Minutes elapsed (separate variable for future flexibility)
+        return Math.floor(elapsedTime / 6); // Minutes elapsed (separate variable for future flexibility)
     }
 };
 
@@ -44,33 +45,34 @@ function getCurrentDifficulty() {
 }
 
 // Updated base rank configurations with difficulty scaling
+// -DEMO TESTING- : change every 1 minute
 const baseRankConfigs = {
     1: {
         startTime: 0,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1],
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1],
-        scaleMinutes: 16
+        scaleMinutes: 1
     },
     2: {
-        startTime: 7 * 60,
+        startTime: 1 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 2,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 2,
-        scaleMinutes: 16
+        scaleMinutes: 1
     },
     3: {
-        startTime: 11 * 60,
+        startTime: 2 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 4,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 4,
-        scaleMinutes: 16
+        scaleMinutes: 1
     },
     4: {
-        startTime: 14 * 60,
+        startTime: 3 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 4,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 5,
-        scaleMinutes: 16
+        scaleMinutes: 1
     },
     5: {
-        startTime: 30 * 60,
+        startTime: 4 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 5,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 7.5,
         scaleMinutes: 8

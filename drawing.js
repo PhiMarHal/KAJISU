@@ -1,6 +1,9 @@
 // drawing.js - Kanji Drawing Challenge System
 
 const KanjiDrawingSystem = {
+    // Add to drawing.js
+    pendingXPReward: 0,
+
     // UI elements
     elements: {
         container: null,
@@ -34,11 +37,11 @@ const KanjiDrawingSystem = {
 
     // Configuration
     config: {
-        challengeInterval: 180000,
+        challengeInterval: 1800000, // -DEMO TESTING- : 18 seconds
         maxAttemptsPerStroke: 2,
-        strokeMatchTolerance: 20,
+        strokeMatchTolerance: 400,
         kanjiSize: 109,
-        minPointDistance: 3, // Minimum pixels between recorded points
+        minPointDistance: 4, // Minimum pixels between recorded points
         minPointInterval: 8  // Minimum ms between recorded points
     },
 
@@ -52,19 +55,21 @@ const KanjiDrawingSystem = {
 
     startChallengeTimer: function (scene) {
         if (this.challengeTimer) {
-            this.challengeTimer.remove();
+            CooldownManager.removeTimer(this.challengeTimer);
         }
-        this.challengeTimer = scene.time.addEvent({
-            delay: this.config.challengeInterval,
-            callback: () => {
-                if (!gameOver && !gamePaused && !window.levelUpInProgress && !this.state.active) {
-                    this.startChallenge(scene);
+        this.challengeTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: this.config.challengeInterval,
+            formula: 'fixed',
+            callback: function () {
+                if (!gameOver && !gamePaused && !window.levelUpInProgress && !KanjiDrawingSystem.state.active) {
+                    KanjiDrawingSystem.startChallenge(scene);
                 }
             },
             callbackScope: this,
-            loop: true
+            loop: true,
+            isPerkEffect: false  // System timer, survives perk cleanup
         });
-        registerTimer(this.challengeTimer);
     },
 
     selectNextKanji: function () {
@@ -488,9 +493,10 @@ const KanjiDrawingSystem = {
         const endDist = Phaser.Math.Distance.BetweenPoints(drawnEnd, targetEnd);
         const endpointError = Math.max(startDist, endDist);
 
-        const corridorTolerance = 30;
-        const endpointTolerance = 50;
-        const hardMaxDeviation = 60;
+        // DEMO TESTING: 10x all 3
+        const corridorTolerance = 300;
+        const endpointTolerance = 500;
+        const hardMaxDeviation = 600;
 
         return (averageDeviation < corridorTolerance &&
             endpointError < endpointTolerance &&
@@ -606,10 +612,9 @@ const KanjiDrawingSystem = {
         const accuracy = totalAttempts > 0 ? (totalStrokes / totalAttempts) : 0;
 
         const fullLevelXP = xpForNextLevel(playerLevel);
-        const xpReward = Math.ceil(fullLevelXP * accuracy);
+        const xpReward = fullLevelXP;
 
-        heroExp += xpReward;
-        GameUI.updateExpBar(scene);
+        this.pendingXPReward = xpReward;
         this.showCompletionMessage(scene, xpReward, accuracy);
 
         setTimeout(() => {
@@ -759,7 +764,10 @@ const KanjiDrawingSystem = {
     },
 
     destroy: function () {
-        if (this.challengeTimer) this.challengeTimer.remove();
+        if (this.challengeTimer) {
+            CooldownManager.removeTimer(this.challengeTimer);
+            this.challengeTimer = null;
+        }
         this.cleanup(null);
     }
 };

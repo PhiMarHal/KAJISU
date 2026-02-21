@@ -9,7 +9,7 @@ const BASE_STATS = {
     POW: 20, // 20 for DEMO TESTING
     AGI: 20, // 20 for DEMO TESTING
     LUK: 4,
-    END: 4,
+    END: 8,
 };
 
 // Perk cooldowns in milliseconds - divide by 4 for real base time

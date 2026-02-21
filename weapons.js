@@ -1,4 +1,5 @@
 // Updated weapons.js with canvas texture support for projectiles
+const PROJECTILE_KNOCKBACK = 200; // px/s added to enemy velocity on hit
 
 const WeaponSystem = {
     // Currently active weapon type
@@ -41,8 +42,7 @@ const WeaponSystem = {
             objectA: this.projectilesGroup,
             objectB: EnemySystem.enemiesGroup,
             callback: this.projectileHitEnemy,
-            scope: scene,
-            type: 'collide'
+            scope: scene
         });
 
         CollisionRegistry.register({
@@ -55,27 +55,31 @@ const WeaponSystem = {
 
     // Handle projectile collision with enemy
     projectileHitEnemy: function (projectile, enemy) {
-        // "this" is the scene due to the function context in physics.add.collider
         const scene = this;
 
-        // Skip if projectile is already destroyed
         if (!projectile.active || !enemy.active) return;
 
-        // Ensure projectile has a damage source ID
         if (!projectile.damageSourceId) {
             projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
         }
 
-        // Process hit event for all components
+        // Apply knockback: push enemy away from the projectile's impact point.
+        // Both positions are deterministic at this point (fixed-tick integration).
+        const dx = enemy.x - projectile.x;
+        const dy = enemy.y - projectile.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0) {
+            enemy.body.velocity.x += (dx / dist) * PROJECTILE_KNOCKBACK;
+            enemy.body.velocity.y += (dy / dist) * PROJECTILE_KNOCKBACK;
+            // moveEnemies caps speed each tick, so knockback naturally decays.
+        }
+
         if (projectile.components) {
             ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, scene);
         }
 
-        // Apply damage using the contact damage system with a very short cooldown
-        // (Regular projectiles are destroyed on hit, so cooldown is mostly irrelevant)
         applyContactDamage.call(scene, projectile, enemy, projectile.damage, 1000);
 
-        // Destroy non-piercing projectiles after hit
         if (!projectile.piercing) {
             projectile.destroy();
         }
@@ -139,25 +143,31 @@ const WeaponSystem = {
     },
 
     // Helper method to update a projectile group
+    // Moving manually
     updateProjectileGroup: function (group) {
         if (!group) return;
 
+        const dt = GameClock.FIXED_TIMESTEP;
+        const timeScale = window.TimeDilationSystem?.gameplayTimeScale ?? 1;
+        const delta = dt * timeScale;
+
         group.getChildren().forEach(projectile => {
-            // Skip if destroyed during processing
             if (!projectile || !projectile.active) return;
 
-            // Check if out of bounds
+            // Advance position deterministically (one step per simulateTick)
+            projectile.x += projectile.body.velocity.x * (delta / 1000);
+            projectile.y += projectile.body.velocity.y * (delta / 1000);
+            projectile.body.position.x = projectile.x - projectile.body.halfWidth;
+            projectile.body.position.y = projectile.y - projectile.body.halfHeight;
+            projectile.body.updateCenter();
+
             if (projectile.y < -50 || projectile.y > game.config.height + 50 ||
                 projectile.x < -50 || projectile.x > game.config.width + 50) {
                 projectile.destroy();
                 return;
             }
 
-            // Process component updates
             if (projectile.components && Object.keys(projectile.components).length > 0) {
-                if (projectile.components.boomerangEffect) {
-                    //console.log("Processing boomerang update"); // Debug log
-                }
                 ProjectileComponentSystem.processEvent(projectile, 'update');
             }
         });
@@ -255,6 +265,9 @@ const WeaponSystem = {
             Math.cos(projConfig.angle) * projConfig.speed,
             Math.sin(projConfig.angle) * projConfig.speed
         );
+
+        // Disable Phaser movement
+        projectile.body.moves = false;
 
         // Process onFire event if needed
         if (projectile.needsOnFireEvent && projectile.components) {

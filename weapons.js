@@ -42,14 +42,16 @@ const WeaponSystem = {
             objectA: this.projectilesGroup,
             objectB: EnemySystem.enemiesGroup,
             callback: this.projectileHitEnemy,
-            scope: scene
+            scope: scene,
+            type: 'manual'
         });
 
         CollisionRegistry.register({
             objectA: this.piercingProjectilesGroup,
             objectB: EnemySystem.enemiesGroup,
             callback: this.projectileHitEnemy,
-            scope: scene
+            scope: scene,
+            type: 'manual'
         });
     },
 

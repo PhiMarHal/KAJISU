@@ -475,6 +475,7 @@
             // Add physics to player
             this.physics.world.enable(player);
             player.body.setCollideWorldBounds(true);
+            player.body.moves = false;
 
             // Initialize fixed timestep system for deterministic game logic
             FixedTimestepSystem.init();

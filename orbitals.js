@@ -447,7 +447,8 @@ const OrbitalSystem = {
                 if (orbital.destroyed) return;
                 collisionBehavior(scene, orbital, enemy);
             },
-            scope: scene
+            scope: scene,
+            type: (orbitalConfig.collisionType === 'persistent') ? 'overlap' : 'manual'
         });
 
         // Visual effect when spawning (optional)

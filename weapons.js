@@ -67,14 +67,17 @@ const WeaponSystem = {
 
         // Apply knockback: push enemy away from the projectile's impact point.
         // Both positions are deterministic at this point (fixed-tick integration).
-        const dx = enemy.x - projectile.x;
-        const dy = enemy.y - projectile.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 0) {
-            enemy.body.velocity.x += (dx / dist) * PROJECTILE_KNOCKBACK;
-            enemy.body.velocity.y += (dy / dist) * PROJECTILE_KNOCKBACK;
-            // moveEnemies caps speed each tick, so knockback naturally decays.
+        if (!projectile.piercing) {
+            const dx = enemy.x - projectile.x;
+            const dy = enemy.y - projectile.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 0) {
+                enemy.body.velocity.x += (dx / dist) * PROJECTILE_KNOCKBACK;
+                enemy.body.velocity.y += (dy / dist) * PROJECTILE_KNOCKBACK;
+                // moveEnemies caps speed each tick, so knockback naturally decays.
+            }
         }
+
 
         if (projectile.components) {
             ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, scene);

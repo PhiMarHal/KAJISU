@@ -160,16 +160,47 @@ function makePlayerInvincible(scene) {
         invincibilityTimer = null;
     }
 
-    // Stop any in-progress tween and reset to baseline before starting fresh.
     scene.tweens.killTweensOf(player);
     player.alpha = 1;
+    player.scale = 1;
+
+    const proxy = scene.add.text(player.x, player.y, HERO_CHARACTER, {
+        fontFamily: 'Arial',
+        fontSize: '32px',
+        color: '#ffffff'
+    }).setOrigin(0.5).setDepth(player.depth + 1).setAlpha(0.9);
+
+    // With yoyo:true each repeat is two strokes (out + back), so we need
+    // half as many repeats to match the invincibility duration exactly.
+    scene.tweens.add({
+        targets: proxy,
+        scale: 1.3,
+        alpha: 0.2,
+        duration: duration / repeats,
+        yoyo: true,
+        repeat: Math.floor(repeats / 2) - 1,
+        onComplete: function () {
+            if (proxy.active) proxy.destroy();
+        }
+    });
+
+    const followTimer = scene.time.addEvent({
+        delay: 8,
+        repeat: Math.ceil(duration / 8) + 1,
+        callback: function () {
+            if (proxy.active && player.active) {
+                proxy.x = player.x;
+                proxy.y = player.y;
+            }
+        }
+    });
 
     scene.tweens.add({
         targets: player,
-        alpha: 0.3,
+        alpha: 0.4,
         duration: duration / repeats,
         yoyo: true,
-        repeat: repeats,
+        repeat: Math.floor(repeats / 2) - 1,
         onComplete: function () {
             if (player.active) {
                 player.alpha = 1;
@@ -184,8 +215,11 @@ function makePlayerInvincible(scene) {
         callback: function () {
             playerInvincible = false;
             invincibilityTimer = null;
+            followTimer.remove();
+            if (proxy.active) proxy.destroy();
             if (player.active) {
                 player.alpha = 1;
+                player.scale = 1;
             }
         },
         callbackScope: null,

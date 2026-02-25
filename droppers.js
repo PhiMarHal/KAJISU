@@ -296,7 +296,8 @@ const DropperSystem = {
                 if (drop.destroyed) return;
                 behavior(scene, drop, enemy);
             },
-            scope: scene
+            scope: scene,
+            type: dropConfig.behaviorType === 'projectile' ? 'manual' : 'overlap'
         });
 
         // Visual effect when spawning

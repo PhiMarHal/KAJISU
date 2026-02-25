@@ -39,6 +39,42 @@ const CollisionRegistry = {
         return obj.active !== false;
     },
 
+    // Manual AABB check between two physics bodies.
+    // Used by 'manual' pairs to avoid Phaser's broadphase ordering.
+    aabbOverlap: function (bodyA, bodyB) {
+        return bodyA.right > bodyB.left &&
+            bodyA.left < bodyB.right &&
+            bodyA.bottom > bodyB.top &&
+            bodyA.top < bodyB.bottom;
+    },
+
+    // Process a 'manual' pair: nested loop in deterministic array order.
+    // objectA and objectB must both be Phaser Groups.
+    // For non-piercing projectiles the callback destroys objectA on first hit,
+    // so we re-check active after each callback to break early.
+    processManual: function (pair) {
+        const childrenA = pair.objectA.getChildren();
+        const childrenB = pair.objectB.getChildren();
+
+        for (var i = 0; i < childrenA.length; i++) {
+            var a = childrenA[i];
+            if (!a || !a.active || !a.body) continue;
+
+            for (var j = 0; j < childrenB.length; j++) {
+                var b = childrenB[j];
+                if (!b || !b.active || !b.body) continue;
+
+                if (this.aabbOverlap(a.body, b.body)) {
+                    pair.callback.call(pair.scope, a, b);
+
+                    // If a was destroyed by the callback (non-piercing projectile),
+                    // stop checking further enemies for this projectile.
+                    if (!a.active) break;
+                }
+            }
+        }
+    },
+
     processAll: function () {
         const scene = this.scene;
         if (!scene) return;
@@ -51,7 +87,9 @@ const CollisionRegistry = {
                 continue;
             }
 
-            if (pair.type === 'collide') {
+            if (pair.type === 'manual') {
+                this.processManual(pair);
+            } else if (pair.type === 'collide') {
                 scene.physics.collide(
                     pair.objectA, pair.objectB,
                     pair.callback, pair.processCallback, pair.scope

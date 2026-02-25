@@ -218,7 +218,7 @@
         let basePlayerSpeed = 8;
         let baseProcChance = 0.2;
         let baseShootingDelay = 2000;
-        let baseHeroExpToLevel = 5;
+        let baseHeroExpToLevel = 5000000000; // -DEMO TESTING- : increased by 1000000x
         let acquiredPerks = [];
         let playerHealth = BASE_STATS.END;
         let maxPlayerHealth = BASE_STATS.END;
@@ -475,6 +475,7 @@
             // Add physics to player
             this.physics.world.enable(player);
             player.body.setCollideWorldBounds(true);
+            player.body.moves = false;
 
             // Initialize fixed timestep system for deterministic game logic
             FixedTimestepSystem.init();
@@ -672,21 +673,14 @@
             // Update enemy spawners (deterministic timing)
             EnemySystem.updateEnemySpawners();
 
-            // Projectile bounds checking
-            projectiles.getChildren().forEach(projectile => {
-                if (projectile.y < -50 || projectile.y > game.config.height + 50 ||
-                    projectile.x < -50 || projectile.x > game.config.width + 50) {
-                    projectile.destroy();
-                    return;
-                }
-
-                if (projectile.components && Object.keys(projectile.components).length > 0) {
-                    ProjectileComponentSystem.processEvent(projectile, 'update');
-                }
-            });
-
             // Process all collision checks deterministically inside the tick loop
             CollisionRegistry.processAll();
+
+            // Check if we have a pending reward from drawing challenge
+            if (KanjiDrawingSystem.pendingXPReward > 0) {
+                heroExp += KanjiDrawingSystem.pendingXPReward;
+                KanjiDrawingSystem.pendingXPReward = 0;
+            }
 
             // Check for level up (must be inside simulateTick for deterministic pause timing)
             if (heroExp >= xpForNextLevel(playerLevel)) {

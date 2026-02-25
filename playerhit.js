@@ -150,37 +150,33 @@ function cleanupDamageEffects() {
 let invincibilityTimer = null;
 
 function makePlayerInvincible(scene) {
-    // Always grant invincibility, regardless of current state
     playerInvincible = true;
 
-    // Calculate dynamic values based on current END
     const duration = getInvincibilityDuration();
     const repeats = getFlashRepeats();
 
-    // Clear any existing invincibility timer
     if (invincibilityTimer) {
         CooldownManager.removeTimer(invincibilityTimer);
         invincibilityTimer = null;
     }
 
-    // Flash the player (visual feedback - tweens are fine for visuals)
+    // Stop any in-progress tween and reset to baseline before starting fresh.
+    scene.tweens.killTweensOf(player);
+    player.alpha = 1;
+
     scene.tweens.add({
         targets: player,
-        alpha: 0.5,
-        scale: 1.2,
+        alpha: 0.3,
         duration: duration / repeats,
         yoyo: true,
         repeat: repeats,
         onComplete: function () {
-            // Ensure alpha and scale are reset properly
             if (player.active) {
                 player.alpha = 1;
-                player.scale = 1;
             }
         }
     });
 
-    // Use CooldownManager for deterministic invincibility timing
     invincibilityTimer = CooldownManager.createTimer({
         statName: null,
         baseCooldown: duration,
@@ -188,11 +184,8 @@ function makePlayerInvincible(scene) {
         callback: function () {
             playerInvincible = false;
             invincibilityTimer = null;
-
-            // Double-check alpha is reset even if tween was interrupted
             if (player.active) {
                 player.alpha = 1;
-                player.scale = 1;
             }
         },
         callbackScope: null,

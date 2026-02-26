@@ -655,6 +655,7 @@
 
             // Advance all tick-based timers (weapons, perks, shrines, regen, etc.)
             CooldownManager.processTick(window.TimeDilationSystem.gameplayTimeScale ?? 1);
+            DelayQueue.processTick();
 
             WeaponSystem.updateProjectiles(this);
             OrbitalSystem.update(this);

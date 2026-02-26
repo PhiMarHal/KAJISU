@@ -163,19 +163,53 @@ function makePlayerInvincible(scene) {
         invincibilityTimer = null;
     }
 
-    // Flash the player (visual feedback - tweens are fine for visuals)
+    // Kill tween
+    scene.tweens.killTweensOf(player);
+    player.alpha = 1;
+    player.scale = 1;
+
+    // Scale the player through proxy (so hitbox won't change)
+    const proxy = scene.add.text(player.x, player.y, HERO_CHARACTER, {
+        fontFamily: 'Arial',
+        fontSize: '32px',
+        color: '#ffffff'
+    }).setOrigin(0.5).setDepth(player.depth + 1).setAlpha(0.9);
+
+    // With yoyo:true each repeat is two strokes (out + back), so we need
+    // half as many repeats to match the invincibility duration exactly.
     scene.tweens.add({
-        targets: player,
-        alpha: 0.5,
-        scale: 1.2,
+        targets: proxy,
+        scale: 1.3,
+        alpha: 0.2,
         duration: duration / repeats,
         yoyo: true,
-        repeat: repeats,
+        repeat: Math.floor(repeats / 2) - 1,
         onComplete: function () {
-            // Ensure alpha and scale are reset properly
+            if (proxy.active) proxy.destroy();
+        }
+    });
+
+    const followTimer = scene.time.addEvent({
+        delay: 8,
+        repeat: Math.ceil(duration / 8) + 1,
+        callback: function () {
+            if (proxy.active && player.active) {
+                proxy.x = player.x;
+                proxy.y = player.y;
+            }
+        }
+    });
+
+    // Flash the player directly
+    scene.tweens.add({
+        targets: player,
+        alpha: 0.4,
+        duration: duration / repeats,
+        yoyo: true,
+        repeat: Math.floor(repeats / 2) - 1,
+        onComplete: function () {
             if (player.active) {
                 player.alpha = 1;
-                player.scale = 1;
             }
         }
     });
@@ -188,8 +222,8 @@ function makePlayerInvincible(scene) {
         callback: function () {
             playerInvincible = false;
             invincibilityTimer = null;
-
-            // Double-check alpha is reset even if tween was interrupted
+            followTimer.remove();
+            if (proxy.active) proxy.destroy();
             if (player.active) {
                 player.alpha = 1;
                 player.scale = 1;

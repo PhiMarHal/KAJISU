@@ -70,18 +70,22 @@ const WeaponSystem = {
 
         // Apply knockback: push enemy away from the projectile's impact point.
         // Both positions are deterministic at this point (fixed-tick integration).
-        const dx = enemy.x - projectile.x;
-        const dy = enemy.y - projectile.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 0) {
-            enemy.body.velocity.x += (dx / dist) * PROJECTILE_KNOCKBACK;
-            enemy.body.velocity.y += (dy / dist) * PROJECTILE_KNOCKBACK;
-            // moveEnemies caps speed each tick, so knockback naturally decays.
+        if (!projectile.piercing) {
+            const dx = enemy.x - projectile.x;
+            const dy = enemy.y - projectile.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 0) {
+                enemy.body.velocity.x += (dx / dist) * PROJECTILE_KNOCKBACK;
+                enemy.body.velocity.y += (dy / dist) * PROJECTILE_KNOCKBACK;
+                // moveEnemies caps speed each tick, so knockback naturally decays.
+            }
         }
+
 
         if (projectile.components) {
             ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, scene);
         }
+
         // Apply damage using the contact damage system with a very short cooldown
         // (Regular projectiles are destroyed on hit, so cooldown is mostly irrelevant)
         applyContactDamage.call(scene, projectile, enemy, projectile.damage, 1000);
@@ -159,7 +163,6 @@ const WeaponSystem = {
         const delta = dt * timeScale;
 
         group.getChildren().forEach(projectile => {
-            // Skip if destroyed during processing
             if (!projectile || !projectile.active) return;
 
             // Advance position deterministically (one step per simulateTick)

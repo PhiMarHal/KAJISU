@@ -37,7 +37,7 @@ const KanjiDrawingSystem = {
 
     // Configuration
     config: {
-        challengeInterval: 180000, // 180 seconds
+        challengeInterval: 180000,
         maxAttemptsPerStroke: 2,
         strokeMatchTolerance: 400,
         kanjiSize: 109,
@@ -764,6 +764,10 @@ const KanjiDrawingSystem = {
     },
 
     destroy: function () {
+        if (this.challengeTimer) {
+            CooldownManager.removeTimer(this.challengeTimer);
+            this.challengeTimer = null;
+        }
         if (this.challengeTimer) {
             CooldownManager.removeTimer(this.challengeTimer);
             this.challengeTimer = null;

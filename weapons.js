@@ -57,10 +57,13 @@ const WeaponSystem = {
 
     // Handle projectile collision with enemy
     projectileHitEnemy: function (projectile, enemy) {
+        // "this" is the scene due to the function context in physics.add.collider
         const scene = this;
 
+        // Skip if projectile is already destroyed
         if (!projectile.active || !enemy.active) return;
 
+        // Ensure projectile has a damage source ID
         if (!projectile.damageSourceId) {
             projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
         }
@@ -83,8 +86,11 @@ const WeaponSystem = {
             ProjectileComponentSystem.processEvent(projectile, 'onHit', enemy, scene);
         }
 
+        // Apply damage using the contact damage system with a very short cooldown
+        // (Regular projectiles are destroyed on hit, so cooldown is mostly irrelevant)
         applyContactDamage.call(scene, projectile, enemy, projectile.damage, 1000);
 
+        // Destroy non-piercing projectiles after hit
         if (!projectile.piercing) {
             projectile.destroy();
         }
@@ -166,12 +172,14 @@ const WeaponSystem = {
             projectile.body.position.y = projectile.y - projectile.body.halfHeight;
             projectile.body.updateCenter();
 
+            // Check if out of bounds
             if (projectile.y < -50 || projectile.y > game.config.height + 50 ||
                 projectile.x < -50 || projectile.x > game.config.width + 50) {
                 projectile.destroy();
                 return;
             }
 
+            // Process component updates
             if (projectile.components && Object.keys(projectile.components).length > 0) {
                 ProjectileComponentSystem.processEvent(projectile, 'update');
             }

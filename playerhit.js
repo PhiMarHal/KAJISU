@@ -150,20 +150,25 @@ function cleanupDamageEffects() {
 let invincibilityTimer = null;
 
 function makePlayerInvincible(scene) {
+    // Always grant invincibility, regardless of current state
     playerInvincible = true;
 
+    // Calculate dynamic values based on current END
     const duration = getInvincibilityDuration();
     const repeats = getFlashRepeats();
 
+    // Clear any existing invincibility timer
     if (invincibilityTimer) {
         CooldownManager.removeTimer(invincibilityTimer);
         invincibilityTimer = null;
     }
 
+    // Kill tween
     scene.tweens.killTweensOf(player);
     player.alpha = 1;
     player.scale = 1;
 
+    // Scale the player through proxy (so hitbox won't change)
     const proxy = scene.add.text(player.x, player.y, HERO_CHARACTER, {
         fontFamily: 'Arial',
         fontSize: '32px',
@@ -195,6 +200,7 @@ function makePlayerInvincible(scene) {
         }
     });
 
+    // Flash the player directly
     scene.tweens.add({
         targets: player,
         alpha: 0.4,
@@ -208,6 +214,7 @@ function makePlayerInvincible(scene) {
         }
     });
 
+    // Use CooldownManager for deterministic invincibility timing
     invincibilityTimer = CooldownManager.createTimer({
         statName: null,
         baseCooldown: duration,

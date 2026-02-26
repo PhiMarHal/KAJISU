@@ -39,8 +39,14 @@ const CollisionRegistry = {
         return obj.active !== false;
     },
 
+    // Normalize an objectA/objectB to an array of game objects.
+    // Groups are expanded via getChildren(); single objects are wrapped in an array.
+    toList: function (obj) {
+        if (typeof obj.getChildren === 'function') return obj.getChildren();
+        return [obj];
+    },
+
     // Manual AABB check between two physics bodies.
-    // Used by 'manual' pairs to avoid Phaser's broadphase ordering.
     aabbOverlap: function (bodyA, bodyB) {
         return bodyA.right > bodyB.left &&
             bodyA.left < bodyB.right &&
@@ -49,12 +55,10 @@ const CollisionRegistry = {
     },
 
     // Process a 'manual' pair: nested loop in deterministic array order.
-    // objectA and objectB must both be Phaser Groups.
-    // For non-piercing projectiles the callback destroys objectA on first hit,
-    // so we re-check active after each callback to break early.
+    // Works with groups (projectiles) and single entities (orbitals, drops).
     processManual: function (pair) {
-        const childrenA = pair.objectA.getChildren();
-        const childrenB = pair.objectB.getChildren();
+        var childrenA = this.toList(pair.objectA);
+        var childrenB = this.toList(pair.objectB);
 
         for (var i = 0; i < childrenA.length; i++) {
             var a = childrenA[i];
@@ -76,7 +80,7 @@ const CollisionRegistry = {
     },
 
     processAll: function () {
-        const scene = this.scene;
+        var scene = this.scene;
         if (!scene) return;
 
         for (var i = this.pairs.length - 1; i >= 0; i--) {

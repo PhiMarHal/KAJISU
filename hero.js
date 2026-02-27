@@ -12,11 +12,6 @@ const BASE_STATS = {
     END: 4,
 };
 
-// Perk cooldowns in milliseconds - divide by 4 for real base time
-const shieldBaseCd = 80000;
-const godHammerBaseCd = 120000;
-const fatedShieldBaseCd = 60000;
-
 // Player Status Component System for KAJISU
 // This system manages special behaviors and status effects for the player
 
@@ -577,8 +572,8 @@ PlayerComponentSystem.registerComponent('secondChanceShieldAbility', {
         // Create cooldown timer
         this.cooldownTimer = CooldownManager.createTimer({
             statName: 'luck',
-            baseCooldown: fatedShieldBaseCd,
-            formula: 'divide',
+            baseCooldown: 12000,
+            formula: 'sqrt',
             component: this,
             callback: this.resetAbility,
             callbackScope: this,
@@ -642,8 +637,8 @@ PlayerComponentSystem.registerComponent('permanentShieldAbility', {
 
         this.cooldownTimer = CooldownManager.createTimer({
             statName: 'luck',
-            baseCooldown: shieldBaseCd,
-            formula: 'divide',
+            baseCooldown: 20000,
+            formula: 'sqrt',
             component: this,
             callback: this.reactivateShield,
             callbackScope: this,
@@ -735,7 +730,7 @@ PlayerComponentSystem.registerComponent('godHammerAbility', {
         // Create and register timer in one step
         this.hammerTimer = CooldownManager.createTimer({
             statName: 'luck',
-            baseCooldown: godHammerBaseCd,
+            baseCooldown: 120000,
             formula: 'divide',
             component: this,
             callback: this.dropHammer, // Use component method instead of global function

@@ -236,7 +236,7 @@ const CooldownManager = {
         var timer = config.timer;
         var progress = timer.delay > 0 ? timer.elapsed / timer.delay : 0;
 
-        console.log('Updating timer: old delay=' + timer.delay + 'ms, new delay=' + newCooldown + 'ms, progress=' + progress.toFixed(2));
+        //console.log('Updating timer: old delay=' + timer.delay + 'ms, new delay=' + newCooldown + 'ms, progress=' + progress.toFixed(2));
 
         timer.delay = newCooldown;
         timer.elapsed = progress * newCooldown;

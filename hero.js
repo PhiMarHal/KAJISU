@@ -282,11 +282,11 @@ PlayerPerkRegistry.registerPerkEffect('CRIMSON_FURY', {
 // Register component for archer state (Eternal Rhythm)
 PlayerComponentSystem.registerComponent('eternalRhythmState', {
     // Store original values and state
-    maxMultiplier: 1.8, // max boost +0.8
+    maxMultiplier: 1.6, // max boost +1
+    timeToRamp: 8000,
     currentMultiplier: 1.0,
     isActive: false,
     accumulator: 0,
-    lastUpdateTime: 0,
     particles: [],
     particleTimer: null,
 
@@ -299,9 +299,6 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
         this.accumulator = 0;
         this.currentMultiplier = 1.0;
         this.archerContribution = 0;
-
-        // Remember the time
-        this.lastUpdateTime = game.scene.scenes[0].time.now;
 
         // Get the scene
         const scene = game.scene.scenes[0];
@@ -379,7 +376,7 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
 
         // One tick is one FIXED_TIMESTEP. No wall-clock time needed.
         // number of seconds to ramp up and down fully
-        const changeRate = GameClock.FIXED_TIMESTEP / 4000;
+        const changeRate = GameClock.FIXED_TIMESTEP / this.timeToRamp;
 
         if (isMoving) {
             this.accumulator = Math.min(1.0, this.accumulator + changeRate);

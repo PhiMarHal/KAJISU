@@ -1986,7 +1986,7 @@ const PERKS = {
         kana: "えいえんのりつどう",
         romaji: "eiennoritsudou",
         english: "Eternal Rhythm",
-        description: "While moving, gradually increases fire rate up to 2x",
+        description: "While moving, gradually increases fire rate up to +60%",
         color: "#FFDD00",
         hoverColor: 0xDDBB00,
         onAcquire: function () {

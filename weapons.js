@@ -135,16 +135,11 @@ const WeaponSystem = {
         // Calculate new delay
         const newDelay = this.calculateFiringDelay();
 
-        // Only update if significant change (>10%)
+        // Adjust delay in-place preserving progress
         const currentDelay = this.weaponTimer.delay;
-        if (Math.abs(currentDelay - newDelay) > (currentDelay * 0.1)) {
-            // Adjust delay in-place preserving progress
-            const progress = this.weaponTimer.elapsed / currentDelay;
-            this.weaponTimer.delay = newDelay;
-            this.weaponTimer.elapsed = progress * newDelay;
-
-            console.log(`Firing rate updated: ${currentDelay}ms -> ${newDelay}ms`);
-        }
+        const progress = currentDelay > 0 ? this.weaponTimer.elapsed / currentDelay : 0;
+        this.weaponTimer.delay = newDelay;
+        this.weaponTimer.elapsed = progress * newDelay;
     },
 
     updateProjectiles: function (scene) {

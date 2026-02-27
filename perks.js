@@ -1902,7 +1902,7 @@ const PERKS = {
         kana: "むらさきはりねずみ",
         romaji: "murasakiharinezumi",
         english: "Purple Hedgehog",
-        description: "Release stars in all directions when hit",
+        description: "Release stars in all directions when hit, +1 END",
         color: "#9370db",
         hoverColor: 0x7350bb,
         onAcquire: function () {

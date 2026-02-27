@@ -7,15 +7,17 @@ let playerInvincible = false;
 let damageVignette = null;
 
 // Helper function to calculate invincibility duration based on END (maxPlayerHealth)
-// 4 END = 960ms -> 240ms per point
+// Currently fixed
+// Legacy: 4 END = 960ms -> 240ms per point
 function getInvincibilityDuration() {
-    return maxPlayerHealth * 240;
+    return 960; //maxPlayerHealth * 240;
 }
 
 // Helper function to calculate flash repeats based on END
-// 4 END = 8 repeats -> 2 repeats per point
+// Currently fixed
+// Legacy: 4 END = 8 repeats -> 2 repeats per point
 function getFlashRepeats() {
-    return Math.max(1, Math.floor(maxPlayerHealth * 2));
+    return 8; //Math.max(1, Math.floor(maxPlayerHealth * 2));
 }
 
 // Initialize the player hit system
@@ -179,8 +181,8 @@ function makePlayerInvincible(scene) {
     // half as many repeats to match the invincibility duration exactly.
     scene.tweens.add({
         targets: proxy,
-        scale: 1.3,
-        alpha: 0.2,
+        scale: 1.4,
+        alpha: 0.1,
         duration: duration / repeats,
         yoyo: true,
         repeat: Math.floor(repeats / 2) - 1,
@@ -189,11 +191,17 @@ function makePlayerInvincible(scene) {
         }
     });
 
+    // Loop indefinitely; skip position update while paused so the repeat count
+    // doesn't burn down during pause. Self-terminates when proxy is destroyed.
     const followTimer = scene.time.addEvent({
         delay: 8,
-        repeat: Math.ceil(duration / 8) + 1,
+        loop: true,
         callback: function () {
-            if (proxy.active && player.active) {
+            if (!proxy.active) {
+                followTimer.remove();
+                return;
+            }
+            if (!gamePaused && player.active) {
                 proxy.x = player.x;
                 proxy.y = player.y;
             }

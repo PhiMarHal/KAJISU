@@ -686,11 +686,11 @@ DropperPerkRegistry.registerDropperPerk('CANNONBALL', {
             damageMultiplier: 8.0,
             damageInterval: 400,
             colliderSize: 1.0,
-            lifespan: 8000,
+            lifespan: 16000,
             health: 999999999, // Indestructible during lifespan
         };
     },
-    cooldown: 40000,
+    cooldown: 80000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
     positionMode: 'random',

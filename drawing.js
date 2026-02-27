@@ -493,7 +493,7 @@ const KanjiDrawingSystem = {
         const endDist = Phaser.Math.Distance.BetweenPoints(drawnEnd, targetEnd);
         const endpointError = Math.max(startDist, endDist);
 
-        // DEMO TESTING: 10x all 3
+        // DEMO TESTING: 10x all 3. Maybe tune this
         const corridorTolerance = 300;
         const endpointTolerance = 500;
         const hardMaxDeviation = 600;
@@ -764,6 +764,10 @@ const KanjiDrawingSystem = {
     },
 
     destroy: function () {
+        if (this.challengeTimer) {
+            CooldownManager.removeTimer(this.challengeTimer);
+            this.challengeTimer = null;
+        }
         if (this.challengeTimer) {
             CooldownManager.removeTimer(this.challengeTimer);
             this.challengeTimer = null;

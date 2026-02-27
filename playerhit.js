@@ -179,8 +179,8 @@ function makePlayerInvincible(scene) {
     // half as many repeats to match the invincibility duration exactly.
     scene.tweens.add({
         targets: proxy,
-        scale: 1.3,
-        alpha: 0.2,
+        scale: 1.4,
+        alpha: 0.1,
         duration: duration / repeats,
         yoyo: true,
         repeat: Math.floor(repeats / 2) - 1,
@@ -189,11 +189,17 @@ function makePlayerInvincible(scene) {
         }
     });
 
+    // Loop indefinitely; skip position update while paused so the repeat count
+    // doesn't burn down during pause. Self-terminates when proxy is destroyed.
     const followTimer = scene.time.addEvent({
         delay: 8,
-        repeat: Math.ceil(duration / 8) + 1,
+        loop: true,
         callback: function () {
-            if (proxy.active && player.active) {
+            if (!proxy.active) {
+                followTimer.remove();
+                return;
+            }
+            if (!gamePaused && player.active) {
                 proxy.x = player.x;
                 proxy.y = player.y;
             }

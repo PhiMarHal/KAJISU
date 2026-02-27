@@ -371,53 +371,34 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
     },
 
     update: function (player) {
-        // Get current time and calculate delta time in seconds
         const scene = game.scene.scenes[0];
-        const currentTime = GameClock.now();
-        const deltaTime = (currentTime - this.lastUpdateTime) / 1000; // Convert to seconds
-        this.lastUpdateTime = currentTime;
+        if (!scene) return;
 
-        // Skip if delta time is unreasonably large (e.g., after tab switching)
-        if (deltaTime > 0.5) return;
-
-        // Check player movement via InputSystem (works with deterministic movement)
         const movement = InputSystem.getCurrentMovement();
-        const isPlayerMoving = movement.isMoving;
+        const isMoving = movement.isMoving;
 
-        // Calculate the rate of change
-        const maxTimeSeconds = 160 / playerLuck;
-        const changeRate = deltaTime / maxTimeSeconds;
+        // One tick is one FIXED_TIMESTEP. No wall-clock time needed.
+        // number of seconds to ramp up and down fully
+        const changeRate = GameClock.FIXED_TIMESTEP / 4000;
 
-        if (isPlayerMoving) {
-            // Player is moving - increase accumulator
+        if (isMoving) {
             this.accumulator = Math.min(1.0, this.accumulator + changeRate);
         } else {
-            // Player stopped moving - decrease accumulator at same rate
             this.accumulator = Math.max(0.0, this.accumulator - changeRate);
         }
 
-        // Calculate new multiplier based on current accumulator
         const newMultiplier = 1.0 + (this.accumulator * (this.maxMultiplier - 1.0));
 
-        // Update if there's a meaningful change
         if (Math.abs(this.currentMultiplier - newMultiplier) > 0.01) {
             this.currentMultiplier = newMultiplier;
 
-            // Remove our previous contribution
             archerMultiplier -= this.archerContribution;
-
-            // Calculate our new contribution (currentMultiplier - 1.0 gives us the bonus)
             this.archerContribution = this.currentMultiplier - 1.0;
-
-            // Add our new contribution
             archerMultiplier += this.archerContribution;
 
-            // Update the projectile firer with new delay
             this.updateProjectileFiringRate(scene);
 
-            // Update particle timer frequency based on multiplier
             if (this.particleTimer) {
-                // Adjust delay - faster particles at higher multiplier
                 const newDelay = Math.max(50, 150 - (this.currentMultiplier - 1.0) * 100);
 
                 if (Math.abs(this.particleTimer.delay - newDelay) > 10) {
@@ -430,7 +411,6 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
                     });
                 }
 
-                // Control timer based on whether we have any bonus
                 if (this.currentMultiplier > 1.01) {
                     if (this.particleTimer.paused) {
                         this.particleTimer.paused = false;
@@ -443,11 +423,8 @@ PlayerComponentSystem.registerComponent('eternalRhythmState', {
             }
         }
 
-        // Visual effect when reaching full speed
         if (!this.isActive && this.accumulator >= 0.99) {
             this.isActive = true;
-
-            // Create burst effect when reaching max speed
             for (let i = 0; i < 15; i++) {
                 this.createParticle();
             }

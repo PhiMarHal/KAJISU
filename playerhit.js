@@ -7,15 +7,17 @@ let playerInvincible = false;
 let damageVignette = null;
 
 // Helper function to calculate invincibility duration based on END (maxPlayerHealth)
-// 4 END = 960ms -> 240ms per point
+// Currently fixed
+// Legacy: 4 END = 960ms -> 240ms per point
 function getInvincibilityDuration() {
-    return maxPlayerHealth * 240;
+    return 960; //maxPlayerHealth * 240;
 }
 
 // Helper function to calculate flash repeats based on END
-// 4 END = 8 repeats -> 2 repeats per point
+// Currently fixed
+// Legacy: 4 END = 8 repeats -> 2 repeats per point
 function getFlashRepeats() {
-    return Math.max(1, Math.floor(maxPlayerHealth * 2));
+    return 8; //Math.max(1, Math.floor(maxPlayerHealth * 2));
 }
 
 // Initialize the player hit system

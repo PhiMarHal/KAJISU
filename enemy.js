@@ -600,8 +600,10 @@ const EnemySystem = {
 
     // Move all enemies deterministically - call from simulateTick
     moveEnemies: function (dt) {
-        const timeScale = window.TimeDilationSystem?.gameplayTimeScale ?? 1;
-        const delta = dt * timeScale;
+        // Use raw dt — enemySpeedFactor already encodes the intended slowdown
+        // during time dilation. Applying gameplayTimeScale here caused enemies
+        // to move at 12.5% speed instead of the intended 25%.
+        const delta = dt;
 
         this.enemiesGroup.getChildren().forEach(enemy => {
             if (!enemy || !enemy.active || !enemy.body) return;

@@ -385,20 +385,21 @@ window.TimeDilationSystem = {
     setExitTimer: function (scene, duration) {
         // Clear existing exit timer if any
         if (this.exitTimer) {
-            this.exitTimer.remove();
+            CooldownManager.removeTimer(this.exitTimer);
             this.exitTimer = null;
         }
 
-        // Set timer to exit slow motion after duration - create a real-time timer
-        const realTimeDuration = duration / this.currentTimeScale;
-        this.exitTimer = scene.time.addEvent({
-            delay: realTimeDuration,
+        // Use CooldownManager so the timer fires on a tick boundary, not a
+        // render frame. This keeps exitSlowMotion deterministic across replays.
+        this.exitTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: duration,
+            formula: 'fixed',
             callback: () => { this.exitSlowMotion(scene); },
-            callbackScope: this
+            callbackScope: this,
+            loop: false,
+            isPerkEffect: false
         });
-
-        // Register for cleanup
-        registerTimer(this.exitTimer);
     },
 
     // Display visual effect (optional)

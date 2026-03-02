@@ -775,6 +775,7 @@ PlayerComponentSystem.registerComponent('godHammerAbility', {
 });
 
 // Function to drop the God Hammer on enemies
+// We use a proxy visual to avoid demo desyncs
 function dropGodHammer(options = {}) {
     // Extract options with defaults
     const {
@@ -808,24 +809,22 @@ function dropGodHammer(options = {}) {
     // Select a random enemy to target from the filtered list
     const targetEnemy = SeededRNG.pick(activeEnemies, 'effect');
 
-    // Create the hammer at a position above the enemy
-    const hammerX = targetEnemy.x;
-    const hammerY = targetEnemy.y - 300;
+    const scene = this;
 
-    // Create the hammer object using the kanji for "hammer": 鎚
-    const hammer = this.add.text(hammerX, hammerY, '鎚', {
+    // Place the real hammer invisibly at the target position immediately.
+    // No collision is registered yet — damage only applies after landing.
+    const hammer = scene.add.text(targetEnemy.x, targetEnemy.y, '鎚', {
         fontFamily: 'Arial',
         fontSize: '96px',
         color: '#FFD700',
         stroke: '#000000',
         strokeThickness: 4
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setAlpha(0);
 
     // Add physics body for collision detection
-    this.physics.world.enable(hammer);
-    hammer.body.setSize(hammer.width * 1, hammer.height * 1);
+    scene.physics.world.enable(hammer);
+    hammer.body.setSize(hammer.width, hammer.height);
 
-    // Set properties for the hammer
     // Damage was playerDamage * 10 -> (Effective + Luck) * 5
     hammer.damage = (getEffectiveDamage() + playerLuck) * 5;
     hammer.damageSourceId = 'godHammer';
@@ -833,35 +832,68 @@ function dropGodHammer(options = {}) {
     // Register entity for cleanup
     window.registerEffect('entity', hammer);
 
-    // Register overlap with enemies via CollisionRegistry for deterministic checking
-    const scene = this;
-    CollisionRegistry.register({
-        objectA: hammer,
-        objectB: EnemySystem.enemiesGroup,
-        callback: function (hammerObj, enemy) {
-            applyContactDamage.call(scene, hammerObj, enemy, hammerObj.damage);
-        },
-        scope: scene
-    });
+    // Visual-only proxy: falls from above to the target position.
+    // Has no physics body — purely cosmetic.
+    const proxy = scene.add.text(targetEnemy.x, targetEnemy.y - 300, '鎚', {
+        fontFamily: 'Arial',
+        fontSize: '96px',
+        color: '#FFD700',
+        stroke: '#000000',
+        strokeThickness: 4
+    }).setOrigin(0.5);
 
-    // Add falling animation
-    this.tweens.add({
-        targets: hammer,
+    scene.tweens.add({
+        targets: proxy,
         y: targetEnemy.y,
         duration: 500,
         ease: 'Bounce.easeOut',
         onComplete: function () {
-            // Fade out and remove the hammer after a short delay
-            this.parent.scene.tweens.add({
-                targets: hammer,
+            // Fade out the proxy after landing
+            scene.tweens.add({
+                targets: proxy,
                 alpha: 0,
                 duration: 500,
                 delay: 500,
                 onComplete: function () {
-                    hammer.destroy();
+                    if (proxy.active) proxy.destroy();
                 }
             });
         }
+    });
+
+    // Register collision only after the hammer has visually landed (500ms fall).
+    // This matches the original behavior: damage applies on impact, not before.
+    CooldownManager.createTimer({
+        statName: null,
+        baseCooldown: 500,
+        formula: 'fixed',
+        callback: function () {
+            if (!hammer.active) return;
+
+            const collisionId = CollisionRegistry.register({
+                objectA: hammer,
+                objectB: EnemySystem.enemiesGroup,
+                callback: function (hammerObj, enemy) {
+                    applyContactDamage.call(scene, hammerObj, enemy, hammerObj.damage);
+                },
+                scope: scene
+            });
+
+            // Unregister after one tick — hammer hits once, then is done
+            CooldownManager.createTimer({
+                statName: null,
+                baseCooldown: GameClock.FIXED_TIMESTEP,
+                formula: 'fixed',
+                callback: function () {
+                    CollisionRegistry.unregister(collisionId);
+                    if (hammer.active) hammer.destroy();
+                },
+                callbackScope: null,
+                loop: false
+            });
+        },
+        callbackScope: null,
+        loop: false
     });
 }
 

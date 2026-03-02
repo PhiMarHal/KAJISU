@@ -780,19 +780,16 @@ OnHitEffectSystem.registerComponent('angerRisingEffect', {
 
     // Start the decay timer with fixed interval
     startDecayTimer: function () {
-        const scene = game.scene.scenes[0];
-        if (!scene) return;
-
-        // Create a timer that decreases rage over time with fixed interval
-        this.decayTimer = scene.time.addEvent({
-            delay: this.decayInterval,
+        // Use CooldownManager so decay steps land on tick boundaries,
+        // keeping berserkMultiplier changes deterministic across replays.
+        this.decayTimer = CooldownManager.createTimer({
+            statName: null,
+            baseCooldown: this.decayInterval,
+            formula: 'fixed',
             callback: this.decayRage,
             callbackScope: this,
             loop: true
         });
-
-        // Register for cleanup
-        window.registerEffect('timer', this.decayTimer);
     },
 
     // Decrease rage by one step
@@ -887,7 +884,7 @@ OnHitEffectSystem.registerComponent('angerRisingEffect', {
     cleanup: function () {
         // Remove decay timer if it exists
         if (this.decayTimer) {
-            this.decayTimer.remove();
+            CooldownManager.removeTimer(this.decayTimer);
             this.decayTimer = null;
         }
 

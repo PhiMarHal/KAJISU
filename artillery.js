@@ -413,6 +413,7 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
 
 // Enhanced createPersistentEffect that uses canvas textures for better performance
 function createPersistentEffect(scene, x, y, config = {}) {
+
     // Default configuration
     const defaults = {
         symbol: '火', // Default is fire kanji
@@ -470,7 +471,6 @@ function createPersistentEffect(scene, x, y, config = {}) {
         formula: 'fixed',
         callback: function () {
             if (!effect.active) return;
-
             // Apply damage to overlapping enemies
             scene.physics.overlap(effect, EnemySystem.enemiesGroup, (effectObj, enemy) => {
                 applyContactDamage.call(
@@ -486,6 +486,20 @@ function createPersistentEffect(scene, x, y, config = {}) {
         loop: true
     });
 
+    // Lifespan timer — deterministic cleanup on a tick boundary instead of tween onComplete
+    CooldownManager.createTimer({
+        statName: null,
+        baseCooldown: effectConfig.duration,
+        formula: 'fixed',
+        callback: function () {
+            CooldownManager.removeTimer(damageTimer);
+            if (pulseTween) pulseTween.stop();
+            if (effect.active) effect.destroy();
+        },
+        callbackScope: scene,
+        loop: false
+    });
+
     // Add visual effects
     let pulseTween = null;
     if (effectConfig.pulsing) {
@@ -498,18 +512,12 @@ function createPersistentEffect(scene, x, y, config = {}) {
         });
     }
 
-    // Fade out over duration
-    const fadeTween = scene.tweens.add({
+    // Fade out over duration — purely cosmetic, no gameplay side effects
+    scene.tweens.add({
         targets: effect,
         alpha: { from: effectConfig.alpha, to: 0 },
         duration: effectConfig.duration,
-        delay: 100,
-        onComplete: function () {
-            // Cleanup when fade completes
-            CooldownManager.removeTimer(damageTimer);
-            if (pulseTween) pulseTween.stop();
-            effect.destroy();
-        }
+        delay: 100
     });
 
     // Initial spawn animation
@@ -641,9 +649,9 @@ ProjectileComponentSystem.registerComponent('magmaDropEffect', {
     initialize: function (projectile) {
         // Visual indicator for the projectile itself
         ProjectileComponentSystem.setProjectileColor(projectile, '#FF6600', projectile.scene);
-        this.magmaDamage = playerDamage; // Full damage for magma
+        this.magmaDamage = (getEffectiveDamage() + playerLuck) * 1;
         this.magmaDuration = playerLuck * 1000; // Duration scales with luck
-        this.magmaTickInterval = 1000; // 1 second between ticks
+        this.magmaTickInterval = 500; // 1 second between ticks
     },
 
     onHit: function (projectile, enemy, scene) {

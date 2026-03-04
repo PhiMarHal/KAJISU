@@ -110,8 +110,8 @@ DropperPerkRegistry.registerDropperPerk('MAGMA_FLOOR', {
             fontSize: 64, // Very large size as requested
             behaviorType: 'persistent', // Persistent type to stay and deal damage
             // Damage: (Effective + Luck) * 0.5
-            damage: (getEffectiveDamage() + playerLuck) * 0.5,
-            damageInterval: 1000, // 1 second between damage applications
+            damage: (getEffectiveDamage() + playerLuck),
+            damageInterval: 500, // 1 second between damage applications
             // Lifespan: sqrt(playerLuck), target 4s at 4 LUK -> sqrt(4)*X=4000 -> 2*X=4000 -> X=2000
             lifespan: Math.sqrt(playerLuck) * 2000,
             options: {

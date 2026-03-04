@@ -184,7 +184,7 @@ const WeaponSystem = {
     // Fire the current weapon
     // Comment this out for quick testing of side perks!
     fireWeapon: function (scene) {
-        /*
+
         // Find the closest enemy
         distance = (Math.sqrt(playerFireRate / BASE_STATS.AGI)) * 400;
         const closestEnemy = this.findClosestEnemy(scene, distance);
@@ -195,12 +195,12 @@ const WeaponSystem = {
                 player.x, player.y,
                 closestEnemy.x, closestEnemy.y
             );
-            
+
             // Fire projectile based on active weapon type
             if (this.activeWeaponType === 'BASIC_PROJECTILE') {
                 this.fireBasicProjectile(scene, angle);
             }
-        }*/
+        }
     },
 
     // Fire a basic projectile

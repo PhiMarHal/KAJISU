@@ -146,7 +146,7 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
         ProjectileComponentSystem.setProjectileColor(projectile, '#FF9500', projectile.scene); // Orange color for explosive feel
 
         // Set default properties
-        this.damageMultiplier = 1; // 100% of player damage in AOE
+        this.damageMultiplier = 0.5; // 50% of player damage in AOE
         this.radiusMultiplier = 80; // 80 * sqrt luck
         this.falloffMultiplier = 0; // No falloff by default
 
@@ -163,7 +163,7 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
         projectile.effectTriggered = true;
 
         // Set default values if not initialized (for dropper entities)
-        const damageMultiplier = this.damageMultiplier ?? 1;
+        const damageMultiplier = this.damageMultiplier ?? 0.5;
         const radiusMultiplier = this.radiusMultiplier ?? 80;
         const falloffMultiplier = this.falloffMultiplier ?? 0;
         const radius = this.radius ?? (radiusMultiplier * Math.sqrt(playerLuck / BASE_STATS.LUK));
@@ -177,7 +177,7 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
         this.createExplosionEffect(hitX, hitY, scene, radius);
 
         // Calculate damage amount
-        const explosionDamage = playerDamage * damageMultiplier;
+        const explosionDamage = (getEffectiveDamage() + playerLuck) * 0.5 * damageMultiplier;
 
         // Get all active enemies
         const allEnemies = EnemySystem.enemiesGroup.getChildren();
@@ -293,7 +293,7 @@ ProjectileComponentSystem.registerComponent('poisonEffect', {
     onHit: function (projectile, enemy, scene) {
         if (enemy.health > 0) {
             // Check if projectile.damage is undefined and falling back somehow
-            const damageToUse = projectile.damage !== undefined ? projectile.damage : playerDamage;
+            const damageToUse = projectile.damage !== undefined ? projectile.damage : (getEffectiveDamage() + playerLuck) * 0.5;
             // Use the extracted function
             applyPoisonEffect(scene, enemy, damageToUse);
         }
@@ -399,11 +399,11 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
                     scene,
                     {
                         damageSourceId: damageId, // Using local variable
-                        damage: playerDamage,
+                        damage: (getEffectiveDamage() + playerLuck) * 0.5,
                         active: true // Adding active: true property
                     },
                     enemy,
-                    playerDamage,
+                    (getEffectiveDamage() + playerLuck) * 0.5,
                     0 // No cooldown needed
                 );
             }
@@ -419,7 +419,7 @@ function createPersistentEffect(scene, x, y, config = {}) {
         symbol: '火', // Default is fire kanji
         color: '#FF4500', // Default is orange-red
         fontSize: '24px', // Default size
-        damage: playerDamage / 10, // Default damage
+        damage: (getEffectiveDamage() + playerLuck) * 0.5, // Default damage
         tickInterval: 200, // Default interval between damage ticks (ms)
         duration: 4000, // Default duration (ms)
         pulsing: true, // Whether to add pulsing animation
@@ -561,7 +561,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
     initialize: function (projectile) {
         // Visual indicator for the projectile itself
         ProjectileComponentSystem.setProjectileColor(projectile, '#FF4500', projectile.scene);
-        this.fireDamage = playerDamage / (8 * Math.sqrt(playerLuck / BASE_STATS.LUK)); // Scales with luck!
+        this.fireDamage = (getEffectiveDamage() + playerLuck) * 0.5;
         this.fireDuration = 4000; // 4s default duration
         this.fireTickInterval = 200; // 0.2 seconds default tick interval
 
@@ -850,10 +850,10 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
 ProjectileComponentSystem.registerComponent('stasisEffect', {
     initialize: function (projectile) {
         // Store base damage using getEffectiveDamage()
-        this.baseDamage = getEffectiveDamage();
+        this.baseDamage = (getEffectiveDamage() + playerLuck) * 1;
 
-        // Apply configurable damage multiplier (defaults to 1.5 for backwards compatibility)
-        const damageMultiplier = this.damageMultiplier ?? 1.5;
+        // Apply configurable damage multiplier (defaults to 1 for backwards compatibility)
+        const damageMultiplier = this.damageMultiplier ?? 1;
         projectile.damage = this.baseDamage * damageMultiplier;
 
         // Update projectile size to reflect the new damage

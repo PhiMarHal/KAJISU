@@ -3,7 +3,7 @@
 // Enemy-related global variables
 let enemySpeedFactor = 1.0;           // Global modifier for enemy speed
 let currentEnemyRank = 1;             // Current highest enemy rank
-let currentEnemyHealth = 40;          // Current base enemy health value
+let currentEnemyHealth = 20;          // Current base enemy health value
 
 // Boss state tracking
 let bossMode = false;
@@ -13,7 +13,7 @@ let bossSpawned = false;
 // Add difficulty configuration arrays at the top of enemy.js
 const DIFFICULTY_CONFIG = {
     baseDelays: [8000, 6000, 4000, 2000], // Index corresponds to difficulty level (1-4)
-    minDelays: [800, 600, 400, 400]
+    minDelays: [800, 600, 400, 200]
 };
 
 // Supplementary spawn configuration - fills in when enemy count is too low
@@ -49,34 +49,34 @@ const baseRankConfigs = {
         startTime: 0,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1],
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1],
-        scaleMinutes: 16
+        scaleMinutes: 8
     },
     2: {
-        startTime: 7 * 60,
+        startTime: 3 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 2,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 2,
-        scaleMinutes: 16
+        scaleMinutes: 8
     },
     3: {
-        startTime: 11 * 60,
+        startTime: 6 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 4,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 4,
-        scaleMinutes: 16
+        scaleMinutes: 8
     },
     4: {
-        startTime: 14 * 60,
+        startTime: 9 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 4,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 5,
-        scaleMinutes: 16
+        scaleMinutes: 8
     },
     5: {
-        startTime: 30 * 60,
+        startTime: 12 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 5,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 7.5,
         scaleMinutes: 8
     },
     6: {
-        startTime: 36 * 60,
+        startTime: 20 * 60,
         baseDelay: (difficulty) => DIFFICULTY_CONFIG.baseDelays[difficulty - 1] * 6,
         minDelay: (difficulty) => DIFFICULTY_CONFIG.minDelays[difficulty - 1] * 10,
         scaleMinutes: 8

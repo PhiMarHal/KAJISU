@@ -37,7 +37,7 @@ const KanjiDrawingSystem = {
 
     // Configuration
     config: {
-        challengeInterval: 180000,
+        challengeInterval: 150000, // 2:30
         maxAttemptsPerStroke: 2,
         strokeMatchTolerance: 400,
         kanjiSize: 109,

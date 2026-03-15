@@ -17,8 +17,8 @@ function getDifficultySpeedRange(difficulty) {
 // Get difficulty-based boss configuration
 function getDifficultyBossConfig(difficulty) {
     return {
-        max_rank: 4,
-        health_multiplier: Math.pow(2, difficulty - 1), // 1, 2, 4, 8
+        max_rank: 5,
+        health_multiplier: Math.pow(2, difficulty - 1), // 1,2,4,8
         speed: 20 + (difficulty * 20) // 40, 60, 80, 100
     };
 }
@@ -109,7 +109,7 @@ let ENEMY_TIER_ASSIGNMENTS = {
 };
 
 // Initialize enemy tier assignments
-function initializeEnemyTiers(tierCounts = { 1: 4, 2: 4, 3: 4, 4: 1, 5: 1, 6: 1 }) {
+function initializeEnemyTiers(tierCounts = { 1: 4, 2: 4, 3: 4, 4: 4, 5: 1, 6: 1 }) {
     // Reset assignments
     ENEMY_TIER_ASSIGNMENTS = {
         1: [], 2: [], 3: [], 4: [], 5: [], 6: []

@@ -29,12 +29,12 @@ const SUPPLEMENTARY_SPAWN_CONFIG = {
 
     // Get the minimum enemy threshold (based on minutes elapsed)
     getMinEnemyThreshold: function () {
-        return Math.floor(elapsedTime / 60); // Minutes elapsed
+        return Math.floor(2 * (elapsedTime / 60)); // Minutes elapsed * 2
     },
 
     // Get the number of enemies to spawn when below threshold
     getSpawnCount: function () {
-        return Math.floor(elapsedTime / 60); // Minutes elapsed (separate variable for future flexibility)
+        return Math.floor(2 * (elapsedTime / 60)); // Minutes elapsed * 2
     }
 };
 

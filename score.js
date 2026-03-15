@@ -2,7 +2,7 @@
 
 // global variables
 let scoreUpdateTimer = null;
-let versionBonus = 8;
+let versionBonus = 10;
 let victoryBonus = 3;
 
 // Get current difficulty level (1-4)

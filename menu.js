@@ -210,7 +210,7 @@ const UI = {
             color: '#FFFFFF'
         },
         timer: {
-            size: function () { return `${UI.rel.fontSize(4)}px`; },
+            size: function () { return `${UI.rel.fontSize(3.6)}px`; },
             family: 'Arial',
             color: '#FFFFFF'
         },

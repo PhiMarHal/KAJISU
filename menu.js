@@ -35,13 +35,13 @@ const UI = {
 
     // Player HP bar — left of timer, 20% wide, segments fill right-to-left (last HP nearest timer)
     playerHpBar: {
-        barWidth: function () { return UI.rel.width(15); },
-        height: function () { return UI.rel.width(1.5); },
-        borderWidth: 3,
-        innerMargin: 4,
-        segmentGap: function () { return Math.max(2, UI.rel.width(0.35)); },
+        barWidth: function () { return UI.rel.width(25); },
+        height: function () { return UI.rel.width(0.8); },
+        borderWidth: 2,
+        innerMargin: 2,
+        segmentGap: function () { return Math.max(2, UI.rel.width(0.4)); },
         y: function () { return UI.statusDisplay.timerY(); },
-        rightEdge: function () { return UI.rel.x(50) - UI.statusDisplay.timerWidth() / 2 - 4; },
+        rightEdge: function () { return UI.rel.x(50) - UI.statusDisplay.timerWidth() / 2 - 16; },
         leftEdge: function () { return this.rightEdge() - this.barWidth(); },
         width: function () { return this.barWidth(); },
         centerX: function () { return (this.leftEdge() + this.rightEdge()) / 2; },
@@ -61,12 +61,12 @@ const UI = {
 
     // EXP bar — right of timer, symmetrical with HP bar (20% wide), thinner
     expBar: {
-        barWidth: function () { return UI.rel.width(15); },
-        height: function () { return UI.rel.width(0.9); },
-        borderWidth: 3,
+        barWidth: function () { return UI.rel.width(25); },
+        height: function () { return UI.rel.width(0.6); },
+        borderWidth: 2,
         innerMargin: 2,
         y: function () { return UI.statusDisplay.timerY(); },
-        leftEdge: function () { return UI.rel.x(50) + UI.statusDisplay.timerWidth() / 2 + 4; },
+        leftEdge: function () { return UI.rel.x(50) + UI.statusDisplay.timerWidth() / 2 + 16; },
         rightEdge: function () { return this.leftEdge() + this.barWidth(); },
         width: function () { return this.barWidth(); },
         centerX: function () { return this.leftEdge() + this.width() / 2; },
@@ -76,7 +76,7 @@ const UI = {
     // Timer — front and center
     statusDisplay: {
         timerY: function () { return UI.rel.y(5); },
-        timerWidth: function () { return UI.rel.width(15); },
+        timerWidth: function () { return UI.rel.width(8); },
         timerHeight: function () { return UI.buttons.common.size(); },
         centerX: function () { return UI.rel.x(50); },
         borderWidth: 2,
@@ -92,23 +92,25 @@ const UI = {
 
     // Level display — centered below timer with flanking gold bars
     levelDisplay: {
-        y: function () { return UI.rel.y(11.5); },
+        y: function () { return UI.rel.y(10); },
         centerX: function () { return UI.rel.x(50); },
         barGap: function () { return UI.rel.width(1.2); },
         chevronHalfH: function () { return UI.rel.height(1.8); },
-        chevronDepth: function () { return UI.rel.height(1.8) * 0.6; },
+        chevronDepth: function () { return UI.rel.height(1.8) * 0.8; },
     },
 
-    // Stat display — 4 badges in a row, centered on screen
+    // Stat display — 4 open-chevron badges: ‹‹‹ number ›››  (like level display but 3 rings)
     statDisplay: {
-        y: function () { return UI.rel.y(15.5); },
-        badgeWidth: function () { return UI.rel.height(8.5); },
-        badgeHeight: function () { return UI.rel.height(5); },
-        badgeSpacing: function () { return UI.rel.width(3.5); },
+        y: function () { return UI.rel.y(15); },
+        chevronHH: function () { return UI.rel.height(2.2); },   // arm half-height
+        chevronDepth: function () { return UI.rel.height(2.8) * 0.8; },// horizontal depth of tip
+        ringGap: 4,       // px between concentric rings
+        innerPad: function () { return UI.rel.width(0.8); },       // space between innermost ring and number
+        badgeSpacing: function () { return UI.rel.width(6); },   // center-to-center spacing
         centerX: function () { return UI.rel.x(50); },
-        outerBorder: 4,
-        innerBorder: 2,
-        colorBorder: 2,
+        outerBorder: 2,
+        innerBorder: 1,
+        colorBorder: 1,
         symbols: {
             POW: "力",
             AGI: "速",
@@ -543,7 +545,7 @@ const StatusDisplay = {
         const y = UI.statusDisplay.timerY();
         const timerW = UI.statusDisplay.timerWidth();
         const timerH = UI.statusDisplay.timerHeight();
-        const arrowDepth = timerH * 0.18;
+        const arrowDepth = timerH * 0.38;
         const bw = 4; // border thickness
 
         // Draw: black background rect + only the < and > chevron borders
@@ -653,8 +655,8 @@ const LevelDisplay = {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// Stat Display — 4 badges in a row, centered
-// Borders outside→in: thick gold → thin gold → stat color → black
+// Stat Display — open < number > style per stat, 3 concentric chevron rings each side
+// Identical drawing technique to timer and level chevrons.
 // ─────────────────────────────────────────────────────────────────
 const StatDisplay = {
     create: function (scene) {
@@ -662,37 +664,33 @@ const StatDisplay = {
 
         if (scene.statHexagons) {
             scene.statHexagons.forEach(item => {
-                if (item.graphics) item.graphics.destroy();
-                if (item.hexagon) item.hexagon.destroy();
-                if (item.symbolText) item.symbolText.destroy();
+                if (item.gLeft) item.gLeft.destroy();
+                if (item.gRight) item.gRight.destroy();
                 if (item.valueText) item.valueText.destroy();
             });
         }
         scene.statHexagons = [];
 
         const stats = [
-            { key: 'POW', color: UI.statDisplay.fillColors.POW },
-            { key: 'AGI', color: UI.statDisplay.fillColors.AGI },
-            { key: 'LUK', color: UI.statDisplay.fillColors.LUK },
-            { key: 'END', color: UI.statDisplay.fillColors.END },
+            { key: 'POW', hexColor: UI.statDisplay.fillColors.POW },
+            { key: 'AGI', hexColor: UI.statDisplay.fillColors.AGI },
+            { key: 'LUK', hexColor: UI.statDisplay.fillColors.LUK },
+            { key: 'END', hexColor: UI.statDisplay.fillColors.END },
         ];
 
-        const badgeW = UI.statDisplay.badgeWidth();
-        const badgeH = UI.statDisplay.badgeHeight();
         const spacing = UI.statDisplay.badgeSpacing();
         const y = UI.statDisplay.y();
         const cx = UI.statDisplay.centerX();
-
-        // Total row width, centered on screen
-        const totalW = stats.length * badgeW + (stats.length - 1) * spacing;
-        const startX = cx - totalW / 2 + badgeW / 2;
+        const total = stats.length;
+        // Center the row: position badges symmetrically around cx
+        const startX = cx - (total - 1) / 2 * spacing;
 
         stats.forEach((stat, index) => {
-            const x = startX + index * (badgeW + spacing);
+            const x = startX + index * spacing;
 
-            const g = scene.add.graphics();
-            this._drawChevronBadge(g, x, y, badgeW, badgeH, stat.color);
-            g.setDepth(UI.depth.ui);
+            const gLeft = scene.add.graphics().setDepth(UI.depth.ui);
+            const gRight = scene.add.graphics().setDepth(UI.depth.ui);
+            this._drawOpenChevrons(gLeft, gRight, x, y, stat.hexColor);
 
             const valueText = scene.add.text(x, y, '0', {
                 fontFamily: UI.fonts.statValue.family,
@@ -701,55 +699,57 @@ const StatDisplay = {
                 fontStyle: 'bold'
             }).setOrigin(0.5).setDepth(UI.depth.ui + 1);
 
-            scene.statHexagons.push({ graphics: g, valueText, key: stat.key });
+            scene.statHexagons.push({ gLeft, gRight, valueText, key: stat.key });
         });
 
         this.update(scene);
     },
 
-    // Build 4 points of a diamond centered at cx,cy with full width w and height h
-    _diamond: function (cx, cy, w, h) {
-        return [
-            { x: cx - w / 2, y: cy },
-            { x: cx, y: cy - h / 2 },
-            { x: cx + w / 2, y: cy },
-            { x: cx, y: cy + h / 2 },
+    // Draw the 3-ring open left-chevron and right-chevron for one stat badge.
+    // Each ring: beginPath / moveTo / lineTo / lineTo / strokePath — exactly like the timer.
+    _drawOpenChevrons: function (gL, gR, cx, cy, statColor) {
+        const hh = UI.statDisplay.chevronHH();
+        const d = UI.statDisplay.chevronDepth();
+        const rg = UI.statDisplay.ringGap;
+        const pad = UI.statDisplay.innerPad();
+
+        // Ring offsets: ring 0 = outer gold (outerBorder width), ring 1 = stat color, ring 2 = inner gold
+        const rings = [
+            { bw: UI.statDisplay.outerBorder, color: UI.colors.gold },
+            { bw: UI.statDisplay.colorBorder, color: statColor },
+            { bw: UI.statDisplay.innerBorder, color: UI.colors.gold },
         ];
-    },
 
-    _strokeDiamond: function (g, cx, cy, w, h) {
-        const pts = this._diamond(cx, cy, w, h);
-        g.beginPath();
-        g.moveTo(pts[0].x, pts[0].y);
-        g.lineTo(pts[1].x, pts[1].y);
-        g.lineTo(pts[2].x, pts[2].y);
-        g.lineTo(pts[3].x, pts[3].y);
-        g.closePath();
-        g.strokePath();
-    },
+        rings.forEach((ring, i) => {
+            const shrink = i * rg;
+            const rHH = hh - shrink;
+            const rD = d - shrink;
+            if (rHH <= 0 || rD <= 0) return;
 
-    // 3 concentric diamond borders: thick gold (outer) → thin stat color → thin gold (inner)
-    // Scale factors 1.0 / 0.68 / 0.36 give equal visible pixel gaps on all four edges.
-    _drawChevronBadge: function (g, cx, cy, w, h, statColor) {
-        const outerBw = UI.statDisplay.outerBorder; // 4
-        const colBw = UI.statDisplay.colorBorder; // 2
-        const innerBw = UI.statDisplay.innerBorder; // 2
+            // Left < chevron — tip points left, base (open end) faces the number
+            const lx = cx - pad - d;   // tip x of outermost ring, shifted by ring offset
+            const ltip = lx + shrink;  // this ring's tip
+            const lbase = ltip + rD;   // this ring's base x
 
-        // Subtle dark fill so text stays readable
-        g.fillStyle(UI.colors.black, 0.55);
-        g.fillPoints(this._diamond(cx, cy, w, h), true);
+            gL.lineStyle(ring.bw, ring.color, 1);
+            gL.beginPath();
+            gL.moveTo(lbase, cy - rHH);
+            gL.lineTo(ltip, cy);
+            gL.lineTo(lbase, cy + rHH);
+            gL.strokePath();
 
-        // Border 1 — thick outer gold
-        g.lineStyle(outerBw, UI.colors.gold, 1);
-        this._strokeDiamond(g, cx, cy, w, h);
+            // Right > chevron — mirrored
+            const rx = cx + pad + d;
+            const rtip = rx - shrink;
+            const rbase = rtip - rD;
 
-        // Border 2 — thin stat color, 68% size
-        g.lineStyle(colBw, statColor, 1);
-        this._strokeDiamond(g, cx, cy, w * 0.68, h * 0.68);
-
-        // Border 3 — thin inner gold, 36% size
-        g.lineStyle(innerBw, UI.colors.gold, 1);
-        this._strokeDiamond(g, cx, cy, w * 0.36, h * 0.36);
+            gR.lineStyle(ring.bw, ring.color, 1);
+            gR.beginPath();
+            gR.moveTo(rbase, cy - rHH);
+            gR.lineTo(rtip, cy);
+            gR.lineTo(rbase, cy + rHH);
+            gR.strokePath();
+        });
     },
 
     update: function (scene) {
@@ -768,120 +768,53 @@ const StatDisplay = {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// Button Display — delegates to UnifiedButtonManager
+// Button Display — delegates entirely to UnifiedButtonManager.
+// menu.js creates NO buttons of its own; all button logic lives in help.js.
+// createButton kept with original object-signature for pause.js compat.
 // ─────────────────────────────────────────────────────────────────
 const ButtonDisplay = {
     create: function (scene) {
         UI.game.init(scene);
-        // Destroy any buttons UnifiedButtonManager may have created previously
         if (window.UnifiedButtonManager) {
-            window.UnifiedButtonManager.destroyAllButtons(scene);
+            window.UnifiedButtonManager.createAllButtons(scene);
         }
-        this.createLegacyButtons(scene);
+        // If UnifiedButtonManager is absent, buttons are simply not created here —
+        // they will be created by whatever system owns them.
     },
 
-    createLegacyButtons: function (scene) {
-        const hexSize = UI.buttons.common.size() * 1.32;
-
-        const makeBtn = (type, visible) => {
-            const cfg = UI.buttons[type];
-            const x = cfg.x(), y = cfg.y();
-            const symbol = (type === 'music' && window.MusicSystem && !window.MusicSystem.musicEnabled)
-                ? cfg.mutedSymbol : cfg.symbol;
-
-            const hex = createHexagon(scene, x, y, hexSize, 0x000000, 0.5);
-            hex.setDepth(2001);
-            hex.setVisible(visible);
-
-            const txt = scene.add.text(x, y, symbol, {
-                fontFamily: 'Arial',
-                fontSize: `${cfg.fontSize()}px`,
-                color: '#ffffff',
-                fontStyle: 'bold'
-            }).setOrigin(0.5).setDepth(2001);
-            txt.setVisible(visible);
-
-            const hitRadius = hexSize * 0.8;
-            hex.setInteractive(new Phaser.Geom.Circle(0, 0, hitRadius), Phaser.Geom.Circle.Contains, { useHandCursor: true });
-            hex.on('pointerover', function () { txt.setColor('#ffff00'); txt.setScale(1.1); });
-            hex.on('pointerout', function () { txt.setColor('#ffffff'); txt.setScale(1); });
-
-            scene[`${type}Hexagon`] = hex;
-            scene[`${type}ButtonText`] = txt;
-
-            return {
-                hexagon: hex, text: txt,
-                setVisible: function (v) { hex.setVisible(v); txt.setVisible(v); },
-                destroy: function () { if (hex) hex.destroy(); if (txt) txt.destroy(); }
-            };
-        };
-
-        const pauseBtn = makeBtn('pause', true);
-        pauseBtn.hexagon.on('pointerdown', function () {
-            if (!gameOver) { gamePaused ? PauseSystem.resumeGame() : PauseSystem.pauseGameWithOverlay(); }
-        });
-
-        // Help button occupies same position as pause; hidden by default
-        const helpBtn = makeBtn('help', false);
-        helpBtn.hexagon.on('pointerdown', function () {
-            if (window.HelpSystem) HelpSystem.showHelp(scene);
-        });
-
-        const musicBtn = makeBtn('music', !window.FARCADE_MODE);
-        musicBtn.hexagon.on('pointerdown', function () {
-            if (window.MusicSystem) {
-                const newState = !window.MusicSystem.musicEnabled;
-                window.MusicSystem.setMusicEnabled(newState);
-                const symbol = newState ? UI.buttons.music.symbol : UI.buttons.music.mutedSymbol;
-                musicBtn.text.setText(symbol);
-            }
-        });
-
-        // Sync refs into UnifiedButtonManager so ButtonStateManager can show/hide them
-        if (window.UnifiedButtonManager) {
-            window.UnifiedButtonManager.buttons.pause = pauseBtn;
-            window.UnifiedButtonManager.buttons.help = helpBtn;
-            window.UnifiedButtonManager.buttons.music = musicBtn;
-        }
-    },
-
-    createButton: function (scene, buttonType, onClickCallback, options = {}) {
+    // Called by pause.js / other systems with the original (scene, buttonConfig, cb, opts) signature.
+    createButton: function (scene, buttonConfig, onClickCallback, options = {}) {
         UI.game.init(scene);
-        const buttonConfig = UI.buttons[buttonType];
-        if (!buttonConfig) {
-            console.error(`Unknown button type: ${buttonType}`);
-            return null;
-        }
+        if (!buttonConfig || typeof buttonConfig !== 'object') return null;
+
         const defaults = {
             depth: 1002,
             visible: true,
             size: buttonConfig.size ? buttonConfig.size() : UI.buttons.common.size() * 1.32
         };
         const config = { ...defaults, ...options };
+        const x = typeof buttonConfig.x === 'function' ? buttonConfig.x() : 0;
+        const y = typeof buttonConfig.y === 'function' ? buttonConfig.y() : 0;
 
-        const hexagon = createHexagon(scene, buttonConfig.x(), buttonConfig.y(), config.size, 0x000000, 0.5);
+        const hexagon = createHexagon(scene, x, y, config.size, 0x000000, 0.5);
         hexagon.setDepth(config.depth - 1);
         hexagon.setVisible(config.visible);
 
-        const buttonText = scene.add.text(buttonConfig.x(), buttonConfig.y(), buttonConfig.symbol, {
-            fontFamily: 'Arial',
-            fontSize: `${buttonConfig.fontSize()}px`,
-            color: '#ffffff',
-            fontStyle: 'bold'
+        const symbol = buttonConfig.symbol || '';
+        const fs = typeof buttonConfig.fontSize === 'function' ? buttonConfig.fontSize() : 24;
+        const buttonText = scene.add.text(x, y, symbol, {
+            fontFamily: 'Arial', fontSize: `${fs}px`, color: '#ffffff', fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(config.depth);
         buttonText.setVisible(config.visible);
 
-        const hitAreaRadius = config.size * 0.8;
-        hexagon.setInteractive(new Phaser.Geom.Circle(0, 0, hitAreaRadius), Phaser.Geom.Circle.Contains, { useHandCursor: true });
-
+        hexagon.setInteractive(new Phaser.Geom.Circle(0, 0, config.size * 0.8), Phaser.Geom.Circle.Contains, { useHandCursor: true });
         hexagon.on('pointerover', function () { buttonText.setColor('#ffff00'); buttonText.setScale(1.1); });
         hexagon.on('pointerout', function () { buttonText.setColor('#ffffff'); buttonText.setScale(1); });
         if (onClickCallback) hexagon.on('pointerdown', onClickCallback);
 
         return {
-            hexagon: hexagon,
-            text: buttonText,
-            setVisible: function (visible) { hexagon.setVisible(visible); buttonText.setVisible(visible); },
+            hexagon, text: buttonText,
+            setVisible: function (v) { hexagon.setVisible(v); buttonText.setVisible(v); },
             destroy: function () { if (hexagon) hexagon.destroy(); if (buttonText) buttonText.destroy(); }
         };
     },
@@ -889,21 +822,6 @@ const ButtonDisplay = {
     update: function (scene) {
         if (window.UnifiedButtonManager && window.UnifiedButtonManager.buttons) {
             window.UnifiedButtonManager.updateButtonPositions(scene);
-            return;
-        }
-
-        const pauseConfig = UI.buttons.pause;
-        const musicConfig = UI.buttons.music;
-
-        if (scene.pauseHexagon && scene.pauseButtonText) {
-            scene.pauseHexagon.x = pauseConfig.x();
-            scene.pauseHexagon.y = pauseConfig.y();
-            scene.pauseButtonText.setPosition(pauseConfig.x(), pauseConfig.y());
-        }
-        if (scene.musicHexagon && scene.musicButtonText) {
-            scene.musicHexagon.x = musicConfig.x();
-            scene.musicHexagon.y = musicConfig.y();
-            scene.musicButtonText.setPosition(musicConfig.x(), musicConfig.y());
         }
     }
 };

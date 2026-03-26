@@ -271,8 +271,10 @@ const HealthBar = {
         const innerMargin = UI.playerHpBar.innerMargin;
         const y = UI.playerHpBar.y();
 
-        // Draw 3-sided gold border only — NO background fill so game shows through
+        // Semi-transparent background (matches timer style)
         scene.healthBarBg = scene.add.graphics();
+        scene.healthBarBg.fillStyle(UI.colors.black, 0.5);
+        scene.healthBarBg.fillRect(leftEdge, y - height / 2, width, height);
         scene.healthBarBg.lineStyle(bw, UI.colors.gold, 1);
         scene.healthBarBg.beginPath(); scene.healthBarBg.moveTo(leftEdge, y - height / 2); scene.healthBarBg.lineTo(rightEdge, y - height / 2); scene.healthBarBg.strokePath();
         scene.healthBarBg.beginPath(); scene.healthBarBg.moveTo(leftEdge, y + height / 2); scene.healthBarBg.lineTo(rightEdge, y + height / 2); scene.healthBarBg.strokePath();
@@ -361,8 +363,10 @@ const ExpBar = {
         const innerMargin = UI.expBar.innerMargin;
         const y = UI.expBar.y();
 
-        // 3-sided gold border only — NO background fill
+        // Semi-transparent background (matches timer style)
         scene.expBarBg = scene.add.graphics();
+        scene.expBarBg.fillStyle(UI.colors.black, 0.5);
+        scene.expBarBg.fillRect(leftEdge, y - outerHeight / 2, outerWidth, outerHeight);
         scene.expBarBg.lineStyle(bw, UI.colors.gold, 1);
         scene.expBarBg.beginPath(); scene.expBarBg.moveTo(leftEdge, y - outerHeight / 2); scene.expBarBg.lineTo(rightEdge, y - outerHeight / 2); scene.expBarBg.strokePath();
         scene.expBarBg.beginPath(); scene.expBarBg.moveTo(leftEdge, y + outerHeight / 2); scene.expBarBg.lineTo(rightEdge, y + outerHeight / 2); scene.expBarBg.strokePath();
@@ -446,11 +450,24 @@ const LevelDisplay = {
         if (scene.levelText) scene.levelText.destroy();
         if (scene.levelBarLeft) scene.levelBarLeft.destroy();
         if (scene.levelBarRight) scene.levelBarRight.destroy();
+        if (scene.levelBg) scene.levelBg.destroy();
 
         scene.levelText = scene.add.text(
             UI.levelDisplay.centerX(), UI.levelDisplay.y(), `${playerLevel}`,
             { fontFamily: UI.fonts.levelLabel.family, fontSize: UI.fonts.levelLabel.size(), color: UI.fonts.levelLabel.color, fontStyle: 'bold' }
         ).setOrigin(0.5).setDepth(UI.depth.ui + 1);
+
+        // Semi-transparent background behind level row (drawn before chevrons and text)
+        const lvlBg = scene.add.graphics().setDepth(UI.depth.ui - 1);
+        const lvlPadX = UI.levelDisplay.chevronDepth() + UI.rel.width(2);
+        const lvlPadY = UI.levelDisplay.chevronHalfH() + UI.rel.height(0.5);
+        lvlBg.fillStyle(UI.colors.black, 0.5);
+        lvlBg.fillRect(
+            UI.levelDisplay.centerX() - lvlPadX,
+            UI.levelDisplay.y() - lvlPadY,
+            lvlPadX * 2, lvlPadY * 2
+        );
+        scene.levelBg = lvlBg;
 
         scene.levelBarLeft = scene.add.graphics().setDepth(UI.depth.ui);
         scene.levelBarRight = scene.add.graphics().setDepth(UI.depth.ui);
@@ -494,6 +511,8 @@ const StatDisplay = {
             scene.statHexagons.forEach(item => {
                 if (item.gLeft) item.gLeft.destroy();
                 if (item.gRight) item.gRight.destroy();
+                if (item.bgGfx) item.bgGfx.destroy();
+                if (item.hitZone) item.hitZone.destroy();
                 if (item.valueText) item.valueText.destroy();
             });
         }
@@ -526,12 +545,38 @@ const StatDisplay = {
             const gRight = scene.add.graphics().setDepth(UI.depth.ui);
             this._drawOpenChevrons(gLeft, gRight, x, y, stat.hexColor);
 
+            // Semi-transparent background behind each stat badge
+            const hh = UI.statDisplay.chevronHH();
+            const d = UI.statDisplay.chevronDepth();
+            const pad = UI.statDisplay.innerPad();
+            const bgW = (d + pad) * 2 + UI.rel.width(3); // span left tip to right tip + text width
+            const bgH = hh * 2 + UI.rel.height(0.4);
+            const bgGfx = scene.add.graphics().setDepth(UI.depth.ui - 1);
+            bgGfx.fillStyle(UI.colors.black, 0.5);
+            bgGfx.fillRect(x - bgW / 2, y - bgH / 2, bgW, bgH);
+
             const valueText = scene.add.text(x, y, '0', {
                 fontFamily: UI.fonts.statValue.family, fontSize: UI.fonts.statValue.size(),
                 color: UI.fonts.statValue.color, fontStyle: 'bold'
             }).setOrigin(0.5).setDepth(UI.depth.ui + 1);
 
-            scene.statHexagons.push({ gLeft, gRight, valueText, key: stat.key });
+            // Invisible hit zone for tooltip interaction
+            const hitZone = scene.add.rectangle(x, y, bgW, bgH, 0x000000, 0)
+                .setDepth(UI.depth.ui + 2)
+                .setInteractive({ useHandCursor: true });
+
+            hitZone.getBounds = function () {
+                return new Phaser.Geom.Rectangle(x - bgW / 2, y - bgH / 2, bgW, bgH);
+            };
+
+            hitZone.on('pointerover', function () { valueText.setScale(1.1); });
+            hitZone.on('pointerout', function () { valueText.setScale(1); });
+
+            if (window.StatTooltipSystem) {
+                StatTooltipSystem.addStatHoverInteraction(scene, hitZone, stat.key, {});
+            }
+
+            scene.statHexagons.push({ gLeft, gRight, bgGfx, hitZone, valueText, key: stat.key });
         });
 
         this.update(scene);

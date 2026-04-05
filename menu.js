@@ -90,24 +90,18 @@ const UI = {
 
     // Level — below timer, same row as stats
     levelDisplay: {
-        y: function () { return UI.rel.y(10); },
+        y: function () { return UI.rel.y(10) + 16; },
         centerX: function () { return UI.rel.x(50); },
         barGap: function () { return UI.rel.width(1.2); },
-        chevronHalfH: function () { return UI.rel.height(1.8); },
-        chevronDepth: function () { return UI.rel.height(1.8) * 0.8; },
+        chevronHalfH: function () { return UI.rel.height(1.8 * 1.2); },
+        chevronDepth: function () { return UI.rel.height(1.8 * 1.2) * 0.8; },
     },
 
     // Stats — 2+2 under HP bar and EXP bar
     statDisplay: {
-        y: function () { return UI.statusDisplay.timerY() + UI.buttons.common.size() / 2 + UI.rel.height(2.5); },
+        y: function () { return UI.statusDisplay.timerY() + UI.buttons.common.size() / 2 + UI.rel.height(2.5) + 16; },
         pairHalfSpacing: function () { return UI.rel.width(5); },
-        chevronHH: function () { return UI.rel.height(2.2); },
-        chevronDepth: function () { return UI.rel.height(2.8) * 0.8; },
-        ringGap: 4,
-        innerPad: function () { return UI.rel.width(0.8); },
-        outerBorder: 2,
-        innerBorder: 1,
-        colorBorder: 1,
+        badgeSize: function () { return UI.rel.height(4.5 * 1.4); },
         symbols: { POW: "力", AGI: "速", LUK: "運", END: "耐" },
         symbolColors: { POW: "#cc0000", AGI: "#0088ff", LUK: "#aa55cc", END: "#00aa00" },
         fillColors: { POW: 0xcc0000, AGI: 0x0088ff, LUK: 0xaa55cc, END: 0x00aa00 },
@@ -163,8 +157,8 @@ const UI = {
         kills: { size: function () { return `${UI.rel.fontSize(2.25)}px`; }, family: 'Arial', color: '#FFFFFF' },
         hpCount: { size: function () { return `${UI.rel.fontSize(3)}px`; }, family: 'Arial', color: '#FFD700' },
         xpCount: { size: function () { return `${UI.rel.fontSize(3)}px`; }, family: 'Arial', color: '#00ffff' },
-        levelLabel: { size: function () { return `${UI.rel.fontSize(3.125)}px`; }, family: 'Arial', color: '#FFD700' },
-        statValue: { size: function () { return `${UI.rel.fontSize(2.5)}px`; }, family: 'Arial', color: '#FFFFFF' }
+        levelLabel: { size: function () { return `${UI.rel.fontSize(3.125 * 1.2)}px`; }, family: 'Arial', color: '#FFD700' },
+        statValue: { size: function () { return `${UI.rel.fontSize(3)}px`; }, family: 'Arial', color: '#FFFFFF' }
     }
 };
 
@@ -240,12 +234,12 @@ function createHexagon(scene, x, y, size, fillColor = 0x000000, fillAlpha = 1.0,
         graphics.beginPath(); graphics.moveTo(points[1].x, points[1].y); graphics.lineTo(points[2].x, points[2].y); graphics.strokePath();
         graphics.beginPath(); graphics.moveTo(points[2].x, points[2].y); graphics.lineTo(points[3].x, points[3].y); graphics.strokePath();
     } else {
-        // Left side [4]→[5] and top-left [5]→[0]
+        // Left side [4]→[5] and bottom-left [3]→[4]
         graphics.beginPath(); graphics.moveTo(points[4].x, points[4].y); graphics.lineTo(points[5].x, points[5].y); graphics.strokePath();
-        graphics.beginPath(); graphics.moveTo(points[5].x, points[5].y); graphics.lineTo(points[0].x, points[0].y); graphics.strokePath();
-        // Right side [1]→[2] and bottom-right [2]→[3]
+        graphics.beginPath(); graphics.moveTo(points[3].x, points[3].y); graphics.lineTo(points[4].x, points[4].y); graphics.strokePath();
+        // Right side [1]→[2] and top-right [0]→[1]
         graphics.beginPath(); graphics.moveTo(points[1].x, points[1].y); graphics.lineTo(points[2].x, points[2].y); graphics.strokePath();
-        graphics.beginPath(); graphics.moveTo(points[2].x, points[2].y); graphics.lineTo(points[3].x, points[3].y); graphics.strokePath();
+        graphics.beginPath(); graphics.moveTo(points[0].x, points[0].y); graphics.lineTo(points[1].x, points[1].y); graphics.strokePath();
     }
 
     return graphics;
@@ -500,18 +494,15 @@ const LevelDisplay = {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// Stat Display — 2+2 open chevrons (‹ N ›) style
+// Stat Display — partial hexagon badges (same style as pause/music buttons)
 // POW + AGI under HP bar   |   LUK + END under EXP bar
-// 3 concentric chevron rings per stat, touching (ringGap=2)
 // ─────────────────────────────────────────────────────────────────
 const StatDisplay = {
     create: function (scene) {
         UI.game.init(scene);
         if (scene.statHexagons) {
             scene.statHexagons.forEach(item => {
-                if (item.gLeft) item.gLeft.destroy();
-                if (item.gRight) item.gRight.destroy();
-                if (item.bgGfx) item.bgGfx.destroy();
+                if (item.g) item.g.destroy();
                 if (item.hitZone) item.hitZone.destroy();
                 if (item.valueText) item.valueText.destroy();
             });
@@ -528,7 +519,6 @@ const StatDisplay = {
         const y = UI.statDisplay.y();
         const hps = UI.statDisplay.pairHalfSpacing();
 
-        // Anchor each pair to the center of its bar
         const hpCX = UI.playerHpBar.centerX();
         const expCX = UI.expBar.centerX();
 
@@ -541,88 +531,103 @@ const StatDisplay = {
 
         stats.forEach((stat, index) => {
             const x = xPositions[index];
-            const gLeft = scene.add.graphics().setDepth(UI.depth.ui);
-            const gRight = scene.add.graphics().setDepth(UI.depth.ui);
-            this._drawOpenChevrons(gLeft, gRight, x, y, stat.hexColor);
+            const size = UI.statDisplay.badgeSize();
+            const hw = size * 0.85 / 2;  // half hex width
+            const hh = size * 0.866 / 2; // half hex height
 
-            // Semi-transparent background behind each stat badge
-            const hh = UI.statDisplay.chevronHH();
-            const d = UI.statDisplay.chevronDepth();
-            const pad = UI.statDisplay.innerPad();
-            const bgW = (d + pad) * 2 + UI.rel.width(3); // span left tip to right tip + text width
-            const bgH = hh * 2 + UI.rel.height(0.4);
-            const bgGfx = scene.add.graphics().setDepth(UI.depth.ui - 1);
-            bgGfx.fillStyle(UI.colors.black, 0.5);
-            bgGfx.fillRect(x - bgW / 2, y - bgH / 2, bgW, bgH);
+            const g = scene.add.graphics().setDepth(UI.depth.ui);
+            this._drawStatHexagon(g, x, y, size, stat.hexColor);
 
             const valueText = scene.add.text(x, y, '0', {
                 fontFamily: UI.fonts.statValue.family, fontSize: UI.fonts.statValue.size(),
                 color: UI.fonts.statValue.color, fontStyle: 'bold'
             }).setOrigin(0.5).setDepth(UI.depth.ui + 1);
 
-            // Invisible hit zone for tooltip interaction
-            const hitZone = scene.add.rectangle(x, y, bgW, bgH, 0x000000, 0)
+            // Hit zone spans the full hexagon for tooltip
+            const hitW = hw * 2 + 4;
+            const hitH = hh * 2 + 4;
+            const hitZone = scene.add.rectangle(x, y, hitW, hitH, 0x000000, 0)
                 .setDepth(UI.depth.ui + 2)
                 .setInteractive({ useHandCursor: true });
 
             hitZone.getBounds = function () {
-                return new Phaser.Geom.Rectangle(x - bgW / 2, y - bgH / 2, bgW, bgH);
+                return new Phaser.Geom.Rectangle(x - hitW / 2, y - hitH / 2, hitW, hitH);
             };
 
             hitZone.on('pointerover', function () {
-                valueText.setScale(1.1);
                 if (window.StatTooltipSystem) {
-                    // isKajisuli=true forces x = screenWidth/2 (centered).
-                    // targetY is passed through calculateTooltipPosition which adds cardHeight/2 + 20,
-                    // so the top of the card lands at roughly levelDisplay.y() + chevronHalfH + 40.
                     const tooltipY = UI.levelDisplay.y() + UI.levelDisplay.chevronHalfH() + 40;
                     StatTooltipSystem.showTooltip(scene, stat.key, UI.statusDisplay.centerX(), tooltipY, null, true, false);
                 }
             });
             hitZone.on('pointerout', function () {
-                valueText.setScale(1);
                 if (window.StatTooltipSystem) StatTooltipSystem.hideTooltip();
             });
 
-            scene.statHexagons.push({ gLeft, gRight, bgGfx, hitZone, valueText, key: stat.key });
+            scene.statHexagons.push({ g, hitZone, valueText, key: stat.key });
         });
 
         this.update(scene);
     },
 
-    // Draws 3 open chevron rings per side using the same technique as the timer borders:
-    // lineStyle → beginPath → moveTo → lineTo → lineTo → strokePath (no fill, no polygons).
-    // Rings shrink by ringGap each step so they sit touching with no black space between.
-    _drawOpenChevrons: function (gL, gR, cx, cy, statColor) {
-        const hh = UI.statDisplay.chevronHH();
-        const d = UI.statDisplay.chevronDepth();
-        const rg = UI.statDisplay.ringGap;
-        const pad = UI.statDisplay.innerPad();
+    // Draw partial hexagon (4 sides, same as pause/music buttons) + colored inner half-lines.
+    // Points layout (flat-top hexagon):
+    //   [0] top, [1] top-right, [2] bottom-right, [3] bottom, [4] bottom-left, [5] top-left
+    // 4 drawn sides: left [4→5], top-left [5→0], right [1→2], bottom-right [2→3]
+    // Colored inner lines: same thickness, half length, offset 1 lineWidth inward via CCW perpendicular.
+    _drawStatHexagon: function (g, cx, cy, size, statColor) {
+        const hexW = size * 0.85;
+        const hexH = size * 0.866;
+        const bw = 3; // line width, matches createHexagon
 
-        const rings = [
-            { bw: UI.statDisplay.outerBorder, color: UI.colors.gold },
-            { bw: UI.statDisplay.colorBorder, color: statColor },
-            { bw: UI.statDisplay.innerBorder, color: UI.colors.gold },
+        const p = [
+            { x: cx, y: cy - hexH / 2 }, // [0] top
+            { x: cx + hexW / 2, y: cy - hexH / 4 }, // [1] top-right
+            { x: cx + hexW / 2, y: cy + hexH / 4 }, // [2] bottom-right
+            { x: cx, y: cy + hexH / 2 }, // [3] bottom
+            { x: cx - hexW / 2, y: cy + hexH / 4 }, // [4] bottom-left
+            { x: cx - hexW / 2, y: cy - hexH / 4 }, // [5] top-left
         ];
 
-        rings.forEach((ring, i) => {
-            const shrink = i * rg;
-            const rHH = hh - shrink;
-            const rD = d - shrink;
-            if (rHH <= 0 || rD <= 0) return;
+        // Fill (same alpha as buttons)
+        g.fillStyle(UI.colors.black, 0.5);
+        g.fillPoints(p, true);
 
-            // Left < : tip points left, open end faces number
-            const ltip = cx - pad - d + shrink;
-            const lbase = ltip + rD;
-            gL.lineStyle(ring.bw, ring.color, 1);
-            gL.beginPath(); gL.moveTo(lbase, cy - rHH); gL.lineTo(ltip, cy); gL.lineTo(lbase, cy + rHH); gL.strokePath();
+        // Gold 4-side border
+        g.lineStyle(bw, UI.colors.gold, 1);
+        g.beginPath(); g.moveTo(p[4].x, p[4].y); g.lineTo(p[5].x, p[5].y); g.strokePath(); // left
+        g.beginPath(); g.moveTo(p[3].x, p[3].y); g.lineTo(p[4].x, p[4].y); g.strokePath(); // bottom-left
+        g.beginPath(); g.moveTo(p[1].x, p[1].y); g.lineTo(p[2].x, p[2].y); g.strokePath(); // right
+        g.beginPath(); g.moveTo(p[0].x, p[0].y); g.lineTo(p[1].x, p[1].y); g.strokePath(); // top-right
 
-            // Right > : mirrored
-            const rtip = cx + pad + d - shrink;
-            const rbase = rtip - rD;
-            gR.lineStyle(ring.bw, ring.color, 1);
-            gR.beginPath(); gR.moveTo(rbase, cy - rHH); gR.lineTo(rtip, cy); gR.lineTo(rbase, cy + rHH); gR.strokePath();
-        });
+        // Colored inner corner-lines at the shared corner of each pair.
+        // Left and bottom-left share corner at p[4]; right and top-right share corner at p[1].
+        g.lineStyle(bw, statColor, 1);
+        this._innerCorner(g, p[4], p[5], false, bw); // left:        corner end = p[4]
+        this._innerCorner(g, p[3], p[4], true, bw); // bottom-left: corner end = p[4]
+        this._innerCorner(g, p[1], p[2], false, bw); // right:       corner end = p[1]
+        this._innerCorner(g, p[0], p[1], true, bw); // top-right:   corner end = p[1]
+    },
+
+    // Draw 3/4-length line at the CORNER END of segment p1→p2, offset inward by `inset` px.
+    // cornerAtEnd=true  → draw from 1/4 point to p2 (corner is p2)
+    // cornerAtEnd=false → draw from p1 to 3/4 point (corner is p1)
+    // Inward offset = CCW perpendicular of the direction vector (toward hex center for all 4 sides).
+    _innerCorner: function (g, p1, p2, cornerAtEnd, inset) {
+        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) return;
+        const nx = -dy / len * inset;
+        const ny = dx / len * inset;
+        g.beginPath();
+        if (cornerAtEnd) {
+            g.moveTo(p1.x + dx / 4 + nx, p1.y + dy / 4 + ny);
+            g.lineTo(p2.x + nx, p2.y + ny);
+        } else {
+            g.moveTo(p1.x + nx, p1.y + ny);
+            g.lineTo(p1.x + dx * 3 / 4 + nx, p1.y + dy * 3 / 4 + ny);
+        }
+        g.strokePath();
     },
 
     update: function (scene) {

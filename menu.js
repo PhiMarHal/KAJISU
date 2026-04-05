@@ -569,12 +569,20 @@ const StatDisplay = {
                 return new Phaser.Geom.Rectangle(x - bgW / 2, y - bgH / 2, bgW, bgH);
             };
 
-            hitZone.on('pointerover', function () { valueText.setScale(1.1); });
-            hitZone.on('pointerout', function () { valueText.setScale(1); });
-
-            if (window.StatTooltipSystem) {
-                StatTooltipSystem.addStatHoverInteraction(scene, hitZone, stat.key, {});
-            }
+            hitZone.on('pointerover', function () {
+                valueText.setScale(1.1);
+                if (window.StatTooltipSystem) {
+                    // isKajisuli=true forces x = screenWidth/2 (centered).
+                    // targetY is passed through calculateTooltipPosition which adds cardHeight/2 + 20,
+                    // so the top of the card lands at roughly levelDisplay.y() + chevronHalfH + 40.
+                    const tooltipY = UI.levelDisplay.y() + UI.levelDisplay.chevronHalfH() + 40;
+                    StatTooltipSystem.showTooltip(scene, stat.key, UI.statusDisplay.centerX(), tooltipY, null, true, false);
+                }
+            });
+            hitZone.on('pointerout', function () {
+                valueText.setScale(1);
+                if (window.StatTooltipSystem) StatTooltipSystem.hideTooltip();
+            });
 
             scene.statHexagons.push({ gLeft, gRight, bgGfx, hitZone, valueText, key: stat.key });
         });

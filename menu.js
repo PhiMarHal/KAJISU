@@ -34,13 +34,13 @@ const UI = {
 
     // HP bar — left of timer, open right side
     playerHpBar: {
-        barWidth: function () { return UI.rel.width(25); },
-        height: function () { return UI.rel.width(0.8); },
+        barWidth: function () { return UI.kajisuli.enabled() ? UI.rel.width(32) : UI.rel.width(25); },
+        height: function () { return UI.kajisuli.enabled() ? UI.rel.height(1.1) : UI.rel.width(0.8); },
         borderWidth: 2,
         innerMargin: 2,
         segmentGap: function () { return Math.max(2, UI.rel.width(0.4)); },
         y: function () { return UI.statusDisplay.timerY(); },
-        rightEdge: function () { return UI.rel.x(50) - UI.statusDisplay.timerWidth() / 2 - 16; },
+        rightEdge: function () { return UI.rel.x(50) - UI.statusDisplay.timerWidth() / 2 - UI.statusDisplay.barGap(); },
         leftEdge: function () { return this.rightEdge() - this.barWidth(); },
         width: function () { return this.barWidth(); },
         centerX: function () { return (this.leftEdge() + this.rightEdge()) / 2; },
@@ -60,12 +60,12 @@ const UI = {
 
     // EXP bar — right of timer, open left side
     expBar: {
-        barWidth: function () { return UI.rel.width(25); },
-        height: function () { return UI.rel.width(0.6); },
+        barWidth: function () { return UI.kajisuli.enabled() ? UI.rel.width(32) : UI.rel.width(25); },
+        height: function () { return UI.kajisuli.enabled() ? UI.rel.height(0.85) : UI.rel.width(0.6); },
         borderWidth: 2,
         innerMargin: 2,
         y: function () { return UI.statusDisplay.timerY(); },
-        leftEdge: function () { return UI.rel.x(50) + UI.statusDisplay.timerWidth() / 2 + 16; },
+        leftEdge: function () { return UI.rel.x(50) + UI.statusDisplay.timerWidth() / 2 + UI.statusDisplay.barGap(); },
         rightEdge: function () { return this.leftEdge() + this.barWidth(); },
         width: function () { return this.barWidth(); },
         centerX: function () { return this.leftEdge() + this.width() / 2; },
@@ -75,8 +75,17 @@ const UI = {
     // Timer — center
     statusDisplay: {
         timerY: function () { return UI.rel.y(5); },
-        timerWidth: function () { return UI.rel.width(8); },
+        timerWidth: function () { return UI.kajisuli.enabled() ? UI.rel.width(16) : UI.rel.width(8); },
         timerHeight: function () { return UI.buttons.common.size(); },
+        arrowDepth: function () { return UI.statusDisplay.timerHeight() * 0.38; },
+        barGap: function () { return UI.statusDisplay.arrowDepth(); },
+        // arrowDepth: how far the < > chevron tips protrude from the timer rectangle.
+        // In portrait we push them further out for breathing room; barGap MUST equal this
+        // so the tip lands exactly at the bar's open edge.
+        arrowDepth: function () {
+            return UI.statusDisplay.timerHeight() * 0.38;
+        },
+        barGap: function () { return UI.statusDisplay.arrowDepth(); },
         centerX: function () { return UI.rel.x(50); },
         borderWidth: 2,
         x: function () { return UI.rel.x(1.33); },
@@ -93,15 +102,23 @@ const UI = {
         y: function () { return UI.rel.y(10) + 16; },
         centerX: function () { return UI.rel.x(50); },
         barGap: function () { return UI.rel.width(1.2); },
-        chevronHalfH: function () { return UI.rel.height(1.8 * 1.2); },
-        chevronDepth: function () { return UI.rel.height(1.8 * 1.2) * 0.8; },
+        chevronHalfH: function () {
+            return UI.kajisuli.enabled()
+                ? UI.rel.height(1.8 * 1.2 * 0.8)
+                : UI.rel.height(1.8 * 1.2);
+        },
+        chevronDepth: function () {
+            return UI.kajisuli.enabled()
+                ? UI.rel.height(1.8 * 1.2 * 0.8) * 0.8
+                : UI.rel.height(1.8 * 1.2) * 0.8;
+        },
     },
 
     // Stats — 2+2 under HP bar and EXP bar
     statDisplay: {
         y: function () { return UI.statusDisplay.timerY() + UI.buttons.common.size() / 2 + UI.rel.height(2.5) + 16; },
         pairHalfSpacing: function () { return UI.rel.width(5); },
-        badgeSize: function () { return UI.rel.height(4.5 * 1.4); },
+        badgeSize: function () { return UI.kajisuli.enabled() ? UI.rel.height(4.5 * 1.4 * 0.8) : UI.rel.height(4.5 * 1.4); },
         symbols: { POW: "力", AGI: "速", LUK: "運", END: "耐" },
         symbolColors: { POW: "#cc0000", AGI: "#0088ff", LUK: "#aa55cc", END: "#00aa00" },
         fillColors: { POW: 0xcc0000, AGI: 0x0088ff, LUK: 0xaa55cc, END: 0x00aa00 },
@@ -157,7 +174,7 @@ const UI = {
         kills: { size: function () { return `${UI.rel.fontSize(2.25)}px`; }, family: 'Arial', color: '#FFFFFF' },
         hpCount: { size: function () { return `${UI.rel.fontSize(3)}px`; }, family: 'Arial', color: '#FFD700' },
         xpCount: { size: function () { return `${UI.rel.fontSize(3)}px`; }, family: 'Arial', color: '#00ffff' },
-        levelLabel: { size: function () { return `${UI.rel.fontSize(3.125 * 1.2)}px`; }, family: 'Arial', color: '#FFD700' },
+        levelLabel: { size: function () { return `${UI.rel.fontSize(UI.kajisuli.enabled() ? 3.125 * 1.2 * 0.8 : 3.125 * 1.2)}px`; }, family: 'Arial', color: '#FFD700' },
         statValue: { size: function () { return `${UI.rel.fontSize(3)}px`; }, family: 'Arial', color: '#FFFFFF' }
     }
 };
@@ -410,7 +427,7 @@ const StatusDisplay = {
         const y = UI.statusDisplay.timerY();
         const timerW = UI.statusDisplay.timerWidth();
         const timerH = UI.statusDisplay.timerHeight();
-        const arrowD = timerH * 0.38;
+        const arrowD = UI.statusDisplay.arrowDepth();
         const bw = 4;
 
         const g = scene.add.graphics();
@@ -522,12 +539,12 @@ const StatDisplay = {
         const hpCX = UI.playerHpBar.centerX();
         const expCX = UI.expBar.centerX();
 
-        const xPositions = [
-            hpCX - hps,  // POW
-            hpCX + hps,  // AGI
-            expCX - hps,  // LUK
-            expCX + hps,  // END
-        ];
+        // Portrait: spread evenly across full screen width.
+        // Landscape: anchor each pair under the center of its bar.
+        const isPortrait = UI.kajisuli.enabled();
+        const xPositions = isPortrait
+            ? [UI.rel.x(100 / 6), UI.rel.x(200 / 6), UI.rel.x(400 / 6), UI.rel.x(500 / 6)]
+            : [hpCX - hps, hpCX + hps, expCX - hps, expCX + hps];
 
         stats.forEach((stat, index) => {
             const x = xPositions[index];

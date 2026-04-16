@@ -1533,6 +1533,18 @@ const PERKS = {
             window.activateMeteor();
         }
     },
+    "REPLICATE": {
+        kanji: "分身",
+        kana: "ぶんしん",
+        romaji: "bunshin",
+        english: "Replicate",
+        description: "Familiars that each spawn one more familiar",
+        color: "#AA55FF",
+        hoverColor: 0x8833DD,
+        onAcquire: function () {
+            window.activateReplicate();
+        }
+    },
     "EXPLODING_BELLY": {
         kanji: "爆腹",
         kana: "ばくはら",

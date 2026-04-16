@@ -21,6 +21,22 @@ const EntityFiringBehaviors = {
         return false;
     },
 
+    replicate: function (scene, entity, time, maxDistance) {
+        // Spawn one replicant, then shut off this entity's firing timer so
+        // it never fires again. The drop reference is attached to the entity
+        // at spawn time so we can find it here.
+        const drop = entity._replicantDrop;
+        if (!drop) return false;
+
+        window.spawnReplicant(scene, entity.x, entity.y);
+
+        if (drop.effectTimer) {
+            CooldownManager.removeTimer(drop.effectTimer);
+            drop.effectTimer = null;
+        }
+        return true;
+    },
+
     copy: function (scene, entity, time, maxDistance = 400) {
         // Damage was playerDamage * 0.5 -> (Effective + Luck) * 0.25
         const damage = (getEffectiveDamage() + playerLuck) * 0.25;

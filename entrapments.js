@@ -1085,5 +1085,127 @@ window.activateTwinStrike = function () {
     PlayerComponentSystem.addComponent('twinStrikeAbility');
 };
 
+// Register the Replicate perk
+DropperPerkRegistry.registerDropperPerk('REPLICATE', {
+    getConfig: function () {
+        return {
+            symbol: '分',
+            color: '#AA55FF',
+            fontSize: 24,
+            behaviorType: 'persistent', // Continuous contact damage, survives enemy hits
+            damage: (getEffectiveDamage() + playerLuck) * 0.5,
+            damageMultiplier: 0.5,
+            damageInterval: 500,
+            colliderSize: 0.8,
+            lifespan: 16000,
+            options: {
+                hasPeriodicEffect: true,
+                // Cooldown: 4000 * 8 = 32000, divided by (FR+Luck) = 4000ms at 4 LUK + 4 AGI
+                periodicEffectCooldown: 32000,
+                periodicEffectFormula: 'divide',
+                periodicEffectStatFunction: () => getEffectiveFireRate() + playerLuck,
+                periodicEffectStatDependencies: ['fireRate', 'luck'],
+
+                firingBehavior: 'replicate',
+                visualEffect: 'createPulsing',
+
+                // Travel: 400 px/s for 0.4s = 160px, then stop. Linear deceleration.
+                launchSpeed: 400,
+                launchDuration: 400
+            }
+        };
+    },
+    cooldown: null,
+    cooldownStat: null,
+    cooldownFormula: null,
+    positionMode: 'player',
+    activationMethod: 'immediate'
+});
+
+window.activateReplicate = function () {
+    const scene = game.scene.scenes[0];
+    if (!scene) return;
+    spawnReplicant(scene, player.x, player.y);
+};
+
+// Shared spawn used by both initial activation and the replicate firing behavior.
+// Exposed on window so familiars.js can call it without a circular dependency.
+window.spawnReplicant = function (scene, x, y) {
+    const config = DropperPerkRegistry.perkDropperConfigs['REPLICATE'].getConfig();
+    config.x = x;
+    config.y = y;
+
+    const drop = DropperSystem.create(scene, config);
+    if (!drop || !drop.entity) return drop;
+
+    drop.entity._replicantDrop = drop;
+
+    const speed = 400;
+    const durationMs = 600;
+    const angle = SeededRNG.angle('effect');
+    let dirX = Math.cos(angle);
+    let dirY = Math.sin(angle);
+    const ticksToStop = Math.round(durationMs / GameClock.FIXED_TIMESTEP);
+    let ticksUsed = 0;
+
+    const halfW = drop.entity.width / 2;
+    const halfH = drop.entity.height / 2;
+    const worldW = game.config.width;
+    const worldH = game.config.height;
+
+    drop.motionTimer = CooldownManager.createTimer({
+        statName: null,
+        baseCooldown: GameClock.FIXED_TIMESTEP,
+        formula: 'fixed',
+        callback: function () {
+            if (drop.destroyed || !drop.entity || !drop.entity.active) {
+                CooldownManager.removeTimer(drop.motionTimer);
+                drop.motionTimer = null;
+                return;
+            }
+
+            ticksUsed++;
+            if (ticksUsed >= ticksToStop) {
+                CooldownManager.removeTimer(drop.motionTimer);
+                drop.motionTimer = null;
+                return;
+            }
+
+            const currentSpeed = speed * (1 - ticksUsed / ticksToStop);
+            const dt = GameClock.FIXED_TIMESTEP / 1000;
+
+            let nx = drop.entity.x + dirX * currentSpeed * dt;
+            let ny = drop.entity.y + dirY * currentSpeed * dt;
+
+            if (nx < halfW) {
+                nx = halfW; dirX = -dirX;
+                ticksUsed = Math.max(0, ticksUsed - ticksToStop / 2);
+            } else if (nx > worldW - halfW) {
+                nx = worldW - halfW; dirX = -dirX;
+                ticksUsed = Math.max(0, ticksUsed - ticksToStop / 2);
+            }
+            if (ny < halfH) {
+                ny = halfH; dirY = -dirY;
+                ticksUsed = Math.max(0, ticksUsed - ticksToStop / 2);
+            } else if (ny > worldH - halfH) {
+                ny = worldH - halfH; dirY = -dirY;
+                ticksUsed = Math.max(0, ticksUsed - ticksToStop / 2);
+            }
+
+            drop.entity.x = nx;
+            drop.entity.y = ny;
+            if (drop.entity.body) {
+                drop.entity.body.position.x = nx - drop.entity.body.halfWidth;
+                drop.entity.body.position.y = ny - drop.entity.body.halfHeight;
+                drop.entity.body.updateCenter();
+            }
+        },
+        callbackScope: scene,
+        loop: true
+    });
+
+    return drop;
+};
+
 // Export the registry for use in other files
 window.DropperPerkRegistry = DropperPerkRegistry;

@@ -24,7 +24,7 @@ function detectMusicUrl() {
 const MUSIC_CONFIG = {
     baseUrl: detectMusicUrl(),
     normalTrackCount: 25, // Track count for 'track-XX'
-    altTrackCount: 41     // Track count for 'alt-XX'
+    altTrackCount: 43     // Track count for 'alt-XX'
 };
 
 const MusicSystem = {

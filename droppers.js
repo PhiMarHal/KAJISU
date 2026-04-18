@@ -171,62 +171,20 @@ const DropperSystem = {
         entity.body.setSize(entity.width * dropConfig.colliderSize, entity.height * dropConfig.colliderSize);
         entity.body.setImmovable(true);  // Drops don't move when collided with
 
-        // Special physics setup for player pushable entities
+        // Special setup for player pushable entities - deterministic tick-based motion.
+        // Phaser arcade integration is disabled; DropperSystem.checkPushableCollisions
+        // handles motion, drag, world-bounce, collision detection, and separation.
         if (dropConfig.behaviorType === 'playerPushable') {
-            // Override immovable setting - these entities should move when hit
-            entity.body.setImmovable(false);
-            entity.body.setCollideWorldBounds(true);
+            // Disable Phaser's physics integration on this body - we own its motion.
+            entity.body.moves = false;
 
-            // Get physics configuration from options, with defaults
+            // Store physics parameters on the entity for the tick integrator to read.
+            // Defaults preserve the feel of the previous Phaser-driven setup.
             const physics = dropConfig.options?.physics || {};
-            const bounce = physics.bounce ?? 0.8;
-            const drag = physics.drag ?? 10;
-            const mass = physics.mass ?? 0.04;
-            const maxVelocity = physics.maxVelocity ?? 800;
+            entity._pushableDrag = physics.drag ?? 10;
+            entity._pushableBounce = physics.bounce ?? 0.8;
+            entity._pushableMaxVelocity = physics.maxVelocity ?? 800;
 
-            entity.body.setBounce(bounce, bounce);
-            entity.body.setDrag(drag, drag);
-            entity.body.setMass(mass);
-            entity.body.setMaxVelocity(maxVelocity, maxVelocity);
-
-            // Register overlap with player via CollisionRegistry for deterministic checking
-            // Using 'overlap' instead of 'collide' to prevent Phaser physics from nudging the player
-            entity._playerCollisionId = CollisionRegistry.register({
-                objectA: entity,
-                objectB: player,
-                type: 'overlap',
-                callback: function (ballEntity, playerObj) {
-
-                    // Cooldown to avoid several pushes in succession
-                    const currentTime = GameClock.now();
-                    if (!ballEntity.lastPushTime || (currentTime - ballEntity.lastPushTime > 250)) {
-                        ballEntity.lastPushTime = currentTime;
-                        // Calculate base push direction (away from player)
-                        const dx = ballEntity.x - player.x;
-                        const dy = ballEntity.y - player.y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-
-                        if (distance > 0) {
-                            // Calculate base angle
-                            const baseAngle = Math.atan2(dy, dx);
-
-                            // Add random deflection
-                            const randomDeflection = (SeededRNG.random('effect') - 0.5) * (Math.PI * 8 / 180); // ±8 degrees total range
-                            const finalAngle = baseAngle + randomDeflection;
-
-                            // Apply push force with the randomized angle
-                            const pushForce = 800;
-                            const pushX = Math.cos(finalAngle) * pushForce;
-                            const pushY = Math.sin(finalAngle) * pushForce;
-
-                            ballEntity.body.setVelocity(pushX, pushY);
-                        }
-                    }
-                },
-                scope: scene
-            });
-
-            // Mark this entity for manual collision checking in update()
             entity.isPlayerPushable = true;
         }
 
@@ -250,11 +208,6 @@ const DropperSystem = {
             options: dropConfig.options,
             destroyed: false             // Flag to mark for cleanup
         };
-
-        // Transfer collision ID from entity to drop object
-        if (entity._playerCollisionId !== undefined) {
-            drop.playerCollisionId = entity._playerCollisionId;
-        }
 
         // Add to global list
         drops.push(drop);
@@ -351,48 +304,96 @@ const DropperSystem = {
     },
 
     // Manual collision checking for playerPushable entities
+    // Deterministic motion, drag, world-bounce, and player collision for all
+    // playerPushable entities. Called once per tick from DropperSystem.update.
     checkPushableCollisions: function (scene) {
         if (!player || !player.body) return;
 
+        const dt = GameClock.FIXED_TIMESTEP / 1000;
         const currentTime = GameClock.now();
-        const playerRadius = player.body.halfWidth || 20;
+        const playerRadius = player.body.halfWidth ?? 20;
+        const worldW = game.config.width;
+        const worldH = game.config.height;
 
         for (const drop of drops) {
-            if (!drop.entity || !drop.entity.active || !drop.entity.isPlayerPushable) continue;
-
             const entity = drop.entity;
-            const entityRadius = (entity.body?.halfWidth || entity.width / 2 || 16);
+            if (!entity || !entity.active || !entity.isPlayerPushable) continue;
 
-            // Calculate distance between player and entity centers
-            const dx = entity.x - player.x;
-            const dy = entity.y - player.y;
+            const body = entity.body;
+            if (!body) continue;
+
+            const halfW = body.halfWidth;
+            const halfH = body.halfHeight;
+            let vx = body.velocity.x;
+            let vy = body.velocity.y;
+
+            // Cap velocity
+            const maxV = entity._pushableMaxVelocity;
+            const speedSq = vx * vx + vy * vy;
+            if (speedSq > maxV * maxV) {
+                const scale = maxV / Math.sqrt(speedSq);
+                vx *= scale;
+                vy *= scale;
+            }
+
+            // Integrate position
+            let nx = entity.x + vx * dt;
+            let ny = entity.y + vy * dt;
+
+            // Bounce off world edges (reflect velocity, clamp position)
+            const bounce = entity._pushableBounce;
+            if (nx < halfW) { nx = halfW; vx = -vx * bounce; }
+            else if (nx > worldW - halfW) { nx = worldW - halfW; vx = -vx * bounce; }
+            if (ny < halfH) { ny = halfH; vy = -vy * bounce; }
+            else if (ny > worldH - halfH) { ny = worldH - halfH; vy = -vy * bounce; }
+
+            // Apply linear drag (Phaser arcade drag semantics: v decays by drag*dt per tick)
+            const dragStep = entity._pushableDrag * dt;
+            const currentSpeed = Math.sqrt(vx * vx + vy * vy);
+            if (currentSpeed > 0) {
+                if (currentSpeed <= dragStep) {
+                    vx = 0; vy = 0;
+                } else {
+                    const scale = (currentSpeed - dragStep) / currentSpeed;
+                    vx *= scale;
+                    vy *= scale;
+                }
+            }
+
+            // Player collision with push and immediate separation
+            const dx = nx - player.x;
+            const dy = ny - player.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-
-            // Check if colliding (with small buffer for reliability)
+            const entityRadius = halfW ?? entity.width / 2 ?? 16;
             const collisionThreshold = playerRadius + entityRadius + 2;
 
-            if (distance < collisionThreshold) {
-                // Cooldown check (250ms between pushes)
+            if (distance < collisionThreshold && distance > 0) {
                 if (!entity.lastPushTime || (currentTime - entity.lastPushTime > 250)) {
                     entity.lastPushTime = currentTime;
 
-                    if (distance > 0) {
-                        // Calculate base angle (away from player)
-                        const baseAngle = Math.atan2(dy, dx);
+                    const baseAngle = Math.atan2(dy, dx);
+                    const randomDeflection = (SeededRNG.random('effect') - 0.5) * (Math.PI * 8 / 180);
+                    const finalAngle = baseAngle + randomDeflection;
+                    const pushForce = 800;
 
-                        // Add random deflection (±4 degrees)
-                        const randomDeflection = (SeededRNG.random('effect') - 0.5) * (Math.PI * 8 / 180);
-                        const finalAngle = baseAngle + randomDeflection;
+                    vx = Math.cos(finalAngle) * pushForce;
+                    vy = Math.sin(finalAngle) * pushForce;
 
-                        // Apply push force
-                        const pushForce = 800;
-                        const pushX = Math.cos(finalAngle) * pushForce;
-                        const pushY = Math.sin(finalAngle) * pushForce;
-
-                        entity.body.setVelocity(pushX, pushY);
-                    }
+                    // Separate: place the ball exactly at the collision threshold distance
+                    // along the push direction so it exits contact cleanly this tick.
+                    nx = player.x + Math.cos(finalAngle) * collisionThreshold;
+                    ny = player.y + Math.sin(finalAngle) * collisionThreshold;
                 }
             }
+
+            // Commit integrated state back to the entity and its physics body
+            entity.x = nx;
+            entity.y = ny;
+            body.velocity.x = vx;
+            body.velocity.y = vy;
+            body.position.x = nx - halfW;
+            body.position.y = ny - halfH;
+            body.updateCenter();
         }
     },
 

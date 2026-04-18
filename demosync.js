@@ -47,6 +47,10 @@ const DemoSync = {
             projectiles: projectileCount,
             beams: beamCount,
 
+            // Pushable positions and velocities — diagnostic for pushable determinism.
+            // Sorted by damageSourceId so list ordering is stable across runs.
+            pushables: this.getPushableStates(),
+
             // RNG counters (the most important diagnostic)
             rng_enemy: rngCounters.enemy,
             rng_perk: rngCounters.perk,
@@ -59,8 +63,12 @@ const DemoSync = {
 
     // Generate a simple hash string for quick comparison
     hashSnapshot: function (snap) {
-        // Include all determinism-critical values (skip visual-only counts like projectiles)
-        return `${snap.px},${snap.py},${snap.hp},${snap.xp},${snap.lvl},${snap.score},${snap.time},${snap.enemies},${snap.rng_enemy},${snap.rng_perk},${snap.rng_drop},${snap.rng_effect},${snap.rng_drawing}`;
+        // Include all determinism-critical values (skip visual-only counts like projectiles).
+        // Pushable positions hash in as a pipe-joined string so any drift triggers mismatch.
+        const pushHash = snap.pushables
+            ? snap.pushables.map(function (p) { return p.x + ',' + p.y; }).join('|')
+            : '';
+        return `${snap.px},${snap.py},${snap.hp},${snap.xp},${snap.lvl},${snap.score},${snap.time},${snap.enemies},${snap.rng_enemy},${snap.rng_perk},${snap.rng_drop},${snap.rng_effect},${snap.rng_drawing},P[${pushHash}]`;
     },
 
     // Get detailed info about active orbitals for debugging
@@ -78,6 +86,36 @@ const DemoSync = {
                     collisionType: orbital.collisionType || 'unknown',
                     lifespan: orbital.lifespan
                 };
+            });
+        } catch (e) {
+            return [];
+        }
+    },
+
+    // Gather pushable entity states for drift diagnostics.
+    // Returns [{id, x, y, vx, vy}, ...] sorted by id so ordering is deterministic.
+    // Note: damageSourceId is currently non-deterministic between runs (uses Date.now()
+    // and Math.random()), so IDs won't match across record/playback. The hash still
+    // catches any position drift correctly, but the drift readout can't cleanly pair
+    // balls across runs — it can only say "something in the pushable set drifted."
+    getPushableStates: function () {
+        if (typeof DropperSystem === 'undefined') return [];
+
+        try {
+            const pushables = DropperSystem.getAll().filter(function (d) {
+                return d.entity && d.entity.isPlayerPushable;
+            });
+            return pushables.map(function (d) {
+                const body = d.entity.body;
+                return {
+                    id: d.entity.damageSourceId,
+                    x: Math.round(d.entity.x * 100) / 100,
+                    y: Math.round(d.entity.y * 100) / 100,
+                    vx: body ? Math.round(body.velocity.x * 100) / 100 : 0,
+                    vy: body ? Math.round(body.velocity.y * 100) / 100 : 0
+                };
+            }).sort(function (a, b) {
+                return a.id.localeCompare(b.id);
             });
         } catch (e) {
             return [];
@@ -136,7 +174,8 @@ const DemoSync = {
 
         const diffs = [];
         Object.keys(rec).forEach(function (key) {
-            if (key === 'orbitalDetails') return; // Skip object comparison
+            // Skip structured fields — they get their own dedicated readouts below
+            if (key === 'orbitalDetails' || key === 'pushables') return;
             if (rec[key] !== play[key]) {
                 const delta = typeof rec[key] === 'number' ? (play[key] - rec[key]).toFixed(4) : 'changed';
                 diffs.push(key + ':' + delta);
@@ -146,6 +185,43 @@ const DemoSync = {
         console.warn(
             `[DRIFT #${this.desyncCount}] tick ${tick} (~${timeStr}s, +${sinceStr}s since first): ${diffs.join(', ')}`
         );
+
+        // Pushable drift readout — compares ball counts and per-ball positions.
+        // IDs don't match across runs (see getPushableStates note), so we show
+        // aggregate count changes and a compact position list for each side.
+        this.reportPushableDrift(rec.pushables, play.pushables);
+    },
+
+    // Emit a focused drift line for pushable positions/counts.
+    reportPushableDrift: function (recPushables, playPushables) {
+        const rec = recPushables || [];
+        const play = playPushables || [];
+
+        if (rec.length === 0 && play.length === 0) return;
+
+        // Count mismatch is the most important signal
+        if (rec.length !== play.length) {
+            console.warn(
+                `  pushable count diverged: record=${rec.length}, playback=${play.length}`
+            );
+        }
+
+        // Per-ball position listing: since IDs don't match, we show both sides sorted
+        // by x+y so a human can spot whether positions look similar or totally different.
+        const fmt = function (list) {
+            return list
+                .slice()
+                .sort(function (a, b) { return (a.x + a.y) - (b.x + b.y); })
+                .map(function (p) { return `(${p.x},${p.y})`; })
+                .join(' ');
+        };
+
+        const recStr = fmt(rec);
+        const playStr = fmt(play);
+        if (recStr !== playStr) {
+            console.warn(`  pushable positions [rec]: ${recStr}`);
+            console.warn(`  pushable positions [play]: ${playStr}`);
+        }
     },
 
     // Detailed desync report
@@ -157,122 +233,85 @@ const DemoSync = {
 
         // Log acquired perks
         const perks = (typeof acquiredPerks !== 'undefined' && Array.isArray(acquiredPerks)) ? acquiredPerks : [];
-        console.log('%c PERKS AT DESYNC: ', 'font-weight: bold; color: #ff8800;', perks.join(', ') || '(none)');
+        if (perks.length > 0) {
+            console.log('PERKS AT DESYNC: ', perks.join(', '));
+        }
 
-        // Build diff table (skip orbitalDetails since it's handled separately)
-        const fields = Object.keys(rec).filter(function (key) { return key !== 'orbitalDetails'; });
-        const diffs = [];
-        const matches = [];
-
-        fields.forEach(function (key) {
-            const r = rec[key];
-            const p = play[key];
-            if (r !== p) {
-                diffs.push({ field: key, recorded: r, playback: p });
-            } else {
-                matches.push(key);
+        // Build diff table for console.table
+        const rows = [];
+        Object.keys(rec).forEach(function (key) {
+            // Skip structured fields — they get their own dedicated readouts below
+            if (key === 'orbitalDetails' || key === 'pushables') return;
+            if (rec[key] !== play[key]) {
+                rows.push({ field: key, recorded: rec[key], playback: play[key] });
             }
         });
 
-        if (diffs.length > 0) {
-            console.error('%c DIVERGENT VALUES: ', 'font-weight: bold; color: #ff4444;');
-            console.table(diffs);
+        if (rows.length > 0) {
+            console.warn('DIVERGENT VALUES: ');
+            console.table(rows);
         }
 
-        console.log('%c Matching values: ' + matches.join(', '), 'color: #44ff44;');
-
-        // If orbital count diverged, show details
-        const diffFields = diffs.map(function (d) { return d.field; });
-        if (diffFields.indexOf('orbitals') !== -1) {
-            console.log('%c ORBITAL DETAILS: ', 'font-weight: bold; color: #ff00ff;');
-
-            // Show recorded orbitals
-            const recOrbDetails = rec.orbitalDetails || [];
-            const recSymbols = recOrbDetails.map(o => `${o.symbol}(${o.pattern})`).join(', ');
-            console.log('  Recorded orbitals: [' + recSymbols + ']');
-
-            // Show playback orbitals
-            const playOrbDetails = this.getOrbitalDetails();
-            const playSymbols = playOrbDetails.map(o => `${o.symbol}(${o.pattern})`).join(', ');
-            console.log('  Playback orbitals: [' + playSymbols + ']');
-
-            console.log('  Recorded count: ' + rec.orbitals + ', Playback count: ' + play.orbitals);
-
-            if (play.orbitals > rec.orbitals) {
-                console.log('%c  EXTRA orbital in playback - check for duplicate creation', 'color: #ff0000;');
-            } else if (rec.orbitals > play.orbitals) {
-                console.log('%c  MISSING orbital in playback - check for premature destruction', 'color: #ff0000;');
+        // Show matching values for context
+        const matching = [];
+        Object.keys(rec).forEach(function (key) {
+            if (key === 'orbitalDetails' || key === 'pushables') return;
+            if (rec[key] === play[key]) {
+                matching.push(key);
             }
+        });
+        if (matching.length > 0) {
+            console.log('Matching values:', matching.join(', '));
         }
 
-        // Provide diagnostic hints based on what diverged
-        this.diagnose(diffs);
+        // Pushable-specific readout on the first desync
+        this.reportPushableDrift(rec.pushables, play.pushables);
+
+        // Diagnosis
+        this.logDiagnosis(rec, play);
     },
 
-    // Provide human-readable diagnostic hints
-    diagnose: function (diffs) {
-        const diffFields = diffs.map(function (d) { return d.field; });
+    // Provide guidance based on what diverged
+    logDiagnosis: function (rec, play) {
+        console.log('--- DIAGNOSIS ---');
 
-        console.log('%c --- DIAGNOSIS --- ', 'font-weight: bold; color: #ffaa00;');
-
-        // RNG divergence is the strongest signal
-        const rngDiffs = diffFields.filter(function (f) { return f.startsWith('rng_'); });
-        if (rngDiffs.length > 0) {
-            console.warn('RNG streams diverged: ' + rngDiffs.join(', '));
-            console.warn('This means something called SeededRNG a different number of times.');
-
-            rngDiffs.forEach(function (field) {
-                const stream = field.replace('rng_', '');
-                const rec = diffs.find(function (d) { return d.field === field; });
-                const delta = rec.playback - rec.recorded;
-                console.warn('  ' + stream + ': ' + (delta > 0 ? '+' : '') + delta + ' extra calls in playback');
-            });
-
-            if (rngDiffs.length === 1) {
-                var stream = rngDiffs[0].replace('rng_', '');
-                console.warn('Only the "' + stream + '" stream diverged. Look for non-deterministic code that uses SeededRNG.random(\'' + stream + '\').');
-                if (stream === 'visual') {
-                    console.warn('The "visual" stream is for cosmetic effects. If ONLY visual diverged, gameplay may still be in sync — consider excluding it from the hash.');
-                }
-                if (stream === 'effect') {
-                    console.warn('The "effect" stream is used by combat (lightning, familiars, push angles). Check orbital/dropper/beam effect code.');
-                }
-                if (stream === 'enemy') {
-                    console.warn('The "enemy" stream is used for spawning. Check EnemySystem spawn logic and timing.');
-                }
-            }
+        const pushablesDiverged =
+            this.hashPushables(rec.pushables) !== this.hashPushables(play.pushables);
+        if (pushablesDiverged) {
+            console.log('Pushable positions diverged. Likely causes: non-deterministic motion integration, non-deterministic collision timing, or non-deterministic damageSourceId generation affecting a downstream branch.');
         }
 
-        // Position divergence without RNG divergence = movement bug
-        if ((diffFields.indexOf('px') !== -1 || diffFields.indexOf('py') !== -1) && rngDiffs.length === 0) {
-            console.warn('Player position diverged but RNG is in sync. Likely a movement calculation issue (playerSpeed, input quantization, or physics interaction).');
+        if (rec.rng_enemy !== play.rng_enemy) {
+            console.log('Enemy RNG counter diverged. Enemy spawning consumed a different number of random values — check for non-deterministic spawn conditions.');
+        }
+        if (rec.rng_effect !== play.rng_effect) {
+            console.log('Effect RNG counter diverged. Effects (familiar fires, random angles, etc.) consumed different numbers of random values.');
+        }
+        if (rec.rng_perk !== play.rng_perk) {
+            console.log('Perk RNG counter diverged. Perk offering consumed a different number of random values.');
         }
 
-        // Entity count divergence
-        if (diffFields.indexOf('enemies') !== -1) {
-            console.warn('Enemy count diverged. Check if enemy spawning or destruction depends on non-deterministic timing.');
+        if (rec.enemies !== play.enemies) {
+            console.log('Enemy count diverged. Check if enemy spawning or destruction depends on non-deterministic timing.');
         }
-        if (diffFields.indexOf('orbitals') !== -1 || diffFields.indexOf('drops') !== -1) {
-            console.warn('Orbital/drop count diverged. A perk effect may be firing at render-rate instead of tick-rate.');
+        if (rec.drops !== play.drops) {
+            console.log('Drop count diverged. Check if drop spawning or destruction depends on non-deterministic timing (see pushable readout if applicable).');
         }
-
-        // Score/XP divergence (consequence of other issues)
-        if (diffFields.indexOf('score') !== -1 || diffFields.indexOf('xp') !== -1) {
-            if (rngDiffs.length > 0 || diffFields.indexOf('enemies') !== -1) {
-                console.warn('Score/XP divergence is likely a consequence of the above issues.');
-            } else {
-                console.warn('Score/XP diverged without other obvious causes. Check damage calculations or XP award logic.');
-            }
+        if (rec.orbitals !== play.orbitals) {
+            console.log('Orbital count diverged.');
         }
-
-        // Time divergence
-        if (diffFields.indexOf('time') !== -1) {
-            var timeDiff = diffs.find(function (d) { return d.field === 'time'; });
-            console.warn('Elapsed time diverged (rec=' + timeDiff.recorded + ' vs play=' + timeDiff.playback + '). This affects enemy spawning, rank progression, and boss timing.');
+        if (rec.score !== play.score || rec.xp !== play.xp) {
+            console.log('Score/XP divergence is likely a consequence of the above issues.');
         }
     },
 
-    // Reset on game start
+    // Helper for diagnosis: hash just the pushable list
+    hashPushables: function (list) {
+        if (!list) return '';
+        return list.map(function (p) { return p.x + ',' + p.y; }).join('|');
+    },
+
+    // Reset state on new game
     reset: function () {
         this.desyncDetected = false;
         this.desyncTick = null;

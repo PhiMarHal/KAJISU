@@ -419,7 +419,7 @@ function setupEntityFiringTimer(scene, entityWrapper, behaviorType, baseCooldown
             maxDistance *= config.rangeModifier;
 
             // Execute the behavior - pass the entity directly
-            behaviorFn(scene, entityWrapper.entity, scene.time.now, maxDistance);
+            behaviorFn(scene, entityWrapper.entity, GameClock.now(), maxDistance);
         },
         callbackScope: scene,
         loop: true

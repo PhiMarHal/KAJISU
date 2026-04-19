@@ -68,7 +68,7 @@ const BeaconSystem = {
 
         // Mark beacon type and create unique ID
         beacon.beaconType = config.beaconType;
-        beacon.beaconId = `${config.beaconType}_${Date.now()}_${Math.random()}`;
+        beacon.beaconId = DamageSourceRegistry.nextId('beacon');
 
         // Register for cleanup
         window.registerEffect('entity', beacon);

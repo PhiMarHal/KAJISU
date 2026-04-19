@@ -189,7 +189,7 @@ const DropperSystem = {
         }
 
         // Store unique ID for damage source (used for cooldown tracking)
-        entity.damageSourceId = `drop_${Date.now()}_${Math.random()}`;
+        entity.damageSourceId = DamageSourceRegistry.nextId('drop');
 
         // Store damage value on the entity
         entity.damage = dropConfig.damage;
@@ -444,7 +444,7 @@ const DropperSystem = {
                 } else {
                     damageAmount = drop.entity.damage;
                 }
-                const areaSourceId = `${drop.entity.damageSourceId}_area_${enemy.id ?? Math.random()}`;
+                const areaSourceId = DamageSourceRegistry.nextId(drop.entity.damageSourceId + '_area');
 
 
 
@@ -468,7 +468,7 @@ const DropperSystem = {
                         x: centerX,
                         y: centerY,
                         // Add other properties that might be needed
-                        damageSourceId: `${drop.entity.damageSourceId}_component_${Date.now()}_${Math.random()}`
+                        damageSourceId: DamageSourceRegistry.nextId(drop.entity.damageSourceId + '_component')
                     };
 
                     // Call the component's onHit method directly

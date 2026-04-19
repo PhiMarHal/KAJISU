@@ -337,7 +337,7 @@ const BeamSystem = {
         // Store damage properties on the physics body
         physicsBody.damage = config.damage;
         physicsBody.damageInterval = config.damageInterval;
-        physicsBody.damageSourceId = `beam_${Date.now()}_${Math.random()}`;
+        physicsBody.damageSourceId = DamageSourceRegistry.nextId('beam');
 
         return physicsBody;
     },
@@ -369,9 +369,8 @@ const BeamSystem = {
         const currentTime = GameClock.now();
 
         // Create a unique identifier for this enemy
-        // Use Phaser's built-in unique ID system, or create one if it doesn't exist
         if (!enemy.uniqueId) {
-            enemy.uniqueId = `enemy_${Date.now()}_${Math.random()}`;
+            enemy.uniqueId = DamageSourceRegistry.nextId('enemy');
         }
         const enemyId = enemy.uniqueId;
 

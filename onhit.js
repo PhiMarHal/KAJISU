@@ -233,9 +233,6 @@ OnHitEffectSystem.registerComponent('stormVengeanceEffect', {
         // Define the radius of the lightning storm
         const radius = 256;
 
-        // Create unique damage source ID for this storm
-        const stormId = `vengeance_storm_${Date.now()}_${Math.random()}`;
-
         // Create lightning strikes at random positions within the circle
         for (let i = 0; i < count; i++) {
             // Calculate random angle and distance within the circle

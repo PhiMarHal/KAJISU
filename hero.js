@@ -968,7 +968,7 @@ function createLightningStrike(scene, x, y, options = {}) {
     const targets = scene.physics.overlapCirc(x, y, hitRadius, true, true);
 
     // Create unique ID for this lightning strike
-    const strikeId = `lightning_${Date.now()}_${Math.random()}`;
+    const strikeId = DamageSourceRegistry.nextId('lightning');
 
     // Apply damage to all enemies in radius, but filter to only actual enemies
     targets.forEach(body => {

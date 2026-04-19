@@ -146,3 +146,23 @@ const SeededRNG = {
 
 // Export the system
 window.SeededRNG = SeededRNG;
+
+// Sequential ID generator for damage source tracking and any other
+// "stable unique per-entity" identifier needs. Output is deterministic
+// across record/playback without consuming any RNG stream.
+//
+// Usage: DamageSourceRegistry.nextId('drop') -> "drop_0", "drop_1", ...
+// Reset on new game via the init() path.
+const DamageSourceRegistry = {
+    _counter: 0,
+
+    nextId: function (prefix) {
+        return prefix + '_' + (this._counter++);
+    },
+
+    reset: function () {
+        this._counter = 0;
+    }
+};
+
+window.DamageSourceRegistry = DamageSourceRegistry;

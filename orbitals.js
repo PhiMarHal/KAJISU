@@ -266,7 +266,7 @@ const CollisionBehaviors = {
         const blastRadius = orbital.options.blastRadius ?? 128;
 
         // Create a unique explosion ID for this blast
-        const explosionId = `orbital_explosion_${Date.now()}_${Math.random()}`;
+        const explosionId = DamageSourceRegistry.nextId('orbital_explosion');
 
         // Get all active enemies
         const allEnemies = EnemySystem.enemiesGroup.getChildren();
@@ -389,7 +389,7 @@ const OrbitalSystem = {
         entity.body.setSize(entity.width * orbitalConfig.colliderSize, entity.height * orbitalConfig.colliderSize);
 
         // Store unique ID for damage source (used for cooldown tracking)
-        entity.damageSourceId = `orbital_${Date.now()}_${Math.random()}`;
+        entity.damageSourceId = DamageSourceRegistry.nextId('orbital');
 
         // Store damage
         entity.damage = orbitalConfig.damage;

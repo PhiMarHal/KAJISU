@@ -253,7 +253,7 @@ const EnemySystem = {
         enemy.lastContactDamage = enemy.lastContactDamage ?? {};
 
         // Create a unique key for this damage source
-        const sourceKey = source.damageSourceId ?? (source.damageSourceId = `damage_${Date.now()}_${Math.random()}`);
+        const sourceKey = source.damageSourceId ?? (source.damageSourceId = DamageSourceRegistry.nextId('damage'));
 
         // Check if we're still in the cooldown period for this damage source
         const currentTime = GameClock.now();

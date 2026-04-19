@@ -65,7 +65,7 @@ const WeaponSystem = {
 
         // Ensure projectile has a damage source ID
         if (!projectile.damageSourceId) {
-            projectile.damageSourceId = `proj_${Date.now()}_${Math.random()}`;
+            projectile.damageSourceId = DamageSourceRegistry.nextId('proj');
         }
 
         // Apply knockback: push enemy away from the projectile's impact point.

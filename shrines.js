@@ -112,9 +112,8 @@ const ShrineSystem = {
                 aura.body.setCircle(actualAuraRadius);
                 aura.body.immovable = true;
 
-                // Mark shrine type and create unique ID
+                // Mark shrine type
                 shrine.shrineType = config.shrineType;
-                shrine.shrineId = `${config.shrineType}_${Date.now()}_${Math.random()}`;
                 shrine.aura = aura;
                 shrine.playerInAura = false;
                 shrine.effectTimer = null;

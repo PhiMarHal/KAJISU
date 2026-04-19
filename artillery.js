@@ -154,7 +154,7 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
         this.radius = this.radiusMultiplier * (Math.sqrt(playerLuck / BASE_STATS.LUK));
 
         // Create unique damage source ID for this explosion
-        projectile.explosionSourceId = `explosion_${Date.now()}_${Math.random()}`;
+        projectile.explosionSourceId = DamageSourceRegistry.nextId('explosion');
     },
 
     onHit: function (projectile, enemy, scene) {
@@ -167,7 +167,7 @@ ProjectileComponentSystem.registerComponent('explosionEffect', {
         const radiusMultiplier = this.radiusMultiplier ?? 80;
         const falloffMultiplier = this.falloffMultiplier ?? 0;
         const radius = this.radius ?? (radiusMultiplier * Math.sqrt(playerLuck / BASE_STATS.LUK));
-        const explosionSourceId = projectile.explosionSourceId ?? `explosion_${Date.now()}_${Math.random()}`;
+        const explosionSourceId = projectile.explosionSourceId ?? DamageSourceRegistry.nextId('explosion');
 
         // Store the hit position (enemy's location)
         const hitX = enemy.x;
@@ -242,7 +242,7 @@ function applyPoisonEffect(scene, enemy, baseDamage) {
     let completedTicks = 0;
     const totalTicks = 4;
 
-    const poisonSourceId = `poison_${Date.now()}_${Math.random()}`;
+    const poisonSourceId = DamageSourceRegistry.nextId('poison');
 
     const poisonTimer = CooldownManager.createTimer({
         statName: null,
@@ -373,7 +373,7 @@ ProjectileComponentSystem.registerComponent('stompEffect', {
         const y = player.y;
 
         // Create a unique damage source ID that's available in this scope
-        const damageId = `stomp_${Date.now()}_${Math.random()}`;
+        const damageId = DamageSourceRegistry.nextId('stomp');
 
         // Use our generic explosion effect with brown color (0x8B4513) for stomp
         VisualEffects.createExplosion(scene, x, y, radius, 0x8B4513, {
@@ -458,7 +458,7 @@ function createPersistentEffect(scene, x, y, config = {}) {
     // Custom properties
     effect.damagePerTick = effectConfig.damage;
     effect.tickInterval = effectConfig.tickInterval;
-    effect.damageSourceId = `effect_${Date.now()}_${Math.random()}`;
+    effect.damageSourceId = DamageSourceRegistry.nextId('persistentEffect');
     effect.sourceEffect = effectConfig.sourceEffect;
 
     // Register for cleanup

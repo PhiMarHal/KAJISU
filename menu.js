@@ -465,10 +465,15 @@ const LevelDisplay = {
 
         scene.levelText = scene.add.text(
             UI.levelDisplay.centerX(), UI.levelDisplay.y(), `${playerLevel}`,
-            { fontFamily: UI.fonts.levelLabel.family, fontSize: UI.fonts.levelLabel.size(), color: UI.fonts.levelLabel.color, fontStyle: 'bold' }
+            {
+                fontFamily: UI.fonts.levelLabel.family,
+                fontSize: UI.fonts.levelLabel.size(),
+                color: UI.fonts.levelLabel.color,
+                fontStyle: 'bold'
+            }
         ).setOrigin(0.5).setDepth(UI.depth.ui + 1);
 
-        // Semi-transparent background behind level row (drawn before chevrons and text)
+        // Background
         const lvlBg = scene.add.graphics().setDepth(UI.depth.ui - 1);
         const lvlPadX = UI.levelDisplay.chevronDepth() + UI.rel.width(2);
         const lvlPadY = UI.levelDisplay.chevronHalfH() + UI.rel.height(0.5);
@@ -476,18 +481,22 @@ const LevelDisplay = {
         lvlBg.fillRect(
             UI.levelDisplay.centerX() - lvlPadX,
             UI.levelDisplay.y() - lvlPadY,
-            lvlPadX * 2, lvlPadY * 2
+            lvlPadX * 2,
+            lvlPadY * 2
         );
         scene.levelBg = lvlBg;
 
         scene.levelBarLeft = scene.add.graphics().setDepth(UI.depth.ui);
         scene.levelBarRight = scene.add.graphics().setDepth(UI.depth.ui);
-        this.update(scene);
+
+        this.update(scene);   // safe now
     },
 
     update: function (scene) {
-        if (!scene.levelText) return;
+        if (!scene.levelText || !scene.levelText.active) return;
+
         scene.levelText.setText(`${playerLevel}`);
+
         if (!scene.levelBarLeft || !scene.levelBarRight) return;
 
         const y = UI.levelDisplay.y();
@@ -496,17 +505,27 @@ const LevelDisplay = {
         const hh = UI.levelDisplay.chevronHalfH();
         const d = UI.levelDisplay.chevronDepth();
         const bw = 3;
-        const hw = scene.levelText.width / 2;
+
+        // Safe width access with fallback
+        const hw = (scene.levelText.width || 40) / 2;
 
         scene.levelBarLeft.clear();
         scene.levelBarLeft.lineStyle(bw, UI.colors.gold, 1);
         const lx = cx - hw - gap;
-        scene.levelBarLeft.beginPath(); scene.levelBarLeft.moveTo(lx, y - hh); scene.levelBarLeft.lineTo(lx - d, y); scene.levelBarLeft.lineTo(lx, y + hh); scene.levelBarLeft.strokePath();
+        scene.levelBarLeft.beginPath();
+        scene.levelBarLeft.moveTo(lx, y - hh);
+        scene.levelBarLeft.lineTo(lx - d, y);
+        scene.levelBarLeft.lineTo(lx, y + hh);
+        scene.levelBarLeft.strokePath();
 
         scene.levelBarRight.clear();
         scene.levelBarRight.lineStyle(bw, UI.colors.gold, 1);
         const rx = cx + hw + gap;
-        scene.levelBarRight.beginPath(); scene.levelBarRight.moveTo(rx, y - hh); scene.levelBarRight.lineTo(rx + d, y); scene.levelBarRight.lineTo(rx, y + hh); scene.levelBarRight.strokePath();
+        scene.levelBarRight.beginPath();
+        scene.levelBarRight.moveTo(rx, y - hh);
+        scene.levelBarRight.lineTo(rx + d, y);
+        scene.levelBarRight.lineTo(rx, y + hh);
+        scene.levelBarRight.strokePath();
     }
 };
 

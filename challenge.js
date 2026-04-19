@@ -100,7 +100,7 @@ const RomajiChallengeSystem = {
 
         // Create a container with high depth for all level-up elements
         this.elements.levelUpContainer = scene.add.container(0, 0);
-        this.elements.levelUpContainer.setDepth(1000);
+        this.elements.levelUpContainer.setDepth(2000);
 
         // Create concentric circles animation
         const centerX = game.config.width / 2;

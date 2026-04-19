@@ -90,7 +90,7 @@ BeamPerkRegistry.registerPerkBeam('LASER_CANNON', {
             damage: (getEffectiveDamage() + playerLuck) * 0.5,
             damageInterval: 100,       // Very fast damage ticks (10 per second)
             duration: 2000,           // 2 second beam duration
-            beamWidth: 32,            // 32px beam width as requested
+            beamWidth: 32,            // 32px beam width
             followPlayer: true,      // Beam stays where it was fired
             chargeTime: 4000,         // 4 second charge time
             onChargeStart: function (scene) {
@@ -181,8 +181,7 @@ BeamPerkRegistry.registerPerkBeam('CAUSTIC_RAY', {
             symbol: '線線',             // Line/beam kanji
             color: '#2aad27',         // Green color to match poison theme
             fontSize: 24,             // Medium beam thickness
-            // Damage: (Effective + Luck) * 0.1 (was 0.2x playerDamage)
-            damage: (getEffectiveDamage() + playerLuck) * 0.1,
+            damage: (getEffectiveDamage() + playerLuck) * 0.2,
             damageInterval: 200,      // Damage every 200ms
             duration: 4000,
             beamWidth: 24,            // 32px beam width
@@ -234,7 +233,6 @@ BeamPerkRegistry.registerPerkBeam('FLAME_THROWING', {
             symbol: '火炎',             // "Flame" in kanji
             color: '#FF4500',         // Orange-red color to match fire theme
             fontSize: 24,             // Medium beam thickness
-            // Damage: (Effective + Luck) * 0.25 (was 0.5x playerDamage)
             damage: (getEffectiveDamage() + playerLuck) * 0.25,
             damageInterval: 500,      // Damage every 500ms
             duration: 4000,           // 4 second beam duration

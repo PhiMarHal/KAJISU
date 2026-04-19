@@ -575,8 +575,9 @@ function showMobileLevelUpScreen(scene) {
     const availablePerks = PerkSystem.getRandomPerks(numPerkOptions, acquiredPerks);
 
     // Create a container with high depth for all level-up elements
+    // Depth 2000 keeps cards above pause overlay (resume button sits at 1002)
     const levelUpContainer = scene.add.container(0, 0);
-    levelUpContainer.setDepth(1000);
+    levelUpContainer.setDepth(2000);
 
     // Create concentric circles animation
     const centerX = game.config.width / 2;
@@ -596,7 +597,7 @@ function showMobileLevelUpScreen(scene) {
         color: 0xFFD700,
         strokeWidth: 4,
         segmentCount: 4,
-        depth: 999
+        depth: 1999
     });
 
     // Create semi-transparent background
@@ -618,7 +619,7 @@ function showMobileLevelUpScreen(scene) {
     let selectionPulseTween = null;
     let confirmationTween = null;
 
-    // Create center text that alternates between "LEVEL UP!" and "CHOOSE A PERK"
+    // Create center text that alternates between "LEVEL UP!" and "CHOOSE A PATH"
     const centerText = scene.add.text(
         centerX,
         centerY,
@@ -638,7 +639,6 @@ function showMobileLevelUpScreen(scene) {
     let textSwitchTimeline;
 
     function createTextSwitchSequence() {
-        // Start with LEVEL UP
         centerText.setText('LEVEL UP!');
         centerText.setColor('#ffffff');
         centerText.setAlpha(1);
@@ -647,12 +647,7 @@ function showMobileLevelUpScreen(scene) {
             targets: centerText,
             loop: -1,
             tweens: [
-                // 2 seconds of LEVEL UP (no fade)
-                {
-                    alpha: 1,
-                    duration: 2000
-                },
-                // 0.5s fade out LEVEL UP
+                { alpha: 1, duration: 2000 },
                 {
                     alpha: 0,
                     duration: 500,
@@ -662,17 +657,8 @@ function showMobileLevelUpScreen(scene) {
                         }
                     }
                 },
-                // 0.5s fade in CHOOSE A PATH
-                {
-                    alpha: 1,
-                    duration: 500
-                },
-                // 2 seconds of CHOOSE A PATH (no fade)
-                {
-                    alpha: 1,
-                    duration: 2000
-                },
-                // 0.5s fade out CHOOSE A PATH
+                { alpha: 1, duration: 500 },
+                { alpha: 1, duration: 2000 },
                 {
                     alpha: 0,
                     duration: 500,
@@ -682,64 +668,20 @@ function showMobileLevelUpScreen(scene) {
                         }
                     }
                 },
-                // 0.5s fade in LEVEL UP
-                {
-                    alpha: 1,
-                    duration: 500
-                }
+                { alpha: 1, duration: 500 }
             ]
         });
     }
 
-    // Start the sequence
     createTextSwitchSequence();
 
-    // Show KAJISULI stats if in KAJISULI mode
-    if (KAJISULI_MODE) {
-        const statsElements = PauseSystem.showStatsDisplay(scene, {
-            container: levelUpContainer,
-            positionY: game.config.height * 0.95,
-            storeInElements: false,
-            clearContainer: false,
-            setVisible: false,
-            fontSize: '36px'
-        });
-
-        if (window.StatTooltipSystem && statsElements) {
-            const statKeys = ['POW', 'AGI', 'LUK', 'END'];
-            statsElements.forEach((statGroup, index) => {
-                if (statGroup.border && statKeys[index]) {
-                    StatTooltipSystem.addStatHoverInteraction(scene, statGroup.border, statKeys[index], {
-                        container: levelUpContainer,
-                        isKajisuli: true,
-                        isLevelUp: true,
-                        onHover: (element) => {
-                            element.setStrokeStyle(4, UI.colors.gold);
-                            if (statGroup.statText) {
-                                statGroup.statText.setScale(1.1);
-                            }
-                        },
-                        onHoverOut: (element) => {
-                            element.setStrokeStyle(2, UI.colors.gold);
-                            if (statGroup.statText) {
-                                statGroup.statText.setScale(1);
-                            }
-                        }
-                    });
-                }
-            });
-        }
-    }
-
-    // Calculate card positions in a 2x2 square around center
-    const isKajisuli = (typeof KAJISULI_MODE !== 'undefined') ? KAJISULI_MODE : false;
+    const isKajisuli = typeof KAJISULI_MODE !== 'undefined' ? KAJISULI_MODE : false;
 
     // Base card dimensions
     let cardWidth = 200;
     let cardHeight = 300;
     let cardFontSize = 1;
 
-    // Scale up for mobile/portrait mode
     if (isKajisuli) {
         cardWidth = 250;
         cardHeight = 375;
@@ -747,9 +689,12 @@ function showMobileLevelUpScreen(scene) {
     }
 
     // Calculate offset from center to position cards in a square with equal gaps
-    const cardOffsetX = cardWidth * 0.725; // Reduced to match vertical spacing
+    const cardOffsetX = cardWidth * 0.725;
     const cardOffsetY = cardHeight * 0.65;
 
+    // Card layout:  0 | 1
+    //               -----
+    //               2 | 3
     const cardPositions = [
         { x: centerX - cardOffsetX, y: centerY - cardOffsetY }, // Top-left
         { x: centerX + cardOffsetX, y: centerY - cardOffsetY }, // Top-right
@@ -757,11 +702,10 @@ function showMobileLevelUpScreen(scene) {
         { x: centerX + cardOffsetX, y: centerY + cardOffsetY }  // Bottom-right
     ];
 
-    // Create all card elements
     const allCardElements = [];
 
     availablePerks.forEach((perk, index) => {
-        if (index >= 4) return; // Safety check
+        if (index >= 4) return;
 
         const position = cardPositions[index];
         const cardElements = createPerkCardElements(perk, position.x, position.y, {
@@ -787,28 +731,23 @@ function showMobileLevelUpScreen(scene) {
     });
 
     function handleCardSelection(cardIndex, perkId) {
-        // Ignore player clicks during demo playback
         if (window.DemoSystem && DemoSystem.isPlaying) {
             return;
         }
 
         if (selectedCardIndex === cardIndex) {
-            // Second click on same card - confirm selection
             confirmSelection(perkId);
         } else {
-            // First click or different card - show selection
             selectCard(cardIndex, perkId);
         }
     }
 
     function selectCard(cardIndex, perkId) {
-        // Stop the text switching timeline FIRST
         if (textSwitchTimeline) {
             textSwitchTimeline.destroy();
             textSwitchTimeline = null;
         }
 
-        // Remove previous selection effects if they exist
         if (selectionBorder) {
             selectionBorder.destroy();
             selectionBorder = null;
@@ -822,7 +761,6 @@ function showMobileLevelUpScreen(scene) {
             selectionPulseTween = null;
         }
 
-        // Stop any existing confirmation tween - THIS FIXES THE BUG
         if (confirmationTween) {
             confirmationTween.remove();
             confirmationTween = null;
@@ -831,11 +769,9 @@ function showMobileLevelUpScreen(scene) {
         selectedCardIndex = cardIndex;
         selectedCardElements = allCardElements[cardIndex];
 
-        // Get the selected perk to access its color
         const selectedPerk = availablePerks[cardIndex];
         const position = selectedCardElements.position;
 
-        // Create golden selection border
         const borderGap = 4;
         const borderThickness = 4;
 
@@ -849,7 +785,6 @@ function showMobileLevelUpScreen(scene) {
         selectionBorder.setFillStyle(0x000000, 0);
         levelUpContainer.add(selectionBorder);
 
-        // Create pulsing colored overlay using the perk's hover color
         const overlayColor = selectedPerk.hoverColor ?? selectedPerk.color ?? 0x666666;
 
         selectionOverlay = scene.add.rectangle(
@@ -858,11 +793,10 @@ function showMobileLevelUpScreen(scene) {
             cardWidth,
             cardHeight,
             overlayColor,
-            0.3 // Starting alpha
+            0.3
         );
         levelUpContainer.add(selectionOverlay);
 
-        // Animate both the border and the colored overlay
         scene.tweens.add({
             targets: selectionBorder,
             alpha: 0.6,
@@ -872,7 +806,6 @@ function showMobileLevelUpScreen(scene) {
             ease: 'Sine.easeInOut'
         });
 
-        // Pulsing colored overlay effect
         selectionPulseTween = scene.tweens.add({
             targets: selectionOverlay,
             alpha: 0.6,
@@ -882,42 +815,81 @@ function showMobileLevelUpScreen(scene) {
             ease: 'Sine.easeInOut'
         });
 
-        // COMPLETELY reset text state, then set confirmation message
-        scene.tweens.killTweensOf(centerText); // Kill any remaining tweens on the text object
+        scene.tweens.killTweensOf(centerText);
         centerText.setText('SEAL YOUR FATE');
         centerText.setColor('#ffffff');
-        centerText.setAlpha(1); // Force full opacity - no fading
-        centerText.setScale(1); // Reset scale
+        centerText.setAlpha(1);
+        centerText.setScale(1);
 
-        // Start trembling animation for confirmation text (matching colored overlay pulse timing)
         confirmationTween = scene.tweens.add({
             targets: centerText,
             scale: 1.04,
-            duration: 1000, // Match the colored overlay pulse duration
+            duration: 1000,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
     }
 
+    // Keyboard navigation: arrow keys move the selection in the 2x2 grid,
+    // Enter/Space confirms the currently selected card.
+    const navigationMap = {
+        ArrowLeft: { 1: 0, 3: 2 },
+        ArrowRight: { 0: 1, 2: 3 },
+        ArrowUp: { 2: 0, 3: 1 },
+        ArrowDown: { 0: 2, 1: 3 }
+    };
+
+    const handleKeyboardNav = (event) => {
+        if (window.DemoSystem && DemoSystem.isPlaying) return;
+
+        const key = event.key;
+        const isArrow = key === 'ArrowLeft' || key === 'ArrowRight' ||
+            key === 'ArrowUp' || key === 'ArrowDown';
+        const isConfirm = key === 'Enter' || key === ' ';
+
+        if (!isArrow && !isConfirm) return;
+
+        event.preventDefault();
+
+        // First arrow press with nothing selected -> select top-left
+        if (selectedCardIndex === -1) {
+            if (isArrow && allCardElements.length > 0) {
+                selectCard(0, allCardElements[0].perkId);
+            }
+            return;
+        }
+
+        if (isConfirm) {
+            confirmSelection(allCardElements[selectedCardIndex].perkId);
+            return;
+        }
+
+        const newIndex = navigationMap[key]?.[selectedCardIndex] ?? selectedCardIndex;
+        if (newIndex !== selectedCardIndex && allCardElements[newIndex]) {
+            selectCard(newIndex, allCardElements[newIndex].perkId);
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyboardNav);
+
     function confirmSelection(perkId) {
-        // Record perk selection for demo playback
+        // Remove keyboard handler immediately so it can't fire during cleanup
+        window.removeEventListener('keydown', handleKeyboardNav);
+
         if (window.DemoSystem && DemoSystem.isRecording) {
             DemoSystem.recordPerkSelection(selectedCardIndex);
         }
 
-        // Acquire the selected perk
         acquirePerk(scene, perkId);
 
         GameUI.updateStatCircles(scene);
         GameUI.updateHealthBar(scene);
 
-        // Clean up concentric circles effect
         if (concentricCircles) {
             concentricCircles.destroy();
         }
 
-        // Clean up all card elements (including pulse wrappers)
         allCardElements.forEach(cardGroup => {
             cardGroup.elements.forEach(element => {
                 if (element && element.destroy) {
@@ -926,7 +898,6 @@ function showMobileLevelUpScreen(scene) {
             });
         });
 
-        // Clean up selection border and overlay
         if (selectionBorder) {
             selectionBorder.destroy();
             selectionBorder = null;
@@ -936,7 +907,6 @@ function showMobileLevelUpScreen(scene) {
             selectionOverlay = null;
         }
 
-        // Stop animations and timers
         if (textSwitchTimeline) {
             textSwitchTimeline.destroy();
         }
@@ -947,11 +917,11 @@ function showMobileLevelUpScreen(scene) {
             selectionPulseTween.remove();
         }
 
-        // Destroy the container
         levelUpContainer.destroy();
         levelUpCards = [];
 
         window.levelUpInProgress = false;
+
         PlayerHitSystem.makePlayerInvincible(scene);
 
         setTimeout(() => {
@@ -967,7 +937,6 @@ function showMobileLevelUpScreen(scene) {
         }, 100);
     }
 
-    // Store reference for cleanup
     levelUpCards = [levelUpContainer];
 
     // Demo playback: auto-select perk after 2 second delay

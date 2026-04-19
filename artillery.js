@@ -238,7 +238,7 @@ function applyPoisonEffect(scene, enemy, baseDamage) {
     // Apply green tint to show poison effect
     SpriteEffectHelpers.applyEffectColorTexture(enemy, '#2aad27', scene);
 
-    const tickDamage = baseDamage * 0.5;
+    const tickDamage = baseDamage * 0.25;
     let completedTicks = 0;
     const totalTicks = 4;
 

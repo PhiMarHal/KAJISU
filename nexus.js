@@ -1241,21 +1241,20 @@ OrbitalPerkRegistry.registerPerkOrbital('INFINITE_GLIMPSE', {
         return {
             symbol: '★', // Standard star symbol
             color: '#FFD700', // Gold color
-            fontSize: getEffectiveSize(projectileSizeFactor, playerLuck), // Scale with luck
-            radius: 120, // Medium orbit radius
+            fontSize: getEffectiveSize(projectileSizeFactor, (playerLuck + getEffectiveDamage()) / 4),
+            radius: 160, // Medium orbit radius
             speed: 2, // Moderate speed for figure-8
             direction: 'clockwise',
             pattern: 'figureEight', // Use figure-8 movement pattern
             collisionType: 'persistent', // Stays after hitting enemies (key difference from TEAL_OCTOPUS)
-            damage: playerLuck, // Kept as playerLuck since this is a specific luck-damage perk
-            damageInterval: 1000,
-            lifespan: 16000,
+            damage: (playerLuck + getEffectiveDamage()) / 4,
+            damageInterval: 2000,
+            lifespan: 8000,
             options: {}
         };
     },
     count: 1,
-    // Cooldown: 4000ms * 8 = 32000
-    cooldown: 32000,
+    cooldown: 16000,
     cooldownFormula: 'divide',
     statFunction: () => getEffectiveFireRate() + playerLuck,
     statDependencies: ['fireRate', 'luck'],

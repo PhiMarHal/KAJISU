@@ -1323,18 +1323,16 @@ window.activateVolcano = function () {
     PlayerComponentSystem.addComponent('volcanoAbility');
 };
 
-// Add this to hero.js - Generic factory function for HP-based multiplier perks
+// Generic factory function for HP-based multiplier perks
 function createHealthMultiplierComponent(multiplierName, getMultiplierRef, setMultiplierRef) {
     return {
         // Track our contribution to the specified multiplier
         currentContribution: 0,
         multiplierName: multiplierName,
-        maxContribution: 0.40, // Cap at +0.40
 
         initialize: function (player) {
-            // Calculate initial contribution based on current health
-            // Formula: +0.04 per HP, capped at maxContribution
-            this.currentContribution = Math.min(playerHealth * 0.04, this.maxContribution);
+            // Formula: +0.04 per current HP, uncapped
+            this.currentContribution = playerHealth * 0.04;
 
             // Add our contribution to the specified multiplier
             setMultiplierRef(getMultiplierRef() + this.currentContribution);
@@ -1349,9 +1347,8 @@ function createHealthMultiplierComponent(multiplierName, getMultiplierRef, setMu
         },
 
         update: function (player) {
-            // Calculate what our contribution should be based on current health
-            // Formula: +0.04 per HP, capped at maxContribution
-            const newContribution = Math.min(playerHealth * 0.04, this.maxContribution);
+            // Formula: +0.04 per current HP, uncapped
+            const newContribution = playerHealth * 0.04;
 
             // Only update if there's a meaningful change
             if (Math.abs(this.currentContribution - newContribution) > 0.01) {

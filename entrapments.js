@@ -693,7 +693,7 @@ DropperPerkRegistry.registerDropperPerk('CANNONBALL', {
     cooldown: 80000,
     cooldownStat: 'luck',
     cooldownFormula: 'sqrt',
-    positionMode: 'random',
+    positionMode: 'player',
     activationMethod: 'periodic'
 });
 
@@ -702,10 +702,10 @@ window.activateCannonball = function () {
     const scene = game.scene.scenes[0];
     if (!scene) return;
 
-    // Create the first cannonball at random screen position
+    // Create the first cannonball at player position
     const cannonballConfig = DropperPerkRegistry.perkDropperConfigs['CANNONBALL'].getConfig();
-    cannonballConfig.x = SeededRNG.random('drop') * game.config.width;
-    cannonballConfig.y = SeededRNG.random('drop') * game.config.height;
+    cannonballConfig.x = player.x;
+    cannonballConfig.y = player.y;
     DropperSystem.create(scene, cannonballConfig);
 
     // Apply the dropper perk for future cannonballs

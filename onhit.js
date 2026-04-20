@@ -924,10 +924,9 @@ OnHitEffectSystem.registerComponent('gamblerFallacyEffect', {
     // Handle the player being hit
     onHit: function (scene, enemy) {
         // Calculate dynamic chance based on number of triggers
-        // Starts at 50% (0.5 / 1)
-        // Then 25% (0.5 / 2)
-        // Then 16.6% (0.5 / 3), etc.
-        const triggerChance = 0.5 / (1 + this.triggerCount);
+        // Starts at 20% (0.4 / 2)
+        // Then 13.3% (0.4 / 3), etc.
+        const triggerChance = 0.4 / (2 + this.triggerCount);
 
         // Check if the dynamic chance triggers
         if (SeededRNG.random('effect') < triggerChance) {

@@ -563,7 +563,7 @@ ProjectileComponentSystem.registerComponent('fireEffect', {
         ProjectileComponentSystem.setProjectileColor(projectile, '#FF4500', projectile.scene);
         this.fireDamage = (getEffectiveDamage() + playerLuck) * 0.5;
         this.fireDuration = 4000; // 4s default duration
-        this.fireTickInterval = 200; // 0.2 seconds default tick interval
+        this.fireTickInterval = 250; // 0.25 seconds default tick interval
 
         // Initialize lastFireTime if using cooldown mode
         if (this.useCooldown) {

@@ -276,38 +276,38 @@ const BeaconConfigs = {
         fontSize: '24px',
         color: '#00DDFF',
         baseCooldown: 20000,
-        maxBeacons: null, // Use playerLuck
-        paddingX: 0.2, // Storm beacons use different padding
+        maxBeacons: null,
+        paddingX: 0.2,
         paddingY: 0.2,
         strokeThickness: 2,
         onCollect: function (beacon) {
-            // Create lightning storm
+            const scene = this;
             const centerX = beacon.x;
             const centerY = beacon.y;
             const lightningCount = 8;
             const radius = 360;
 
-            // Create first lightning at center
-            createLightningStrike(this, centerX, centerY);
+            // First strike at center, immediate
+            createLightningStrike(scene, centerX, centerY);
 
-            // Create remaining lightning strikes with delays
+            // Remaining strikes staggered on the deterministic delay queue
             for (let i = 1; i < lightningCount; i++) {
                 const angle = SeededRNG.angle('effect');
                 const distance = SeededRNG.random('effect') * radius;
                 const x = centerX + Math.cos(angle) * distance;
                 const y = centerY + Math.sin(angle) * distance;
 
-                this.time.delayedCall(i * 300, function () {
+                DelayQueue.schedule(i * 300, function () {
                     if (gameOver || gamePaused) return;
-                    createLightningStrike(this, x, y);
-                }, [], this);
+                    createLightningStrike(scene, x, y);
+                }, scene);
             }
 
-            // Create special storm collection effect
-            const flash = this.add.circle(beacon.x, beacon.y, 50, 0x00DDFF, 0.7);
+            // Visual-only flash expansion (tween is fine for visuals)
+            const flash = scene.add.circle(beacon.x, beacon.y, 50, 0x00DDFF, 0.7);
             window.registerEffect('entity', flash);
 
-            this.tweens.add({
+            scene.tweens.add({
                 targets: flash,
                 radius: 200,
                 alpha: 0,

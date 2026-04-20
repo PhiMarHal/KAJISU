@@ -963,34 +963,37 @@ function createLightningStrike(scene, x, y, options = {}) {
         duration: 1000 // Match the fade-out duration of the lightning
     });
 
-    // Apply damage to nearby enemies immediately
+    // Apply damage to nearby enemies immediately. Manual radius check over
+    // the enemies group instead of scene.physics.overlapCirc — deterministic
+    // across record/playback, and matches the iteration order used everywhere
+    // else in the codebase.
     const hitRadius = 64; // 64px hit radius as in your code
-    const targets = scene.physics.overlapCirc(x, y, hitRadius, true, true);
+    const hitRadiusSq = hitRadius * hitRadius;
 
     // Create unique ID for this lightning strike
     const strikeId = DamageSourceRegistry.nextId('lightning');
 
-    // Apply damage to all enemies in radius, but filter to only actual enemies
-    targets.forEach(body => {
-        if (body.gameObject && body.gameObject.active) {
-            // Check if this game object is actually an enemy by seeing if it's in the enemies group
-            const isEnemy = EnemySystem.enemiesGroup.children.entries.includes(body.gameObject);
+    const enemies = EnemySystem.enemiesGroup.getChildren();
+    for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        if (!enemy || !enemy.active) continue;
 
-            if (isEnemy) {
-                applyContactDamage.call(
-                    scene,
-                    {
-                        damageSourceId: strikeId,
-                        damage: damage,
-                        active: true
-                    },
-                    body.gameObject,
-                    damage,
-                    0 // No cooldown needed for one-time effect
-                );
-            }
-        }
-    });
+        const dx = enemy.x - x;
+        const dy = enemy.y - y;
+        if (dx * dx + dy * dy > hitRadiusSq) continue;
+
+        applyContactDamage.call(
+            scene,
+            {
+                damageSourceId: strikeId,
+                damage: damage,
+                active: true
+            },
+            enemy,
+            damage,
+            0 // No cooldown needed for one-time effect
+        );
+    }
 
     // Fade everything out together
     scene.tweens.add({

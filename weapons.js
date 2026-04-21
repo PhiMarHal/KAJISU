@@ -174,6 +174,16 @@ const WeaponSystem = {
                 return;
             }
 
+            // Check lifespan expiration — default 60s, tick-derived via GameClock.
+            // Ensures persistent piercing projectiles (e.g. boomerang-returning
+            // shots the player outruns) don't accumulate indefinitely. Existing
+            // per-component timers like stasisEffect's 8s fire first and remain
+            // authoritative — this check just backstops everything else.
+            if (GameClock.now() >= projectile.expiresAt) {
+                projectile.destroy();
+                return;
+            }
+
             // Process component updates
             if (projectile.components && Object.keys(projectile.components).length > 0) {
                 ProjectileComponentSystem.processEvent(projectile, 'update');
@@ -228,7 +238,9 @@ const WeaponSystem = {
             speed: 400,
             damage: getEffectiveDamage(),
             fontSize: getEffectiveSize(),
-            skipComponents: false
+            skipComponents: false,
+            lifespan: 60000,
+            bounceOnBounds: false // when true, projectile bounces on world edge
         };
 
         // Merge config with defaults
@@ -277,6 +289,13 @@ const WeaponSystem = {
 
         // Disable Phaser movement
         projectile.body.moves = false;
+
+        // Deterministic expiration stamp (tick-derived via GameClock.now())
+        // Infinity disables the check
+        projectile.expiresAt = GameClock.now() + projConfig.lifespan;
+
+        // Stash the bounce flag for updateProjectileGroup to read each tick.
+        projectile.bounceOnBounds = projConfig.bounceOnBounds;
 
         // Process onFire event if needed
         if (projectile.needsOnFireEvent && projectile.components) {

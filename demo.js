@@ -5,6 +5,17 @@ const DemoSystem = {
     // Version for compatibility checking
     VERSION: 3,  // Bumped for input-based deterministic format
 
+    // IndexedDB configuration
+    DB_NAME: 'kajisu_demos',
+    DB_VERSION: 1,
+    STORE_NAME: 'demos',
+
+    // Cached DB open promise (opened once, reused)
+    _dbPromise: null,
+
+    // Cached init promise (opens DB + runs legacy migration, runs once)
+    _initPromise: null,
+
     // State
     isRecording: false,
     isPlaying: false,
@@ -215,44 +226,201 @@ const DemoSystem = {
     },
 
     // =====================
-    // STORAGE FUNCTIONS
+    // STORAGE FUNCTIONS (IndexedDB)
     // =====================
+    // Demos are stored in IndexedDB, one record per demo keyed by timestamp.
+    // Each record holds denormalized metadata (seed, settings, counts) alongside
+    // the gzip-compressed demo payload, so listing/dropdowns never have to
+    // decompress data. This is the "determinism-irrelevant" side of the system -
+    // the in-memory demo object fed to playback is unchanged by any of this.
 
-    listSavedDemos: function () {
-        const demos = [];
+    // Open (or create) the IndexedDB database. Cached so we only open once.
+    _openDB: function () {
+        if (this._dbPromise) return this._dbPromise;
+
+        this._dbPromise = new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+                    // keyPath = timestamp so we can put/get by timestamp directly
+                    db.createObjectStore(this.STORE_NAME, { keyPath: 'timestamp' });
+                }
+            };
+
+            request.onsuccess = (event) => resolve(event.target.result);
+            request.onerror = (event) => {
+                console.error('Failed to open demo IndexedDB:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+
+        return this._dbPromise;
+    },
+
+    // One-time initialization: open DB and migrate any legacy localStorage demos.
+    // All *public* storage methods await this internally. Internal helpers
+    // (_writeDemo, _openDB) must NOT await init - they're what init uses to do
+    // its work, so awaiting init from inside them would deadlock.
+    init: function () {
+        if (this._initPromise) return this._initPromise;
+        this._initPromise = (async () => {
+            try {
+                await this._openDB();
+                await this._migrateFromLocalStorage();
+            } catch (e) {
+                console.error('Failed to initialize DemoSystem storage:', e);
+            }
+        })();
+        return this._initPromise;
+    },
+
+    // Migrate any demos still stored in localStorage (old base64 format) to
+    // IndexedDB, then remove the localStorage copies. Safe to run more than
+    // once - it's a no-op when no legacy keys remain.
+    //
+    // NOTE: This runs as part of init, so it MUST use _writeDemo directly
+    // rather than the public saveDemo (which would await init and deadlock).
+    _migrateFromLocalStorage: async function () {
+        const legacyKeys = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key && key.startsWith('kajisu_demo_')) {
-                const timestamp = key.replace('kajisu_demo_', '');
-                demos.push(timestamp);
+                legacyKeys.push(key);
             }
         }
-        demos.sort((a, b) => b.localeCompare(a));
-        return demos;
+
+        if (legacyKeys.length === 0) return;
+
+        console.log(`Migrating ${legacyKeys.length} legacy demo(s) from localStorage to IndexedDB...`);
+
+        let migrated = 0;
+        for (const key of legacyKeys) {
+            try {
+                const data = localStorage.getItem(key);
+                if (!data) continue;
+                // Legacy format was btoa(utf-8 JSON) - decode it the old way
+                const json = decodeURIComponent(escape(atob(data)));
+                const demo = JSON.parse(json);
+                if (demo && demo.timestamp) {
+                    await this._writeDemo(demo);
+                    localStorage.removeItem(key);
+                    migrated++;
+                }
+            } catch (e) {
+                console.warn(`Failed to migrate legacy demo ${key}:`, e);
+            }
+        }
+
+        console.log(`Migration complete: ${migrated}/${legacyKeys.length} demo(s) moved to IndexedDB.`);
     },
 
-    saveToLocalStorage: function (demo) {
+    // Gzip-encode a demo object to a Uint8Array using the native CompressionStream API.
+    // Falls back to plain UTF-8 JSON bytes if the API is unavailable (very old browsers).
+    _encodeDemo: async function (demo) {
+        const json = JSON.stringify(demo);
+        const bytes = new TextEncoder().encode(json);
+
+        if (typeof CompressionStream === 'undefined') {
+            return bytes;
+        }
+
+        try {
+            const stream = new Blob([bytes]).stream()
+                .pipeThrough(new CompressionStream('gzip'));
+            return new Uint8Array(await new Response(stream).arrayBuffer());
+        } catch (e) {
+            console.warn('Gzip compression failed, storing uncompressed:', e);
+            return bytes;
+        }
+    },
+
+    // Decode a Uint8Array back into the demo object. Auto-detects gzip via
+    // magic bytes (0x1f 0x8b) so uncompressed fallback payloads still work.
+    _decodeDemo: async function (bytes) {
+        const isGzip = bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
+
+        let jsonBytes = bytes;
+        if (isGzip && typeof DecompressionStream !== 'undefined') {
+            const stream = new Blob([bytes]).stream()
+                .pipeThrough(new DecompressionStream('gzip'));
+            jsonBytes = new Uint8Array(await new Response(stream).arrayBuffer());
+        }
+
+        const json = new TextDecoder().decode(jsonBytes);
+        return JSON.parse(json);
+    },
+
+    // Internal IDB write. Does NOT await init(), so this is the safe path for
+    // migration to use (migration runs inside init itself - awaiting init from
+    // there would deadlock). Public saveDemo wraps this with init + logging.
+    _writeDemo: async function (demo) {
+        const data = await this._encodeDemo(demo);
+
+        const record = {
+            timestamp: demo.timestamp,
+            version: demo.version,
+            seed: demo.seed,
+            settings: demo.settings,
+            totalTicks: demo.totalTicks ?? 0,
+            inputCount: demo.inputs ? demo.inputs.length : 0,
+            eventCount: demo.events ? demo.events.length : 0,
+            drawingCount: demo.drawings ? demo.drawings.length : 0,
+            data: data
+        };
+
+        const db = await this._openDB();
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction(this.STORE_NAME, 'readwrite');
+            const store = tx.objectStore(this.STORE_NAME);
+            const req = store.put(record);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+        });
+
+        return data.length;
+    },
+
+    // List all saved demo timestamps (newest first).
+    // Uses getAllKeys so no demo payloads are transferred.
+    listSavedDemos: async function () {
+        try {
+            await this.init();
+            const db = await this._openDB();
+            return await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.STORE_NAME, 'readonly');
+                const store = tx.objectStore(this.STORE_NAME);
+                const request = store.getAllKeys();
+                request.onsuccess = () => {
+                    const keys = request.result || [];
+                    keys.sort((a, b) => b.localeCompare(a));
+                    resolve(keys);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        } catch (e) {
+            console.error('Failed to list demos:', e);
+            return [];
+        }
+    },
+
+    // Save a demo to IndexedDB. Returns true on success, false on failure.
+    // Metadata fields are denormalized onto the record so getDemoInfo()
+    // never has to decompress the payload.
+    saveDemo: async function (demo) {
         if (!demo || !demo.timestamp) return false;
 
         try {
-            const key = `kajisu_demo_${demo.timestamp}`;
-            const data = this.compressDemo(demo);
-            const sizeKB = (data.length / 1024).toFixed(1);
-
-            // Check approximate size before trying to save
-            if (data.length > 4 * 1024 * 1024) {
-                console.error(`Demo too large to save: ${sizeKB}KB (max ~4MB)`);
-                return false;
-            }
-
-            localStorage.setItem(key, data);
-            console.log(`Demo saved: ${key} (${sizeKB}KB, ${demo.inputs.length} inputs)`);
+            await this.init();
+            const size = await this._writeDemo(demo);
+            const sizeKB = (size / 1024).toFixed(1);
+            console.log(`Demo saved: ${demo.timestamp} (${sizeKB}KB gzip, ${demo.inputs.length} inputs)`);
             return true;
         } catch (e) {
             // Handle quota exceeded error
-            if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
-                console.error(`localStorage quota exceeded. Demo size: ${(this.compressDemo(demo).length / 1024).toFixed(1)}KB`);
-                console.error('Try deleting old demos to free up space.');
+            if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+                console.error('IndexedDB quota exceeded. Try deleting old demos to free up space.');
             } else {
                 console.error('Failed to save demo:', e);
             }
@@ -260,48 +428,68 @@ const DemoSystem = {
         }
     },
 
-    loadFromLocalStorage: function (timestamp) {
+    // Load a full demo (decompressed, ready for playback) from IndexedDB.
+    loadDemo: async function (timestamp) {
         try {
-            const key = `kajisu_demo_${timestamp}`;
-            const data = localStorage.getItem(key);
-            if (!data) return null;
-            return this.decompressDemo(data);
+            await this.init();
+            const db = await this._openDB();
+            const record = await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.STORE_NAME, 'readonly');
+                const store = tx.objectStore(this.STORE_NAME);
+                const req = store.get(timestamp);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            if (!record || !record.data) return null;
+            return await this._decodeDemo(record.data);
         } catch (e) {
             console.error('Failed to load demo:', e);
             return null;
         }
     },
 
-    deleteFromLocalStorage: function (timestamp) {
-        const key = `kajisu_demo_${timestamp}`;
-        localStorage.removeItem(key);
-    },
-
-    exportAsText: function (demo) {
-        return this.compressDemo(demo);
-    },
-
-    importFromText: function (text) {
+    // Delete a demo from IndexedDB by timestamp.
+    deleteDemo: async function (timestamp) {
         try {
-            return this.decompressDemo(text);
+            await this.init();
+            const db = await this._openDB();
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.STORE_NAME, 'readwrite');
+                const store = tx.objectStore(this.STORE_NAME);
+                const req = store.delete(timestamp);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        } catch (e) {
+            console.error('Failed to delete demo:', e);
+        }
+    },
+
+    // Export a demo as a portable text string (base64-encoded gzip bytes).
+    // Much shorter than the old btoa(JSON) format for the same content.
+    exportAsText: async function (demo) {
+        const bytes = await this._encodeDemo(demo);
+        // Convert Uint8Array -> base64. Chunked to avoid blowing the call stack
+        // on very large demos (String.fromCharCode(...bytes) would spread millions of args).
+        let binary = '';
+        const CHUNK = 0x8000;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+        }
+        return btoa(binary);
+    },
+
+    // Import a demo from the text format produced by exportAsText.
+    importFromText: async function (text) {
+        try {
+            const binary = atob(text);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return await this._decodeDemo(bytes);
         } catch (e) {
             console.error('Failed to import demo:', e);
             return null;
         }
-    },
-
-    // =====================
-    // COMPRESSION
-    // =====================
-
-    compressDemo: function (demo) {
-        const json = JSON.stringify(demo);
-        return btoa(unescape(encodeURIComponent(json)));
-    },
-
-    decompressDemo: function (data) {
-        const json = decodeURIComponent(escape(atob(data)));
-        return JSON.parse(json);
     },
 
     // =====================
@@ -320,20 +508,33 @@ const DemoSystem = {
         return `${year}-${month}-${day} ${hour}:${minute}`;
     },
 
-    getDemoInfo: function (timestamp) {
-        const demo = this.loadFromLocalStorage(timestamp);
-        if (!demo) return null;
+    // Return summary info for a demo WITHOUT decompressing the payload -
+    // reads denormalized metadata fields directly off the IDB record.
+    getDemoInfo: async function (timestamp) {
+        try {
+            await this.init();
+            const db = await this._openDB();
+            const record = await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.STORE_NAME, 'readonly');
+                const store = tx.objectStore(this.STORE_NAME);
+                const req = store.get(timestamp);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            if (!record) return null;
 
-        return {
-            timestamp: timestamp,
-            formatted: this.formatTimestamp(timestamp),
-            seed: demo.seed,
-            settings: demo.settings,
-            inputCount: demo.inputs ? demo.inputs.length : 0,
-            duration: demo.totalTicks ? Math.round(demo.totalTicks / 60) :
-                (demo.inputs && demo.inputs.length > 0 ?
-                    Math.round(demo.inputs[demo.inputs.length - 1][0] / 60) : 0)
-        };
+            return {
+                timestamp: record.timestamp,
+                formatted: this.formatTimestamp(record.timestamp),
+                seed: record.seed,
+                settings: record.settings,
+                inputCount: record.inputCount ?? 0,
+                duration: record.totalTicks ? Math.round(record.totalTicks / 60) : 0
+            };
+        } catch (e) {
+            console.error('Failed to get demo info:', e);
+            return null;
+        }
     },
 
     reset: function () {
@@ -359,3 +560,7 @@ const DemoSystem = {
 };
 
 window.DemoSystem = DemoSystem;
+
+// Kick off storage init on page load. Non-blocking - all storage methods
+// await this.init() internally so everything serializes correctly.
+DemoSystem.init();

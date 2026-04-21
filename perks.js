@@ -1533,6 +1533,18 @@ const PERKS = {
             window.activateMeteor();
         }
     },
+    "DOG_FAIRY": {
+        kanji: "犬精",
+        kana: "いぬせい",
+        romaji: "inusei",
+        english: "Dog Fairy",
+        description: "Man's best friend always returns",
+        color: "#DAA520", // Goldenrod — warm, loyal
+        hoverColor: 0xB8860B,
+        onAcquire: function () {
+            window.activateDogFairy();
+        }
+    },
     "REPLICATE": {
         kanji: "分身",
         kana: "ぶんしん",

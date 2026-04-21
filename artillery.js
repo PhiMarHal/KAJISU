@@ -717,6 +717,12 @@ ProjectileComponentSystem.registerComponent('healingAuraEffect', {
 
 // Register component for boomerang effect
 ProjectileComponentSystem.registerComponent('boomerangEffect', {
+    // Whether the projectile visually spins while traveling. Defaults to true
+    // to preserve YELLOW_BOOMERANG's existing look. Set to false via the
+    // addComponent config (e.g. { spin: false }) for projectiles where a
+    // spinning animation looks out of place — like a dog kanji.
+    spin: true,
+
     initialize: function (projectile) {
         // Mark as piercing
         projectile.piercing = true;
@@ -728,14 +734,18 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
         this.returning = false; // Track if the boomerang is returning
         this.initialized = false; // Flag to track full initialization
 
-        // Add rotation animation
-        projectile.scene.tweens.add({
-            targets: projectile,
-            angle: 360,
-            duration: 1000,
-            repeat: -1,
-            ease: 'Linear'
-        });
+        // Add rotation animation unless disabled via config. We hold the tween
+        // reference so callers can stop it later without killing unrelated
+        // tweens on the projectile (e.g. the turn-around flash below).
+        if (this.spin) {
+            this.spinTween = projectile.scene.tweens.add({
+                targets: projectile,
+                angle: 360,
+                duration: 1000,
+                repeat: -1,
+                ease: 'Linear'
+            });
+        }
 
         // Set flag for a deferred velocity capture
         projectile.needsOnFireEvent = true;
@@ -836,7 +846,7 @@ ProjectileComponentSystem.registerComponent('boomerangEffect', {
             }
 
             // Calculate new velocity toward player
-            const returnSpeed = this.originalSpeed * 1.2; // faster, else we can outrun forever and get infinite shots!!
+            const returnSpeed = this.originalSpeed * 1.2; // faster return used to be before proj has finite life
             const newVelocityX = (dx / distance) * returnSpeed;
             const newVelocityY = (dy / distance) * returnSpeed;
 

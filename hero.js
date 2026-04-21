@@ -714,6 +714,104 @@ window.activateShield = function (options) {
     return ShieldSystem.activateShield(options);
 };
 
+// DOG_FAIRY: Fires a slow, piercing "dog" projectile at the closest enemy with a guaranteed boomerang return.
+PlayerComponentSystem.registerComponent('dogFairyAbility', {
+    // Store timer reference
+    shotsTimer: null,
+
+    initialize: function (player) {
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        this.shotsTimer = CooldownManager.createTimer({
+            statName: null,
+            statFunction: () => getEffectiveFireRate() + playerLuck,
+            statDependencies: ['fireRate', 'luck'],
+            baseCooldown: 480000,
+            formula: 'divide',
+            component: this,
+            callback: this.fireDog,
+            callbackScope: this,
+            loop: true
+        });
+
+        // Fire first dog immediately on acquisition
+        this.fireDog();
+    },
+
+    // Fire a single piercing boomerang-dog at the closest enemy
+    fireDog: function () {
+        if (gameOver || gamePaused) return;
+
+        const scene = game.scene.scenes[0];
+        if (!scene) return;
+
+        const target = WeaponSystem.findClosestEnemy(scene, 2000);
+        if (!target) return;
+
+        const angle = Phaser.Math.Angle.Between(
+            player.x, player.y,
+            target.x, target.y
+        );
+
+        const dogDamage = getEffectiveDamage() + playerLuck;
+
+        const dog = WeaponSystem.createProjectile.call(WeaponSystem, scene, {
+            x: player.x,
+            y: player.y,
+            angle: angle,
+            symbol: '犬',           // Kanji for "dog" (inu)
+            color: '#DAA520',       // Goldenrod — warm, loyal, distinct from other fairies
+            speed: 200,             // Slow enough that a running player can outpace the return
+            damage: dogDamage,
+            fontSize: 32,           // Fixed 32px per design; no damage-scaling
+            bounceOnBounds: true    // Ricochet off world edges instead of dying off-screen
+        });
+
+        if (!dog) return;
+
+        if (!dog.components.boomerangEffect) {
+            // Common path: no YELLOW_BOOMERANG proc. Attach boomerang ourselves
+            // with spin disabled, then manually fire the deferred onFire pass
+            ProjectileComponentSystem.addComponent(dog, 'boomerangEffect', { spin: false });
+            const comp = dog.components.boomerangEffect;
+            if (comp && comp.onFire) {
+                comp.onFire(dog, scene, angle);
+            }
+        } else {
+            // Rare path: YELLOW_BOOMERANG procced on this dog, so the component
+            // was attached with default spin=true and its tween is already
+            // running. Stop that specific tween and reset the kanji's angle so
+            // the dog doesn't do the silly spin.
+            const comp = dog.components.boomerangEffect;
+            if (comp.spinTween) {
+                comp.spinTween.stop();
+                comp.spinTween = null;
+            }
+            dog.angle = 0;
+        }
+    },
+
+    // Cleanup on removal
+    cleanup: function (player) {
+        if (this.shotsTimer) {
+            CooldownManager.removeTimer(this.shotsTimer);
+            this.shotsTimer = null;
+        }
+    }
+});
+
+PlayerPerkRegistry.registerPerkEffect('DOG_FAIRY', {
+    componentName: 'dogFairyAbility',
+    condition: function () {
+        return true;
+    }
+});
+
+window.activateDogFairy = function () {
+    PlayerComponentSystem.addComponent('dogFairyAbility');
+};
+
 // God Hammer component
 PlayerComponentSystem.registerComponent('godHammerAbility', {
     // Store timer reference

@@ -293,15 +293,21 @@ function playerDeath(killerEnemy) {
     gameOver = true;
 
     // Save demo recording
+    // Fire-and-forget - saveDemo is async (IndexedDB), but we don't want to
+    // delay the game-over UI on disk I/O. stopRecording is still sync, so the
+    // demo object is captured immediately; only the persistence is deferred.
     if (window.DemoSystem && DemoSystem.isRecording) {
         const demo = DemoSystem.stopRecording();
         if (demo) {
-            const saved = DemoSystem.saveToLocalStorage(demo);
-            if (saved) {
-                console.log(`Demo saved: ${demo.timestamp}`);
-            } else {
-                console.error(`Failed to save demo: ${demo.timestamp} - check console for details`);
-            }
+            DemoSystem.saveDemo(demo).then(saved => {
+                if (saved) {
+                    console.log(`Demo saved: ${demo.timestamp}`);
+                } else {
+                    console.error(`Failed to save demo: ${demo.timestamp} - check console for details`);
+                }
+            }).catch(e => {
+                console.error(`Failed to save demo: ${demo.timestamp}`, e);
+            });
         }
     }
 

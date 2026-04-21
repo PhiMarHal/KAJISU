@@ -506,52 +506,49 @@ const StartMenuSystem = {
 
     // Create demo selector dropdown
     createDemoSelector: function (sizes) {
-        const demos = DemoSystem.listSavedDemos();
-
-        // Don't show selector if no demos available
-        if (demos.length === 0) {
-            return null;
-        }
-
+        // Container starts hidden and is revealed once async population finds demos.
+        // This lets us keep a synchronous return signature - the caller's existing
+        // `if (demoSelector)` check still works, the element just stays invisible
+        // when there are no demos to show.
         const container = document.createElement('div');
         container.style.cssText = `
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s ease;
-            width: 100%;
-        `;
+        display: none;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+        width: 100%;
+    `;
 
         const label = document.createElement('div');
         label.textContent = 'Watch Demo';
         label.dataset.toggleLabel = '';
         label.style.cssText = `
-            font-size: ${sizes.toggleSize}px;
-            color: ${this.state.selectedDemo ? '#FFD700' : '#FFFFFF'};
-            transition: all 0.3s ease;
-        `;
+        font-size: ${sizes.toggleSize}px;
+        color: ${this.state.selectedDemo ? '#FFD700' : '#FFFFFF'};
+        transition: all 0.3s ease;
+    `;
 
         const selectContainer = document.createElement('div');
         selectContainer.style.cssText = `
-            display: flex;
-            align-items: center;
-        `;
+        display: flex;
+        align-items: center;
+    `;
 
         // Create dropdown select
         const select = document.createElement('select');
         select.style.cssText = `
-            width: ${sizes.toggleSize * 6}px;
-            height: ${sizes.toggleSize * 1.4}px;
-            font-size: ${sizes.toggleSize * 0.65}px;
-            padding: 0 ${sizes.toggleSize * 0.3}px;
-            border: 2px solid #666;
-            border-radius: ${sizes.toggleSize * 0.3}px;
-            background-color: #333;
-            color: #FFF;
-            outline: none;
-            cursor: pointer;
-            font-family: monospace;
-        `;
+        width: ${sizes.toggleSize * 6}px;
+        height: ${sizes.toggleSize * 1.4}px;
+        font-size: ${sizes.toggleSize * 0.65}px;
+        padding: 0 ${sizes.toggleSize * 0.3}px;
+        border: 2px solid #666;
+        border-radius: ${sizes.toggleSize * 0.3}px;
+        background-color: #333;
+        color: #FFF;
+        outline: none;
+        cursor: pointer;
+        font-family: monospace;
+    `;
 
         // Add "None" option
         const noneOption = document.createElement('option');
@@ -559,19 +556,34 @@ const StartMenuSystem = {
         noneOption.textContent = '— None —';
         select.appendChild(noneOption);
 
-        // Add demo options
-        demos.forEach(timestamp => {
-            const option = document.createElement('option');
-            option.value = timestamp;
-            // Format: "01/31 18:30" for readability
-            const formatted = DemoSystem.formatTimestamp(timestamp);
-            const info = DemoSystem.getDemoInfo(timestamp);
-            const duration = info ? `${Math.floor(info.duration / 60)}:${String(info.duration % 60).padStart(2, '0')}` : '??';
-            option.textContent = `${formatted} (${duration})`;
-            select.appendChild(option);
-        });
+        // Async-populate the demo options from IndexedDB. getDemoInfo reads
+        // denormalized metadata straight off each record, so no payload is
+        // decompressed here - dropdown population with 50 demos is still cheap.
+        (async () => {
+            try {
+                const demos = await DemoSystem.listSavedDemos();
+                if (demos.length === 0) return; // container stays hidden
 
-        select.addEventListener('change', (e) => {
+                const infos = await Promise.all(demos.map(ts => DemoSystem.getDemoInfo(ts)));
+
+                demos.forEach((timestamp, i) => {
+                    const option = document.createElement('option');
+                    option.value = timestamp;
+                    // Format: "01/31 18:30" for readability
+                    const formatted = DemoSystem.formatTimestamp(timestamp);
+                    const info = infos[i];
+                    const duration = info ? `${Math.floor(info.duration / 60)}:${String(info.duration % 60).padStart(2, '0')}` : '??';
+                    option.textContent = `${formatted} (${duration})`;
+                    select.appendChild(option);
+                });
+
+                container.style.display = 'flex';
+            } catch (e) {
+                console.error('Failed to populate demo dropdown:', e);
+            }
+        })();
+
+        select.addEventListener('change', async (e) => {
             const value = e.target.value;
             this.state.selectedDemo = value || null;
 
@@ -580,7 +592,7 @@ const StartMenuSystem = {
             select.style.borderColor = value ? '#FFD700' : '#666';
 
             if (value) {
-                const info = DemoSystem.getDemoInfo(value);
+                const info = await DemoSystem.getDemoInfo(value);
                 if (info) {
                     this.showInfoMessage(`Demo from ${info.formatted} - ${info.duration}s run`);
                 }
@@ -961,12 +973,12 @@ const StartMenuSystem = {
     },
 
     // Start the game
-    startGame: function () {
+    startGame: async function () {
         this.cleanup();
 
         // Check if we're playing back a demo
         if (this.state.selectedDemo) {
-            const demo = DemoSystem.loadFromLocalStorage(this.state.selectedDemo);
+            const demo = await DemoSystem.loadDemo(this.state.selectedDemo);
             if (demo) {
                 // Start playback - this returns seed and settings
                 const playbackInfo = DemoSystem.startPlayback(demo);

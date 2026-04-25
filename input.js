@@ -443,6 +443,39 @@ const InputSystem = {
                     console.log('Error in keyboard API detection:', error);
                 });
         }
+
+        // Fallback: detect layout from the first distinctive keypress.
+        // Works in all browsers, online and local, without any API.
+        // Keeps listening until a definitive signal is found either way.
+        if (!isLocalEnvironment) {
+            const detectOnKeypress = (e) => {
+                // Keys whose output differs between QWERTY and AZERTY
+                const azertySignals = {
+                    'KeyQ': ['a', 'A'],
+                    'KeyA': ['q', 'Q'],
+                    'KeyW': ['z', 'Z'],
+                    'KeyZ': ['w', 'W']
+                };
+                const qwertySignals = {
+                    'KeyQ': ['q', 'Q'],
+                    'KeyA': ['a', 'A'],
+                    'KeyW': ['w', 'W'],
+                    'KeyZ': ['z', 'Z']
+                };
+
+                if (azertySignals[e.code]?.includes(e.key)) {
+                    this.keyboard.layout = 'azerty';
+                    this.updateWASDKeys(scene);
+                    document.removeEventListener('keydown', detectOnKeypress);
+                    console.log("AZERTY keyboard detected via keypress fallback");
+                } else if (qwertySignals[e.code]?.includes(e.key)) {
+                    document.removeEventListener('keydown', detectOnKeypress);
+                    console.log("QWERTY keyboard confirmed via keypress fallback");
+                }
+                // If key is neither list, keep listening
+            };
+            document.addEventListener('keydown', detectOnKeypress);
+        }
     },
 
     // Update WASD keys based on layout
@@ -772,6 +805,21 @@ const InputSystem = {
                     this.lastMouseY = pointer.y;
                 }
             }, [], this);
+        }
+    },
+
+    // Disable Phaser keyboard capture while a text input is focused.
+    // Called by leaderboard.js (and any other overlay with text inputs).
+    disableForTextInput: function () {
+        if (this.scene?.input?.keyboard) {
+            this.scene.input.keyboard.disableGlobalCapture();
+        }
+    },
+
+    // Re-enable Phaser keyboard capture after text input loses focus.
+    enableAfterTextInput: function () {
+        if (this.scene?.input?.keyboard) {
+            this.scene.input.keyboard.enableGlobalCapture();
         }
     },
 

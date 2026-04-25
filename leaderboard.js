@@ -183,6 +183,15 @@
         const result = overlay.querySelector('#lb-result');
         const skip = overlay.querySelector('#lb-skip');
 
+        // Disable Phaser's keyboard capture while typing so movement keys
+        // (Z, Q, S, D on AZERTY / W, A, S, D on QWERTY) reach the input field.
+        input.addEventListener('focus', () => {
+            if (window.InputSystem?.disableForTextInput) window.InputSystem.disableForTextInput();
+        });
+        input.addEventListener('blur', () => {
+            if (window.InputSystem?.enableAfterTextInput) window.InputSystem.enableAfterTextInput();
+        });
+
         input.focus();
 
         // Strip any non-alphanumeric characters as the player types
@@ -195,6 +204,11 @@
         input.addEventListener('keydown', e => {
             if (e.key === 'Enter') submit.click();
         });
+
+        const closeOverlay = () => {
+            if (window.InputSystem?.enableAfterTextInput) window.InputSystem.enableAfterTextInput();
+            overlay.remove();
+        };
 
         submit.addEventListener('click', async () => {
             const name = input.value.trim();
@@ -213,7 +227,7 @@
                 result.textContent = `You ranked #${response.rank}!`;
                 submit.textContent = 'CLOSE';
                 submit.disabled = false;
-                submit.addEventListener('click', () => overlay.remove(), { once: true });
+                submit.addEventListener('click', closeOverlay, { once: true });
             } else {
                 result.textContent = 'Submission failed. Try again?';
                 result.className = 'error';
@@ -222,7 +236,7 @@
             }
         });
 
-        skip.addEventListener('click', () => overlay.remove());
+        skip.addEventListener('click', closeOverlay);
     }
 
     // ─────────────────────────────────────────────
@@ -257,9 +271,6 @@
     // ─────────────────────────────────────────────
     // Init
     // ─────────────────────────────────────────────
-    // Start session as soon as the script loads.
-    // If the page loads before the API responds that's fine —
-    // the token will be ready long before the game ends.
     startSession();
     hookScoreSystem();
 

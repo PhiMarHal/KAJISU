@@ -64,9 +64,9 @@ const DemoSync = {
     // Generate a simple hash string for quick comparison
     hashSnapshot: function (snap) {
         // Include all determinism-critical values (skip visual-only counts like projectiles).
-        // Pushable positions hash in as a pipe-joined string so any drift triggers mismatch.
+        // Pushable states hash in as an id:pos string so any drift triggers mismatch.
         const pushHash = snap.pushables
-            ? snap.pushables.map(function (p) { return p.x + ',' + p.y; }).join('|')
+            ? snap.pushables.map(function (p) { return p.id + ':' + p.x + ',' + p.y; }).join('|')
             : '';
         return `${snap.px},${snap.py},${snap.hp},${snap.xp},${snap.lvl},${snap.score},${snap.time},${snap.enemies},${snap.rng_enemy},${snap.rng_perk},${snap.rng_drop},${snap.rng_effect},${snap.rng_drawing},P[${pushHash}]`;
     },
@@ -94,10 +94,9 @@ const DemoSync = {
 
     // Gather pushable entity states for drift diagnostics.
     // Returns [{id, x, y, vx, vy}, ...] sorted by id so ordering is deterministic.
-    // Note: damageSourceId is currently non-deterministic between runs (uses Date.now()
-    // and Math.random()), so IDs won't match across record/playback. The hash still
-    // catches any position drift correctly, but the drift readout can't cleanly pair
-    // balls across runs — it can only say "something in the pushable set drifted."
+    // damageSourceId comes from DamageSourceRegistry (a deterministic counter), so the
+    // same ball carries the same id across record and playback — the drift readout can
+    // therefore pair balls by id and report exact per-ball deltas (see reportPushableDrift).
     getPushableStates: function () {
         if (typeof DropperSystem === 'undefined') return [];
 
@@ -186,42 +185,65 @@ const DemoSync = {
             `[DRIFT #${this.desyncCount}] tick ${tick} (~${timeStr}s, +${sinceStr}s since first): ${diffs.join(', ')}`
         );
 
-        // Pushable drift readout — compares ball counts and per-ball positions.
-        // IDs don't match across runs (see getPushableStates note), so we show
-        // aggregate count changes and a compact position list for each side.
+        // Pushable drift readout — pairs balls by deterministic id and reports
+        // per-ball position/velocity deltas (see reportPushableDrift).
         this.reportPushableDrift(rec.pushables, play.pushables);
     },
 
     // Emit a focused drift line for pushable positions/counts.
+    // IDs are deterministic (DamageSourceRegistry counter), so the same ball carries
+    // the same id across record and playback. We pair by id and report each ball's
+    // exact delta, plus any ball present on only one side.
     reportPushableDrift: function (recPushables, playPushables) {
         const rec = recPushables || [];
         const play = playPushables || [];
 
         if (rec.length === 0 && play.length === 0) return;
 
-        // Count mismatch is the most important signal
+        // Count mismatch is the strongest single signal.
         if (rec.length !== play.length) {
             console.warn(
                 `  pushable count diverged: record=${rec.length}, playback=${play.length}`
             );
         }
 
-        // Per-ball position listing: since IDs don't match, we show both sides sorted
-        // by x+y so a human can spot whether positions look similar or totally different.
-        const fmt = function (list) {
-            return list
-                .slice()
-                .sort(function (a, b) { return (a.x + a.y) - (b.x + b.y); })
-                .map(function (p) { return `(${p.x},${p.y})`; })
-                .join(' ');
-        };
+        // Index each side by id for direct pairing.
+        const recById = {};
+        rec.forEach(function (p) { recById[p.id] = p; });
+        const playById = {};
+        play.forEach(function (p) { playById[p.id] = p; });
 
-        const recStr = fmt(rec);
-        const playStr = fmt(play);
-        if (recStr !== playStr) {
-            console.warn(`  pushable positions [rec]: ${recStr}`);
-            console.warn(`  pushable positions [play]: ${playStr}`);
-        }
+        // Union of all ids, sorted for stable readout order.
+        const allIds = Object.keys(recById)
+            .concat(Object.keys(playById))
+            .filter(function (id, i, arr) { return arr.indexOf(id) === i; })
+            .sort();
+
+        allIds.forEach(function (id) {
+            const r = recById[id];
+            const p = playById[id];
+
+            if (r && !p) {
+                console.warn(`  ${id}: present in record only @ (${r.x},${r.y})`);
+                return;
+            }
+            if (p && !r) {
+                console.warn(`  ${id}: present in playback only @ (${p.x},${p.y})`);
+                return;
+            }
+
+            // Both sides have this ball — report any drift in position or velocity.
+            if (r.x !== p.x || r.y !== p.y || r.vx !== p.vx || r.vy !== p.vy) {
+                const dx = (p.x - r.x).toFixed(2);
+                const dy = (p.y - r.y).toFixed(2);
+                const dvx = (p.vx - r.vx).toFixed(2);
+                const dvy = (p.vy - r.vy).toFixed(2);
+                console.warn(
+                    `  ${id}: Δpos=(${dx},${dy}) Δvel=(${dvx},${dvy})  ` +
+                    `rec=(${r.x},${r.y}) play=(${p.x},${p.y})`
+                );
+            }
+        });
     },
 
     // Detailed desync report
@@ -278,7 +300,7 @@ const DemoSync = {
         const pushablesDiverged =
             this.hashPushables(rec.pushables) !== this.hashPushables(play.pushables);
         if (pushablesDiverged) {
-            console.log('Pushable positions diverged. Likely causes: non-deterministic motion integration, non-deterministic collision timing, or non-deterministic damageSourceId generation affecting a downstream branch.');
+            console.log('Pushable positions diverged. Likely causes: non-deterministic motion integration, or non-deterministic collision timing/order (e.g. a collision pair still routed through Phaser physics rather than the manual AABB path).');
         }
 
         if (rec.rng_enemy !== play.rng_enemy) {
@@ -305,10 +327,11 @@ const DemoSync = {
         }
     },
 
-    // Helper for diagnosis: hash just the pushable list
+    // Helper for diagnosis: hash just the pushable list.
+    // Includes id so the hash is tied to ball identity, not just the set of positions.
     hashPushables: function (list) {
         if (!list) return '';
-        return list.map(function (p) { return p.x + ',' + p.y; }).join('|');
+        return list.map(function (p) { return p.id + ':' + p.x + ',' + p.y; }).join('|');
     },
 
     // Reset state on new game

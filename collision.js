@@ -69,6 +69,14 @@ const CollisionRegistry = {
                 if (!b || !b.active || !b.body) continue;
 
                 if (this.aabbOverlap(a.body, b.body)) {
+                    // Honor an optional Phaser-style processCallback as a filter,
+                    // so pairs migrated off scene.physics.overlap keep identical
+                    // semantics. Returning falsy skips this collision entirely.
+                    if (pair.processCallback &&
+                        !pair.processCallback.call(pair.scope, a, b)) {
+                        continue;
+                    }
+
                     pair.callback.call(pair.scope, a, b);
 
                     // If a was destroyed by the callback (non-piercing projectile),
@@ -83,6 +91,9 @@ const CollisionRegistry = {
         var scene = this.scene;
         if (!scene) return;
 
+        var inDemo = !!(window.DemoSystem &&
+            (window.DemoSystem.isRecording || window.DemoSystem.isPlaying));
+
         for (var i = this.pairs.length - 1; i >= 0; i--) {
             var pair = this.pairs[i];
 
@@ -91,18 +102,29 @@ const CollisionRegistry = {
                 continue;
             }
 
-            if (pair.type === 'manual') {
-                this.processManual(pair);
-            } else if (pair.type === 'collide') {
+            // All overlap detection runs through the deterministic manual AABB
+            // path. Phaser's scene.physics.overlap resolves callbacks in an order
+            // derived from its internal spatial tree, which is NOT guaranteed
+            // stable across record/playback — routing 'overlap' (and the default)
+            // through processManual closes that desync hole.
+            if (pair.type === 'collide') {
+                // 'collide' implies physical separation/bounce, which only Phaser's
+                // solver provides — and it is non-deterministic. Warn once per pair
+                // during a demo so any straggler that genuinely relies on it can be
+                // migrated to manual handling or removed.
+                if (inDemo && !pair._warnedNonDeterministic) {
+                    pair._warnedNonDeterministic = true;
+                    console.warn('CollisionRegistry: pair id ' + pair.id +
+                        " uses non-deterministic 'collide' during a demo. " +
+                        "Migrate this collision to 'manual'.");
+                }
                 scene.physics.collide(
                     pair.objectA, pair.objectB,
                     pair.callback, pair.processCallback, pair.scope
                 );
             } else {
-                scene.physics.overlap(
-                    pair.objectA, pair.objectB,
-                    pair.callback, pair.processCallback, pair.scope
-                );
+                // 'manual', 'overlap', and any unspecified type → deterministic AABB.
+                this.processManual(pair);
             }
         }
     },
